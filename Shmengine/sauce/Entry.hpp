@@ -17,7 +17,7 @@ extern bool32 create_game(Game* out_game);
 int WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev_instance, _In_ LPSTR lpCmdLine, _In_ int n_show_cmd)
 {
     Application::init_primitive_subsystems();
-    SHMINFOV("Shmengine Engine Version: %i\n", 1);
+    SHMINFOV("Shmengine Engine Version: %c\n", "0.001a");
     SHMINFO("Starting the engines :)\n");
 
     // Request the game instance from the application.
