@@ -25,7 +25,7 @@ namespace Memory
 		{
 			SHMASSERT(arena->mem_chunk_count < (arena->page_count - 1));
 
-			copy_memory((void*)(&chunks[index] + 1), (void*)&chunks[index], sizeof(MemArenaPageChunk) * (arena->mem_chunk_count - index));
+			copy_memory((void*)&chunks[index], (void*)(&chunks[index] + 1), sizeof(MemArenaPageChunk) * (arena->mem_chunk_count - index));
 
 			chunks[index].reserved = true;
 			chunks[index].page_count = reservation_page_count;
@@ -45,6 +45,7 @@ namespace Memory
 		MemArenaPageChunk* chunks = arena->mem_chunks;
 
 		int32 merge_offset = 0;
+		bool32 both_chunks_free = false;
 		uint32 freed_page_count = chunks[index].page_count;
 		uint32 freed_page_index = chunks[index].page_index;
 		if (index > 0)
@@ -52,21 +53,40 @@ namespace Memory
 			if (!chunks[index - 1].reserved)
 				merge_offset = -1;
 		}
-		else if (index < arena->mem_chunk_count - 1)
+		if (index < arena->mem_chunk_count - 1)
 		{
 			if (!chunks[index + 1].reserved)
-				merge_offset = 1;
+			{
+				if (merge_offset == 0)
+					merge_offset = 1;
+				else
+					both_chunks_free = true;
+			}
+				
 		}
 
 		if (merge_offset != 0)
 		{
-			chunks[index + merge_offset].page_count += chunks[index].page_count;
-			if (merge_offset == 1)
-				chunks[index + merge_offset].page_index = freed_page_index;
 
-			copy_memory((void*)&chunks[index], (void*)(&chunks[index] + 1), sizeof(MemArenaPageChunk) * (arena->mem_chunk_count - (index + 1)));
-			chunks[arena->mem_chunk_count - 1] = {};
-			arena->mem_chunk_count--;
+			chunks[index + merge_offset].page_count += chunks[index].page_count;			
+
+			if (merge_offset == 1)
+				chunks[index + merge_offset].page_index = freed_page_index;					
+
+			if (!both_chunks_free)
+			{
+				copy_memory((void*)(&chunks[index] + 1), (void*)&chunks[index], sizeof(MemArenaPageChunk) * (arena->mem_chunk_count - index - 1));
+				chunks[arena->mem_chunk_count - 1] = {};
+				arena->mem_chunk_count--;
+			}
+			else
+			{
+				chunks[index + merge_offset].page_count += chunks[index + 1].page_count;
+				copy_memory((void*)(&chunks[index] + 2), (void*)&chunks[index], sizeof(MemArenaPageChunk) * (arena->mem_chunk_count - index - 2));
+				chunks[arena->mem_chunk_count - 1] = {};
+				chunks[arena->mem_chunk_count - 2] = {};
+				arena->mem_chunk_count -= 2;
+			}
 			return true;
 		}
 		else
@@ -210,10 +230,10 @@ namespace Memory
 			else
 			{
 				void* dest_mem = mem_arena_allocate(arena, requested_size);
-				copy_memory(dest_mem, data, arena->mem_chunks[chunk_index].page_count * arena->page_size);
+				copy_memory(data, dest_mem, arena->mem_chunks[chunk_index].page_count * arena->page_size);
 				remove_reservation_at(arena, chunk_index);
-			}
-			
+				return dest_mem;
+			}	
 		}		
 		else
 		{

@@ -1,4 +1,6 @@
 #include "Game.hpp"
+#include "Defines.hpp"
+#include "containers/Darray.hpp"
 
 bool32 game_init(Game* game_inst) 
 {

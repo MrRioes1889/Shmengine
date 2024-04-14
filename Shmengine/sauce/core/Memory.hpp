@@ -13,7 +13,7 @@ namespace Memory
 	SHMAPI void free_memory(void* block, bool32 aligned);
 
 	SHMAPI void* zero_memory(void* block, uint64 size);
-	SHMAPI void* copy_memory(void* dest, const void* source, uint64 size);
+	void* copy_memory(const void* source, void* dest, uint64 size);
 	SHMAPI void* set_memory(void* dest, int32 value, uint64 size);
 
 }

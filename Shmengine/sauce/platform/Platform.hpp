@@ -23,7 +23,7 @@ namespace Platform
 	void free_memory(void* mem, bool32 aligned);
 
 	void* zero_memory(void* mem, uint64 size);
-	void* copy_memory(void* dest, const void* source, uint64 size);
+	void* copy_memory(const void* source, void* dest, uint64 size);
 	void* set_memory(void* dest, int32 value, uint64 size);
 
 	void init_console();

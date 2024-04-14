@@ -145,7 +145,7 @@ namespace Platform
         return memset(block, 0, size);
     }
 
-    void* copy_memory(void* dest, const void* source, uint64 size)
+    void* copy_memory(const void* source, void* dest, uint64 size)
     {
         return memcpy(dest, source, size);
     }

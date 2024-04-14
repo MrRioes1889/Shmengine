@@ -43,9 +43,9 @@ namespace Memory
         return Platform::zero_memory(block, size);
     }
 
-    void* copy_memory(void* dest, const void* source, uint64 size)
+    void* copy_memory(const void* source, void* dest, uint64 size)
     {
-        return Platform::copy_memory(dest, source, size);
+        return Platform::copy_memory(source, dest, size);
     }
 
     void* set_memory(void* dest, int32 value, uint64 size)

@@ -46,6 +46,10 @@ STATIC_ASSERT(sizeof(int64) == 8, "Expected i64 to be 8 bytes.");
 STATIC_ASSERT(sizeof(float32) == 4, "Expected f32 to be 4 bytes.");
 STATIC_ASSERT(sizeof(float64) == 8, "Expected f64 to be 8 bytes.");
 
+#ifdef _MSC_VER
+#define TYPEOF(x) decltype(x)
+#endif
+
 #ifdef SHMEXPORT
 // Exports
 #ifdef _MSC_VER
