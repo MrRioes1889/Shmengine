@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 
+#define DARRAY_DEFAULT_SIZE 1
 #define DARRAY_RESIZE_FACTOR 2
 
 struct SHMAPI Darray
@@ -11,7 +12,10 @@ struct SHMAPI Darray
 	uint32 stride; // Size of single object
 };
 
-#define darray_create(type, prealloc_count) \
+#define darray_create(type) \
+	(type*)_darray_create(sizeof(type), DARRAY_DEFAULT_SIZE)
+
+#define darray_create_and_reserve(type, prealloc_count) \
 	(type*)_darray_create(sizeof(type), prealloc_count)
 
 #define darray_push(array, obj) \
@@ -37,3 +41,7 @@ SHMAPI void darray_pop(void* array);
 SHMAPI void* _darray_insert_at(void* array, const void* obj, uint32 index);
 SHMAPI void darray_remove_at(void* array, uint32 index);
 
+SHMAPI void darray_clear(void* array);
+
+SHMAPI uint32 darray_size(void* array);
+SHMAPI uint32 darray_count(void* array);

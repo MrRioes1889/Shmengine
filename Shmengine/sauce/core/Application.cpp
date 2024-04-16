@@ -2,6 +2,9 @@
 #include "platform/Platform.hpp"
 #include "ApplicationTypes.hpp"
 #include "core/Memory.hpp"
+#include "core/Logging.hpp"
+
+#include "core/Event.hpp"
 
 struct application_state 
 {
@@ -38,6 +41,13 @@ namespace Application
 		app_state.is_running = true;
 		app_state.is_suspended = false;
 
+		if (!event_init())
+		{
+			SHMFATAL("ERROR: Failed to initialize event subsystem!");
+			return false;
+		}
+			
+
 		if (!Platform::startup(
 			&app_state.platform,
 			game_inst->config.name,
@@ -46,11 +56,13 @@ namespace Application
 			game_inst->config.start_width,
 			game_inst->config.start_height))
 		{
+			SHMFATAL("ERROR: Failed to startup platform layer!");
 			return false;
 		}
 
 		if (!game_inst->init(game_inst))
 		{
+			SHMFATAL("ERROR: Failed to initialize game instance!");
 			return false;
 		}
 
@@ -90,6 +102,7 @@ namespace Application
 		app_state.is_running = false;
 
 		Platform::shutdown(&app_state.platform);
+		event_shutdown();
 
 		return true;
 

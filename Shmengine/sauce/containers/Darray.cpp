@@ -101,3 +101,23 @@ void darray_remove_at(void* array, uint32 index)
 	Memory::zero_memory((void*)byte_ptr, data->stride);
 	data->count--;
 }
+
+void darray_clear(void* array)
+{
+	Darray* data = get_darray_data(array);
+	uint64 data_size = data->stride * data->count;
+	Memory::zero_memory(array, data_size);
+	data->count = 0;
+}
+
+uint32 darray_size(void* array)
+{
+	Darray* data = get_darray_data(array);
+	return data->size;
+}
+
+uint32 darray_count(void* array)
+{
+	Darray* data = get_darray_data(array);
+	return data->count;
+}
