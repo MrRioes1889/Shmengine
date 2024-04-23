@@ -63,19 +63,7 @@ namespace String
 		}
 	}
 
-	inline void append_to_string(uint32 buffer_output_size, char* buffer_output, char appendage)
-	{
-		for (uint32 i = 0; i < buffer_output_size; i++)
-		{
-			if (!buffer_output[i])
-			{
-				buffer_output[i] = appendage;
-				buffer_output[i + 1] = 0;
-				break;
-			}
-		}
-	}
-
+	uint32 append_to_string(uint32 buffer_output_size, char* buffer_output, char appendage);
 	uint32 append_to_string(uint32 buffer_output_size, char* buffer_output, char* buffer_source);
 	void concat_strings(uint32 buffer_output_size, char* buffer_output, char* buffer_a, char* buffer_b);
 	void copy_string_to_buffer(uint32 buffer_output_size, char* buffer_output, char* buffer_source);

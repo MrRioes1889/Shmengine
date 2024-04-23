@@ -16,21 +16,26 @@ extern bool32 create_game(Game* out_game);
 
 int WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev_instance, _In_ LPSTR lpCmdLine, _In_ int n_show_cmd)
 {
-    Application::init_primitive_subsystems();
-    SHMINFOV("Shmengine Engine Version: %c\n", "0.001a");
-    SHMINFO("Starting the engines :)\n");
+    if (!Application::init_primitive_subsystems())
+    {
+        SHMFATAL("Failed to initialize vital subsystems. Shuttind down.");
+        return -1;
+    }
+
+    SHMINFOV("Shmengine Engine Version: %s", "0.001a");
+    SHMINFO("Starting the engines :)");
 
     // Request the game instance from the application.
     Game game_inst;
     if (!create_game(&game_inst)) {
         SHMERROR("Failed to create game!");
-        return -1;
+        return -2;
     }  
 
     // Ensure the function pointers exist.
     if (!game_inst.render || !game_inst.update || !game_inst.init || !game_inst.on_resize) {
         SHMERROR("Failed to initialize function pointers!");
-        return -2;
+        return -3;
     }
 
     // Initialization.

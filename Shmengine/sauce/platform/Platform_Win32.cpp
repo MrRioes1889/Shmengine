@@ -1,4 +1,6 @@
 #include "platform/Platform.hpp"
+#include "core/Event.hpp"
+#include "core/Input.hpp"
 
 #if _WIN32
 
@@ -204,41 +206,46 @@ namespace Platform
             return 1;
         case WM_CLOSE:
             // TODO: Fire an event for the application to quit.
+            event_fire(EVENT_CODE_APPLICATION_QUIT, 0, {});
             return 0;
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
         case WM_SIZE: {
             // Get the updated size.
-            // RECT r;
-            // GetClientRect(hwnd, &r);
-            // uint32 width = r.right - r.left;
-            // uint32 height = r.bottom - r.top;
+             RECT r;
+             GetClientRect(hwnd, &r);
+             uint32 width = r.right - r.left;
+             uint32 height = r.bottom - r.top;
 
-            // TODO: Fire an event for window resize.
+             EventData e = {};
+             e.ui32[0] = width;
+             e.ui32[1] = height;
+             event_fire(EVENT_CODE_WINDOW_RESIZED, 0, e);
         } break;
         case WM_KEYDOWN:
         case WM_SYSKEYDOWN:
         case WM_KEYUP:
         case WM_SYSKEYUP: {
             // Key pressed/released
-            //bool32 pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
-            // TODO: input processing
+            bool32 pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
+            Keys key = (Keys)w_param;
+            Input::process_key(key, pressed);
 
         } break;
         case WM_MOUSEMOVE: {
             // Mouse move
-            //int32 x_position = GET_X_LPARAM(l_param);
-            //int32 y_position = GET_Y_LPARAM(l_param);
-            // TODO: input processing.
+            int32 x = LOWORD(l_param);
+            int32 y = HIWORD(l_param);
+            Input::process_mouse_move(x, y);
         } break;
         case WM_MOUSEWHEEL: {
-            // int32 z_delta = GET_WHEEL_DELTA_WPARAM(w_param);
-            // if (z_delta != 0) {
-            //     // Flatten the input to an OS-independent (-1, 1)
-            //     z_delta = (z_delta < 0) ? -1 : 1;
-            //     // TODO: input processing.
-            // }
+             int32 delta = GET_WHEEL_DELTA_WPARAM(w_param);
+             if (delta != 0) {
+                 // Flatten the input to an OS-independent (-1, 1)
+                 delta = (delta < 0) ? -1 : 1;
+                 Input::process_mouse_scroll(delta);
+             }
         } break;
         case WM_LBUTTONDOWN:
         case WM_MBUTTONDOWN:
@@ -246,8 +253,25 @@ namespace Platform
         case WM_LBUTTONUP:
         case WM_MBUTTONUP:
         case WM_RBUTTONUP: {
-            //bool32 pressed = msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN;
-            // TODO: input processing.
+            bool32 pressed = msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN;
+            Mousebuttons button = Mousebuttons::BUTTON_MAX_BUTTONS;
+            switch (msg)
+            {
+            case WM_LBUTTONDOWN:
+            case WM_LBUTTONUP:
+                button = Mousebuttons::LMB;
+                break;
+            case WM_RBUTTONDOWN:
+            case WM_RBUTTONUP:
+                button = Mousebuttons::RMB;
+                break;
+            case WM_MBUTTONDOWN:
+            case WM_MBUTTONUP:
+                button = Mousebuttons::MMB;
+                break;
+            }       
+
+            Input::process_mousebutton(button, pressed);
         } break;
         }
 

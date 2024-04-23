@@ -24,6 +24,21 @@ namespace String
 		*write_ptr = 0;
 	}
 
+	uint32 append_to_string(uint32 buffer_output_size, char* buffer_output, char appendage)
+	{
+		uint32 appendix_length = 1;
+		for (uint32 i = 0; i < buffer_output_size; i++)
+		{
+			if (!buffer_output[i])
+			{
+				buffer_output[i] = appendage;
+				buffer_output[i + 1] = 0;
+				break;
+			}
+		}
+		return appendix_length;
+	}
+
 	uint32 append_to_string(uint32 buffer_output_size, char* buffer_output, char* buffer_source)
 	{
 		uint32 appendix_length = 0;
@@ -196,7 +211,7 @@ namespace String
 				c++;
 			}
 
-			if (c == 0)
+			if (*c == 0)
 				break;
 
 			c++;
@@ -209,10 +224,16 @@ namespace String
 				target_i += append_to_string(buffer_limit, target_buffer, to_string(i));
 				break;
 			}
-			case('c'):
+			case('s'):
 			{
 				char* i = va_arg(arg_ptr, char*);         //Fetch String argument
 				target_i += append_to_string(buffer_limit, target_buffer, i);
+				break;
+			}
+			case('c'):
+			{
+				char a = va_arg(arg_ptr, char);         //Fetch String argument
+				target_i += append_to_string(buffer_limit, target_buffer, a);
 				break;
 			}
 			case('f'):

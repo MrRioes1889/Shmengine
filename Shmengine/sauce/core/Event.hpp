@@ -15,7 +15,7 @@ struct EventData
 		float32 f32[4];
 
 		int16 i16[8];
-		uint16 ui6[8];
+		uint16 ui16[8];
 
 		int8 i8[16];
 		uint8 ui8[16];

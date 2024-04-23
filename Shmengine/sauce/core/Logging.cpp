@@ -15,14 +15,14 @@ namespace Log
         return true;
     }
 
-    void shutdown_logging() {
+    void logging_shutdown() {
         // TODO: cleanup logging/write queued entries.
     }
 
     void log_output(LogLevel level, const char* message, ...) {
         bool32 is_error = level < LOG_LEVEL_WARN;
 
-        const int32 msg_length = 2048;
+        const uint32 msg_length = 2048;
         char out_message[msg_length] = {};
 
         String::append_to_string(msg_length, out_message, (char*)level_strings[level]);
@@ -32,6 +32,8 @@ namespace Log
         String::print_s(out_message + (sizeof(level_strings[level])), msg_length - (sizeof(level_strings[level])), (char*)message, arg_ptr);
         //vsnprintf(out_message, msg_length, message, arg_ptr);
         va_end(arg_ptr);
+
+        String::append_to_string(msg_length, out_message, (char*)"\n");
 
         //sprintf(out_message2, "%s%s\n", level_strings[level], out_message);
 

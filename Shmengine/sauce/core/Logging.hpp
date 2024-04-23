@@ -26,7 +26,7 @@ namespace Log
     };
 
     bool32 initialize_logging();
-    void shutdown_logging();
+    void logging_shutdown();
 
     SHMAPI void log_output(LogLevel level, const char* message, ...);
     //SHMAPI void log_output(LogLevel level, const char* message);

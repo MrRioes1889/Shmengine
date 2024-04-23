@@ -36,6 +36,22 @@ namespace Math
 		};
 	};
 
+	struct Vec2i
+	{
+		union
+		{
+			struct {
+				int32 x;
+				int32 y;
+			};
+			struct {
+				int32 width;
+				int32 height;
+			};
+			float e[2];
+		};
+	};
+
 	struct Rect2D
 	{
 		Vec2f pos;

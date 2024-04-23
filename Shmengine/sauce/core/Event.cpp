@@ -1,6 +1,7 @@
 #include "Event.hpp"
 #include "Memory.hpp"
 #include "containers/Darray.hpp"
+#include "Logging.hpp"
 
 struct Listener
 {
@@ -31,7 +32,7 @@ bool32 event_init()
 	Memory::zero_memory(&system_state, sizeof(EventSystem));
 
 	system_initialized = true;
-
+	SHMINFO("Event subsystem initialized!")
 	return system_initialized;
 }
 
@@ -52,10 +53,10 @@ bool32 event_register(uint16 code, void* listener, FP_OnEvent on_event)
 	if (!system_initialized)
 		return false;
 
-	Listener* e_listeners = system_state.registered[code].listeners;
+	if (system_state.registered[code].listeners == 0)
+		system_state.registered[code].listeners = darray_create(Listener);
 
-	if (e_listeners == 0)
-		e_listeners = darray_create(Listener);
+	Listener* e_listeners = system_state.registered[code].listeners;
 
 	// NOTE: Check if listener is already registered for event
 	uint32 registered_count = darray_count(e_listeners);
