@@ -175,7 +175,7 @@ namespace String
 
 	}
 
-	bool32 strings_eq(char* a, char* b)
+	bool32 strings_eq(const char* a, const char* b)
 	{
 		while (*a != 0)
 		{

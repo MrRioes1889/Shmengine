@@ -1,16 +1,17 @@
 #include "platform/Platform.hpp"
+#include "renderer/vulkan_renderer/VulkanPlatform.hpp"
 #include "core/Event.hpp"
 #include "core/Input.hpp"
 
 #if _WIN32
 
 #include <windows.h>
-
+#include <vulkan/vulkan_win32.h>
 
 namespace Platform
 {
 
-    struct internal_state {
+    struct IntenalState {
         HINSTANCE h_instance;
         HWND hwnd;
     };
@@ -23,8 +24,8 @@ namespace Platform
 
     bool32 startup(PlatformState* plat_state, const char* application_name, int32 x, int32 y, int32 width, int32 height)
     {
-        plat_state->internal_state = malloc(sizeof(internal_state));
-        internal_state* state = (internal_state*)plat_state->internal_state;
+        plat_state->internal_state = malloc(sizeof(IntenalState));
+        IntenalState* state = (IntenalState*)plat_state->internal_state;
 
         state->h_instance = GetModuleHandleA(0);
 
@@ -111,7 +112,7 @@ namespace Platform
 
     void shutdown(PlatformState* plat_state) {
         // Simply cold-cast to the known type.
-        internal_state* state = (internal_state*)plat_state->internal_state;
+        IntenalState* state = (IntenalState*)plat_state->internal_state;
 
         if (state->hwnd) {
             DestroyWindow(state->hwnd);
@@ -197,6 +198,19 @@ namespace Platform
 
     void sleep(uint32 ms) {
         Sleep(ms);
+    }
+
+    bool32 create_vulkan_surface(PlatformState* plat_state, VulkanContext* context)
+    {
+        IntenalState* state = (IntenalState*)plat_state->internal_state;
+
+        VkWin32SurfaceCreateInfoKHR create_info = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+        create_info.hinstance = state->h_instance;
+        create_info.hwnd = state->hwnd;
+
+        VK_CHECK(vkCreateWin32SurfaceKHR(context->instance, &create_info, context->allocator_callbacks, &context->surface));
+
+        return true;
     }
 
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param) {

@@ -32,7 +32,7 @@ bool32 event_init()
 	Memory::zero_memory(&system_state, sizeof(EventSystem));
 
 	system_initialized = true;
-	SHMINFO("Event subsystem initialized!")
+	SHMINFO("Event subsystem initialized!");
 	return system_initialized;
 }
 

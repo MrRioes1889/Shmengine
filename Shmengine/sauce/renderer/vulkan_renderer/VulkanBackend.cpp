@@ -1,6 +1,8 @@
 #include "VulkanBackend.hpp"
 
 #include "VulkanTypes.hpp"
+#include "VulkanDevice.hpp"
+#include "VulkanPlatform.hpp"
 #include "core/Logging.hpp"
 #include "containers/Darray.hpp"
 #include "utility/string/String.hpp"
@@ -125,12 +127,31 @@ namespace Renderer
 		SHMDEBUG("Vulkan debug messenger created.");
 #endif
 
+		SHMDEBUG("Creating vulkan surface...");
+		if (!Platform::create_vulkan_surface(plat_state, &context))
+		{
+			SHMERROR("Failed to create vulkan surface");
+			return false;
+		}
+		SHMDEBUG("Vulkan surface created.");
+
+		SHMDEBUG("Creating vulkan device...");
+		if (!vulkan_device_create(&context))
+		{
+			SHMERROR("Failed to create vulkan device.");
+			return false;
+		}
+		SHMDEBUG("Vulkan device created.");
+
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
 	}
 
 	void vulkan_shutdown(Backend* backend)
 	{		
+		SHMDEBUG("Destroying vulkan ddevice...");
+		vulkan_device_destroy(&context);
+
 		if (context.debug_messenger)
 		{
 			SHMDEBUG("Destroying vulkan debugger...");
