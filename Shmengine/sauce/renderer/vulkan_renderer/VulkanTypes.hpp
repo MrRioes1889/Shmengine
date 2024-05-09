@@ -12,11 +12,11 @@
 
 struct VulkanSwapchainSupportInfo
 {
-	VkSurfaceCapabilitiesKHR capabilities;
-	uint32 format_count;
+	VkSurfaceCapabilitiesKHR capabilities;	
 	VkSurfaceFormatKHR* formats;
-	uint32 present_mode_count;
 	VkPresentModeKHR* present_modes;
+	uint32 format_count;
+	uint32 present_mode_count;
 };
 
 struct VulkanDevice
@@ -25,13 +25,26 @@ struct VulkanDevice
 	VkDevice logical_device;
 	VulkanSwapchainSupportInfo swapchain_support;
 
-	int32 graphics_queue_index;
-	int32 present_queue_index;
-	int32 transfer_queue_index;
-
 	VkPhysicalDeviceProperties properties;
 	VkPhysicalDeviceFeatures features;
 	VkPhysicalDeviceMemoryProperties memory;
+
+	VkQueue graphics_queue;
+	VkQueue present_queue;
+	VkQueue transfer_queue;
+	int32 graphics_queue_index;
+	int32 present_queue_index;
+	int32 transfer_queue_index;
+};
+
+struct VulkanSwapchain
+{
+	VkSurfaceFormatKHR image_format;
+	VkSwapchainKHR handle;
+	VkImage* images;
+	VkImageView* views;
+	uint32 image_count;
+	uint32 max_frames_in_flight;
 };
 
 struct VulkanContext

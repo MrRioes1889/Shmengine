@@ -149,8 +149,15 @@ namespace Renderer
 
 	void vulkan_shutdown(Backend* backend)
 	{		
-		SHMDEBUG("Destroying vulkan ddevice...");
+		SHMDEBUG("Destroying vulkan device...");
 		vulkan_device_destroy(&context);
+
+		SHMDEBUG("Destroying vulkan surface...");
+		if (context.surface)
+		{
+			vkDestroySurfaceKHR(context.instance, context.surface, context.allocator_callbacks);
+			context.surface = 0;
+		}	
 
 		if (context.debug_messenger)
 		{

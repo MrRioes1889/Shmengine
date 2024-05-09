@@ -42,7 +42,7 @@ bool32 vulkan_device_create(VulkanContext* context)
 		return false;
 
 	SHMINFO("Creating logical device...");
-	//NOTE: Do not create additional queues for shared indices
+	// NOTE: Do not create additional queues for shared indices
 	bool32 present_shares_graphics_queue = context->device.graphics_queue_index == context->device.present_queue_index;
 	bool32 transfer_shares_graphics_queue = context->device.graphics_queue_index == context->device.transfer_queue_index;
 	uint32 index_count = 1;
@@ -51,11 +51,69 @@ bool32 vulkan_device_create(VulkanContext* context)
 	if (!transfer_shares_graphics_queue)
 		index_count++;
 
+	Sarray<uint32> indices(index_count);
+	uint32 index = 0;
+	indices[index++] = context->device.graphics_queue_index;
+	if (!present_shares_graphics_queue)
+		indices[index++] = context->device.present_queue_index;
+	if (!transfer_shares_graphics_queue)
+		indices[index++] = context->device.transfer_queue_index;
+	
+	// TODO: Figure out what queue priority is used for. Declaring static queue priority for now, since pointers to it are needed.  
+	static float32 queue_priority = 1.0f;
+	Sarray<VkDeviceQueueCreateInfo> queue_create_infos(index_count);	
+	for (uint32 i = 0; i < index_count; i++)
+	{
+		queue_create_infos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queue_create_infos[i].queueFamilyIndex = indices[i];
+		queue_create_infos[i].queueCount = 1 + (indices[i] == (uint32)context->device.graphics_queue_index);
+		queue_create_infos[i].flags = 0;
+		queue_create_infos[i].pNext = 0;	
+		queue_create_infos[i].pQueuePriorities = &queue_priority;
+	}
+
+	// Request device features
+	// TODO: should be config driven
+	VkPhysicalDeviceFeatures device_features = {};
+	device_features.samplerAnisotropy = VK_TRUE;
+
+	VkDeviceCreateInfo device_create_info = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+	device_create_info.queueCreateInfoCount = index_count;
+	device_create_info.pQueueCreateInfos = queue_create_infos.data;
+	device_create_info.pEnabledFeatures = &device_features;
+	device_create_info.enabledExtensionCount = 1;
+	const char* extension_names = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+	device_create_info.ppEnabledExtensionNames = &extension_names;
+
+	// NOTE: Device Layers deprecated for current vulkan versions
+	device_create_info.enabledLayerCount = 0;
+	device_create_info.ppEnabledLayerNames = 0;
+
+	VK_CHECK(vkCreateDevice(context->device.physical_device, &device_create_info, context->allocator_callbacks, &context->device.logical_device));
+	SHMINFO("Logical device created");
+
+	// NOTE: Retrieving queues
+	vkGetDeviceQueue(context->device.logical_device, context->device.graphics_queue_index, 0, &context->device.graphics_queue);
+	vkGetDeviceQueue(context->device.logical_device, context->device.present_queue_index, 0, &context->device.present_queue);
+	vkGetDeviceQueue(context->device.logical_device, context->device.transfer_queue_index, 0, &context->device.transfer_queue);
+	SHMINFO("Queues retrieved.");
+
 	return true;
 }
 
 void vulkan_device_destroy(VulkanContext* context)
 {
+
+	context->device.graphics_queue = 0;
+	context->device.present_queue = 0;
+	context->device.transfer_queue = 0;
+
+	SHMINFO("Destroying logical device...");
+	if (context->device.logical_device)
+	{
+		vkDestroyDevice(context->device.logical_device, context->allocator_callbacks);
+		context->device.logical_device = 0;
+	}
 
 	SHMINFO("Releasing physical device resources...");
 	context->device.physical_device = 0;

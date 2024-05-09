@@ -31,12 +31,10 @@ inline Sarray<T>::Sarray(uint32 reserve_count)
 	stride = sizeof(T);
 	size = reserve_count;
 	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true);
-	SHMDEBUG("Sarray created.");
 }
 
 template<typename T>
 inline Sarray<T>::~Sarray()
 {
 	Memory::free_memory(data, true);
-	SHMDEBUG("Sarray destroyed.");
 }
