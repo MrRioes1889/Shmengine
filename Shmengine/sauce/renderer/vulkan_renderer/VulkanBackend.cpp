@@ -3,6 +3,10 @@
 #include "VulkanTypes.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanPlatform.hpp"
+#include "VulkanSwapchain.hpp"
+#include "VulkanRenderpass.hpp"
+#include "VulkanCommandBuffer.hpp"
+
 #include "core/Logging.hpp"
 #include "containers/Darray.hpp"
 #include "utility/string/String.hpp"
@@ -43,10 +47,16 @@ namespace Renderer
 	static const char** validation_layer_names = 0;
 #endif
 
+	static void create_command_buffers(Renderer::Backend* backend);
+	int32 find_memory_index(uint32 type_filter, uint32 property_flags);
+
 	static VulkanContext context = {};
 
 	bool32 vulkan_init(Backend* backend, const char* application_name, Platform::PlatformState* plat_state)
 	{
+
+		context.find_memory_index = find_memory_index;
+
 		//TODO: Replace with own memory allocation callbacks!
 		context.allocator_callbacks = 0;
 
@@ -143,12 +153,31 @@ namespace Renderer
 		}
 		SHMDEBUG("Vulkan device created.");
 
+		vulkan_swapchain_create(&context, context.framebuffer_width, context.framebuffer_height, &context.swapchain);
+
+		vulkan_renderpass_create(
+			&context, 
+			&context.main_renderpass,
+			{0, 0}, 
+			{context.framebuffer_width, context.framebuffer_height},
+			{0.0f, 0.0f, 0.2f, 1.0f}, 
+			1.0f, 
+			0);
+
+		create_command_buffers(backend);
+
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
 	}
 
 	void vulkan_shutdown(Backend* backend)
 	{		
+		SHMDEBUG("Destroying vulkan renderpass...");
+		vulkan_renderpass_destroy(&context, &context.main_renderpass);
+
+		SHMDEBUG("Destroying vulkan swapchain...");
+		vulkan_swapchain_destroy(&context, &context.swapchain);
+
 		SHMDEBUG("Destroying vulkan device...");
 		vulkan_device_destroy(&context);
 
@@ -186,7 +215,44 @@ namespace Renderer
 		return true;
 	}
 
+	int32 find_memory_index(uint32 type_filter, uint32 property_flags)
+	{
+		VkPhysicalDeviceMemoryProperties memory_properties;
+		vkGetPhysicalDeviceMemoryProperties(context.device.physical_device, &memory_properties);
+
+		for (uint32 i = 0; i < memory_properties.memoryTypeCount; i++)
+		{
+			if ((type_filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & property_flags))
+				return i;
+		}
+
+		SHMWARN("Unable to find suitable memory type!");
+		return -1;
+	}
+
+	static void create_command_buffers(Renderer::Backend* backend)
+	{
+		if (!context.graphics_command_buffers.data)
+		{
+			context.graphics_command_buffers.init(context.swapchain.images.size);
+			for (uint32 i = 0; i < context.graphics_command_buffers.size; i++)
+				context.graphics_command_buffers[i] = {};
+		}
+
+		for (uint32 i = 0; i < context.graphics_command_buffers.size; i++)
+		{
+			if (context.graphics_command_buffers[i].handle)
+				vulkan_command_buffer_free(&context, context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
+			context.graphics_command_buffers[i] = {};
+			vulkan_command_buffer_allocate(&context, context.device.graphics_command_pool, true, &context.graphics_command_buffers[i]);
+		}
+			
+		SHMDEBUG("Command buffers created.");
+	}
+
 }
+
+
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -214,3 +280,4 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
 
 	return VK_FALSE;
 }
+

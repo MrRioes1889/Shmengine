@@ -6,15 +6,14 @@
 
 struct VulkanPhysicalDeviceRequirements
 {
+	Sarray<const char*> device_extension_names;
+
 	bool32 graphics;
 	bool32 present;
 	bool32 compute;
 	bool32 transfer;	
 	bool32 sampler_anisotropy;
 	bool32 discrete_gpu;
-
-	//darray
-	Sarray<const char*> device_extension_names;
 };
 
 struct VulkanPhysicalDeviceQueueFamilyInfo
@@ -25,8 +24,8 @@ struct VulkanPhysicalDeviceQueueFamilyInfo
 	uint32 transfer_family_index;
 };
 
-bool32 select_physical_device(VulkanContext* context);
-bool32 physical_device_meets_requirements(
+static bool32 select_physical_device(VulkanContext* context);
+static bool32 physical_device_meets_requirements(
 	VkPhysicalDevice device,
 	VkSurfaceKHR surface,
 	const VkPhysicalDeviceProperties* properties,
@@ -98,6 +97,13 @@ bool32 vulkan_device_create(VulkanContext* context)
 	vkGetDeviceQueue(context->device.logical_device, context->device.transfer_queue_index, 0, &context->device.transfer_queue);
 	SHMINFO("Queues retrieved.");
 
+	VkCommandPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+	pool_create_info.queueFamilyIndex = context->device.graphics_queue_index;
+	pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+	VK_CHECK(vkCreateCommandPool(context->device.logical_device, &pool_create_info, context->allocator_callbacks, &context->device.graphics_command_pool));
+	SHMINFO("Graphics command pool created.");
+
 	return true;
 }
 
@@ -108,14 +114,21 @@ void vulkan_device_destroy(VulkanContext* context)
 	context->device.present_queue = 0;
 	context->device.transfer_queue = 0;
 
-	SHMINFO("Destroying logical device...");
+	SHMDEBUG("Destroying graphics command pool...");
+	if (context->device.graphics_command_pool)
+	{
+		vkDestroyCommandPool(context->device.logical_device, context->device.graphics_command_pool, context->allocator_callbacks);
+		context->device.graphics_command_pool = 0;
+	}
+
+	SHMDEBUG("Destroying logical device...");
 	if (context->device.logical_device)
 	{
 		vkDestroyDevice(context->device.logical_device, context->allocator_callbacks);
 		context->device.logical_device = 0;
 	}
 
-	SHMINFO("Releasing physical device resources...");
+	SHMDEBUG("Releasing physical device resources...");
 	context->device.physical_device = 0;
 
 	if (context->device.swapchain_support.formats)
@@ -165,7 +178,33 @@ void vulkan_device_query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR
 	}
 }
 
-bool32 select_physical_device(VulkanContext* context)
+bool32 vulkan_device_detect_depth_format(VulkanDevice* device)
+{
+	const uint32 candidate_count = 3;
+	VkFormat candidates[candidate_count] = {
+		VK_FORMAT_D32_SFLOAT,
+		VK_FORMAT_D32_SFLOAT_S8_UINT,
+		VK_FORMAT_D24_UNORM_S8_UINT
+	};
+
+	uint32 flags = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	for (uint32 i = 0; i < candidate_count; i++)
+	{
+		VkFormatProperties properties;
+		vkGetPhysicalDeviceFormatProperties(device->physical_device, candidates[i], &properties);
+
+		if ((properties.linearTilingFeatures & flags) || (properties.optimalTilingFeatures & flags))
+		{
+			device->depth_format = candidates[i];
+			return true;
+		}
+	}
+
+	device->depth_format = VK_FORMAT_UNDEFINED;
+	return false;
+}
+
+static bool32 select_physical_device(VulkanContext* context)
 {
 	uint32 physical_device_count = 0;
 	VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, 0));
@@ -279,7 +318,7 @@ bool32 select_physical_device(VulkanContext* context)
 
 }
 
-bool32 physical_device_meets_requirements(
+static bool32 physical_device_meets_requirements(
 	VkPhysicalDevice device,
 	VkSurfaceKHR surface,
 	const VkPhysicalDeviceProperties* properties,

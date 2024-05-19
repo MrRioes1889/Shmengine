@@ -221,7 +221,7 @@ namespace Platform
         case WM_CLOSE:
             // TODO: Fire an event for the application to quit.
             event_fire(EVENT_CODE_APPLICATION_QUIT, 0, {});
-            return 0;
+            return 1;
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;

@@ -65,3 +65,5 @@ STATIC_ASSERT(sizeof(float64) == 8, "Expected f64 to be 8 bytes.");
 #define SHMAPI
 #endif
 #endif
+
+#define SHMCLAMP(x, min, max) (x < min ? min : (x > max ? max : x))
