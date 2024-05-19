@@ -22,5 +22,6 @@ namespace Application
 
 	SHMAPI bool32 run();
 
+	void get_framebuffer_size(uint32* width, uint32* height);
 }
 

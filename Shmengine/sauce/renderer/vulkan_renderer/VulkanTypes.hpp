@@ -73,9 +73,18 @@ struct VulkanRenderpass
 	VulkanRenderpassState state;
 };
 
+struct VulkanFramebuffer
+{
+	VkFramebuffer handle;
+	Sarray<VkImageView> attachments = {};
+	VulkanRenderpass* renderpass;
+};
+
 struct VulkanSwapchain
 {
 	VulkanImage depth_attachment;
+
+	Sarray<VulkanFramebuffer> framebuffers = {};
 
 	VkSurfaceFormatKHR image_format;
 	VkSwapchainKHR handle;
@@ -100,6 +109,12 @@ struct VulkanCommandBuffer
 	VulkanCommandBufferState state;
 };
 
+struct VulkanFence
+{
+	VkFence handle;
+	bool32 signaled;
+};
+
 struct VulkanContext
 {
 	int32(*find_memory_index)(uint32 type_filter, uint32 property_flags);
@@ -113,6 +128,12 @@ struct VulkanContext
 	VulkanRenderpass main_renderpass;
 
 	Sarray<VulkanCommandBuffer> graphics_command_buffers = {};
+
+	Sarray<VkSemaphore> image_available_semaphores = {};
+	Sarray<VkSemaphore> queue_complete_semaphores = {};
+
+	Sarray<VulkanFence> fences_in_flight = {};
+	Sarray<VulkanFence*> images_in_flight = {};
 
 #if defined(_DEBUG)
 	VkDebugUtilsMessengerEXT debug_messenger;

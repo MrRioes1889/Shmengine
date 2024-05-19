@@ -135,7 +135,7 @@ static void destroy(VulkanContext* context, VulkanSwapchain* swapchain)
 {
 	vulkan_image_destroy(context, &swapchain->depth_attachment);
 
-	for (uint32 i = 0; i < swapchain->images.size; i++)
+	for (uint32 i = 0; i < swapchain->images.count; i++)
 		vkDestroyImageView(context->device.logical_device, swapchain->views[i], context->allocator_callbacks);
 
 	// NOTE: Image data gets destroyed within this call, therefore does not have to be destroyed seperately
@@ -195,6 +195,7 @@ void vulkan_swapchain_present(VulkanContext* context, VulkanSwapchain* swapchain
 	else if (result != VK_SUCCESS)
 		SHMFATAL("Failed to present swap chain image!");
 
+	context->current_frame = (context->current_frame + 1) % swapchain->max_frames_in_flight;
 }
 
 

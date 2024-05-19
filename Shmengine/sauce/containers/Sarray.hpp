@@ -11,31 +11,31 @@ struct Sarray
 	Sarray(const Sarray& other) = delete;
 	Sarray(Sarray&& other) = delete;
 
-	Sarray() : stride(0), size(0), data(0) {};
+	Sarray() : count(0), data(0) {};
 	Sarray(uint32 reserve_count);
 	~Sarray();
 
 	// NOTE: Call for already instantiated arrays
 	void init(uint32 reserve_count);
+	void free_data();
+
+	void clear();
 
 	T& operator[](const uint32& index)
 	{
-		SHMASSERT_MSG(index + 1 <= size, "Index does not lie within bounds of Sarray.");
+		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
 		return data[index];
 	}
-
-	uint32 stride;
-	uint32 size;
-	T* data;	
+	
+	T* data;
+	uint32 count;
 
 };
 
 template<typename T>
 inline Sarray<T>::Sarray(uint32 reserve_count)
 {
-	stride = sizeof(T);
-	size = reserve_count;
-	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true);
+	init(reserve_count);
 }
 
 template<typename T>
@@ -48,9 +48,27 @@ inline Sarray<T>::~Sarray()
 template<typename T>
 inline void Sarray<T>::init(uint32 reserve_count)
 {
-	SHMASSERT_MSG(!data, "Cannot initialize Sarray with existing data!");
+	//SHMASSERT_MSG(!data, "Cannot initialize Sarray with existing data!");
+	if (data)
+		free_data();	
 
-	stride = sizeof(T);
-	size = reserve_count;
+	count = reserve_count;
 	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true);
+	clear();
+}
+
+template<typename T>
+inline void Sarray<T>::free_data()
+{
+	if (data)
+		Memory::free_memory(data, true);
+
+	data = 0;
+	count = 0;
+}
+
+template<typename T>
+inline void Sarray<T>::clear()
+{
+	Memory::zero_memory(data, sizeof(T) * count);
 }

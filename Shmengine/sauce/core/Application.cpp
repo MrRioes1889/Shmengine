@@ -170,6 +170,12 @@ namespace Application
 
 	}
 
+	void get_framebuffer_size(uint32* width, uint32* height)
+	{
+		*width = app_state.width;
+		*height = app_state.height;
+	}
+
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
 		switch (code)

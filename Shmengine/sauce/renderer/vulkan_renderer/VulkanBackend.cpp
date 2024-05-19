@@ -6,10 +6,14 @@
 #include "VulkanSwapchain.hpp"
 #include "VulkanRenderpass.hpp"
 #include "VulkanCommandBuffer.hpp"
+#include "VulkanFramebuffer.hpp"
+#include "VulkanFence.hpp"
 
 #include "core/Logging.hpp"
 #include "containers/Darray.hpp"
 #include "utility/string/String.hpp"
+
+#include "core/Application.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -47,10 +51,13 @@ namespace Renderer
 	static const char** validation_layer_names = 0;
 #endif
 
-	static void create_command_buffers(Renderer::Backend* backend);
+	static void create_command_buffers(Backend* backend);
+	static void regenerate_framebuffers(Backend* backend, VulkanSwapchain* swapchain, VulkanRenderpass* renderpass);
 	int32 find_memory_index(uint32 type_filter, uint32 property_flags);
 
 	static VulkanContext context = {};
+	static uint32 cached_framebuffer_width = 0;
+	static uint32 cached_framebuffer_height = 0;
 
 	bool32 vulkan_init(Backend* backend, const char* application_name, Platform::PlatformState* plat_state)
 	{
@@ -60,6 +67,12 @@ namespace Renderer
 		//TODO: Replace with own memory allocation callbacks!
 		context.allocator_callbacks = 0;
 
+		Application::get_framebuffer_size(&cached_framebuffer_width, &cached_framebuffer_height);
+		context.framebuffer_width = (cached_framebuffer_width) ? cached_framebuffer_width : 800;
+		context.framebuffer_height = (cached_framebuffer_height) ? cached_framebuffer_height : 600;
+		cached_framebuffer_width = 0;
+		cached_framebuffer_height = 0;
+
 		VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 		app_info.apiVersion = VK_API_VERSION_1_2;
 		app_info.pApplicationName = application_name;
@@ -67,8 +80,8 @@ namespace Renderer
 		app_info.pEngineName = "Shmengine";
 		app_info.engineVersion = VK_MAKE_VERSION(0,0,1);
 
-		VkInstanceCreateInfo create_info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
-		create_info.pApplicationInfo = &app_info;
+		VkInstanceCreateInfo inst_create_info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
+		inst_create_info.pApplicationInfo = &app_info;
 
 #if defined(_DEBUG)
 		SHMDEBUG("Required vulkan extensions:");
@@ -109,14 +122,14 @@ namespace Renderer
 		SHMDEBUG("All required vulkan validation layers present.");
 #endif
 
-		create_info.enabledExtensionCount = extension_count;
-		create_info.ppEnabledExtensionNames = extension_names;
+		inst_create_info.enabledExtensionCount = extension_count;
+		inst_create_info.ppEnabledExtensionNames = extension_names;
 
-		create_info.enabledLayerCount = validation_layer_count;
-		create_info.ppEnabledLayerNames = validation_layer_names;
+		inst_create_info.enabledLayerCount = validation_layer_count;
+		inst_create_info.ppEnabledLayerNames = validation_layer_names;
 
 		//NOTE: The second agument for this function is meant to contain callbacks for custom memory allocation.
-		VK_CHECK(vkCreateInstance(&create_info, context.allocator_callbacks, &context.instance));
+		VK_CHECK(vkCreateInstance(&inst_create_info, context.allocator_callbacks, &context.instance));
 
 #if defined(_DEBUG)
 		SHMDEBUG("Creating Vulkan Debugger...");
@@ -164,7 +177,26 @@ namespace Renderer
 			1.0f, 
 			0);
 
+		context.swapchain.framebuffers.init(context.swapchain.images.count);
+		regenerate_framebuffers(backend, &context.swapchain, &context.main_renderpass);
+
 		create_command_buffers(backend);
+
+		context.image_available_semaphores.init(context.swapchain.max_frames_in_flight);
+		context.queue_complete_semaphores.init(context.swapchain.max_frames_in_flight);
+		context.fences_in_flight.init(context.swapchain.max_frames_in_flight);
+
+		for (uint32 i = 0; i < context.swapchain.max_frames_in_flight; i++)
+		{
+			VkSemaphoreCreateInfo sem_create_info = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+			vkCreateSemaphore(context.device.logical_device, &sem_create_info, context.allocator_callbacks, &context.image_available_semaphores[i]);
+			vkCreateSemaphore(context.device.logical_device, &sem_create_info, context.allocator_callbacks, &context.queue_complete_semaphores[i]);
+
+			vulkan_fence_create(&context, true, &context.fences_in_flight[i]);
+		}
+
+		context.images_in_flight.init(context.swapchain.max_frames_in_flight);
+		context.images_in_flight.clear();
 
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
@@ -172,6 +204,31 @@ namespace Renderer
 
 	void vulkan_shutdown(Backend* backend)
 	{		
+
+		vkDeviceWaitIdle(context.device.logical_device);
+
+		SHMDEBUG("Destroying vulkan semaphores and fences...");
+		for (uint32 i = 0; i < context.swapchain.max_frames_in_flight; i++)
+		{
+			if (context.image_available_semaphores[i])
+				vkDestroySemaphore(context.device.logical_device, context.image_available_semaphores[i], context.allocator_callbacks);
+			context.image_available_semaphores[i] = 0;
+
+			if (context.queue_complete_semaphores[i])
+				vkDestroySemaphore(context.device.logical_device, context.queue_complete_semaphores[i], context.allocator_callbacks);
+			context.queue_complete_semaphores[i] = 0;
+
+			vulkan_fence_destroy(&context, &context.fences_in_flight[i]);
+		}
+
+		context.image_available_semaphores.free_data();
+		context.queue_complete_semaphores.free_data();
+		context.fences_in_flight.free_data();
+
+		SHMDEBUG("Destroying vulkan framebuffers...");
+		for (uint32 i = 0; i < context.swapchain.framebuffers.count; i++)
+			vullkan_framebuffer_destroy(&context, &context.swapchain.framebuffers[i]);
+
 		SHMDEBUG("Destroying vulkan renderpass...");
 		vulkan_renderpass_destroy(&context, &context.main_renderpass);
 
@@ -234,12 +291,12 @@ namespace Renderer
 	{
 		if (!context.graphics_command_buffers.data)
 		{
-			context.graphics_command_buffers.init(context.swapchain.images.size);
-			for (uint32 i = 0; i < context.graphics_command_buffers.size; i++)
+			context.graphics_command_buffers.init(context.swapchain.images.count);
+			for (uint32 i = 0; i < context.graphics_command_buffers.count; i++)
 				context.graphics_command_buffers[i] = {};
 		}
 
-		for (uint32 i = 0; i < context.graphics_command_buffers.size; i++)
+		for (uint32 i = 0; i < context.graphics_command_buffers.count; i++)
 		{
 			if (context.graphics_command_buffers[i].handle)
 				vulkan_command_buffer_free(&context, context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
@@ -248,6 +305,19 @@ namespace Renderer
 		}
 			
 		SHMDEBUG("Command buffers created.");
+	}
+
+	static void regenerate_framebuffers(Backend* backend, VulkanSwapchain* swapchain, VulkanRenderpass* renderpass)
+	{
+
+		for (uint32 i = 0; i < swapchain->images.count; i++)
+		{
+			const uint32 attachment_count = 2;
+			VkImageView attachments[attachment_count] = { swapchain->views[i], swapchain->depth_attachment.view };
+
+			vulkan_framebuffer_create(&context,	renderpass,	attachment_count, attachments, &context.swapchain.framebuffers[i]);
+		}
+
 	}
 
 }
