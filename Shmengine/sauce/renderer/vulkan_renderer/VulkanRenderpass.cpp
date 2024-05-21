@@ -1,7 +1,20 @@
 #include "VulkanRenderpass.hpp"
 
-void vulkan_renderpass_create(VulkanContext* context, VulkanRenderpass* out_renderpass, Math::Vec2i offset, Math::Vec2ui dim, Math::Vec4f clear_color, float32 depth, uint32 stencil)
+void vulkan_renderpass_create(
+	VulkanContext* context, 
+	VulkanRenderpass* out_renderpass, 
+	Math::Vec2i offset, 
+	Math::Vec2ui dim, 
+	Math::Vec4f clear_color, 
+	float32 depth, 
+	uint32 stencil)
 {
+
+	out_renderpass->offset = offset;
+	out_renderpass->dim = dim;
+	out_renderpass->clear_color = clear_color;
+	out_renderpass->depth = depth;
+	out_renderpass->stencil = stencil;
 
 	VkSubpassDescription subpass = {};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;

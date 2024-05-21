@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "utility/math/Math.hpp"
+#include "utility/Math.hpp"
 
 /**
  * @brief Represents available mouse buttons.

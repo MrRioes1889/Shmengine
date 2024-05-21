@@ -4,7 +4,7 @@
 
 #include "Defines.hpp"
 #include "core/Assert.hpp"
-#include "utility/math/Math.hpp"
+#include "utility/Math.hpp"
 #include <stdarg.h>
 
 // TODO: These have to be replaced! Should not be called inside a contiguous function call at the moment and probably arent sufficiently fast as well!
@@ -15,7 +15,7 @@ namespace String
 	char* to_string(int32 val);
 	char* to_string(float val, int32 decimals = 2);
 
-	inline uint32 length(char* buffer)
+	SHMINLINE uint32 length(char* buffer)
 	{
 		uint32 ret = 0;
 		while (*buffer++)
@@ -23,14 +23,14 @@ namespace String
 		return ret;
 	}
 
-	inline void empty(char* buffer)
+	SHMINLINE void empty(char* buffer)
 	{
 		char* p = buffer;
 		while (*p)
 			*p++ = 0;
 	}
 
-	inline int32 parse_int32(char* s)
+	SHMINLINE int32 parse_int32(char* s)
 	{
 		int32 ret = 0;
 		int32 sign = 1;
@@ -49,7 +49,7 @@ namespace String
 		return (ret * sign);
 	}
 
-	inline void left_of_last(uint32 length, char* buffer_output, char split_c, bool32 exclude_last = false)
+	SHMINLINE void left_of_last(uint32 length, char* buffer_output, char split_c, bool32 exclude_last = false)
 	{
 		for (int32 i = (int32)length - 1; i >= 0; i--)
 		{

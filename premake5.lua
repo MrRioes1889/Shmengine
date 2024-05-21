@@ -45,7 +45,7 @@ project  (engine_name)
         defines {"LIB_COMPILE", "PLATFORM_WINDOWS", "_WIN32", "SHMEXPORT"}
         warnings "High"
         inlining ("Explicit")
-        buildoptions {"/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd4127", "/wd4390", "/wd4005"}
+        buildoptions {"/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd4127", "/wd4390", "/wd4005", "/wd4554"}
         systemversion "latest"
 		cppdialect "C++20"
         staticruntime "on"
@@ -99,7 +99,7 @@ project (app_name)
         defines {"PLATFORM_WINDOWS", "_WIN32"}
         warnings "High"
         inlining ("Explicit")
-        buildoptions {"/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd4127", "/wd4390", "/wd4005"}
+        buildoptions {"/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd4127", "/wd4390", "/wd4005", "/wd4554"}
         systemversion "latest"
 		cppdialect "C++20"
         staticruntime "on"

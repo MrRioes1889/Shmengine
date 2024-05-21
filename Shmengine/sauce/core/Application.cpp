@@ -17,7 +17,7 @@ struct ApplicationState
 	bool32 is_running;
 	bool32 is_suspended;
 	Platform::PlatformState platform;
-	int32 width, height;
+	uint32 width, height;
 	float32 last_time;
 	Clock clock;
 
@@ -28,6 +28,7 @@ namespace Application
 
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
 	bool32 on_key(uint16 code, void* sender, void* listener_inst, EventData data);
+	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data);
 
 	static bool32 initialized = false;
 	static ApplicationState app_state;
@@ -61,6 +62,7 @@ namespace Application
 		event_register(EVENT_CODE_APPLICATION_QUIT, 0, on_event);
 		event_register(EVENT_CODE_KEY_PRESSED, 0, on_key);
 		event_register(EVENT_CODE_KEY_RELEASED, 0, on_key);
+		event_register(EVENT_CODE_WINDOW_RESIZED, 0, on_resized);
 
 		app_state.game_inst = game_inst;
 		app_state.is_running = true;
@@ -227,6 +229,44 @@ namespace Application
 		}
 		return false;
 
+	}
+
+	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data)
+	{
+		if (code == EVENT_CODE_WINDOW_RESIZED)
+		{
+			uint32 width = data.ui32[0];
+			uint32 height = data.ui32[1];
+
+			if (width != app_state.width || height != app_state.height)
+			{
+				app_state.width = width;
+				app_state.height = height;
+
+				SHMDEBUGV("Window resize occured: %u, %u", width, height);
+
+				if (!width || !height)
+				{
+					SHMDEBUG("Window minimized. Suspending application.");
+					app_state.is_suspended = true;
+					return true;
+				}
+				else
+				{
+					if (app_state.is_suspended)
+					{
+						SHMDEBUG("Window restores. Continuing application.");
+						app_state.is_suspended = false;
+					}
+					app_state.game_inst->on_resize(app_state.game_inst, width, height);
+					Renderer::on_resized(width, height);
+				}
+				
+			}
+				
+		}
+
+		return false;
 	}
 
 }

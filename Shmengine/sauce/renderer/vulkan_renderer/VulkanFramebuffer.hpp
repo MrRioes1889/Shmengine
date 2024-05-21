@@ -10,4 +10,4 @@ void vulkan_framebuffer_create(
 	VulkanFramebuffer* out_framebuffer
 );
 
-void vullkan_framebuffer_destroy(VulkanContext* context, VulkanFramebuffer* framebuffer);
+void vulkan_framebuffer_destroy(VulkanContext* context, VulkanFramebuffer* framebuffer);

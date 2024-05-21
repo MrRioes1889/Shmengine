@@ -25,7 +25,7 @@ void vulkan_framebuffer_create(
 
 }
 
-void vullkan_framebuffer_destroy(VulkanContext* context, VulkanFramebuffer* framebuffer)
+void vulkan_framebuffer_destroy(VulkanContext* context, VulkanFramebuffer* framebuffer)
 {
 
 	vkDestroyFramebuffer(context->device.logical_device, framebuffer->handle, context->allocator_callbacks);

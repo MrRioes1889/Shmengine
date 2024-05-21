@@ -57,6 +57,10 @@ namespace Renderer
 
 	void on_resized(uint32 width, uint32 height)
 	{
+		if (backend)
+			backend->on_resized(backend, width, height);
+		else
+			SHMWARN("Renderer backend does not exist to accept resize!");
 	}
 
 	

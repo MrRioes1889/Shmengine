@@ -33,20 +33,20 @@ struct Sarray
 };
 
 template<typename T>
-inline Sarray<T>::Sarray(uint32 reserve_count)
+SHMINLINE Sarray<T>::Sarray(uint32 reserve_count)
 {
 	init(reserve_count);
 }
 
 template<typename T>
-inline Sarray<T>::~Sarray()
+SHMINLINE Sarray<T>::~Sarray()
 {
 	if (data)
 		Memory::free_memory(data, true);
 }
 
 template<typename T>
-inline void Sarray<T>::init(uint32 reserve_count)
+SHMINLINE void Sarray<T>::init(uint32 reserve_count)
 {
 	//SHMASSERT_MSG(!data, "Cannot initialize Sarray with existing data!");
 	if (data)
@@ -58,7 +58,7 @@ inline void Sarray<T>::init(uint32 reserve_count)
 }
 
 template<typename T>
-inline void Sarray<T>::free_data()
+SHMINLINE void Sarray<T>::free_data()
 {
 	if (data)
 		Memory::free_memory(data, true);
@@ -68,7 +68,7 @@ inline void Sarray<T>::free_data()
 }
 
 template<typename T>
-inline void Sarray<T>::clear()
+SHMINLINE void Sarray<T>::clear()
 {
 	Memory::zero_memory(data, sizeof(T) * count);
 }

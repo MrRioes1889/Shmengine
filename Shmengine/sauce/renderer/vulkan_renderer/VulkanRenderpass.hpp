@@ -1,7 +1,7 @@
 #pragma once
 
 #include "VulkanTypes.hpp"
-#include "utility/math/Math.hpp"
+#include "utility/Math.hpp"
 
 void vulkan_renderpass_create(
 	VulkanContext* context,

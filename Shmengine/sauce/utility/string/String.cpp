@@ -224,6 +224,12 @@ namespace String
 				target_i += append_to_string(buffer_limit, target_buffer, to_string(i));
 				break;
 			}
+			case('u'):
+			{
+				uint32 i = va_arg(arg_ptr, uint32);         //Fetch Integer argument
+				target_i += append_to_string(buffer_limit, target_buffer, to_string(i));
+				break;
+			}
 			case('s'):
 			{
 				char* i = va_arg(arg_ptr, char*);         //Fetch String argument
