@@ -1,5 +1,4 @@
 #include "Darray.hpp"
-#include "core/Memory.hpp"
 #include "core/Assert.hpp"
 
 static Darray* get_darray_data(void* array)
@@ -7,11 +6,12 @@ static Darray* get_darray_data(void* array)
 	return (((Darray*)array) - 1);
 }
 
-void* _darray_create(uint32 stride, uint32 prealloc_count)
+void* _darray_create(uint32 stride, uint32 prealloc_count, AllocationTag tag)
 {
 	uint64 total_size = sizeof(Darray) + (stride * prealloc_count);
 
-	Darray* arr = (Darray*)Memory::allocate(total_size, true);
+	Darray* arr = (Darray*)Memory::allocate(total_size, true, tag);
+	arr->allocation_tag = tag;
 	arr->stride = stride;
 	arr->size = prealloc_count;
 	arr->count = 0;
@@ -20,14 +20,14 @@ void* _darray_create(uint32 stride, uint32 prealloc_count)
 
 void darray_destroy(void* array)
 {
-	Memory::free_memory((((Darray*)array) - 1), true);
+	Memory::free_memory((((Darray*)array) - 1), true, ((Darray*)array)->allocation_tag);
 }
 
 static void darray_resize(void*& array)
 {
 	Darray* data = get_darray_data(array);
 	uint64 requested_size = sizeof(Darray) + (data->stride * data->size * DARRAY_RESIZE_FACTOR);
-	data = (Darray*)Memory::reallocate(requested_size, data, true);
+	data = (Darray*)Memory::reallocate(requested_size, data, true, data->allocation_tag);
 	data->size = data->size * DARRAY_RESIZE_FACTOR;
 	array = data + 1;
 }

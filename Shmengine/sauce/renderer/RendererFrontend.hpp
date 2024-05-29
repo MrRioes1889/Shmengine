@@ -4,14 +4,14 @@
 
 namespace Renderer
 {
-	struct MeshDataStatic;
 
-	bool32 init(const char* application_name, Platform::PlatformState* plat_state);
+	bool32 init(void* linear_allocator, void*& out_state, const char* application_name);
 	void shutdown();
 
 	void on_resized(uint32 width, uint32 height);
 
 	bool32 draw_frame(RenderData* data);
+
 }
 
 

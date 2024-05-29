@@ -10,9 +10,11 @@
 #include "VulkanFence.hpp"
 #include "VulkanUtils.hpp"
 
+#include "shaders/VulkanObjectShader.hpp"
+
 #include "core/Logging.hpp"
 #include "containers/Darray.hpp"
-#include "utility/string/String.hpp"
+#include "utility/String.hpp"
 
 #include "core/Application.hpp"
 
@@ -61,7 +63,7 @@ namespace Renderer
 	static uint32 cached_framebuffer_width = 0;
 	static uint32 cached_framebuffer_height = 0;
 
-	bool32 vulkan_init(Backend* backend, const char* application_name, Platform::PlatformState* plat_state)
+	bool32 vulkan_init(Backend* backend, const char* application_name)
 	{
 
 		context.find_memory_index = find_memory_index;
@@ -96,8 +98,8 @@ namespace Renderer
 
 		uint32 available_layer_count = 0;
 		VK_CHECK(vkEnumerateInstanceLayerProperties(&available_layer_count, 0));
-		VkLayerProperties* available_layers = darray_create_and_reserve(VkLayerProperties, available_layer_count);
-		VK_CHECK(vkEnumerateInstanceLayerProperties(&available_layer_count, available_layers));
+		Sarray<VkLayerProperties> available_layers(available_layer_count, AllocationTag::TRANSIENT);
+		VK_CHECK(vkEnumerateInstanceLayerProperties(&available_layer_count, available_layers.data));
 
 		for (uint32 i = 0; i < validation_layer_count; i++)
 		{
@@ -120,7 +122,6 @@ namespace Renderer
 			}
 		}
 
-		darray_destroy(available_layers);
 		SHMDEBUG("All required vulkan validation layers present.");
 #endif
 
@@ -153,7 +154,7 @@ namespace Renderer
 #endif
 
 		SHMDEBUG("Creating vulkan surface...");
-		if (!Platform::create_vulkan_surface(plat_state, &context))
+		if (!Platform::create_vulkan_surface(&context))
 		{
 			SHMERROR("Failed to create vulkan surface");
 			return false;
@@ -200,6 +201,12 @@ namespace Renderer
 		context.images_in_flight.init(context.swapchain.images.count);
 		context.images_in_flight.clear();
 
+		if (!vulkan_object_shader_create(&context, &context.object_shader))
+		{
+			SHMERROR("Failed loading basic builtin object shader");
+			return false;
+		}
+
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
 	}
@@ -208,6 +215,9 @@ namespace Renderer
 	{		
 
 		vkDeviceWaitIdle(context.device.logical_device);
+
+		SHMDEBUG("Destroying vulkan shaders...");
+		vulkan_object_shader_destroy(&context, &context.object_shader);
 
 		SHMDEBUG("Destroying vulkan semaphores and fences...");
 		for (uint32 i = 0; i < context.swapchain.images.count; i++)

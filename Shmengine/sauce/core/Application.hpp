@@ -16,7 +16,7 @@ namespace Application
 
 	};
 
-	SHMAPI bool32 init_primitive_subsystems();
+	SHMAPI bool32 init_primitive_subsystems(Game* game_inst);
 
 	SHMAPI bool32 create(Game* game_inst);
 

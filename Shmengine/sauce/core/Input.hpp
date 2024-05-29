@@ -298,7 +298,7 @@ enum Keys {
 
 namespace Input
 {
-    bool32 system_init();
+    bool32 system_init(void* linear_allocator, void*& out_state);
     void system_shutdown();
     void system_update(float64 delta_time);
 

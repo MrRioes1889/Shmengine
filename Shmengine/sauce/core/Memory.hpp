@@ -2,15 +2,24 @@
 
 #include "Defines.hpp"
 
+enum class AllocationTag
+{
+	UNKNOWN,
+	MAIN,
+	TRANSIENT,
+	PERMANENT,
+	RAW,
+
+	TAG_COUNT
+};
+
 namespace Memory
 {
-	bool8 init_memory();
+	bool32 init_memory(void* linear_allocator, void*& out_state);
 
-	void* raw_allocate(uint64 size, bool32 aligned);
-	void raw_free(void* mem, bool32 aligned);
-	SHMAPI void* allocate(uint64 size, bool32 aligned);
-	SHMAPI void* reallocate(uint64 size, void* block, bool32 aligned);
-	SHMAPI void free_memory(void* block, bool32 aligned);
+	SHMAPI void* allocate(uint64 size, bool32 aligned, AllocationTag tag);
+	SHMAPI void* reallocate(uint64 size, void* block, bool32 aligned, AllocationTag tag);
+	SHMAPI void free_memory(void* block, bool32 aligned, AllocationTag tag);
 
 	SHMAPI void* zero_memory(void* block, uint64 size);
 	void* copy_memory(const void* source, void* dest, uint64 size);

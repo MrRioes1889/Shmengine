@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Common.hpp"
 
 #define VEC2F_ADD(a, b) (a##.x + b##.x, a##.y + b##.y)
 #define VEC2F_SUB(a, b) (a##.x - b##.x, a##.y - b##.y)

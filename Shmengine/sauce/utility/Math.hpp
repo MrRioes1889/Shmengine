@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+#include "math/Common.hpp"
+
 #include "math/Vec2.hpp"
 #include "math/Vec3.hpp"
 #include "math/Vec4.hpp"
@@ -10,17 +12,11 @@
 
 namespace Math
 {
-	SHMAPI float32 sin(float32 x);
-	SHMAPI float32 cos(float32 x);
-	SHMAPI float32 tan(float32 x);
-	SHMAPI float32 acos(float32 x);
-	SHMAPI float32 abs(float32 x);
-	SHMAPI float32 sqrt(float32 a);
 
-	int32 round_f_to_i(float32 x);
-	int64 round_f_to_i64(float32 x);
-	int32 floor_f_to_i(float32 x);
-	int32 ceil_f_to_i(float32 x);
+	struct Vert3
+	{
+		Vec3f position;
+	};
 	
 	SHMINLINE bool32 is_power_of_2(uint64 value) {
 		return (value != 0) && (value & (value - 1) == 0);
@@ -92,9 +88,15 @@ namespace Math
 		return (int64)swap_endianness64((uint64)i);
 	}
 
-	uint32 random_uint32(uint32& seed);
-	int32 random_int32(uint32& seed);
-	float32 random_float32(uint32& seed);
+	SHMINLINE float32 deg_to_rad(float32 deg)
+	{
+		return deg * DEG2RAD_MULTIPLIER;
+	}
+
+	SHMINLINE float32 rad_to_deg(float32 rad)
+	{
+		return rad * RAD2DEG_MULTIPLIER;
+	}
 
 }
 

@@ -2,6 +2,7 @@
 #include "renderer/vulkan_renderer/VulkanPlatform.hpp"
 #include "core/Event.hpp"
 #include "core/Input.hpp"
+#include "memory/LinearAllocator.hpp"
 
 #if _WIN32
 
@@ -11,10 +12,13 @@
 namespace Platform
 {
 
-    struct IntenalState {
+    struct PlatformState {
         HINSTANCE h_instance;
         HWND hwnd;
+        VkSurfaceKHR surface;
     };
+
+    static PlatformState* plat_state;
 
     // Clock
     static float64 clock_frequency;
@@ -22,22 +26,23 @@ namespace Platform
 
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param);
 
-    bool32 startup(PlatformState* plat_state, const char* application_name, int32 x, int32 y, int32 width, int32 height)
+    bool32 startup(void* linear_allocator, void*& out_state, const char* application_name, int32 x, int32 y, int32 width, int32 height)
     {
-        plat_state->internal_state = malloc(sizeof(IntenalState));
-        IntenalState* state = (IntenalState*)plat_state->internal_state;
+        Memory::LinearAllocator* allocator = (Memory::LinearAllocator*)linear_allocator;
+        out_state = Memory::linear_allocator_allocate(allocator, sizeof(PlatformState));
+        plat_state = (PlatformState*)out_state;
 
-        state->h_instance = GetModuleHandleA(0);
+        plat_state->h_instance = GetModuleHandleA(0);
 
         // Setup and register window class.
-        HICON icon = LoadIcon(state->h_instance, IDI_APPLICATION);
+        HICON icon = LoadIcon(plat_state->h_instance, IDI_APPLICATION);
         WNDCLASSA wc;
         memset(&wc, 0, sizeof(wc));
         wc.style = CS_DBLCLKS;  // Get double-clicks
         wc.lpfnWndProc = win32_process_message;
         wc.cbClsExtra = 0;
         wc.cbWndExtra = 0;
-        wc.hInstance = state->h_instance;
+        wc.hInstance = plat_state->h_instance;
         wc.hIcon = icon;
         wc.hCursor = LoadCursor(NULL, IDC_ARROW);  // NULL; // Manage the cursor manually
         wc.hbrBackground = NULL;                   // Transparent
@@ -83,7 +88,7 @@ namespace Platform
         HWND handle = CreateWindowExA(
             window_ex_style, "shmengine_window_class", application_name,
             window_style, window_x, window_y, window_width, window_height,
-            0, 0, state->h_instance, 0);
+            0, 0, plat_state->h_instance, 0);
 
         if (handle == 0) {
             MessageBoxA(NULL, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
@@ -91,7 +96,7 @@ namespace Platform
             return FALSE;
         }
         else {
-            state->hwnd = handle;
+            plat_state->hwnd = handle;
         }
 
         // Show the window
@@ -99,7 +104,7 @@ namespace Platform
         int32 show_window_command_flags = should_activate ? SW_SHOW : SW_SHOWNOACTIVATE;
         // If initially minimized, use SW_MINIMIZE : SW_SHOWMINNOACTIVE;
         // If initially maximized, use SW_SHOWMAXIMIZED : SW_MAXIMIZE
-        ShowWindow(state->hwnd, show_window_command_flags);
+        ShowWindow(plat_state->hwnd, show_window_command_flags);
 
         // Clock setup
         LARGE_INTEGER frequency;
@@ -110,19 +115,18 @@ namespace Platform
         return TRUE;
     }
 
-    void shutdown(PlatformState* plat_state) {
-        // Simply cold-cast to the known type.
-        IntenalState* state = (IntenalState*)plat_state->internal_state;
+    void shutdown() {
 
-        if (state->hwnd) {
-            DestroyWindow(state->hwnd);
-            state->hwnd = 0;
+        if (plat_state) {
+            DestroyWindow(plat_state->hwnd);
+            plat_state->hwnd = 0;
         }
 
         FreeConsole();
+
     }
 
-    bool32 pump_messages(PlatformState* plat_state)
+    bool32 pump_messages()
     {
         MSG message;
         while (PeekMessageA(&message, NULL, 0, 0, PM_REMOVE)) {
@@ -200,16 +204,20 @@ namespace Platform
         Sleep(ms);
     }
 
-    bool32 create_vulkan_surface(PlatformState* plat_state, VulkanContext* context)
+    bool32 create_vulkan_surface(VulkanContext* context)
     {
-        IntenalState* state = (IntenalState*)plat_state->internal_state;
 
         VkWin32SurfaceCreateInfoKHR create_info = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-        create_info.hinstance = state->h_instance;
-        create_info.hwnd = state->hwnd;
+        create_info.hinstance = plat_state->h_instance;
+        create_info.hwnd = plat_state->hwnd;
 
-        VK_CHECK(vkCreateWin32SurfaceKHR(context->instance, &create_info, context->allocator_callbacks, &context->surface));
+        if (vkCreateWin32SurfaceKHR(context->instance, &create_info, context->allocator_callbacks, &plat_state->surface) != VK_SUCCESS)
+        {
+            SHMFATAL("Failed to create vulkan surface");
+            return false;
+        }
 
+        context->surface = plat_state->surface;
         return true;
     }
 
@@ -244,6 +252,7 @@ namespace Platform
             // Key pressed/released
             bool32 pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
             Keys key = (Keys)w_param;
+
             Input::process_key(key, pressed);
 
         } break;
@@ -293,8 +302,5 @@ namespace Platform
     }
 
 }
-
-
-
 
 #endif

@@ -115,6 +115,27 @@ struct VulkanFence
 	bool32 signaled;
 };
 
+struct VulkanShaderStage
+{
+	VkShaderModuleCreateInfo create_info;
+	VkShaderModule handle;
+	VkPipelineShaderStageCreateInfo shader_stage_create_info;
+};
+
+struct VulkanPipeline
+{
+	VkPipeline handle;
+	VkPipelineLayout layout;
+};
+
+#define OBJECT_SHADER_STAGE_COUNT 2
+struct VulkanObjectShader
+{
+	VulkanShaderStage stages[OBJECT_SHADER_STAGE_COUNT];
+
+	VulkanPipeline pipeline;
+};
+
 struct VulkanContext
 {
 	int32(*find_memory_index)(uint32 type_filter, uint32 property_flags);
@@ -126,6 +147,8 @@ struct VulkanContext
 
 	VulkanSwapchain swapchain;
 	VulkanRenderpass main_renderpass;
+
+	VulkanObjectShader object_shader;
 
 	Sarray<VulkanCommandBuffer> graphics_command_buffers = {};
 

@@ -2,10 +2,12 @@ workspace "Shmengine"
     architecture "x64"
     configurations {"Debug", "Release"}
     location ""
+    startproject "Sandbox"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}/Sandbox/"
 engine_name = "Shmengine"
-app_name = ("Sandbox")
+app_name = "Sandbox"
+tests_name = "Tests"
 
 IncludeDir = {}
 
@@ -37,7 +39,7 @@ project  (engine_name)
     links
     {
         "$(VULKAN_SDK)/Lib/vulkan-1.lib"  
-    }
+    } 
 
     flags("FatalWarnings")
 
@@ -50,6 +52,11 @@ project  (engine_name)
 		cppdialect "C++20"
         staticruntime "on"
 
+        postbuildcommands
+        {
+            "$(SolutionDir)/post-build.bat"
+        }
+
     filter "configurations:Debug"
         defines {"DEBUG"}
         symbols "On"
@@ -58,6 +65,7 @@ project  (engine_name)
         defines {"NDEBUG"}
         optimize "On"
 
+--------------------------------------------------------------------------------------------------------------------------------
 
 project (app_name)
     dependson (engine_name)
@@ -81,7 +89,62 @@ project (app_name)
 
     includedirs
 	{
-		"%{wks.location}/%{prj.name}/sauce",
+		"%{wks.location}/" .. app_name .. "/sauce",
+        "%{wks.location}/" .. engine_name .. "/sauce",
+	}
+
+    links
+    {
+        "user32.lib",
+        "Gdi32.lib",
+        "Winmm.lib",
+        "%{wks.location}/bin/" .. outputdir .. "Shmengine.lib",   
+    }
+
+    flags("FatalWarnings")
+
+    filter "system:windows"
+        defines {"PLATFORM_WINDOWS", "_WIN32"}
+        warnings "High"
+        inlining ("Explicit")
+        buildoptions {"/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd4127", "/wd4390", "/wd4005", "/wd4554"}
+        systemversion "latest"
+		cppdialect "C++20"
+        staticruntime "on"
+
+    filter "configurations:Debug"
+        defines {"DEBUG"}
+        symbols "On"
+
+    filter "configurations:Release"
+        defines {"NDEBUG"}
+        optimize "On"
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+project (tests_name)
+    dependson (engine_name)
+    kind "ConsoleApp"
+    language "C++"
+    location "%{wks.location}/%{prj.name}"
+
+    targetdir ("%{wks.location}/bin/" .. outputdir)
+	objdir    ("%{wks.location}/bin-int/" .. outputdir)
+
+    -- pchheader "mpch.hpp"
+    -- pchsource "%{wks.location}/%{prj.name}/sauce/mpch.cpp"
+
+    files
+	{
+		"%{wks.location}/" .. tests_name .. "/sauce/**.h",
+		"%{wks.location}/" .. tests_name .. "/sauce/**.hpp",
+        "%{wks.location}/" .. tests_name .. "/sauce/**.c",
+		"%{wks.location}/" .. tests_name .. "/sauce/**.cpp",
+	}
+
+    includedirs
+	{
+		"%{wks.location}/" .. tests_name .. "/sauce",
         "%{wks.location}/" .. engine_name .. "/sauce",
 	}
 

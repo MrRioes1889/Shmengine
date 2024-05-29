@@ -9,7 +9,6 @@ static void create(VulkanContext* context, uint32 width, uint32 height, VulkanSw
 {
 
 	VkExtent2D swapchain_extent = { width, height };
-	out_swapchain->max_frames_in_flight = 2;
 
 	bool32 found = false;
 	for (uint32 i = 0; i < context->device.swapchain_support.format_count; i++)
@@ -53,6 +52,7 @@ static void create(VulkanContext* context, uint32 width, uint32 height, VulkanSw
 	{
 		image_count = context->device.swapchain_support.capabilities.maxImageCount;
 	}
+	out_swapchain->max_frames_in_flight = image_count - 1;
 
 	VkSwapchainCreateInfoKHR swapchain_create_info = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 	swapchain_create_info.surface = context->surface;

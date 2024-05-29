@@ -12,4 +12,6 @@ struct Game
 	void (*on_resize)(Game* game_inst, uint32 width, uint32 height);
 
 	void* state;
+
+	void* app_state;
 };

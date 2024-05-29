@@ -2,51 +2,79 @@
 #include "platform/Platform.hpp"
 #include "ApplicationTypes.hpp"
 #include "core/Memory.hpp"
+#include "memory/LinearAllocator.hpp"
 #include "core/Logging.hpp"
 
+#include "core/Clock.hpp"
 #include "core/Event.hpp"
 #include "core/Input.hpp"
-#include "core/Clock.hpp"
 
 #include "renderer/RendererFrontend.hpp"
 
-struct ApplicationState 
-{
-
-	Game* game_inst;
-	bool32 is_running;
-	bool32 is_suspended;
-	Platform::PlatformState platform;
-	uint32 width, height;
-	float32 last_time;
-	Clock clock;
-
-};
-
 namespace Application
 {
+
+	struct ApplicationState
+	{
+
+		Game* game_inst;
+		bool32 is_running;
+		bool32 is_suspended;
+		uint32 width, height;
+		float32 last_time;
+		Clock clock;
+
+		Memory::LinearAllocator systems_allocator;
+
+		void* logging_system_state;
+		void* memory_system_state;
+		void* event_system_state;
+		void* input_system_state;
+		void* renderer_system_state;
+
+	};
 
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
 	bool32 on_key(uint16 code, void* sender, void* listener_inst, EventData data);
 	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data);
 
 	static bool32 initialized = false;
-	static ApplicationState app_state;
+	static ApplicationState* app_state;
 
-	bool32 init_primitive_subsystems()
+	bool32 init_primitive_subsystems(Game* game_inst)
 	{
-		Platform::init_console();
-		Memory::init_memory();
+		*game_inst = {};
+		game_inst->app_state = Memory::allocate(sizeof(ApplicationState), true, AllocationTag::RAW);
+		app_state = (ApplicationState*)game_inst->app_state;
 
-		if (!Input::system_init())
+		app_state->game_inst = game_inst;
+		app_state->is_running = true;
+		app_state->is_suspended = false;
+		Memory::linear_allocator_create(Mebibytes(64), &app_state->systems_allocator);
+
+		Platform::init_console();
+
+		if (!Log::initialize_logging(&app_state->systems_allocator, app_state->logging_system_state))
 		{
-			SHMFATAL("ERROR: Failed to initialize input subsystem!");
+			SHMFATAL("Failed to initialize logging subsytem!");
 			return false;
 		}
 
-		if (!event_init())
+		if (!Memory::init_memory(&app_state->systems_allocator, app_state->memory_system_state))
 		{
-			SHMFATAL("ERROR: Failed to initialize event subsystem!");
+			SHMFATAL("Failed to initialize memory subsytem!");
+			return false;
+		}
+
+		if (!Input::system_init(&app_state->systems_allocator, app_state->input_system_state))
+		{
+			SHMFATAL("Failed to initialize input subsystem!");
+			return false;
+		}
+
+		if (!event_system_init(&app_state->systems_allocator, app_state->event_system_state))
+		{
+			SHMFATAL("Failed to initialize event subsystem!");
 			return false;
 		}
 
@@ -62,14 +90,11 @@ namespace Application
 		event_register(EVENT_CODE_APPLICATION_QUIT, 0, on_event);
 		event_register(EVENT_CODE_KEY_PRESSED, 0, on_key);
 		event_register(EVENT_CODE_KEY_RELEASED, 0, on_key);
-		event_register(EVENT_CODE_WINDOW_RESIZED, 0, on_resized);
-
-		app_state.game_inst = game_inst;
-		app_state.is_running = true;
-		app_state.is_suspended = false;			
+		event_register(EVENT_CODE_WINDOW_RESIZED, 0, on_resized);			
 
 		if (!Platform::startup(
-			&app_state.platform,
+			&app_state->systems_allocator, 
+			app_state->memory_system_state,
 			game_inst->config.name,
 			game_inst->config.start_pos_x,
 			game_inst->config.start_pos_y,
@@ -80,7 +105,7 @@ namespace Application
 			return false;
 		}
 
-		if (!Renderer::init(game_inst->config.name, &app_state.platform))
+		if (!Renderer::init(&app_state->systems_allocator, app_state->renderer_system_state, game_inst->config.name))
 		{
 			SHMFATAL("ERROR: Failed to initialize renderer. Application shutting down..");
 			return false;
@@ -92,7 +117,7 @@ namespace Application
 			return false;
 		}
 
-		game_inst->on_resize(app_state.game_inst, app_state.width, app_state.height);
+		game_inst->on_resize(app_state->game_inst, app_state->width, app_state->height);
 
 		initialized = true;
 		return true;
@@ -102,38 +127,38 @@ namespace Application
 	bool32 run()
 	{
 
-		clock_start(&app_state.clock);
-		clock_update(&app_state.clock);
-		app_state.last_time = app_state.clock.elapsed;
+		clock_start(&app_state->clock);
+		clock_update(&app_state->clock);
+		app_state->last_time = app_state->clock.elapsed;
 
 		float32 running_time = 0;
 		uint32 frame_count = 0;
 		float32 target_frame_seconds = 1.0f / 120.0f;
 
-		while (app_state.is_running)
+		while (app_state->is_running)
 		{
-			clock_update(&app_state.clock);
-			float32 current_time = app_state.clock.elapsed;
-			float32 delta_time = current_time - app_state.last_time;
+			clock_update(&app_state->clock);
+			float32 current_time = app_state->clock.elapsed;
+			float32 delta_time = current_time - app_state->last_time;
 			float64 frame_start_time = Platform::get_absolute_time();
-			app_state.last_time = current_time;
+			app_state->last_time = current_time;
 
-			if (!Platform::pump_messages(&app_state.platform))
+			if (!Platform::pump_messages())
 			{
-				app_state.is_running = false;
+				app_state->is_running = false;
 			}
 
-			if (!app_state.is_suspended)
+			if (!app_state->is_suspended)
 			{
-				if (!app_state.game_inst->update(app_state.game_inst, delta_time))
+				if (!app_state->game_inst->update(app_state->game_inst, delta_time))
 				{
-					app_state.is_running = false;
+					app_state->is_running = false;
 					break;
 				}
 
-				if (!app_state.game_inst->render(app_state.game_inst, delta_time))
+				if (!app_state->game_inst->render(app_state->game_inst, delta_time))
 				{
-					app_state.is_running = false;
+					app_state->is_running = false;
 					break;
 				}
 
@@ -160,13 +185,13 @@ namespace Application
 			Input::system_update(delta_time);	
 		}
 
-		app_state.is_running = false;
+		app_state->is_running = false;
 	
-		event_shutdown();
+		event_system_shutdown();
 		Input::system_shutdown();
 		Renderer::shutdown();
 
-		Platform::shutdown(&app_state.platform);
+		Platform::shutdown();
 
 		return true;
 
@@ -174,8 +199,8 @@ namespace Application
 
 	void get_framebuffer_size(uint32* width, uint32* height)
 	{
-		*width = app_state.width;
-		*height = app_state.height;
+		*width = app_state->width;
+		*height = app_state->height;
 	}
 
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
@@ -185,7 +210,7 @@ namespace Application
 		case EVENT_CODE_APPLICATION_QUIT:
 		{
 			SHMINFO("Application Quit event received. Shutting down.");
-			app_state.is_running = false;
+			app_state->is_running = false;
 			return true;
 		}
 		}
@@ -238,27 +263,27 @@ namespace Application
 			uint32 width = data.ui32[0];
 			uint32 height = data.ui32[1];
 
-			if (width != app_state.width || height != app_state.height)
+			if (width != app_state->width || height != app_state->height)
 			{
-				app_state.width = width;
-				app_state.height = height;
+				app_state->width = width;
+				app_state->height = height;
 
 				SHMDEBUGV("Window resize occured: %u, %u", width, height);
 
 				if (!width || !height)
 				{
 					SHMDEBUG("Window minimized. Suspending application.");
-					app_state.is_suspended = true;
+					app_state->is_suspended = true;
 					return true;
 				}
 				else
 				{
-					if (app_state.is_suspended)
+					if (app_state->is_suspended)
 					{
 						SHMDEBUG("Window restores. Continuing application.");
-						app_state.is_suspended = false;
+						app_state->is_suspended = false;
 					}
-					app_state.game_inst->on_resize(app_state.game_inst, width, height);
+					app_state->game_inst->on_resize(app_state->game_inst, width, height);
 					Renderer::on_resized(width, height);
 				}
 				

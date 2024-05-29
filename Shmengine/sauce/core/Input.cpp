@@ -1,6 +1,7 @@
 #include "Input.hpp"
 #include "Event.hpp"
 #include "Logging.hpp"
+#include "memory/LinearAllocator.hpp"
 
 struct KeyboardState
 {
@@ -20,38 +21,44 @@ struct InputState
 
     MouseState mouse_cur;
     MouseState mouse_prev;
+
+    bool32 initialized = false;
 };
 
+static InputState* state;
 
-static bool32 system_initialized = false;
-static InputState state = {};
-
-bool32 Input::system_init()
+bool32 Input::system_init(void* linear_allocator, void*& out_state)
 {
-    system_initialized = true;
+
+    Memory::LinearAllocator* allocator = (Memory::LinearAllocator*)linear_allocator;
+    out_state = Memory::linear_allocator_allocate(allocator, sizeof(InputState));
+    state = (InputState*)out_state;
+    *state = {};
+
+    state->initialized = true;
     SHMINFO("Input subsystem initialized!");
-    return system_initialized;
+    return state->initialized;
 }
 
 void Input::system_shutdown()
 {
-    system_initialized = false;
+    state->initialized = false;
 }
 
 void Input::system_update(float64 delta_time)
 {
-    if (!system_initialized)
+    if (!state->initialized)
         return;
 
-    state.keyboard_prev = state.keyboard_cur;
-    state.mouse_prev = state.mouse_cur;
+    state->keyboard_prev = state->keyboard_cur;
+    state->mouse_prev = state->mouse_cur;
 }
 
 void Input::process_key(Keys key, bool32 pressed)
 {
-    if (state.keyboard_cur.keys[key] != pressed)
+    if (state->keyboard_cur.keys[key] != pressed)
     {
-        state.keyboard_cur.keys[key] = pressed;
+        state->keyboard_cur.keys[key] = pressed;
 
         EventData e;
         e.ui32[0] = key;
@@ -61,9 +68,9 @@ void Input::process_key(Keys key, bool32 pressed)
 
 void Input::process_mousebutton(Mousebuttons button, bool32 pressed)
 {
-    if (state.mouse_cur.buttons[button] != pressed)
+    if (state->mouse_cur.buttons[button] != pressed)
     {
-        state.mouse_cur.buttons[button] = pressed;
+        state->mouse_cur.buttons[button] = pressed;
 
         EventData e;
         e.ui32[0] = button;
@@ -73,10 +80,10 @@ void Input::process_mousebutton(Mousebuttons button, bool32 pressed)
 
 void Input::process_mouse_move(int32 x, int32 y)
 {
-    if (state.mouse_cur.pos.x != x || state.mouse_cur.pos.y != y)
+    if (state->mouse_cur.pos.x != x || state->mouse_cur.pos.y != y)
     {
-        state.mouse_cur.pos.x = x;
-        state.mouse_cur.pos.y = y;
+        state->mouse_cur.pos.x = x;
+        state->mouse_cur.pos.y = y;
 
         EventData e;
         e.i32[0] = x;
@@ -97,50 +104,50 @@ void Input::process_mouse_scroll(int32 delta)
 
 SHMAPI bool32 Input::is_key_down(Keys key)
 {
-    return state.keyboard_cur.keys[key];
+    return state->keyboard_cur.keys[key];
 }
 
 SHMAPI bool32 Input::is_key_up(Keys key)
 {
-    return state.keyboard_cur.keys[key] == false;
+    return state->keyboard_cur.keys[key] == false;
 }
 
 SHMAPI bool32 Input::was_key_down(Keys key)
 {
-    return state.keyboard_prev.keys[key];
+    return state->keyboard_prev.keys[key];
 }
 
 SHMAPI bool32 Input::was_key_up(Keys key)
 {
-    return state.keyboard_prev.keys[key] == false;
+    return state->keyboard_prev.keys[key] == false;
 }
 
 SHMAPI bool32 Input::is_mousebutton_down(Mousebuttons button)
 {
-    return state.mouse_cur.buttons[button];
+    return state->mouse_cur.buttons[button];
 }
 
 SHMAPI bool32 Input::is_mousebutton_up(Mousebuttons button)
 {
-    return state.mouse_cur.buttons[button] == false;
+    return state->mouse_cur.buttons[button] == false;
 }
 
 SHMAPI bool32 Input::was_mousebutton_down(Mousebuttons button)
 {
-    return state.mouse_prev.buttons[button];
+    return state->mouse_prev.buttons[button];
 }
 
 SHMAPI bool32 Input::was_mousebutton_up(Mousebuttons button)
 {
-    return state.mouse_cur.buttons[button] == false;
+    return state->mouse_cur.buttons[button] == false;
 }
 
 SHMAPI Math::Vec2i Input::get_mouse_position()
 {
-    return state.mouse_cur.pos;
+    return state->mouse_cur.pos;
 }
 
 SHMAPI Math::Vec2i Input::get_previous_mouse_position()
 {
-    return state.mouse_prev.pos;
+    return state->mouse_prev.pos;
 }

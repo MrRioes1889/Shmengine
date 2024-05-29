@@ -5,19 +5,15 @@
 namespace Platform
 {
 
-	struct PlatformState
-	{
-		void* internal_state;
-	};
-
 	bool32 startup(
-		PlatformState* plat_state,
+		void* linear_allocator, 
+		void*& out_state,
 		const char* application_name,
 		int32 x, int32 y,
 		int32 width, int32 height);
 
-	void shutdown(PlatformState* plat_state);
-	bool32 pump_messages(PlatformState* plat_state);
+	void shutdown();
+	bool32 pump_messages();
 
 	void* allocate(uint64 size, bool32 aligned);
 	void free_memory(void* mem, bool32 aligned);

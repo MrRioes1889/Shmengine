@@ -8,6 +8,6 @@ struct Clock
 	float32 elapsed;
 };
 
-void clock_update(Clock* clock);
-void clock_start(Clock* clock);
-void clock_stop(Clock* clock);
+SHMAPI void clock_update(Clock* clock);
+SHMAPI void clock_start(Clock* clock);
+SHMAPI void clock_stop(Clock* clock);

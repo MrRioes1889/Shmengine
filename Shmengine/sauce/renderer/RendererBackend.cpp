@@ -4,9 +4,9 @@
 
 namespace Renderer
 {
-	bool32 Renderer::backend_create(BackendType type, Platform::PlatformState* plat_state, Backend* out_backend)
+	bool32 Renderer::backend_create(BackendType type, Backend* out_backend)
 	{
-		out_backend->plat_state = plat_state;
+
 		out_backend->frame_count = 0;
 
 		if (type == RENDERER_BACKEND_TYPE_VULKAN)

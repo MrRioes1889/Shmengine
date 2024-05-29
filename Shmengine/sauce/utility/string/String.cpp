@@ -1,9 +1,9 @@
-#include "String.hpp"
+#include "../String.hpp"
 
 namespace String
 {
 
-	void concat_strings(uint32 buffer_output_size, char* buffer_output, char* buffer_a, char* buffer_b)
+	void concat_strings(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b)
 	{
 		char* write_ptr = buffer_output;
 		uint32 write_output_size = buffer_output_size - 1;
@@ -39,7 +39,7 @@ namespace String
 		return appendix_length;
 	}
 
-	uint32 append_to_string(uint32 buffer_output_size, char* buffer_output, char* buffer_source)
+	uint32 append_to_string(uint32 buffer_output_size, char* buffer_output, const char* buffer_source)
 	{
 		uint32 appendix_length = 0;
 		char* write_ptr = buffer_output;
@@ -64,7 +64,7 @@ namespace String
 		return appendix_length;
 	}
 
-	void copy_string_to_buffer(uint32 buffer_output_size, char* buffer_output, char* buffer_source)
+	void copy_string_to_buffer(uint32 buffer_output_size, char* buffer_output, const char* buffer_source)
 	{
 		char* write_ptr = buffer_output;
 		uint32 write_output_size = buffer_output_size - 1;
@@ -191,7 +191,7 @@ namespace String
 			return false;
 	}
 
-	void print_s(char* target_buffer, uint32 buffer_limit, char* s, va_list arg_ptr)
+	void print_s(char* target_buffer, uint32 buffer_limit, const char* s, va_list arg_ptr)
 	{
 
 		for (uint32 i = 0; i < buffer_limit; i++)
@@ -201,7 +201,7 @@ namespace String
 
 		//Module 1: Initializing Myprintf's arguments 	
 
-		for (char* c = s; *c != 0; c++)
+		for (const char* c = s; *c != 0; c++)
 		{
 			while (*c != '%' && *c != 0)
 			{
@@ -260,7 +260,7 @@ namespace String
 
 	}
 
-	void print_s(char* target_buffer, uint32 buffer_limit, char* s, ...)
+	void print_s(char* target_buffer, uint32 buffer_limit, const char* s, ...)
 	{
 
 		va_list arg_ptr;

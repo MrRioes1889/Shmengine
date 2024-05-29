@@ -1,41 +1,80 @@
+#include "Application.hpp"
 #include "Logging.hpp"
 #include "Assert.hpp"
 #include "platform/Platform.hpp"
-#include "utility/string/String.hpp"
+#include "platform/FileSystem.hpp"
+
+#include "utility/String.hpp"
+#include "memory/LinearAllocator.hpp"
 
 #include <stdarg.h>
 
 namespace Log
 {
 
-    static const char* level_strings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: " };
+    struct SystemState
+    {
+        FileSystem::FileHandle log_file;
+    };
 
-    bool32 initialize_logging() {
-        // TODO: create log file.
+    static const char* level_strings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: " };
+    static SystemState* system_state;
+
+    bool32 initialize_logging(void* linear_allocator, void*& out_state)
+    {
+
+        Memory::LinearAllocator* allocator = (Memory::LinearAllocator*)linear_allocator;
+        out_state = Memory::linear_allocator_allocate(allocator, sizeof(SystemState));
+        system_state = (SystemState*)out_state;
+
+        if (!FileSystem::file_open("D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log", FILE_MODE_WRITE, false, &system_state->log_file))
+        {
+            Platform::console_write_error("Error: Unable to open console.log file for writing", LOG_LEVEL_ERROR);
+            return false;
+        }
+
         return true;
+
     }
 
-    void logging_shutdown() {
+    void logging_shutdown() 
+    {
         // TODO: cleanup logging/write queued entries.
+
+        FileSystem::file_close(&system_state->log_file);
+
+        system_state = 0;
+    }
+
+    static void append_to_log_file(const char* message)
+    {
+
+        uint64 length = String::length(message);
+        uint64 written = 0;
+
+        if (!FileSystem::write(&system_state->log_file, length, message, &written))
+        {
+            Platform::console_write_error("Error: Unable to write to console.log file", LOG_LEVEL_ERROR);
+        }
+
     }
 
     void log_output(LogLevel level, const char* message, ...) {
+        // TODO: Execute all of the logging stuff on another thread
+
         bool32 is_error = level < LOG_LEVEL_WARN;
 
-        const uint32 msg_length = 2048;
+        const uint32 msg_length = 4096;
         char out_message[msg_length] = {};
 
-        String::append_to_string(msg_length, out_message, (char*)level_strings[level]);
+        String::append_to_string(msg_length, out_message, level_strings[level]);
 
         va_list arg_ptr;
         va_start(arg_ptr, message);
-        String::print_s(out_message + (sizeof(level_strings[level])), msg_length - (sizeof(level_strings[level])), (char*)message, arg_ptr);
-        //vsnprintf(out_message, msg_length, message, arg_ptr);
+        String::print_s(out_message + (sizeof(level_strings[level])), msg_length - (sizeof(level_strings[level])), message, arg_ptr);
         va_end(arg_ptr);
 
-        String::append_to_string(msg_length, out_message, (char*)"\n");
-
-        //sprintf(out_message2, "%s%s\n", level_strings[level], out_message);
+        String::append_to_string(msg_length, out_message, "\n");
 
         // Platform-specific output.
         if (is_error) {
@@ -44,6 +83,8 @@ namespace Log
         else {
             Platform::console_write(out_message, (uint8)level);
         }
+
+        append_to_log_file(out_message);
     }
 
 }

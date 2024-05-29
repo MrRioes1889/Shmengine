@@ -4,7 +4,7 @@
 
 namespace Renderer
 {
-	bool32 vulkan_init(Backend* backend, const char* application_name, Platform::PlatformState* plat_state);
+	bool32 vulkan_init(Backend* backend, const char* application_name);
 	void vulkan_shutdown(Backend* backend);
 
 	void vulkan_on_resized(Backend* backend, uint32 width, uint32 height);

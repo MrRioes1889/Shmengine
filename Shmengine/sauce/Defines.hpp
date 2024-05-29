@@ -39,6 +39,10 @@ typedef char bool8;
 // Smallest positive number where 1.0 + FLOAT_EPSILON != 0
 #define FLOAT_EPSILON 1.192092896e-07f
 
+#define PTR_BYTES_OFFSET(ptr, bytes) (void*)(((uint8*)ptr) + bytes)
+
+#define MAX_FILEPATH_LENGTH 512
+
 // Properly define static assertions.
 #if defined(__clang__) || defined(__gcc__)
 #define STATIC_ASSERT _Static_assert

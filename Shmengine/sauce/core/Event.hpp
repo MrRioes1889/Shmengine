@@ -26,8 +26,8 @@ struct EventData
 
 typedef bool32(*FP_OnEvent)(uint16 code, void* sender, void* listener_inst, EventData data);
 
-bool32 event_init();
-void event_shutdown();
+bool32 event_system_init(void* linear_allocator, void*& out_state);
+void event_system_shutdown();
 
 SHMAPI bool32 event_register(uint16 code, void* listener, FP_OnEvent on_event);
 SHMAPI bool32 event_unregister(uint16 code, void* listener, FP_OnEvent on_event);

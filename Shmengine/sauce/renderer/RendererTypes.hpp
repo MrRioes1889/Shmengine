@@ -18,10 +18,10 @@ namespace Renderer
 
 	struct Backend
 	{
-		Platform::PlatformState* plat_state;
+
 		uint64 frame_count;
 
-		bool32(*init)(Backend* backend, const char* application_name, Platform::PlatformState* plat_state);
+		bool32(*init)(Backend* backend, const char* application_name);
 		void (*shutdown)(Backend* backend);
 
 		void (*on_resized)(Backend* backend, uint32 width, uint32 height);

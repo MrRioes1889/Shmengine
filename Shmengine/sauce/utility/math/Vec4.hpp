@@ -9,6 +9,8 @@
 #define VEC4_ONE {1, 1, 1, 1}
 #define VEC4F_ONE {1.0f, 1.0f, 1.0f, 1.0f}
 
+#define QUAT_IDENTITY {0.0f, 0.0f, 0.0f, 1.0f}
+
 namespace Math
 {
 #pragma pack(push, 1)
@@ -36,6 +38,8 @@ namespace Math
 	};
 
 #pragma pack(pop)
+
+	//------- Vec4f functions
 
 	SHMINLINE Vec4f operator+(Vec4f a, Vec4f b)
 	{
@@ -175,4 +179,6 @@ namespace Math
 		return { v.x, v.y, v.z, w };
 	}
 
+	
+	
 }
