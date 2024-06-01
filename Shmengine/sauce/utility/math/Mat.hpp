@@ -2,14 +2,13 @@
 
 #include "Defines.hpp"
 #include "Vec3.hpp"
-#include "Vec4.hpp"
+#include "Geometry.hpp"
 
 #define MAT4_IDENTITY \
 {1.0f, 0.0f, 0.0f, 0.0f,\
  0.0f, 1.0f, 0.0f, 0.0f,\
  0.0f, 0.0f, 1.0f, 0.0f,\
- 0.0f, 0.0f, 0.0f, 1.0f}
-						
+ 0.0f, 0.0f, 0.0f, 1.0f}					
 
 namespace Math
 {
@@ -371,12 +370,12 @@ namespace Math
      * @return A 3-component directional vector.
      */
     SHMINLINE Vec3f mat_left(Mat4 matrix) {
-        Vec3f right;
-        right.x = -matrix.data[0];
-        right.y = -matrix.data[4];
-        right.z = -matrix.data[8];
-        normalize(right);
-        return right;
+        Vec3f left;
+        left.x = -matrix.data[0];
+        left.y = -matrix.data[4];
+        left.z = -matrix.data[8];
+        normalize(left);
+        return left;
     }
 
     /**
@@ -386,12 +385,12 @@ namespace Math
      * @return A 3-component directional vector.
      */
     SHMINLINE Vec3f mat_right(Mat4 matrix) {
-        Vec3f left;
-        left.x = matrix.data[0];
-        left.y = matrix.data[4];
-        left.z = matrix.data[8];
-        normalize(left);
-        return left;
+        Vec3f right;
+        right.x = matrix.data[0];
+        right.y = matrix.data[4];
+        right.z = matrix.data[8];
+        normalize(right);
+        return right;
     }
 
     SHMINLINE Mat4 quat_to_mat(Quat q) {

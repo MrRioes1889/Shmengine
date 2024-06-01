@@ -12,6 +12,17 @@
 		SHMASSERT((x) == VK_SUCCESS);		\
 	}	
 
+struct VulkanBuffer
+{
+	VkBuffer handle;
+	VkDeviceMemory memory;
+	uint64 size;
+	bool32 is_locked;	
+	VkBufferUsageFlagBits usage;
+	int32 memory_index;
+	uint32 memory_property_flags;
+};
+
 struct VulkanSwapchainSupportInfo
 {
 	VkSurfaceCapabilitiesKHR capabilities;	
@@ -117,7 +128,7 @@ struct VulkanFence
 
 struct VulkanShaderStage
 {
-	VkShaderModuleCreateInfo create_info;
+	VkShaderModuleCreateInfo module_create_info;
 	VkShaderModule handle;
 	VkPipelineShaderStageCreateInfo shader_stage_create_info;
 };
@@ -147,6 +158,12 @@ struct VulkanContext
 
 	VulkanSwapchain swapchain;
 	VulkanRenderpass main_renderpass;
+
+	VulkanBuffer object_vertex_buffer;
+	VulkanBuffer object_index_buffer;
+
+	uint64 geometry_vertex_offset;
+	uint64 geometry_index_offset;
 
 	VulkanObjectShader object_shader;
 

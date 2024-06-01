@@ -60,7 +60,6 @@ bool32 vulkan_object_shader_create(VulkanContext* context, VulkanObjectShader* o
     // NOTE: Should match the number of shader->stages.
     VkPipelineShaderStageCreateInfo stage_create_infos[OBJECT_SHADER_STAGE_COUNT] = {};
     for (uint32 i = 0; i < OBJECT_SHADER_STAGE_COUNT; ++i) {
-        stage_create_infos[i].sType = out_shader->stages[i].shader_stage_create_info.sType;
         stage_create_infos[i] = out_shader->stages[i].shader_stage_create_info;
     }
 
@@ -101,4 +100,8 @@ void vulkan_object_shader_destroy(VulkanContext* context, VulkanObjectShader* sh
 
 void vulkan_object_shader_use(VulkanContext* context, VulkanObjectShader* shader)
 {
+
+    uint32 image_index = context->image_index;
+    vulkan_pipeline_bind(&context->graphics_command_buffers[image_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &shader->pipeline);
+
 }

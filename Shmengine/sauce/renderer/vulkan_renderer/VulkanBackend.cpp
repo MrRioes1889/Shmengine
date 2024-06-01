@@ -7,6 +7,7 @@
 #include "VulkanRenderpass.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanFramebuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanFence.hpp"
 #include "VulkanUtils.hpp"
 
@@ -58,10 +59,31 @@ namespace Renderer
 	static void regenerate_framebuffers(Backend* backend, VulkanSwapchain* swapchain, VulkanRenderpass* renderpass);
 	static bool32 recreate_swapchain(Backend* backend);
 	int32 find_memory_index(uint32 type_filter, uint32 property_flags);
+	static bool32 create_buffers();
 
 	static VulkanContext context = {};
 	static uint32 cached_framebuffer_width = 0;
 	static uint32 cached_framebuffer_height = 0;
+
+	static void tmp_upload_data_range(
+		VkCommandPool pool,
+		VkFence fence,
+		VkQueue queue,
+		VulkanBuffer* buffer,
+		uint64 offset,
+		uint64 size,
+		void* data)
+	{
+
+		VkBufferUsageFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		VulkanBuffer staging;
+		vulkan_buffer_create(&context, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true, &staging);
+
+		vulkan_buffer_load_data(&context, &staging, 0, size, 0, data);
+		vulkan_buffer_copy_to(&context, pool, fence, queue, staging.handle, 0, buffer->handle, offset, size);
+		vulkan_buffer_destroy(&context, &staging);
+
+	}
 
 	bool32 vulkan_init(Backend* backend, const char* application_name)
 	{
@@ -207,6 +229,40 @@ namespace Renderer
 			return false;
 		}
 
+		create_buffers();
+
+		// TODO: Replace temp code
+		const uint32 vert_count = 4;
+		Math::Vert3 verts[vert_count];
+
+		verts[0] = { 0.0f, -0.5f, 0.0f };
+		verts[1] = { 0.5f, 0.5f, 0.0f };
+		verts[2] = { 0.0f, 0.5f, 0.0f };
+		verts[3] = { 0.5f, -0.5f, 0.0f };
+
+		const uint32 index_count = 6;
+		uint32 indices[index_count] = { 0, 1, 2, 0, 3, 1 };
+
+		tmp_upload_data_range(
+			context.device.graphics_command_pool,
+			0,
+			context.device.graphics_queue,
+			&context.object_vertex_buffer,
+			0,
+			sizeof(verts),
+			verts
+		);
+
+		tmp_upload_data_range(
+			context.device.graphics_command_pool,
+			0,
+			context.device.graphics_queue,
+			&context.object_index_buffer,
+			0,
+			sizeof(indices),
+			indices
+		);
+
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
 	}
@@ -215,6 +271,10 @@ namespace Renderer
 	{		
 
 		vkDeviceWaitIdle(context.device.logical_device);
+
+		SHMDEBUG("Destroying vulkan buffers...");
+		vulkan_buffer_destroy(&context, &context.object_vertex_buffer);
+		vulkan_buffer_destroy(&context, &context.object_index_buffer);
 
 		SHMDEBUG("Destroying vulkan shaders...");
 		vulkan_object_shader_destroy(&context, &context.object_shader);
@@ -346,6 +406,15 @@ namespace Renderer
 		context.main_renderpass.dim.height = context.framebuffer_height;
 
 		vulkan_renderpass_begin(cmd, &context.main_renderpass, context.swapchain.framebuffers[context.image_index].handle);
+
+		// TODO: Replace temp code
+		vulkan_object_shader_use(&context, &context.object_shader);
+
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(cmd->handle, 0, 1, &context.object_vertex_buffer.handle, offsets);
+		vkCmdBindIndexBuffer(cmd->handle, context.object_index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdDrawIndexed(cmd->handle, 6, 1, 0, 0, 0);
 
 		return true;
 
@@ -500,9 +569,44 @@ namespace Renderer
 
 	}
 
+	static bool32 create_buffers()
+	{
+
+		VkMemoryPropertyFlagBits memory_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+		const uint64 vertex_buffer_size = sizeof(Math::Vert3) * 1024 * 1024;
+		if (!vulkan_buffer_create(
+			&context,
+			vertex_buffer_size,
+			(VkBufferUsageFlagBits)(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+			memory_property_flags,
+			true,
+			&context.object_vertex_buffer))
+		{
+			SHMERROR("Error creating vertex buffer;");
+			return false;
+		}
+		context.geometry_vertex_offset = 0;
+
+		const uint64 index_buffer_size = sizeof(uint32) * 1024 * 1024;
+		if (!vulkan_buffer_create(
+			&context,
+			index_buffer_size,
+			(VkBufferUsageFlagBits)(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+			memory_property_flags,
+			true,
+			&context.object_index_buffer))
+		{
+			SHMERROR("Error creating index buffer;");
+			return false;
+		}
+		context.geometry_index_offset = 0;
+
+		return true;
+
+	}
+
 }
-
-
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,

@@ -18,7 +18,7 @@ bool32 create_shader_module(
 	char file_name[MAX_FILEPATH_LENGTH];
 	String::print_s(file_name, MAX_FILEPATH_LENGTH, (char*)"D:/dev/Shmengine/bin/assets/shaders/%s.%s.spv", name, type_str);
 
-	VkShaderModuleCreateInfo& module_create_info = shader_stages[stage_index].create_info;
+	VkShaderModuleCreateInfo& module_create_info = shader_stages[stage_index].module_create_info;
 	module_create_info = {};
 	module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
