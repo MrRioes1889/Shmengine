@@ -12,7 +12,7 @@ struct Listener
 
 struct EventCodeEntry
 {
-	Listener* listeners;
+	Darray<Listener> listeners = {};
 };
 
 #define MAX_MESSAGE_CODES 4096
@@ -40,10 +40,9 @@ void event_system_shutdown()
 {
 	for (uint32 i = 0; i < MAX_MESSAGE_CODES; i++)
 	{
-		if (system_state->registered[i].listeners != 0)
+		if (system_state->registered[i].listeners.data != 0)
 		{
-			darray_destroy(system_state->registered[i].listeners);
-			system_state->registered[i].listeners = 0;
+			system_state->registered[i].listeners.free_data();
 		}
 	}
 }
@@ -53,14 +52,13 @@ bool32 event_register(uint16 code, void* listener, FP_OnEvent on_event)
 	if (!system_state)
 		return false;
 
-	if (system_state->registered[code].listeners == 0)
-		system_state->registered[code].listeners = darray_create(Listener, AllocationTag::MAIN);
+	if (system_state->registered[code].listeners.data == 0)
+		system_state->registered[code].listeners.init(1, AllocationTag::MAIN);
 
-	Listener* e_listeners = system_state->registered[code].listeners;
+	Darray<Listener>& e_listeners = system_state->registered[code].listeners;
 
 	// NOTE: Check if listener is already registered for event
-	uint32 registered_count = darray_count(e_listeners);
-	for (uint32 i = 0; i < registered_count; i++)
+	for (uint32 i = 0; i < e_listeners.count; i++)
 	{
 		if (e_listeners[i].ptr == listener)
 			return false;
@@ -69,7 +67,7 @@ bool32 event_register(uint16 code, void* listener, FP_OnEvent on_event)
 	Listener l1;
 	l1.ptr = listener;
 	l1.callback = on_event;
-	darray_push(e_listeners, l1);
+	e_listeners.push(l1);
 
 	return true;
 }
@@ -79,19 +77,18 @@ bool32 event_unregister(uint16 code, void* listener, FP_OnEvent on_event)
 	if (!system_state)
 		return false;
 
-	Listener* e_listeners = system_state->registered[code].listeners;
+	Darray<Listener>& e_listeners = system_state->registered[code].listeners;
 
 	// TODO: Warning
-	if (e_listeners == 0)
+	if (e_listeners.data == 0)
 		return false;
 
 	// NOTE: Check if listener is already registered for event
-	uint32 registered_count = darray_count(e_listeners);
-	for (uint32 i = 0; i < registered_count; i++)
+	for (uint32 i = 0; i < e_listeners.count; i++)
 	{
 		if (e_listeners[i].ptr == listener && e_listeners[i].callback == on_event)
 		{
-			darray_remove_at(e_listeners, i);
+			e_listeners.remove_at(i);
 			return true;
 		}
 	}
@@ -104,15 +101,14 @@ bool32 event_fire(uint16 code, void* sender, EventData data)
 	if (!system_state)
 		return false;
 
-	Listener* e_listeners = system_state->registered[code].listeners;
+	Darray<Listener>& e_listeners = system_state->registered[code].listeners;
 
 	// TODO: Warning
-	if (e_listeners == 0)
+	if (e_listeners.data == 0)
 		return false;
 
 	// NOTE: Check if listener is already registered for event
-	uint32 registered_count = darray_count(e_listeners);
-	for (uint32 i = 0; i < registered_count; i++)
+	for (uint32 i = 0; i < e_listeners.count; i++)
 	{
 		if (e_listeners[i].callback(code, sender, e_listeners[i].ptr, data))
 		{

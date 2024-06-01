@@ -2,7 +2,8 @@
 
 #include "LinearAllocatorTests.hpp"
 
-#include <memory/Memory.hpp>
+#include <containers/Sarray.hpp>
+#include <core/Memory.hpp>
 #include <core/Logging.hpp>
 
 int main() {

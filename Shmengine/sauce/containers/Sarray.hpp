@@ -12,14 +12,14 @@ struct Sarray
 	Sarray(Sarray&& other) = delete;
 
 	Sarray() : count(0), data(0), allocation_tag(AllocationTag::UNKNOWN) {};
-	Sarray(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
-	~Sarray();
+	SHMINLINE Sarray(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
+	SHMINLINE ~Sarray();
 
 	// NOTE: Call for already instantiated arrays
-	void init(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
-	void free_data();
+	SHMINLINE void init(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
+	SHMINLINE void free_data();
 
-	void clear();
+	SHMINLINE void clear();
 
 	T& operator[](const uint32& index)
 	{

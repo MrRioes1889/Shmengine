@@ -2,25 +2,25 @@
 
 #include <containers/Darray.hpp>
 #include <core/logging.hpp>
-#include <utility/string/String.hpp>
+#include <utility/String.hpp>
 #include <core/Clock.hpp>
 
-typedef struct test_entry {
+typedef struct TestEntry {
     PFN_test func;
     const char* desc;
 } test_entry;
 
-static test_entry* tests;
+static Darray<TestEntry> tests = {};
 
 void test_manager_init() {
-    tests = darray_create(test_entry);
+    tests.init(1, AllocationTag::RAW);
 }
 
 void test_manager_register_test(uint8(*PFN_test)(), const char* desc) {
-    test_entry e;
+    TestEntry e;
     e.func = PFN_test;
     e.desc = desc;
-    darray_push(tests, e);
+    tests.push(e);
 }
 
 void test_manager_run_tests() {
@@ -28,12 +28,10 @@ void test_manager_run_tests() {
     uint32 failed = 0;
     uint32 skipped = 0;
 
-    uint32 count = darray_count(tests);
-
     Clock total_time;
     clock_start(&total_time);
 
-    for (uint32 i = 0; i < count; ++i) {
+    for (uint32 i = 0; i < tests.count; ++i) {
         Clock test_time;
         clock_start(&test_time);
         uint8 result = tests[i].func();
@@ -53,7 +51,7 @@ void test_manager_run_tests() {
         char status[20];
         String::print_s(status, 20, failed ? (char*)"*** %u FAILED ***" : (char*)"SUCCESS", failed);
         clock_update(&total_time);
-        SHMINFOV("Executed %u of %u (skipped %u) %s (%f6 sec / %f6 sec total", i + 1, count, skipped, status, test_time.elapsed, total_time.elapsed);
+        SHMINFOV("Executed %u of %u (skipped %u) %s (%f6 sec / %f6 sec total", i + 1, tests.count, skipped, status, test_time.elapsed, total_time.elapsed);
     }
 
     clock_stop(&total_time);
