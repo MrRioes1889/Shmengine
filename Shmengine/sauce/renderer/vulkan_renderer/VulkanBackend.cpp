@@ -235,10 +235,11 @@ namespace Renderer
 		const uint32 vert_count = 4;
 		Math::Vert3 verts[vert_count];
 
-		verts[0] = { 0.0f, -0.5f, 0.0f };
-		verts[1] = { 0.5f, 0.5f, 0.0f };
-		verts[2] = { 0.0f, 0.5f, 0.0f };
-		verts[3] = { 0.5f, -0.5f, 0.0f };
+		const float32 f = 10.0f;
+		verts[0] = { -0.5f * f, -0.5f * f, 0.0f * f };
+		verts[1] = { 0.5f * f, 0.5f * f, 0.0f * f };
+		verts[2] = { -0.5f * f, 0.5f * f, 0.0f * f };
+		verts[3] = { 0.5f * f, -0.5f * f, 0.0f * f };
 
 		const uint32 index_count = 6;
 		uint32 indices[index_count] = { 0, 1, 2, 0, 3, 1 };
@@ -407,16 +408,21 @@ namespace Renderer
 
 		vulkan_renderpass_begin(cmd, &context.main_renderpass, context.swapchain.framebuffers[context.image_index].handle);
 
-		// TODO: Replace temp code
+		return true;
+
+	}
+
+	void vulkan_renderer_update_global_state(Math::Mat4 projection, Math::Mat4 view, Math::Vec3f view_position, Math::Vec4f ambient_colour, int32 mode) 
+	{		
+
 		vulkan_object_shader_use(&context, &context.object_shader);
 
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(cmd->handle, 0, 1, &context.object_vertex_buffer.handle, offsets);
-		vkCmdBindIndexBuffer(cmd->handle, context.object_index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+		context.object_shader.global_ubo.projection = projection;
+		context.object_shader.global_ubo.view = view;
 
-		vkCmdDrawIndexed(cmd->handle, 6, 1, 0, 0, 0);
+		// TODO: other ubo properties
 
-		return true;
+		vulkan_object_shader_update_global_state(&context, &context.object_shader);
 
 	}
 
@@ -467,6 +473,28 @@ namespace Renderer
 
 	}
 
+	void vulkan_renderer_update_object(Math::Mat4 model)
+	{
+		VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
+
+		vulkan_object_shader_update_object(&context, &context.object_shader, model);
+
+		// TODO: temporary test code
+		vulkan_object_shader_use(&context, &context.object_shader);
+
+		// Bind vertex buffer at offset.
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer->handle, 0, 1, &context.object_vertex_buffer.handle, (VkDeviceSize*)offsets);
+
+		// Bind index buffer at offset.
+		vkCmdBindIndexBuffer(command_buffer->handle, context.object_index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+
+		// Issue the draw.
+		vkCmdDrawIndexed(command_buffer->handle, 6, 1, 0, 0, 0);
+		// TODO: end temporary test code
+
+	}
+
 	int32 find_memory_index(uint32 type_filter, uint32 property_flags)
 	{
 		VkPhysicalDeviceMemoryProperties memory_properties;
@@ -474,7 +502,7 @@ namespace Renderer
 
 		for (uint32 i = 0; i < memory_properties.memoryTypeCount; i++)
 		{
-			if ((type_filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & property_flags))
+			if ((type_filter & (1 << i)) && ((memory_properties.memoryTypes[i].propertyFlags & property_flags) == property_flags))
 				return i;
 		}
 

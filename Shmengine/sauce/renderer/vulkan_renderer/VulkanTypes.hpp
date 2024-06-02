@@ -3,7 +3,10 @@
 #include "Defines.hpp"
 #include "core/Assert.hpp"
 #include "containers/Sarray.hpp"
+#include "containers/Buffer.hpp"
 #include "utility/Math.hpp"
+
+#include "renderer/RendererTypes.hpp"
 
 #include <vulkan/vulkan.h>
 
@@ -131,6 +134,7 @@ struct VulkanShaderStage
 	VkShaderModuleCreateInfo module_create_info;
 	VkShaderModule handle;
 	VkPipelineShaderStageCreateInfo shader_stage_create_info;
+	Buffer shader_code_buffer = {};
 };
 
 struct VulkanPipeline
@@ -143,6 +147,16 @@ struct VulkanPipeline
 struct VulkanObjectShader
 {
 	VulkanShaderStage stages[OBJECT_SHADER_STAGE_COUNT];
+
+	VkDescriptorPool global_descriptor_pool;
+	
+	// NOTE: One descriptor set per frame - max 3 for triple-buffering
+	VkDescriptorSet global_descriptor_sets[3];
+
+	VkDescriptorSetLayout global_descriptor_set_layout;
+
+	Renderer::GlobalUniformObject global_ubo;
+	VulkanBuffer global_uniform_buffer;
 
 	VulkanPipeline pipeline;
 };

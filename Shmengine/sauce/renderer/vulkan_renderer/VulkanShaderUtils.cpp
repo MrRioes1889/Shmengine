@@ -23,22 +23,22 @@ bool32 create_shader_module(
 	module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
 	FileSystem::FileHandle file;
-	if (!FileSystem::file_open(file_name, FILE_MODE_READ, true, &file))
+	if (!FileSystem::file_open(file_name, FILE_MODE_READ, &file))
 	{
 		SHMERRORV("Unable to open file for shader module: %s.", file_name);
 		return false;
 	}
 
-	uint64 size = 0;
-	uint8* file_buffer = 0;
-	if (!FileSystem::read_all_bytes(&file, &file_buffer, &size))
+	uint32 size = 0;
+
+	if (!FileSystem::read_all_bytes(&file, &shader_stages[stage_index].shader_code_buffer, &size))
 	{
 		SHMERRORV("Unable to read file for shader module: %s.", file_name);
 		return false;
 	}
 
-	module_create_info.codeSize = size;
-	module_create_info.pCode = (uint32*)file_buffer;
+	module_create_info.codeSize = (size_t)size;
+	module_create_info.pCode = (uint32*)shader_stages[stage_index].shader_code_buffer.data;
 
 	FileSystem::file_close(&file);
 

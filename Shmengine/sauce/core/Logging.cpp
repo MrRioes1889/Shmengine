@@ -27,7 +27,7 @@ namespace Log
         out_state = Memory::linear_allocator_allocate(allocator, sizeof(SystemState));
         system_state = (SystemState*)out_state;
 
-        if (!FileSystem::file_open("D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log", FILE_MODE_WRITE, false, &system_state->log_file))
+        if (!FileSystem::file_open("D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log", FILE_MODE_WRITE, &system_state->log_file))
         {
             Platform::console_write_error("Error: Unable to open console.log file for writing", LOG_LEVEL_ERROR);
             return false;
@@ -49,8 +49,8 @@ namespace Log
     static void append_to_log_file(const char* message)
     {
 
-        uint64 length = String::length(message);
-        uint64 written = 0;
+        uint32 length = String::length(message);
+        uint32 written = 0;
 
         if (!FileSystem::write(&system_state->log_file, length, message, &written))
         {

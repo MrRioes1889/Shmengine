@@ -16,6 +16,9 @@ namespace Renderer
 			out_backend->begin_frame = vulkan_begin_frame;
 			out_backend->end_frame = vulkan_end_frame;
 			out_backend->on_resized = vulkan_on_resized;
+			out_backend->update_global_state = vulkan_renderer_update_global_state;
+
+			out_backend->update_object = vulkan_renderer_update_object;
 
 			return true;
 		}
@@ -30,5 +33,7 @@ namespace Renderer
 		backend->shutdown = 0;
 		backend->init = 0;
 		backend->on_resized = 0;
+		backend->update_global_state = 0;
+		backend->update_object = 0;
 	}
 }

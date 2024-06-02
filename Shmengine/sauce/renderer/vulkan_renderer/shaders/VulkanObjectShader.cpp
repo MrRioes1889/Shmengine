@@ -2,6 +2,7 @@
 
 #include "../VulkanPipeline.hpp"
 #include "../VulkanShaderUtils.hpp"
+#include "../VulkanBuffer.hpp"
 #include "core/Logging.hpp"
 
 #define BUILTIN_SHADER_NAME_OBJECT "Builtin.ObjectShader"
@@ -20,7 +21,29 @@ bool32 vulkan_object_shader_create(VulkanContext* context, VulkanObjectShader* o
 		}
 	}
 
-	// TODO: Descriptors
+    // Global Desciptors.
+    VkDescriptorSetLayoutBinding global_ubo_layout_binding;
+    global_ubo_layout_binding.binding = 0;
+    global_ubo_layout_binding.descriptorCount = 1;
+    global_ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    global_ubo_layout_binding.pImmutableSamplers = 0;
+    global_ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    VkDescriptorSetLayoutCreateInfo global_layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+    global_layout_info.bindingCount = 1;
+    global_layout_info.pBindings = &global_ubo_layout_binding;
+    VK_CHECK(vkCreateDescriptorSetLayout(context->device.logical_device, &global_layout_info, context->allocator_callbacks, &out_shader->global_descriptor_set_layout));
+
+    VkDescriptorPoolSize global_pool_size;
+    global_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    global_pool_size.descriptorCount = context->swapchain.images.count;
+
+    VkDescriptorPoolCreateInfo global_pool_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+    global_pool_info.poolSizeCount = 1;
+    global_pool_info.pPoolSizes = &global_pool_size;
+    global_pool_info.maxSets = context->swapchain.images.count;
+    VK_CHECK(vkCreateDescriptorPool(context->device.logical_device, &global_pool_info, context->allocator_callbacks, &out_shader->global_descriptor_pool));
+
     VkViewport viewport;
     viewport.x = 0.0f;
     viewport.y = (float32)context->framebuffer_height;
@@ -54,10 +77,11 @@ bool32 vulkan_object_shader_create(VulkanContext* context, VulkanObjectShader* o
         offset += sizes[i];
     }
 
-    // TODO: Desciptor set layouts.
+    // Descriptor set layouts
+    const uint32 descr_set_layout_count = 1;
+    VkDescriptorSetLayout descr_set_layouts[descr_set_layout_count] = { out_shader->global_descriptor_set_layout };
 
     // Stages
-    // NOTE: Should match the number of shader->stages.
     VkPipelineShaderStageCreateInfo stage_create_infos[OBJECT_SHADER_STAGE_COUNT] = {};
     for (uint32 i = 0; i < OBJECT_SHADER_STAGE_COUNT; ++i) {
         stage_create_infos[i] = out_shader->stages[i].shader_stage_create_info;
@@ -68,8 +92,8 @@ bool32 vulkan_object_shader_create(VulkanContext* context, VulkanObjectShader* o
         &context->main_renderpass,
         attribute_count,
         attribute_descriptions,
-        0,
-        0,
+        descr_set_layout_count,
+        descr_set_layouts,
         OBJECT_SHADER_STAGE_COUNT,
         stage_create_infos,
         viewport,
@@ -81,6 +105,26 @@ bool32 vulkan_object_shader_create(VulkanContext* context, VulkanObjectShader* o
         return false;
     }
 
+    if (!vulkan_buffer_create(
+        context,
+        sizeof(Renderer::GlobalUniformObject) * 3,
+        (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        true,
+        &out_shader->global_uniform_buffer)) 
+    {
+        SHMERROR("Vulkan buffer creation failed for object shader.");
+        return false;
+    }
+
+    VkDescriptorSetLayout global_layouts[3] = {out_shader->global_descriptor_set_layout, out_shader->global_descriptor_set_layout, out_shader->global_descriptor_set_layout };
+
+    VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+    alloc_info.descriptorPool = out_shader->global_descriptor_pool;
+    alloc_info.descriptorSetCount = 3;
+    alloc_info.pSetLayouts = global_layouts;
+    VK_CHECK(vkAllocateDescriptorSets(context->device.logical_device, &alloc_info, out_shader->global_descriptor_sets));
+
 	return true;
 
 }
@@ -88,11 +132,20 @@ bool32 vulkan_object_shader_create(VulkanContext* context, VulkanObjectShader* o
 void vulkan_object_shader_destroy(VulkanContext* context, VulkanObjectShader* shader)
 {
 
+    VkDevice& device = context->device.logical_device;
+
+    vulkan_buffer_destroy(context, &shader->global_uniform_buffer);
+
     vulkan_pipeline_destroy(context, &shader->pipeline);
+
+    vkDestroyDescriptorPool(device, shader->global_descriptor_pool, context->allocator_callbacks);
+
+    vkDestroyDescriptorSetLayout(device, shader->global_descriptor_set_layout, context->allocator_callbacks);
 
 	for (uint32 i = 0; i < OBJECT_SHADER_STAGE_COUNT; i++)
 	{
-		vkDestroyShaderModule(context->device.logical_device, shader->stages[i].handle, context->allocator_callbacks);
+        shader->stages[i].shader_code_buffer.free_data();
+		vkDestroyShaderModule(device, shader->stages[i].handle, context->allocator_callbacks);
 		shader->stages[i].handle = 0;
 	}
 
@@ -103,5 +156,51 @@ void vulkan_object_shader_use(VulkanContext* context, VulkanObjectShader* shader
 
     uint32 image_index = context->image_index;
     vulkan_pipeline_bind(&context->graphics_command_buffers[image_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &shader->pipeline);
+
+}
+
+void vulkan_object_shader_update_global_state(VulkanContext* context, VulkanObjectShader* shader)
+{
+
+    uint32 image_index = context->image_index;
+    VkCommandBuffer& command_buffer = context->graphics_command_buffers[image_index].handle;
+    VkDescriptorSet& global_descriptor = shader->global_descriptor_sets[image_index];
+
+    // Configure the descriptors for the given index.
+    uint32 range = sizeof(Renderer::GlobalUniformObject);
+    uint64 offset = sizeof(Renderer::GlobalUniformObject) * image_index;
+
+    // Copy data to buffer
+    vulkan_buffer_load_data(context, &shader->global_uniform_buffer, offset, range, 0, &shader->global_ubo);
+
+    VkDescriptorBufferInfo bufferInfo;
+    bufferInfo.buffer = shader->global_uniform_buffer.handle;
+    bufferInfo.offset = offset;
+    bufferInfo.range = range;
+
+    // Update descriptor sets.
+    VkWriteDescriptorSet descriptor_write = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+    descriptor_write.dstSet = shader->global_descriptor_sets[image_index];
+    descriptor_write.dstBinding = 0;
+    descriptor_write.dstArrayElement = 0;
+    descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptor_write.descriptorCount = 1;
+    descriptor_write.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(context->device.logical_device, 1, &descriptor_write, 0, 0);
+
+    // Bind the global descriptor set to be updated.
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->pipeline.layout, 0, 1, &global_descriptor, 0, 0);
+
+}
+
+void vulkan_object_shader_update_object(VulkanContext* context, VulkanObjectShader* shader, Math::Mat4 model)
+{
+
+    uint32 image_index = context->image_index;
+    VkCommandBuffer& command_buffer = context->graphics_command_buffers[image_index].handle;
+
+    vkCmdPushConstants(command_buffer, shader->pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Math::Mat4), &model);
+
 
 }

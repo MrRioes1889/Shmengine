@@ -58,13 +58,18 @@ namespace Memory
 	void* arena_allocate(ArenaAllocator* arena, uint64 size)
 	{
 		int32 allocation_index = -1;
+		uint32 page_index = 0;
 		for (uint32 i = 0; i < arena->mem_chunk_count; i++)
-		{
+		{			
 			if (!arena->mem_chunks[i].reserved && (arena->mem_chunks[i].page_count * arena->page_size) >= size)
 			{
 				allocation_index = (int32)i;
 				break;
-			}		
+			}	
+			else
+			{
+				page_index += arena->mem_chunks[i].page_count;
+			}
 		}
 
 		if (allocation_index >= 0)
@@ -73,7 +78,7 @@ namespace Memory
 			ArenaPageChunk* chunk = insert_reservation_at(arena, allocation_index, pages_needed);
 			
 			uint8* data_ptr = (uint8*)arena->data;
-			data_ptr += (chunk->page_index * arena->page_size);
+			data_ptr += (page_index * arena->page_size);
 
 			// NOTE: Zeroing out allocated memory for now. Perhaps remove that later.
 			zero_memory(data_ptr, chunk->page_count * arena->page_size);
@@ -150,7 +155,6 @@ namespace Memory
 
 	static void init_mem_chunks(ArenaAllocator* arena)
 	{
-		arena->mem_chunks[0].page_index = 0;
 		arena->mem_chunks[0].page_count = arena->page_count;
 		arena->mem_chunks[0].reserved = false;
 		arena->mem_chunk_count = 1;
@@ -176,7 +180,6 @@ namespace Memory
 
 			chunks[index + 1].reserved = false;
 			chunks[index + 1].page_count -= reservation_page_count;
-			chunks[index + 1].page_index += reservation_page_count;
 
 			arena->mem_chunk_count++;
 
@@ -191,7 +194,7 @@ namespace Memory
 		int32 merge_offset = 0;
 		bool32 both_chunks_free = false;
 		uint32 freed_page_count = chunks[index].page_count;
-		uint32 freed_page_index = chunks[index].page_index;
+		//uint32 freed_page_index = chunks[index].page_index;
 		if (index > 0)
 		{
 			if (!chunks[index - 1].reserved)
@@ -213,9 +216,6 @@ namespace Memory
 		{
 
 			chunks[index + merge_offset].page_count += chunks[index].page_count;
-
-			if (merge_offset == 1)
-				chunks[index + merge_offset].page_index = freed_page_index;
 
 			if (!both_chunks_free)
 			{

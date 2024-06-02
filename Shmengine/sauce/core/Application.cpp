@@ -137,6 +137,7 @@ namespace Application
 
 		while (app_state->is_running)
 		{
+
 			clock_update(&app_state->clock);
 			float32 current_time = app_state->clock.elapsed;
 			float32 delta_time = current_time - app_state->last_time;

@@ -17,18 +17,17 @@ namespace Memory
 
 	struct ArenaPageChunk
 	{
-		uint32 page_index;
 		uint32 page_count;
-		bool8 reserved;
+		bool32 reserved;
 	};
 
 	struct ArenaAllocator
 	{
 		ArenaPageType page_type;
 		uint32 page_size;
-		uint32 page_count;
-		uint64 arena_size;
+		uint32 page_count;		
 		uint32 mem_chunk_count;
+		uint64 arena_size;
 		ArenaPageChunk* mem_chunks;
 		void* data;
 	};

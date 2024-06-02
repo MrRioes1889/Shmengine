@@ -32,7 +32,7 @@ project  (engine_name)
 
     includedirs
 	{
-        "%{wks.location}/" .. engine_name .. "/sauce",
+        "%{wks.location}/" .. engine_name .. "/sauce",        
         "$(VULKAN_SDK)/Include"
 	}
 

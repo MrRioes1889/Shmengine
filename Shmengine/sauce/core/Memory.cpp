@@ -10,6 +10,7 @@ namespace Memory
     {
         ArenaAllocator main_memory;
         ArenaAllocator transient_memory;
+        ArenaAllocator temp_memory;
 
         bool32 initialized = false;
     };
@@ -25,6 +26,7 @@ namespace Memory
 
         arena_create(Mebibytes(256), ArenaPageType::medium_pages, &system_state->main_memory);
         arena_create(Mebibytes(256), ArenaPageType::medium_pages, &system_state->transient_memory);
+        arena_create(Mebibytes(256), ArenaPageType::medium_pages, &system_state->temp_memory);
 
         system_state->initialized = true;
         return system_state->initialized;
@@ -36,6 +38,9 @@ namespace Memory
 
     void* allocate(uint64 size, bool32 aligned, AllocationTag tag)
     {
+        if (size == 0)
+            return 0;
+
         if (!system_state || !system_state->initialized)
             return raw_allocate(size, aligned);
 
@@ -45,6 +50,8 @@ namespace Memory
             return raw_allocate(size, aligned);
         case AllocationTag::TRANSIENT:
             return arena_allocate(&system_state->transient_memory, size);
+        case AllocationTag::TBD:
+            return arena_allocate(&system_state->temp_memory, size);
         default:
             return arena_allocate(&system_state->main_memory, size);
         }

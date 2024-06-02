@@ -9,6 +9,7 @@ enum class AllocationTag
 	TRANSIENT,
 	PERMANENT,
 	RAW,
+	TBD,
 
 	TAG_COUNT
 };

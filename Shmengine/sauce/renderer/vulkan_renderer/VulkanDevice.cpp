@@ -195,7 +195,7 @@ bool32 vulkan_device_detect_depth_format(VulkanDevice* device)
 		VkFormatProperties properties;
 		vkGetPhysicalDeviceFormatProperties(device->physical_device, candidates[i], &properties);
 
-		if ((properties.linearTilingFeatures & flags) || (properties.optimalTilingFeatures & flags))
+		if (((properties.linearTilingFeatures & flags) == flags) || ((properties.optimalTilingFeatures & flags) == flags))
 		{
 			device->depth_format = candidates[i];
 			return true;
