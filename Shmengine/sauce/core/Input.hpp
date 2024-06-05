@@ -298,7 +298,7 @@ enum Keys {
 
 namespace Input
 {
-    bool32 system_init(void* linear_allocator, void*& out_state);
+    bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state);
     void system_shutdown();
     void system_update(float64 delta_time);
 
@@ -318,4 +318,9 @@ namespace Input
     void process_mousebutton(Mousebuttons button, bool32 pressed);
     void process_mouse_move(int32 x, int32 y);
     void process_mouse_scroll(int32 delta);
+
+    SHMINLINE SHMAPI bool32 key_pressed(Keys key)
+    {
+        return (is_key_down(key) && was_key_up(key));
+    }
 }

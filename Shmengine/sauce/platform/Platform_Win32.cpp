@@ -26,10 +26,10 @@ namespace Platform
 
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param);
 
-    bool32 startup(void* linear_allocator, void*& out_state, const char* application_name, int32 x, int32 y, int32 width, int32 height)
+    bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name, int32 x, int32 y, int32 width, int32 height)
     {
-        Memory::LinearAllocator* allocator = (Memory::LinearAllocator*)linear_allocator;
-        out_state = Memory::linear_allocator_allocate(allocator, sizeof(PlatformState));
+
+        out_state = allocator_callback(sizeof(PlatformState));
         plat_state = (PlatformState*)out_state;
 
         plat_state->h_instance = GetModuleHandleA(0);
@@ -115,7 +115,7 @@ namespace Platform
         return TRUE;
     }
 
-    void shutdown() {
+    void system_shutdown() {
 
         if (plat_state) {
             DestroyWindow(plat_state->hwnd);
@@ -228,7 +228,7 @@ namespace Platform
             return 1;
         case WM_CLOSE:
             // TODO: Fire an event for the application to quit.
-            event_fire(EVENT_CODE_APPLICATION_QUIT, 0, {});
+            Event::event_fire(EVENT_CODE_APPLICATION_QUIT, 0, {});
             return 1;
         case WM_DESTROY:
             PostQuitMessage(0);
@@ -243,7 +243,7 @@ namespace Platform
              EventData e = {};
              e.ui32[0] = width;
              e.ui32[1] = height;
-             event_fire(EVENT_CODE_WINDOW_RESIZED, 0, e);
+             Event::event_fire(EVENT_CODE_WINDOW_RESIZED, 0, e);
         } break;
         case WM_KEYDOWN:
         case WM_SYSKEYDOWN:

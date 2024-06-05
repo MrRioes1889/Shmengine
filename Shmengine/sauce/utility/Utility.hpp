@@ -3,7 +3,7 @@
 #include "Defines.hpp"
 #include "core/Assert.hpp"
 
-SHMINLINE uint32 swap_endianness32(uint32 i)
+SHMINLINE SHMAPI uint32 swap_endianness32(uint32 i)
 {
 	uint32 b0, b1, b2, b3;
 	uint32 res;
@@ -17,12 +17,12 @@ SHMINLINE uint32 swap_endianness32(uint32 i)
 	return res;
 }
 
-SHMINLINE int32 swap_endianness32(int32 i)
+SHMINLINE SHMAPI int32 swap_endianness32(int32 i)
 {
 	return (int32)swap_endianness32((uint32)i);
 }
 
-SHMINLINE uint64 swap_endianness64(uint64 i)
+SHMINLINE SHMAPI uint64 swap_endianness64(uint64 i)
 {
 	uint64 b0, b1, b2, b3, b4, b5, b6, b7;
 	uint64 res;
@@ -40,14 +40,24 @@ SHMINLINE uint64 swap_endianness64(uint64 i)
 	return res;
 }
 
-SHMINLINE int64 swap_endianness64(int64 i)
+SHMINLINE SHMAPI int64 swap_endianness64(int64 i)
 {
 	return (int64)swap_endianness64((uint64)i);
 }
 
-SHMINLINE uint32 s_truncate_uint64(uint64 value)
+SHMINLINE SHMAPI uint32 s_truncate_uint64(uint64 value)
 {
 	SHMASSERT(value < 0xFFFFFFFF);
 	uint32 result = (uint32)value;
 	return result;
+}
+
+SHMINLINE SHMAPI float32 clamp(float32 x, float32 min, float32 max)
+{
+	return (x < min ? min : (x > max ? max : x));
+}
+
+SHMINLINE SHMAPI uint32 clamp(uint32 x, uint32 min, uint32 max)
+{
+	return (x < min ? min : (x > max ? max : x));
 }

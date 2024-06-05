@@ -48,6 +48,7 @@ struct Darray
 template<typename T>
 SHMINLINE Darray<T>::Darray(uint32 reserve_count, AllocationTag tag)
 {
+	data = 0;
 	init(reserve_count, tag);
 }
 

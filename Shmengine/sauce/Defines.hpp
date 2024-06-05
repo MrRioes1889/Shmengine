@@ -20,6 +20,8 @@ typedef double float64;
 typedef int bool32;
 typedef char bool8;
 
+typedef void* (*PFN_allocator_allocate_callback)(uint64 size);
+
 #define PI 3.14159265358979323846f
 #define DOUBLE_PI 2.0f * PI
 #define HALF_PI 0.5f * PI
@@ -42,6 +44,8 @@ typedef char bool8;
 #define PTR_BYTES_OFFSET(ptr, bytes) (void*)(((uint8*)ptr) + bytes)
 
 #define MAX_FILEPATH_LENGTH 512
+
+#define INVALID_OBJECT_ID 0xFFFFFFFF
 
 // Properly define static assertions.
 #if defined(__clang__) || defined(__gcc__)
@@ -88,8 +92,6 @@ STATIC_ASSERT(sizeof(float64) == 8, "Expected f64 to be 8 bytes.");
 #define SHMAPI
 #endif
 #endif
-
-#define SHMCLAMP(x, min, max) (x < min ? min : (x > max ? max : x))
 
 #ifdef _MSC_VER
 #define SHMINLINE __forceinline

@@ -11,12 +11,12 @@ struct Sarray
 	Sarray(const Sarray& other) = delete;
 	Sarray(Sarray&& other) = delete;
 
-	Sarray() : count(0), data(0), allocation_tag(AllocationTag::UNKNOWN) {};
-	SHMINLINE Sarray(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
+	Sarray() : count(0), data(0), allocation_tag((uint16)AllocationTag::UNKNOWN) {};
+	SHMINLINE Sarray(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
 	SHMINLINE ~Sarray();
 
 	// NOTE: Call for already instantiated arrays
-	SHMINLINE void init(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
+	SHMINLINE void init(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
 	SHMINLINE void free_data();
 
 	SHMINLINE void clear();
@@ -29,41 +29,47 @@ struct Sarray
 	
 	T* data;
 	uint32 count;
-	AllocationTag allocation_tag;
+	uint16 allocation_tag;
+	bool8 owns_memory;
 
 };
 
 template<typename T>
-SHMINLINE Sarray<T>::Sarray(uint32 reserve_count, AllocationTag tag)
+SHMINLINE Sarray<T>::Sarray(uint32 reserve_count, AllocationTag tag, void* memory)
 {
-	init(reserve_count, tag);
+	data = 0;
+	init(reserve_count, tag, memory);
 }
 
 template<typename T>
 SHMINLINE Sarray<T>::~Sarray()
 {
-	if (data)
-		Memory::free_memory(data, true, allocation_tag);
+	if (data && owns_memory)
+		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
 }
 
 template<typename T>
-SHMINLINE void Sarray<T>::init(uint32 reserve_count, AllocationTag tag)
+SHMINLINE void Sarray<T>::init(uint32 reserve_count, AllocationTag tag, void* memory)
 {
-	//SHMASSERT_MSG(!data, "Cannot initialize Sarray with existing data!");
 	if (data)
 		free_data();	
 
-	allocation_tag = tag;
+	owns_memory = (memory == 0);
+	allocation_tag = (uint16)tag;
 	count = reserve_count;
-	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true, allocation_tag);
+	if (owns_memory)
+		data = (T*)Memory::allocate(sizeof(T) * reserve_count, true, (AllocationTag)allocation_tag);
+	else
+		data = (T*)memory;
+
 	clear();
 }
 
 template<typename T>
 SHMINLINE void Sarray<T>::free_data()
 {
-	if (data)
-		Memory::free_memory(data, true, allocation_tag);
+	if (data && owns_memory)
+		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
 
 	data = 0;
 	count = 0;

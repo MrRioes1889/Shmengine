@@ -52,11 +52,18 @@ namespace Memory
 
 	void arena_destroy(ArenaAllocator* arena)
 	{
-		free_memory((void*)arena, true, AllocationTag::RAW);
+		// NOTE: Mem chunks and data are one large allocated block of memory. Since allocation point is at mem_chunks, freeing that.
+		free_memory(arena->mem_chunks, true, AllocationTag::RAW);
+		arena->mem_chunks = 0;
+		arena->data = 0;
 	}
 
 	void* arena_allocate(ArenaAllocator* arena, uint64 size)
 	{
+		// NOTE: Checking if arena as been destroyed
+		if (!arena->data)
+			return 0;
+
 		int32 allocation_index = -1;
 		uint32 page_index = 0;
 		for (uint32 i = 0; i < arena->mem_chunk_count; i++)
@@ -90,6 +97,9 @@ namespace Memory
 
 	void arena_free(ArenaAllocator* arena, void* data)
 	{
+		// NOTE: Checking if arena as been destroyed
+		if (!arena->data)
+			return;
 
 		uint8* data_ptr = (uint8*)arena->data;
 

@@ -1,31 +1,36 @@
 #include "Buffer.hpp"
 
-Buffer::Buffer(uint32 reserve_size, AllocationTag tag)
+Buffer::Buffer(uint32 reserve_size, AllocationTag tag, void* memory)
 {
-	init(size, tag);
+	data = 0;
+	init(size, tag, memory);
 }
 
 Buffer::~Buffer()
 {
-	if (data)
-		Memory::free_memory(data, true, allocation_tag);
+	if (owns_memory && data)
+		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
 }
 
-void Buffer::init(uint32 reserve_size, AllocationTag tag)
+void Buffer::init(uint32 reserve_size, AllocationTag tag, void* memory)
 {
 	if (data)
 		free_data();
 
-	allocation_tag = tag;
+	owns_memory = (memory == 0);
+	allocation_tag = (uint16)tag;
 	size = reserve_size;
-	data = Memory::allocate(size, true, allocation_tag);
+	if (owns_memory)
+		data = Memory::allocate(size, true, (AllocationTag)allocation_tag);
+	else
+		data = memory;
 	clear();
 }
 
 void Buffer::free_data()
 {
-	if (data)
-		Memory::free_memory(data, true, allocation_tag);
+	if (owns_memory && data)
+		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
 
 	data = 0;
 	size = 0;

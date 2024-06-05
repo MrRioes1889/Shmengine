@@ -3,8 +3,14 @@
 #include <defines.hpp>
 #include <ApplicationTypes.hpp>
 
-typedef struct game_state {
+#include <utility/Math.hpp>
+
+typedef struct GameState {
     float32 delta_time;
+    Math::Mat4 view;
+    Math::Vec3f camera_position;
+    Math::Vec3f camera_euler;
+    bool32 camera_view_dirty;
 } game_state;
 
 bool32 game_init(Game* game_inst);

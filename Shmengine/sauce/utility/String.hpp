@@ -67,7 +67,8 @@ namespace String
 	uint32 append_to_string(uint32 buffer_output_size, char* buffer_output, const char* buffer_source);
 	void concat_strings(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b);
 	void copy_string_to_buffer(uint32 buffer_output_size, char* buffer_output, const char* buffer_source);
-	bool32 strings_eq(const char* a, const char* b);
+	SHMAPI bool32 strings_eq(const char* a, const char* b);
+	SHMAPI bool32 strings_eq_case_insensitive(const char* a, const char* b);
 	SHMAPI void print_s(char* target_buffer, uint32 buffer_limit, const char* s, ...);
 	void print_s(char* target_buffer, uint32 buffer_limit, const char* s, va_list arg_ptr);
 

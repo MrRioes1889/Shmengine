@@ -119,6 +119,8 @@ namespace FileSystem
 
 	SHMAPI bool32 write(FileHandle* file, uint32 size, const void* data, uint32* out_bytes_written)
 	{
+		if (!file)
+			return true;
 
 		if (!WriteFile(file->handle, data, size, (DWORD*)out_bytes_written, 0))
 		{

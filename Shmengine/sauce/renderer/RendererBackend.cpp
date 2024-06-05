@@ -17,8 +17,9 @@ namespace Renderer
 			out_backend->end_frame = vulkan_end_frame;
 			out_backend->on_resized = vulkan_on_resized;
 			out_backend->update_global_state = vulkan_renderer_update_global_state;
-
 			out_backend->update_object = vulkan_renderer_update_object;
+			out_backend->create_texture = vulkan_create_texture;
+			out_backend->destroy_texture = vulkan_destroy_texture;
 
 			return true;
 		}
@@ -35,5 +36,7 @@ namespace Renderer
 		backend->on_resized = 0;
 		backend->update_global_state = 0;
 		backend->update_object = 0;
+		backend->create_texture = 0;
+		backend->destroy_texture = 0;
 	}
 }

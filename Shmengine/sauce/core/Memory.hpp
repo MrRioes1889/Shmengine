@@ -16,7 +16,8 @@ enum class AllocationTag
 
 namespace Memory
 {
-	bool32 init_memory(void* linear_allocator, void*& out_state);
+	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state);
+	void system_shutdown();
 
 	SHMAPI void* allocate(uint64 size, bool32 aligned, AllocationTag tag);
 	SHMAPI void* reallocate(uint64 size, void* block, bool32 aligned, AllocationTag tag);

@@ -191,6 +191,38 @@ namespace String
 			return false;
 	}
 
+	bool32 strings_eq_case_insensitive(const char* a, const char* b)
+	{
+
+		int32 upper_lower_offset = 'a' - 'A';
+
+		while (*a != 0)
+		{		
+			
+			if (*a != *b)
+			{
+				bool32 lower_case_a = (*a >= 'a' && *a <= 'z');
+				bool32 upper_case_a = (*a >= 'A' && *a <= 'Z');
+
+				if (!lower_case_a && !upper_case_a)
+					return false;
+				else if (lower_case_a && (*b != (*a) - upper_lower_offset))
+					return false;
+				else if (upper_case_a && (*b != (*a) + upper_lower_offset))
+					return false;
+			}
+
+			a++;
+			b++;
+		}
+
+		if (*b == 0)
+			return true;
+		else
+			return false;
+
+	}
+
 	void print_s(char* target_buffer, uint32 buffer_limit, const char* s, va_list arg_ptr)
 	{
 
@@ -198,8 +230,6 @@ namespace String
 			target_buffer[i] = 0;
 
 		uint32 target_i = 0;
-
-		//Module 1: Initializing Myprintf's arguments 	
 
 		for (const char* c = s; *c != 0; c++)
 		{

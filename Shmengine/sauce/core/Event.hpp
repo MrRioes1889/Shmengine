@@ -24,16 +24,6 @@ struct EventData
 	};
 };
 
-typedef bool32(*FP_OnEvent)(uint16 code, void* sender, void* listener_inst, EventData data);
-
-bool32 event_system_init(void* linear_allocator, void*& out_state);
-void event_system_shutdown();
-
-SHMAPI bool32 event_register(uint16 code, void* listener, FP_OnEvent on_event);
-SHMAPI bool32 event_unregister(uint16 code, void* listener, FP_OnEvent on_event);
-
-SHMAPI bool32 event_fire(uint16 code, void* sender, EventData data);
-
 enum SystemEventCode
 {
 	EVENT_CODE_APPLICATION_QUIT = 1,
@@ -45,5 +35,27 @@ enum SystemEventCode
 	EVENT_CODE_MOUSE_SCROLL = 7,
 	EVENT_CODE_WINDOW_RESIZED = 8,
 
+	EVENT_CODE_DEBUG0 = 16,
+	EVENT_CODE_DEBUG1 = 17,
+	EVENT_CODE_DEBUG2 = 18,
+	EVENT_CODE_DEBUG3 = 19,
+	EVENT_CODE_DEBUG4 = 20,
+
 	EVENT_CODE_MAX_SYSTEM = 0xFF
 };
+
+namespace Event
+{
+
+	typedef bool32(*FP_OnEvent)(uint16 code, void* sender, void* listener_inst, EventData data);
+
+	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state);
+	void system_shutdown();
+
+	SHMAPI bool32 event_register(uint16 code, void* listener, FP_OnEvent on_event);
+	SHMAPI bool32 event_unregister(uint16 code, void* listener, FP_OnEvent on_event);
+
+	SHMAPI bool32 event_fire(uint16 code, void* sender, EventData data);
+
+}
+

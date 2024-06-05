@@ -27,17 +27,16 @@ struct InputState
 
 static InputState* state;
 
-bool32 Input::system_init(void* linear_allocator, void*& out_state)
+bool32 Input::system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state)
 {
 
-    Memory::LinearAllocator* allocator = (Memory::LinearAllocator*)linear_allocator;
-    out_state = Memory::linear_allocator_allocate(allocator, sizeof(InputState));
+    out_state = allocator_callback(sizeof(InputState));
     state = (InputState*)out_state;
-    *state = {};
 
     state->initialized = true;
     SHMINFO("Input subsystem initialized!");
     return state->initialized;
+
 }
 
 void Input::system_shutdown()
@@ -62,7 +61,7 @@ void Input::process_key(Keys key, bool32 pressed)
 
         EventData e;
         e.ui32[0] = key;
-        event_fire(pressed ? (uint16)EVENT_CODE_KEY_PRESSED : (uint16)EVENT_CODE_KEY_RELEASED, 0, e);
+        Event::event_fire(pressed ? (uint16)EVENT_CODE_KEY_PRESSED : (uint16)EVENT_CODE_KEY_RELEASED, 0, e);
     }
 }
 
@@ -74,7 +73,7 @@ void Input::process_mousebutton(Mousebuttons button, bool32 pressed)
 
         EventData e;
         e.ui32[0] = button;
-        event_fire(pressed ? (uint16)EVENT_CODE_BUTTON_PRESSED : (uint16)EVENT_CODE_BUTTON_RELEASED, 0, e);
+        Event::event_fire(pressed ? (uint16)EVENT_CODE_BUTTON_PRESSED : (uint16)EVENT_CODE_BUTTON_RELEASED, 0, e);
     }
 }
 
@@ -88,7 +87,7 @@ void Input::process_mouse_move(int32 x, int32 y)
         EventData e;
         e.i32[0] = x;
         e.i32[1] = y;
-        event_fire(EVENT_CODE_MOUSE_MOVED, 0, e);
+        Event::event_fire(EVENT_CODE_MOUSE_MOVED, 0, e);
     }
 }
 
@@ -98,7 +97,7 @@ void Input::process_mouse_scroll(int32 delta)
     {
         EventData e;
         e.i32[0] = delta;
-        event_fire(EVENT_CODE_MOUSE_SCROLL, 0, e);
+        Event::event_fire(EVENT_CODE_MOUSE_SCROLL, 0, e);
     }
 }
 

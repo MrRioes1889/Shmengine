@@ -20,11 +20,9 @@ namespace Log
     static const char* level_strings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: " };
     static SystemState* system_state;
 
-    bool32 initialize_logging(void* linear_allocator, void*& out_state)
+    bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state)
     {
-
-        Memory::LinearAllocator* allocator = (Memory::LinearAllocator*)linear_allocator;
-        out_state = Memory::linear_allocator_allocate(allocator, sizeof(SystemState));
+        out_state = allocator_callback(sizeof(SystemState));
         system_state = (SystemState*)out_state;
 
         if (!FileSystem::file_open("D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log", FILE_MODE_WRITE, &system_state->log_file))
@@ -37,7 +35,7 @@ namespace Log
 
     }
 
-    void logging_shutdown() 
+    void system_shutdown() 
     {
         // TODO: cleanup logging/write queued entries.
 

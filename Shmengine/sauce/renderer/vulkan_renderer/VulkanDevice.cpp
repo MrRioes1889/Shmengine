@@ -243,6 +243,16 @@ static bool32 select_physical_device(VulkanContext* context)
 		VkPhysicalDeviceMemoryProperties memory_properties;
 		vkGetPhysicalDeviceMemoryProperties(physical_devices[i], &memory_properties);
 
+		context->device.supports_device_local_host_visible = false;
+		for (uint32 j = 0; j < memory_properties.memoryTypeCount; j++)
+		{
+			if ((memory_properties.memoryTypes[j].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && (memory_properties.memoryTypes[j].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+			{
+				context->device.supports_device_local_host_visible = true;
+				break;
+			}
+		}
+
 		VulkanPhysicalDeviceQueueFamilyInfo queue_info = {};
 		bool32 meets_requirements = physical_device_meets_requirements(
 			physical_devices[i],

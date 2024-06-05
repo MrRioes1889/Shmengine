@@ -10,6 +10,7 @@
 #include "core/Input.hpp"
 
 #include "renderer/RendererFrontend.hpp"
+#include "systems/TextureSystem.hpp"
 
 namespace Application
 {
@@ -31,6 +32,7 @@ namespace Application
 		void* event_system_state;
 		void* input_system_state;
 		void* renderer_system_state;
+		void* texture_system_state;
 
 	};
 
@@ -40,6 +42,13 @@ namespace Application
 
 	static bool32 initialized = false;
 	static ApplicationState* app_state;
+
+	void* allocate_subsystem_callback (uint64 size)
+	{
+		void* ptr = Memory::linear_allocator_allocate(&app_state->systems_allocator, size);
+		Memory::zero_memory(ptr, size);
+		return ptr;
+	};
 
 	bool32 init_primitive_subsystems(Game* game_inst)
 	{
@@ -54,25 +63,25 @@ namespace Application
 
 		Platform::init_console();
 
-		if (!Log::initialize_logging(&app_state->systems_allocator, app_state->logging_system_state))
+		if (!Log::system_init(allocate_subsystem_callback, app_state->logging_system_state))
 		{
 			SHMFATAL("Failed to initialize logging subsytem!");
 			return false;
 		}
 
-		if (!Memory::init_memory(&app_state->systems_allocator, app_state->memory_system_state))
+		if (!Memory::system_init(allocate_subsystem_callback, app_state->memory_system_state))
 		{
 			SHMFATAL("Failed to initialize memory subsytem!");
 			return false;
 		}
 
-		if (!Input::system_init(&app_state->systems_allocator, app_state->input_system_state))
+		if (!Input::system_init(allocate_subsystem_callback, app_state->input_system_state))
 		{
 			SHMFATAL("Failed to initialize input subsystem!");
 			return false;
 		}
 
-		if (!event_system_init(&app_state->systems_allocator, app_state->event_system_state))
+		if (!Event::system_init(allocate_subsystem_callback, app_state->event_system_state))
 		{
 			SHMFATAL("Failed to initialize event subsystem!");
 			return false;
@@ -87,13 +96,13 @@ namespace Application
 		if (initialized)
 			return false;
 
-		event_register(EVENT_CODE_APPLICATION_QUIT, 0, on_event);
-		event_register(EVENT_CODE_KEY_PRESSED, 0, on_key);
-		event_register(EVENT_CODE_KEY_RELEASED, 0, on_key);
-		event_register(EVENT_CODE_WINDOW_RESIZED, 0, on_resized);			
+		Event::event_register(EVENT_CODE_APPLICATION_QUIT, 0, on_event);
+		Event::event_register(EVENT_CODE_KEY_PRESSED, 0, on_key);
+		Event::event_register(EVENT_CODE_KEY_RELEASED, 0, on_key);
+		Event::event_register(EVENT_CODE_WINDOW_RESIZED, 0, on_resized);			
 
-		if (!Platform::startup(
-			&app_state->systems_allocator, 
+		if (!Platform::system_init(
+			allocate_subsystem_callback,
 			app_state->memory_system_state,
 			game_inst->config.name,
 			game_inst->config.start_pos_x,
@@ -105,9 +114,17 @@ namespace Application
 			return false;
 		}
 
-		if (!Renderer::init(&app_state->systems_allocator, app_state->renderer_system_state, game_inst->config.name))
+		if (!Renderer::system_init(allocate_subsystem_callback, app_state->renderer_system_state, game_inst->config.name))
 		{
 			SHMFATAL("ERROR: Failed to initialize renderer. Application shutting down..");
+			return false;
+		}
+
+		TextureSystem::Config texture_sys_config;
+		texture_sys_config.max_texture_count = 0xFFFF;
+		if (!TextureSystem::system_init(allocate_subsystem_callback, app_state->texture_system_state, texture_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize texture system. Application shutting down..");
 			return false;
 		}
 
@@ -188,11 +205,13 @@ namespace Application
 
 		app_state->is_running = false;
 	
-		event_system_shutdown();
+		TextureSystem::system_shutdown();
+		Renderer::system_shutdown();
+		Platform::system_shutdown();
+		Event::system_shutdown();
 		Input::system_shutdown();
-		Renderer::shutdown();
-
-		Platform::shutdown();
+		Memory::system_shutdown();
+		Log::system_shutdown();	
 
 		return true;
 
@@ -228,7 +247,7 @@ namespace Application
 			switch (key_code)
 			{
 			case Keys::KEY_ESCAPE:
-				event_fire(EVENT_CODE_APPLICATION_QUIT, 0, {});
+				Event::event_fire(EVENT_CODE_APPLICATION_QUIT, 0, {});
 				return true;
 				break;
 			case Keys::KEY_A:

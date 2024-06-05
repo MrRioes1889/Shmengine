@@ -17,12 +17,11 @@ namespace Memory
     
     static SystemState* system_state;
 
-    bool32 init_memory(void* linear_allocator, void*& out_state)
+    bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state)
     {
-        Memory::LinearAllocator* allocator = (Memory::LinearAllocator*)linear_allocator;
-        out_state = Memory::linear_allocator_allocate(allocator, sizeof(SystemState));
+
+        out_state = allocator_callback(sizeof(SystemState));
         system_state = (SystemState*)out_state;
-        *system_state = {};
 
         arena_create(Mebibytes(256), ArenaPageType::medium_pages, &system_state->main_memory);
         arena_create(Mebibytes(256), ArenaPageType::medium_pages, &system_state->transient_memory);
@@ -30,6 +29,14 @@ namespace Memory
 
         system_state->initialized = true;
         return system_state->initialized;
+
+    }
+
+    void system_shutdown()
+    {
+        arena_destroy(&system_state->main_memory);
+        arena_destroy(&system_state->transient_memory);
+        arena_destroy(&system_state->temp_memory);
     }
 
     static void* raw_allocate(uint64 size, bool32 aligned);

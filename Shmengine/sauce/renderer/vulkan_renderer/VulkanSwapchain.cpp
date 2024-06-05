@@ -5,6 +5,8 @@
 #include "VulkanDevice.hpp"
 #include "VulkanImage.hpp"
 
+#include "utility/Utility.hpp"
+
 static void create(VulkanContext* context, uint32 width, uint32 height, VulkanSwapchain* out_swapchain)
 {
 
@@ -44,8 +46,8 @@ static void create(VulkanContext* context, uint32 width, uint32 height, VulkanSw
 
 	VkExtent2D min = context->device.swapchain_support.capabilities.minImageExtent;
 	VkExtent2D max = context->device.swapchain_support.capabilities.maxImageExtent;
-	swapchain_extent.width = SHMCLAMP(swapchain_extent.width, min.width, max.width);
-	swapchain_extent.height = SHMCLAMP(swapchain_extent.height, min.height, max.height);
+	swapchain_extent.width = clamp(swapchain_extent.width, min.width, max.width);
+	swapchain_extent.height = clamp(swapchain_extent.height, min.height, max.height);
 
 	uint32 image_count = context->device.swapchain_support.capabilities.minImageCount + 1;
 	if (context->device.swapchain_support.capabilities.maxImageCount > 0 && image_count > context->device.swapchain_support.capabilities.maxImageCount)

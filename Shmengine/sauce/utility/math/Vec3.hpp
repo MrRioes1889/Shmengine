@@ -32,6 +32,11 @@ namespace Math
 				float32 g;
 				float32 b;
 			};
+			struct {
+				float32 pitch;
+				float32 yaw;
+				float32 roll;
+			};
 			float32 e[3];
 		};
 

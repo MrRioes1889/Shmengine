@@ -5,14 +5,14 @@
 namespace Platform
 {
 
-	bool32 startup(
-		void* linear_allocator, 
+	bool32 system_init(
+		PFN_allocator_allocate_callback allocator_callback,
 		void*& out_state,
 		const char* application_name,
 		int32 x, int32 y,
 		int32 width, int32 height);
 
-	void shutdown();
+	void system_shutdown();
 	bool32 pump_messages();
 
 	void* allocate(uint64 size, bool32 aligned);

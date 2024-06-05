@@ -1,6 +1,6 @@
 #include "LinearAllocatorTests.hpp"
-#include "TestManager.hpp"
-#include "Expect.hpp"
+#include "../TestManager.hpp"
+#include "../Expect.hpp"
 
 #include <Defines.hpp>
 

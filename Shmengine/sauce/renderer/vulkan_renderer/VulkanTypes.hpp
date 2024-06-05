@@ -54,6 +54,8 @@ struct VulkanDevice
 	int32 present_queue_index;
 	int32 transfer_queue_index;
 
+	bool32 supports_device_local_host_visible;
+
 	VkFormat depth_format;
 };
 
@@ -143,22 +145,45 @@ struct VulkanPipeline
 	VkPipelineLayout layout;
 };
 
-#define OBJECT_SHADER_STAGE_COUNT 2
-struct VulkanObjectShader
+struct VulkanDesriptorState
 {
-	VulkanShaderStage stages[OBJECT_SHADER_STAGE_COUNT];
+	uint32 generations[3];
+	uint32 ids[3];
+};
 
-	VkDescriptorPool global_descriptor_pool;
-	
+struct VulkanMaterialShaderObjectState
+{	
+	inline static const uint32 descriptor_count = 2;
+	VkDescriptorSet descriptor_sets[3];
+	VulkanDesriptorState descriptor_states[VulkanMaterialShaderObjectState::descriptor_count];
+};
+
+struct VulkanMaterialShader
+{
+
+	inline static const uint32 shader_stage_count = 2;
+	inline static const uint32 attribute_count = 2;
+	inline static const uint32 max_object_count = 1024;
+	inline static const char* builtin_shader_name = "Builtin.MaterialShader";
+
+	VulkanShaderStage stages[VulkanMaterialShader::shader_stage_count];
+
+	VkDescriptorPool global_descriptor_pool;	
 	// NOTE: One descriptor set per frame - max 3 for triple-buffering
 	VkDescriptorSet global_descriptor_sets[3];
-
 	VkDescriptorSetLayout global_descriptor_set_layout;
-
 	Renderer::GlobalUniformObject global_ubo;
 	VulkanBuffer global_uniform_buffer;
 
+	VkDescriptorPool object_descriptor_pool;
+	VkDescriptorSetLayout object_descriptor_set_layout;
+	VulkanBuffer object_uniform_buffer;
+	uint32 object_uniform_buffer_index;
+
+	VulkanMaterialShaderObjectState object_states[VulkanMaterialShader::max_object_count];
+
 	VulkanPipeline pipeline;
+	
 };
 
 struct VulkanContext
@@ -179,7 +204,7 @@ struct VulkanContext
 	uint64 geometry_vertex_offset;
 	uint64 geometry_index_offset;
 
-	VulkanObjectShader object_shader;
+	VulkanMaterialShader object_shader;
 
 	Sarray<VulkanCommandBuffer> graphics_command_buffers = {};
 
@@ -202,4 +227,12 @@ struct VulkanContext
 
 	uint32 framebuffer_width;
 	uint32 framebuffer_height;
+
+	float32 frame_delta_time;
+};
+
+struct VulkanTextureData
+{
+	VulkanImage image;
+	VkSampler sampler;
 };

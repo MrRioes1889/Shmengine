@@ -25,8 +25,8 @@ namespace Log
         LOG_LEVEL_TRACE = 5
     };
 
-    bool32 initialize_logging(void* linear_allocator, void*& out_state);
-    void logging_shutdown();
+    bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state);
+    void system_shutdown();
 
     SHMAPI void log_output(LogLevel level, const char* message, ...);
     //SHMAPI void log_output(LogLevel level, const char* message);
