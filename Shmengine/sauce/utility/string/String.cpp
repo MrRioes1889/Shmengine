@@ -1,9 +1,11 @@
 #include "../String.hpp"
 
+#include "core/Memory.hpp"
+
 namespace String
 {
 
-	void concat_strings(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b)
+	void strings_concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b)
 	{
 		char* write_ptr = buffer_output;
 		uint32 write_output_size = buffer_output_size - 1;
@@ -24,7 +26,7 @@ namespace String
 		*write_ptr = 0;
 	}
 
-	uint32 append_to_string(uint32 buffer_output_size, char* buffer_output, char appendage)
+	uint32 string_append(uint32 buffer_output_size, char* buffer_output, char appendage)
 	{
 		uint32 appendix_length = 1;
 		for (uint32 i = 0; i < buffer_output_size; i++)
@@ -39,7 +41,7 @@ namespace String
 		return appendix_length;
 	}
 
-	uint32 append_to_string(uint32 buffer_output_size, char* buffer_output, const char* buffer_source)
+	uint32 string_append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source)
 	{
 		uint32 appendix_length = 0;
 		char* write_ptr = buffer_output;
@@ -64,10 +66,13 @@ namespace String
 		return appendix_length;
 	}
 
-	void copy_string_to_buffer(uint32 buffer_output_size, char* buffer_output, const char* buffer_source)
+	void string_copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length)
 	{
 		char* write_ptr = buffer_output;
 		uint32 write_output_size = buffer_output_size - 1;
+		if (length != 0 && length < write_output_size)
+			write_output_size = length;
+
 		for (uint32 i = 0; i < write_output_size; i++)
 		{
 			if (!*buffer_source)
@@ -223,83 +228,66 @@ namespace String
 
 	}
 
-	void print_s(char* target_buffer, uint32 buffer_limit, const char* s, va_list arg_ptr)
+	char* string_trim(char* string)
 	{
+		char* ret = (char*)string;
+		char* end = (char*)string;
 
-		for (uint32 i = 0; i < buffer_limit; i++)
-			target_buffer[i] = 0;
-
-		uint32 target_i = 0;
-
-		for (const char* c = s; *c != 0; c++)
+		while (*end)
 		{
-			while (*c != '%' && *c != 0)
-			{
-				target_buffer[target_i++] = *c;
-				if (target_i >= buffer_limit - 1)
-					SHMASSERT(false);
-				c++;
-			}
+			if ((*ret == ' '))
+				ret++;
 
-			if (*c == 0)
-				break;
-
-			c++;
-
-			switch (*c)
+			end++;
+		}
+		
+		if (end != ret)
+		{
+			end--;
+			while (!*end || *end == ' ')
 			{
-			case('i'):
-			{
-				int32 i = va_arg(arg_ptr, int32);         //Fetch Integer argument
-				target_i += append_to_string(buffer_limit, target_buffer, to_string(i));
-				break;
-			}
-			case('u'):
-			{
-				uint32 i = va_arg(arg_ptr, uint32);         //Fetch Integer argument
-				target_i += append_to_string(buffer_limit, target_buffer, to_string(i));
-				break;
-			}
-			case('s'):
-			{
-				char* i = va_arg(arg_ptr, char*);         //Fetch String argument
-				target_i += append_to_string(buffer_limit, target_buffer, i);
-				break;
-			}
-			case('c'):
-			{
-				char a = va_arg(arg_ptr, char);         //Fetch String argument
-				target_i += append_to_string(buffer_limit, target_buffer, a);
-				break;
-			}
-			case('f'):
-			{
-				int32 decimals = 2;
-				if (*(c + 1) >= '0' && *(c + 1) <= '9')
-				{
-					c++;
-					decimals = (int32)(*c - '0');
-				}
-
-				double i = va_arg(arg_ptr, double);         //Fetch Float argument
-				target_i += append_to_string(buffer_limit, target_buffer, to_string((float)i, decimals));
-				break;
-			}
+				*end = 0;
+				end--;
 			}
 		}
 
+		return ret;	
 	}
 
-	void print_s(char* target_buffer, uint32 buffer_limit, const char* s, ...)
+	void string_mid(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 start, uint32 len)
 	{
+		SHMASSERT(buffer_output_size > len && length(buffer_source) >= start);
 
-		va_list arg_ptr;
-		va_start(arg_ptr, s);
+		const char* source = buffer_source;
+		char* dest = buffer_output;
+		Memory::zero_memory(dest, buffer_output_size);
+		
+		for (uint32 i = start; (i < start + len) && source[i]; i++)
+		{
+			*dest = source[i];
+			dest++;
+		}
 
-		print_s(target_buffer, buffer_limit, s, arg_ptr);
-
-		va_end(arg_ptr);
+		dest++;
+		*dest = 0;
+		return;
 	}
+
+	bool32 parse(const char* s, float32* out_f)
+	{
+		return true;
+	}
+
+	enum class StringScanType
+	{
+		FLOAT32
+	};
+
+	struct TypedScanPointer
+	{
+		void* ptr;
+		StringScanType type;
+	};	
 
 }
 

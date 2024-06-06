@@ -52,6 +52,7 @@ namespace Application
 
 	bool32 init_primitive_subsystems(Game* game_inst)
 	{
+
 		*game_inst = {};
 		game_inst->app_state = Memory::allocate(sizeof(ApplicationState), true, AllocationTag::RAW);
 		app_state = (ApplicationState*)game_inst->app_state;

@@ -65,14 +65,14 @@ namespace Log
         const uint32 msg_length = 4096;
         char out_message[msg_length] = {};
 
-        String::append_to_string(msg_length, out_message, level_strings[level]);
+        String::string_append(msg_length, out_message, level_strings[level]);
 
         va_list arg_ptr;
         va_start(arg_ptr, message);
         String::print_s(out_message + (sizeof(level_strings[level])), msg_length - (sizeof(level_strings[level])), message, arg_ptr);
         va_end(arg_ptr);
 
-        String::append_to_string(msg_length, out_message, "\n");
+        String::string_append(msg_length, out_message, "\n");
 
         // Platform-specific output.
         if (is_error) {
