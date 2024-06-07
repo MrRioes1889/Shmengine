@@ -18,6 +18,15 @@ namespace Math
 		return (int64)roundf(x);
 	}
 
+	int32 round_f_to_i(float64 x)
+	{
+		return (int32)round(x);
+	}
+	int64 round_f_to_i64(float64 x)
+	{
+		return (int64)round(x);
+	}
+
 	int32 floor_f_to_i(float32 x)
 	{
 		return (int32)floorf(x);

@@ -11,9 +11,23 @@
 namespace String
 {
 
+	SHMINLINE bool32 is_whitespace(char c)
+	{
+		return (
+			c != ' ' &&
+			c != '\f' &&
+			c != '\n' &&
+			c != '\r' &&
+			c != '\t' &&
+			c != '\v');
+	}
+
 	char* to_string(uint32 val);
+	char* to_string(uint64 val);
 	char* to_string(int32 val);
-	char* to_string(float val, int32 decimals = 2);
+	char* to_string(int64 val);
+	char* to_string(float32 val, int32 decimals = 2);
+	char* to_string(float64 val, int32 decimals = 2);
 
 	SHMINLINE uint32 length(const char* buffer)
 	{
@@ -44,25 +58,6 @@ namespace String
 			*p++ = 0;
 	}
 
-	SHMINLINE int32 parse_int32(char* s)
-	{
-		int32 ret = 0;
-		int32 sign = 1;
-		if (s[0] == '-')
-		{
-			sign = -1;
-			s++;
-		}
-
-		uint32 l = length(s);
-		for (uint32 i = 0; i < l; i++)
-		{
-			SHMASSERT(s[i] >= '0' && s[i] <= '9');
-			ret += (int32)(s[i] - '0') * Math::pow(10, l - i - 1);
-		}
-		return (ret * sign);
-	}
-
 	SHMINLINE void left_of_last(uint32 length, char* buffer_output, char split_c, bool32 exclude_last = false)
 	{
 		for (int32 i = (int32)length - 1; i >= 0; i--)
@@ -91,12 +86,17 @@ namespace String
 
 	SHMAPI void string_mid(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 start, uint32 length);
 
-	SHMAPI bool32 parse(const char* s, float32* out_f);
+	SHMAPI bool32 parse(const char* s, float32& out_f);
+	SHMAPI bool32 parse(const char* s, float64& out_f);
+	SHMAPI bool32 parse(const char* s, int32& out_f);
+	SHMAPI bool32 parse(const char* s, int64& out_f);
+	SHMAPI bool32 parse(const char* s, uint32& out_f);
+	SHMAPI bool32 parse(const char* s, uint64& out_f);
 
 	struct Arg
 	{
 
-		enum class Type { NONE, INT32, INT64, UINT32, UINT64, FLOAT32, FLOAT64, CHAR, CHAR_PTR, FLOAT32_PTR };
+		enum class Type { NONE, INT32, INT64, UINT32, UINT64, FLOAT32, FLOAT64, CHAR, CHAR_PTR, FLOAT32_PTR, FLOAT64_PTR, INT32_PTR, INT64_PTR, UINT32_PTR, UINT64_PTR };
 	
 		Type type;
 		union {
@@ -109,6 +109,11 @@ namespace String
 			char char_value[8];
 			char* char_ptr;
 			float32* float32_ptr;
+			float64* float64_ptr;
+			int32* int32_ptr;
+			int64* int64_ptr;
+			uint32* uint32_ptr;
+			uint64* uint64_ptr;
 		};
 
 		Arg() : int64_value(0), type(Type::NONE) {}
@@ -120,31 +125,37 @@ namespace String
 		Arg(float32 value) : type(Type::FLOAT32) { float32_value[0] = value; }
 		Arg(float64 value) : type(Type::FLOAT64) { float64_value = value; }
 		Arg(char value) : type(Type::CHAR) { char_value[0] = value; }
+
 		Arg(char* value) : type(Type::CHAR_PTR) { char_ptr = value; }
+		Arg(int32* value) : type(Type::INT32_PTR) { int32_ptr = value; }
+		Arg(int64* value) : type(Type::INT64_PTR) { int64_ptr = value; }
+		Arg(uint32* value) : type(Type::UINT32_PTR) { uint32_ptr = value; }
+		Arg(uint64* value) : type(Type::UINT64_PTR) { uint64_ptr = value; }
 		Arg(float32* value) : type(Type::FLOAT32_PTR) { float32_ptr = value; }
+		Arg(float64* value) : type(Type::FLOAT64_PTR) { float64_ptr = value; }	
 	
 	};
 
-	SHMAPI void _print_s_base(char* target_buffer, uint32 buffer_limit, const char* format, const Arg* args, uint64 arg_count);
+	SHMAPI bool32 _print_s_base(char* target_buffer, uint32 buffer_limit, const char* format, const Arg* args, uint64 arg_count);
 
-	void print_s(char* target_buffer, uint32 buffer_limit, const char* format, va_list arg_ptr);
-	SHMAPI void print_s(char* target_buffer, uint32 buffer_limit, const char* format, ...);
+	bool32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, va_list arg_ptr);
+	SHMAPI bool32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, ...);
 
 	template<typename... Args>
-	SHMINLINE void safe_print_s(char* target_buffer, uint32 buffer_limit, const char* format, const Args&... args)
+	SHMINLINE bool32 safe_print_s(char* target_buffer, uint32 buffer_limit, const char* format, const Args&... args)
 	{
 		Arg arg_array[] = { args... };
-		_print_s_base(target_buffer, buffer_limit, format, arg_array, sizeof...(Args));
+		return _print_s_base(target_buffer, buffer_limit, format, arg_array, sizeof...(Args));
 	}
 
-	SHMAPI void _string_scan_base(const char* source, const char* format, const Arg* args, uint64 arg_count);
+	SHMAPI bool32 _string_scan_base(const char* source, const char* format, const Arg* args, uint64 arg_count);
 
-	SHMAPI void string_scan(const char* source, const char* format, ...);
+	SHMAPI bool32 string_scan(const char* source, const char* format, ...);
 
 	template<typename... Args>
-	SHMINLINE void safe_string_scan(const char* source, const char* format, const Args&... args)
+	SHMINLINE bool32 safe_string_scan(const char* source, const char* format, const Args&... args)
 	{
 		Arg arg_array[] = { args... };
-		_string_scan_base(source, format, arg_array, sizeof...(Args));
+		return _string_scan_base(source, format, arg_array, sizeof...(Args));
 	}
 }

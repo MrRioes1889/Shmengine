@@ -14,6 +14,8 @@ namespace Math
 
 	SHMAPI int32 round_f_to_i(float32 x);
 	SHMAPI int64 round_f_to_i64(float32 x);
+	SHMAPI int32 round_f_to_i(float64 x);
+	SHMAPI int64 round_f_to_i64(float64 x);
 	SHMAPI int32 floor_f_to_i(float32 x);
 	SHMAPI int32 ceil_f_to_i(float32 x);
 

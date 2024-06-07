@@ -1,6 +1,7 @@
 #include "../String.hpp"
 
 #include "core/Memory.hpp"
+#include "utility/Math.hpp"
 
 namespace String
 {
@@ -86,7 +87,25 @@ namespace String
 
 	char* to_string(uint32 val) {
 
-		int32 base = 10;
+		uint32 base = 10;
+		static char buf[64] = {};
+
+		int i = 62;
+		if (val)
+		{
+			for (; val && i; val /= base)
+				buf[i--] = "0123456789abcdef"[val % base];
+		}
+		else
+			buf[i--] = '0';
+
+		return &buf[i + 1];
+
+	}
+
+	char* to_string(uint64 val) {
+
+		uint32 base = 10;
 		static char buf[64] = {};
 
 		int i = 62;
@@ -105,7 +124,7 @@ namespace String
 	// NOTE: Could take the base to get different number formats
 	char* to_string(int32 val) {
 
-		int32 base = 10;
+		uint32 base = 10;
 		static char buf[64] = {};
 		bool32 is_neg = (val < 0);
 		uint32 value = is_neg ? -val : val;
@@ -126,7 +145,30 @@ namespace String
 
 	}
 
-	char* to_string(float val, int32 decimals) {
+	char* to_string(int64 val) {
+
+		uint32 base = 10;
+		static char buf[64] = {};
+		bool32 is_neg = (val < 0);
+		uint64 value = is_neg ? -val : val;
+
+		int i = 62;
+		if (val)
+		{
+			for (; value && i; value /= base)
+				buf[i--] = "0123456789abcdef"[value % base];
+
+			if (is_neg)
+				buf[i--] = '-';
+		}
+		else
+			buf[i--] = '0';
+
+		return &buf[i + 1];
+
+	}
+
+	char* to_string(float32 val, int32 decimals) {
 
 		int32 base = 10;
 		int32 leading_zeroes = 0;
@@ -143,9 +185,59 @@ namespace String
 
 		static char buf[64] = {};
 		bool32 is_neg = (val < 0);
-		int64 value = Math::round_f_to_i64(val);
+		int64 value = Math::round_f_to_i64(is_neg ? -val : val);
+
+		int32 i = 62;
+
+		if (leading_zeroes)
+		{
+			decimals = -1;
+		}
+
+		for (; value && i; value /= base)
+		{
+			buf[i--] = "0123456789abcdef"[value % base];
+			decimals--;
+			if (decimals == 0)
+				buf[i--] = '.';
+		}
+
+		for (int32 j = 0; j < leading_zeroes - 1; j++)
+		{
+			buf[i--] = '0';
+		}
+		if (leading_zeroes)
+		{
+			buf[i--] = '.';
+			buf[i--] = '0';
+			leading_zeroes--;
+		}
+
 		if (is_neg)
-			value = -value;
+			buf[i--] = '-';
+
+		return &buf[i + 1];
+
+	}
+
+	char* to_string(float64 val, int32 decimals) {
+
+		int32 base = 10;
+		int32 leading_zeroes = 0;
+		for (int32 i = 0; i < decimals; i++)
+		{
+			if (val < 1.0f && val > -1.0f)
+				leading_zeroes++;
+			val *= 10;
+		}
+
+		// NOTE: Accounting for pre-comma zero
+		if (val < 1.0f && val > -1.0f && val != 0.0f)
+			leading_zeroes++;
+
+		static char buf[64] = {};
+		bool32 is_neg = (val < 0);
+		int64 value = Math::round_f_to_i64(is_neg ? -val : val);
 
 		int32 i = 62;
 
@@ -235,7 +327,7 @@ namespace String
 
 		while (*end)
 		{
-			if ((*ret == ' '))
+			if (is_whitespace(*ret))
 				ret++;
 
 			end++;
@@ -244,7 +336,7 @@ namespace String
 		if (end != ret)
 		{
 			end--;
-			while (!*end || *end == ' ')
+			while (!*end || is_whitespace(*end))
 			{
 				*end = 0;
 				end--;
@@ -273,21 +365,235 @@ namespace String
 		return;
 	}
 
-	bool32 parse(const char* s, float32* out_f)
+	bool32 parse(const char* s, float32& out_f)
 	{
+
+		int32 sign = 1;
+		const char* ptr = s;
+		float32 ret = 0.0f;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		s = ptr;
+		uint32 length = 0;
+		uint32 sep_index = 0;
+		while (*ptr)
+		{
+			if (*ptr == '.' && !sep_index && ptr != s)
+				sep_index = length;
+			else if (*ptr < '0' || *ptr > '9')
+				return false;
+
+			length++;
+			ptr++;
+		}
+
+		ptr = s;
+		uint32 low_part_l;
+		uint32 high_part_l;
+		if (!sep_index)
+		{
+			high_part_l = length;
+			low_part_l = 0;			
+		}
+		else
+		{
+			high_part_l = sep_index;
+			low_part_l = length - high_part_l - 1;
+		}
+
+		float64 multiplier = 1 / Math::pow(10.0, low_part_l);
+
+		for (int32 i = (int32)(high_part_l + low_part_l); i >= 0; i--)
+		{
+			if (ptr[i] != '.')
+			{
+				uint32 digit = ptr[i] - '0';
+				ret += (float32)(digit * multiplier);
+				multiplier *= 10;
+			}
+		}
+
+		out_f = ret * sign;
 		return true;
 	}
 
-	enum class StringScanType
+	bool32 parse(const char* s, float64& out_f)
 	{
-		FLOAT32
-	};
 
-	struct TypedScanPointer
+		int32 sign = 1;
+		const char* ptr = s;
+		float64 ret = 0.0;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		s = ptr;
+		uint32 length = 0;
+		uint32 sep_index = 0;
+		while (*ptr)
+		{
+			if (*ptr == '.' && !sep_index && ptr != s)
+				sep_index = length;
+			else if (*ptr < '0' || *ptr > '9')
+				return false;
+
+			length++;
+			ptr++;
+		}
+
+		ptr = s;
+		uint32 low_part_l;
+		uint32 high_part_l;
+		if (!sep_index)
+		{
+			high_part_l = length;
+			low_part_l = 0;
+		}
+		else
+		{
+			high_part_l = sep_index;
+			low_part_l = length - high_part_l - 1;
+		}
+
+		float64 multiplier = 1 / Math::pow(10.0, low_part_l);
+
+		for (int32 i = (int32)(high_part_l + low_part_l); i >= 0; i--)
+		{
+			if (ptr[i] != '.')
+			{
+				uint32 digit = ptr[i] - '0';
+				ret += digit * multiplier;
+				multiplier *= 10;
+			}
+		}
+
+		out_f = ret * sign;
+		return true;
+	}
+
+	bool32 parse(const char* s, int32& out_i)
 	{
-		void* ptr;
-		StringScanType type;
-	};	
+
+		int32 sign = 1;
+		const char* ptr = s;
+		int32 ret = 0;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		uint32 multiplier = 1 ;
+
+		for (int32 i = (int32)(length(ptr) - 1); i >= 0; i--)
+		{
+			if (ptr[i] < '0' || ptr[i] > '9')
+				return false;
+
+			uint32 digit = ptr[i] - '0';
+			ret += digit * multiplier;
+			multiplier *= 10;
+		}
+
+		out_i = ret * sign;
+		return true;
+	}
+
+	bool32 parse(const char* s, int64& out_i)
+	{
+
+		int32 sign = 1;
+		const char* ptr = s;
+		int64 ret = 0;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		uint64 multiplier = 1;
+
+		for (int32 i = (int32)(length(ptr) - 1); i >= 0; i--)
+		{
+			if (ptr[i] < '0' || ptr[i] > '9')
+				return false;
+
+			uint32 digit = ptr[i] - '0';
+			ret += digit * multiplier;
+			multiplier *= 10;
+		}
+
+		out_i = ret * sign;
+		return true;
+	}
+
+	bool32 parse(const char* s, uint32& out_i)
+	{
+
+		int32 sign = 1;
+		const char* ptr = s;
+		uint32 ret = 0;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		uint32 multiplier = 1;
+
+		for (int32 i = (int32)(length(ptr) - 1); i >= 0; i--)
+		{
+			if (ptr[i] < '0' || ptr[i] > '9')
+				return false;
+
+			uint32 digit = ptr[i] - '0';
+			ret += digit * multiplier;
+			multiplier *= 10;
+		}
+
+		out_i = ret * sign;
+		return true;
+	}
+
+	bool32 parse(const char* s, uint64& out_i)
+	{
+
+		int32 sign = 1;
+		const char* ptr = s;
+		uint64 ret = 0;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		uint64 multiplier = 1;
+
+		for (int32 i = (int32)(length(ptr) - 1); i >= 0; i--)
+		{
+			if (ptr[i] < '0' || ptr[i] > '9')
+				return false;
+
+			uint32 digit = ptr[i] - '0';
+			ret += digit * multiplier;
+			multiplier *= 10;
+		}
+
+		out_i = ret * sign;
+		return true;
+	}
 
 }
 

@@ -36,12 +36,24 @@ namespace Math
 		return ret;
 	}
 
-	SHMINLINE float pow(float a, int32 b)
+	SHMINLINE float32 pow(float32 a, int32 b)
 	{
 		if (b <= 0)
 			return 1;
 
-		float ret = a;
+		float32 ret = a;
+		for (int i = 0; i < b - 1; i++)
+			ret *= a;
+
+		return ret;
+	}
+
+	SHMINLINE float64 pow(float64 a, int32 b)
+	{
+		if (b <= 0)
+			return 1;
+
+		float64 ret = a;
 		for (int i = 0; i < b - 1; i++)
 			ret *= a;
 
