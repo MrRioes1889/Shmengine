@@ -151,11 +151,11 @@ struct VulkanDesriptorState
 	uint32 ids[3];
 };
 
-struct VulkanMaterialShaderObjectState
-{	
+struct VulkanMaterialShaderInstanceState
+{
 	inline static const uint32 descriptor_count = 2;
 	VkDescriptorSet descriptor_sets[3];
-	VulkanDesriptorState descriptor_states[VulkanMaterialShaderObjectState::descriptor_count];
+	VulkanDesriptorState descriptor_states[VulkanMaterialShaderInstanceState::descriptor_count];
 };
 
 struct VulkanMaterialShader
@@ -163,7 +163,8 @@ struct VulkanMaterialShader
 
 	inline static const uint32 shader_stage_count = 2;
 	inline static const uint32 attribute_count = 2;
-	inline static const uint32 max_object_count = 1024;
+	inline static const uint32 sampler_count = 1;
+	inline static const uint32 max_material_count = 1024;
 	inline static const char* builtin_shader_name = "Builtin.MaterialShader";
 
 	VulkanShaderStage stages[VulkanMaterialShader::shader_stage_count];
@@ -180,7 +181,9 @@ struct VulkanMaterialShader
 	VulkanBuffer object_uniform_buffer;
 	uint32 object_uniform_buffer_index;
 
-	VulkanMaterialShaderObjectState object_states[VulkanMaterialShader::max_object_count];
+	TextureUse sampler_uses[sampler_count];
+
+	VulkanMaterialShaderInstanceState instance_states[VulkanMaterialShader::max_material_count];
 
 	VulkanPipeline pipeline;
 	
@@ -204,7 +207,7 @@ struct VulkanContext
 	uint64 geometry_vertex_offset;
 	uint64 geometry_index_offset;
 
-	VulkanMaterialShader object_shader;
+	VulkanMaterialShader material_shader;
 
 	Sarray<VulkanCommandBuffer> graphics_command_buffers = {};
 

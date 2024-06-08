@@ -6,7 +6,7 @@
 namespace String
 {
 
-	void strings_concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b)
+	void concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b)
 	{
 		char* write_ptr = buffer_output;
 		uint32 write_output_size = buffer_output_size - 1;
@@ -27,7 +27,7 @@ namespace String
 		*write_ptr = 0;
 	}
 
-	uint32 string_append(uint32 buffer_output_size, char* buffer_output, char appendage)
+	uint32 append(uint32 buffer_output_size, char* buffer_output, char appendage)
 	{
 		uint32 appendix_length = 1;
 		for (uint32 i = 0; i < buffer_output_size; i++)
@@ -42,7 +42,7 @@ namespace String
 		return appendix_length;
 	}
 
-	uint32 string_append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source)
+	uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source)
 	{
 		uint32 appendix_length = 0;
 		char* write_ptr = buffer_output;
@@ -67,7 +67,7 @@ namespace String
 		return appendix_length;
 	}
 
-	void string_copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length)
+	void copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length)
 	{
 		char* write_ptr = buffer_output;
 		uint32 write_output_size = buffer_output_size - 1;
@@ -320,20 +320,20 @@ namespace String
 
 	}
 
-	char* string_trim(char* string)
+	char* trim(char* string)
 	{
-		char* ret = (char*)string;
-		char* end = (char*)string;
+		char* start = string;
+		char* end = string;
 
 		while (*end)
 		{
-			if (is_whitespace(*ret))
-				ret++;
+			if (is_whitespace(*start))
+				start++;
 
 			end++;
 		}
 		
-		if (end != ret)
+		if (end != start)
 		{
 			end--;
 			while (!*end || is_whitespace(*end))
@@ -343,18 +343,18 @@ namespace String
 			}
 		}
 
-		return ret;	
+		return start;
 	}
 
-	void string_mid(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 start, uint32 len)
+	void mid(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 start, int32 len)
 	{
-		SHMASSERT(buffer_output_size > len && length(buffer_source) >= start);
+		SHMASSERT((int32)buffer_output_size > len && length(buffer_source) >= start);
 
 		const char* source = buffer_source;
 		char* dest = buffer_output;
 		Memory::zero_memory(dest, buffer_output_size);
 		
-		for (uint32 i = start; (i < start + len) && source[i]; i++)
+		for (uint32 i = start; (len < 0 || (i < start + len)) && source[i]; i++)
 		{
 			*dest = source[i];
 			dest++;

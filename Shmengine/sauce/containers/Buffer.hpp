@@ -3,7 +3,7 @@
 #include "Defines.hpp"
 #include "core/Memory.hpp"
 
-struct Buffer
+struct SHMAPI Buffer
 {
 	Buffer(const Buffer& other) = delete;
 	Buffer(Buffer&& other) = delete;
@@ -28,8 +28,8 @@ struct Buffer
 
 	void clear();
 
-	void* data;
-	uint32 size;
+	void* data = 0;
+	uint32 size = 0;
 	uint16 allocation_tag;
-	bool8 owns_memory;
+	bool8 owns_memory = false;
 };

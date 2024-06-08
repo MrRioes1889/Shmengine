@@ -9,7 +9,7 @@ namespace TextureSystem
 	{
 		uint32 max_texture_count;
 
-		inline static const char* default_texture_name = "default";
+		inline static const char* default_diffuse_name = "default_diffuse";
 	};
 
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config);

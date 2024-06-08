@@ -23,6 +23,7 @@ struct Hashtable
 
 	SHMINLINE bool32 set_value(const char* name, const T& value);
 	SHMINLINE T get_value(const char* name);
+	SHMINLINE T& get_ref(const char* name);
 
 	SHMINLINE bool32 floodfill(const T& value);
 
@@ -96,6 +97,13 @@ SHMINLINE bool32 Hashtable<T>::set_value(const char* name, const T& value)
 
 template<typename T>
 SHMINLINE T Hashtable<T>::get_value(const char* name)
+{
+	uint32 hash = hash_name(name);
+	return buffer[hash];
+}
+
+template<typename T>
+SHMINLINE T& Hashtable<T>::get_ref(const char* name)
 {
 	uint32 hash = hash_name(name);
 	return buffer[hash];

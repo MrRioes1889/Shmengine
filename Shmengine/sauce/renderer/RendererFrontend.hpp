@@ -16,8 +16,11 @@ namespace Renderer
 
 	SHMAPI void set_view(Math::Mat4 view);
 
-	void create_texture(const char* name, uint32 width, uint32 height, uint32 channel_count, const void* pixels, bool32 has_transparency, Texture* out_texture);
+	void create_texture(const void* pixels, Texture* texture);
 	void destroy_texture(Texture* texture);
+
+	bool32 create_material(Material* material);
+	void destroy_material(Material* material);
 
 }
 

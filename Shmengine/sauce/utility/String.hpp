@@ -14,12 +14,12 @@ namespace String
 	SHMINLINE bool32 is_whitespace(char c)
 	{
 		return (
-			c != ' ' &&
-			c != '\f' &&
-			c != '\n' &&
-			c != '\r' &&
-			c != '\t' &&
-			c != '\v');
+			c == ' ' ||
+			c == '\f' ||
+			c == '\n' ||
+			c == '\r' ||
+			c == '\t' ||
+			c == '\v');
 	}
 
 	char* to_string(uint32 val);
@@ -72,19 +72,19 @@ namespace String
 		}
 	}
 
-	SHMAPI uint32 string_append(uint32 buffer_output_size, char* buffer_output, char appendage);
-	SHMAPI uint32 string_append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source);
+	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, char appendage);
+	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source);
 
-	SHMAPI void strings_concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b);
+	SHMAPI void concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b);
 
-	SHMAPI void string_copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length = 0);
+	SHMAPI void copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length = 0);
 
 	SHMAPI bool32 strings_eq(const char* a, const char* b);
 	SHMAPI bool32 strings_eq_case_insensitive(const char* a, const char* b);
 
-	SHMAPI char* string_trim(char* string);
+	SHMAPI char* trim(char* string);
 
-	SHMAPI void string_mid(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 start, uint32 length);
+	SHMAPI void mid(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 start, int32 length = -1);
 
 	SHMAPI bool32 parse(const char* s, float32& out_f);
 	SHMAPI bool32 parse(const char* s, float64& out_f);
@@ -148,14 +148,19 @@ namespace String
 		return _print_s_base(target_buffer, buffer_limit, format, arg_array, sizeof...(Args));
 	}
 
-	SHMAPI bool32 _string_scan_base(const char* source, const char* format, const Arg* args, uint64 arg_count);
+	SHMAPI bool32 _scan_base(const char* source, const char* format, const Arg* args, uint64 arg_count);
 
-	SHMAPI bool32 string_scan(const char* source, const char* format, ...);
+	SHMAPI bool32 scan(const char* source, const char* format, ...);
 
 	template<typename... Args>
-	SHMINLINE bool32 safe_string_scan(const char* source, const char* format, const Args&... args)
+	SHMINLINE bool32 safe_scan(const char* source, const char* format, const Args&... args)
 	{
 		Arg arg_array[] = { args... };
-		return _string_scan_base(source, format, arg_array, sizeof...(Args));
+		return _scan_base(source, format, arg_array, sizeof...(Args));
+	}
+
+	SHMINLINE bool32 parse(const char* s, Math::Vec4f& out_f)
+	{
+		return safe_scan<float32*, float32*, float32*, float32*>(s, "%f %f %f %f", &out_f.e[0], &out_f.e[1], &out_f.e[2], &out_f.e[3]);
 	}
 }

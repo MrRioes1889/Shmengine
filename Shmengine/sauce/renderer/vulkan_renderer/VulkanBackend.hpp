@@ -19,6 +19,9 @@ namespace Renderer
 
 	void vulkan_renderer_update_object(const GeometryRenderData& data);
 
-	void vulkan_create_texture(const char* name, uint32 width, uint32 height, uint32 channel_count, const void* pixels, bool32 has_transparency, Texture* out_texture);
+	void vulkan_create_texture(const void* pixels, Texture* texture);
 	void vulkan_destroy_texture(Texture* texture);
+
+	bool32 vulkan_create_material(Material* material);
+	void vulkan_destroy_material(Material* material);
 }

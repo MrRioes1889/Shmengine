@@ -29,19 +29,18 @@ namespace Renderer
 	};
 	static_assert(sizeof(GlobalUniformObject) == 256);
 
-	struct ObjectUniformObject
+	struct MaterialUniformObject
 	{
 		Math::Vec4f diffuse_color;
 
-		uint8 padding[48];
+		uint8 padding[256 - sizeof(diffuse_color)];
 	};
-	static_assert(sizeof(ObjectUniformObject) == 64);
+	static_assert(sizeof(MaterialUniformObject) == 256);
 
 	struct GeometryRenderData
 	{
-		uint32 object_id;
 		Math::Mat4 model;
-		Texture* textures[16];		
+		Material* material;
 	};
 
 	struct Backend
@@ -60,8 +59,11 @@ namespace Renderer
 
 		void (*update_object)(const GeometryRenderData& data);
 
-		void (*create_texture)(const char* name, uint32 width, uint32 height, uint32 channel_count, const void* pixels, bool32 has_transparency, Texture* out_texture);
+		void (*create_texture)(const void* pixels, Texture* texture);
 		void (*destroy_texture)(Texture* texture);
+
+		bool32 (*create_material)(Material* material);
+		void (*destroy_material)(Material* material);
 	};
 
 	struct RenderData

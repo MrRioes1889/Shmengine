@@ -6,24 +6,50 @@
 
 struct Texture
 {
-	void move(Texture& other)
-	{
-		id = other.id;
-		width = other.width;
-		height = other.height;
-		generation = other.generation;
-		channel_count = other.channel_count;
-		has_transparency = other.has_transparency;
 
-		buffer.move(other.buffer);
-	}
+	static const uint32 max_name_length = 128;
 
 	Buffer buffer = {};
 
+	char name[max_name_length];
 	uint32 id;
 	uint32 width;
 	uint32 height;
 	uint32 generation;
 	uint32 channel_count;
 	bool32 has_transparency;
+
+	SHMINLINE void move(Texture& other)
+	{
+		Memory::copy_memory(&other, this, sizeof(Texture));
+
+		buffer.move(other.buffer);
+	}
+
+};
+
+enum class TextureUse
+{
+	UNKNOWN = 0,
+	MAP_DIFFUSE = 1
+};
+
+struct TextureMap
+{
+	Texture* texture;
+	TextureUse use;
+};
+
+struct Material
+{
+
+	static const uint32 max_name_length = 128;
+
+	uint32 id;
+	uint32 generation;
+	uint32 internal_id;
+	char name[max_name_length];
+	Math::Vec4f diffuse_color;
+	TextureMap diffuse_map;
+
 };

@@ -5,6 +5,7 @@
 #include "core/Memory.hpp"
 #include "memory/LinearAllocator.hpp"
 #include "systems/TextureSystem.hpp"
+#include "systems/MaterialSystem.hpp"
 
 // TODO: temporary
 #include "utility/String.hpp"
@@ -24,7 +25,7 @@ namespace Renderer
 		float32 far_clip;
 
 		// TODO: temporary
-		Texture* test_diffuse;
+		Material* test_material;
 		// end
 	};
 
@@ -43,7 +44,12 @@ namespace Renderer
 		choice++;
 		choice %= 3;
 
-		system_state->test_diffuse = TextureSystem::acquire(names[choice], true);
+		system_state->test_material->diffuse_map.texture = TextureSystem::acquire(names[choice], true);
+		if (!system_state->test_material->diffuse_map.texture)
+		{
+			SHMWARN("event_on_debug_event no texture! using default.");
+			system_state->test_material->diffuse_map.texture = TextureSystem::get_default_texture();
+		}
 		TextureSystem::release(old_name);
 		return true;
 	}
@@ -103,19 +109,34 @@ namespace Renderer
 		if (begin_frame(data->delta_time))
 		{
 
-			system_state->backend.update_global_state(system_state->projection, system_state->view, VEC3_ZERO, VEC4F_ONE, 0);
+			system_state->backend.update_global_state(system_state->projection, system_state->view, VEC3_ZERO, VEC4F_ONE, 0);		
 
-			if (!system_state->test_diffuse)
-				system_state->test_diffuse = TextureSystem::get_default_texture();
+			// TODO: temporary
+			if (!system_state->test_material)
+			{
+				system_state->test_material = MaterialSystem::acquire("test_material");
+				if (!system_state->test_material)
+				{
+					SHMWARN("Automatic material load failed, falling back to manual default material!");
+
+					MaterialSystem::MaterialConfig config;
+					String::copy(Material::max_name_length, config.name, "test_material");
+					config.auto_release = false;
+					config.diffuse_color = VEC4F_ONE;
+					String::copy(Texture::max_name_length, config.diffuse_map_name, TextureSystem::Config::default_diffuse_name);
+					system_state->test_material = MaterialSystem::acquire_from_config(config);
+				}
+			}
+			// end
 
 			GeometryRenderData geometry_data = {};
-			geometry_data.object_id = 0;
-			geometry_data.textures[0] = system_state->test_diffuse;
+			geometry_data.material = system_state->test_material;
 
 			static float32 angle = 0.01f;
 			angle += 0.001f;
 			Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_BACK, angle, false);
 			geometry_data.model = Math::quat_to_rotation_matrix(rotation, VEC3_ZERO);
+
 			system_state->backend.update_object(geometry_data);
 
 			if (!end_frame(data->delta_time))
@@ -145,14 +166,24 @@ namespace Renderer
 		system_state->view = view;
 	}
 
-	void create_texture(const char* name, uint32 width, uint32 height, uint32 channel_count, const void* pixels, bool32 has_transparency, Texture* out_texture)
+	void create_texture(const void* pixels, Texture* texture)
 	{
-		system_state->backend.create_texture(name, width, height, channel_count, pixels, has_transparency, out_texture);
+		system_state->backend.create_texture(pixels, texture);
 	}
 
 	void destroy_texture(Texture* texture)
 	{
 		system_state->backend.destroy_texture(texture);
+	}
+
+	bool32 create_material(Material* material)
+	{
+		return system_state->backend.create_material(material);
+	}
+
+	void destroy_material(Material* material)
+	{
+		system_state->backend.destroy_material(material);
 	}
 	
 }

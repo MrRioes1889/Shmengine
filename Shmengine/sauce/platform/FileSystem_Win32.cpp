@@ -20,7 +20,7 @@ namespace FileSystem
 			!(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 	}
 
-	SHMAPI int64 get_file_size(FileHandle* file)
+	static int64 get_file_size(FileHandle* file)
 	{
 		LARGE_INTEGER file_size;
 		if (!GetFileSizeEx(file->handle, &file_size))
@@ -28,6 +28,20 @@ namespace FileSystem
 			return -1;
 		}
 		return (int64)file_size.QuadPart;
+	}
+
+	SHMAPI uint32 get_file_size32(FileHandle* file)
+	{
+
+		int64 file_size = get_file_size(file);
+		if (file_size < 0)
+		{
+			SHMERROR("Failed to get file size for reading file");
+			return 0;
+		}
+
+		return s_truncate_uint64((uint64)file_size);
+
 	}
 
 	SHMAPI bool32 file_open(const char* path, FileMode mode, FileHandle* out_file)
@@ -75,16 +89,17 @@ namespace FileSystem
 
 	}
 
-	bool32 read_bytes(FileHandle* file, uint32 size, Buffer* out_buffer, uint32* out_bytes_read)
+	bool32 read_bytes(FileHandle* file, uint32 size, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read)
 	{
 
 		if (file->handle) {
 
-			out_buffer->free_data();
-	
-			out_buffer->init(size, AllocationTag::RAW);
+			if (!out_buffer || out_buffer_size < size)
+			{
+				return false;
+			}
 
-			if (!ReadFile(file->handle, out_buffer->data, size, (LPDWORD)out_bytes_read, 0))
+			if (!ReadFile(file->handle, out_buffer, size, (LPDWORD)out_bytes_read, 0))
 			{
 				SHMERROR("Failed to read file.");
 				return false;
@@ -96,24 +111,44 @@ namespace FileSystem
 
 	}
 
-	SHMAPI bool32 read_all_bytes(FileHandle* file, Buffer* out_buffer, uint32* out_bytes_read)
+	SHMAPI bool32 read_all_bytes(FileHandle* file, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read)
 	{
 
-		if (file->handle) {
-
-			int64 file_size = get_file_size(file);
-			if (file_size < 0)
-			{
-				SHMERROR("Failed to get file size for reading file");
-				return false;
-			}
-
-			uint32 file_size32 = s_truncate_uint64((uint64)file_size);
-
-			return read_bytes(file, file_size32, out_buffer, out_bytes_read);
-
+		uint32 file_size = get_file_size32(file);
+		if (file_size) {
+			read_bytes(file, file_size, out_buffer, out_buffer_size, out_bytes_read);
+			return file_size == *out_bytes_read;
 		}
 		return false;
+
+	}
+
+	SHMAPI int32 read_line(const char* file_buffer, char* line_buffer, uint32 line_buffer_size, const char** out_continue_ptr)
+	{
+
+		if (!file_buffer || !line_buffer)
+			return -1;
+
+		const char* source = file_buffer;
+		if (out_continue_ptr && *out_continue_ptr)
+			source = *out_continue_ptr;
+
+		if (!*source)
+			return 0;
+
+		int32 read_length = String::index_of(source, '\n');
+		if (read_length < 0)
+			read_length = String::length(source);
+
+		if ((uint32)read_length > line_buffer_size - 1)
+			read_length = line_buffer_size - 1;
+			
+		String::copy(line_buffer_size, line_buffer, source, (uint32)read_length);
+
+		if (out_continue_ptr)
+			*out_continue_ptr = &source[read_length + 1];
+
+		return 1;
 
 	}
 

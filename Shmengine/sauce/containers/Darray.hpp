@@ -38,9 +38,9 @@ struct Darray
 		return data[index];
 	}
 
-	T* data;
-	uint32 size; // Max Capacity of contained objects
-	uint32 count; // Count of contained objects
+	T* data = 0;
+	uint32 size = 0; // Max Capacity of contained objects
+	uint32 count = 0; // Count of contained objects
 
 	AllocationTag allocation_tag;
 };

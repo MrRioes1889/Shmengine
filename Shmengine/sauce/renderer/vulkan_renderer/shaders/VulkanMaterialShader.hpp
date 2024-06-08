@@ -14,5 +14,5 @@ void vulkan_material_shader_update_global_state(VulkanContext* context, VulkanMa
 
 void vulkan_material_shader_update_object(VulkanContext* context, VulkanMaterialShader* shader, const Renderer::GeometryRenderData& data);
 
-bool32 vulkan_material_shader_acquire_resources(VulkanContext* context, VulkanMaterialShader* shader, uint32* out_object_id);
-void vulkan_material_shader_release_resources(VulkanContext* context, VulkanMaterialShader* shader, uint32 object_id);
+bool32 vulkan_material_shader_acquire_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material);
+void vulkan_material_shader_release_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material);

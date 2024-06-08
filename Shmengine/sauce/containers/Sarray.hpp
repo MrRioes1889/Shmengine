@@ -27,10 +27,10 @@ struct Sarray
 		return data[index];
 	}
 	
-	T* data;
-	uint32 count;
+	T* data = 0;
+	uint32 count = 0;
 	uint16 allocation_tag;
-	bool8 owns_memory;
+	bool8 owns_memory = false;
 
 };
 

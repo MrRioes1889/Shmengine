@@ -36,10 +36,10 @@ namespace String
 			char format_identifier = c[0];
 
 			bool32 ll_value = false;
-			if (c[1] == 'l' && c[2] == 'l')
+			if (format_identifier == 'l')
 			{
 				ll_value = true;
-				c += 2;
+				c++;
 			}
 
 			bool32 format_parse_successful = true;
@@ -56,12 +56,12 @@ namespace String
 				if (args[arg_i].type == Arg::Type::INT32)
 				{
 					int32 v = args[arg_i++].int32_value[0];         //Fetch Integer argument
-					target_i += string_append(buffer_limit, target_buffer, to_string(v));
+					target_i += append(buffer_limit, target_buffer, to_string(v));
 				}	
 				else
 				{
 					int64 v = args[arg_i++].int64_value;         //Fetch Integer argument
-					target_i += string_append(buffer_limit, target_buffer, to_string(v));
+					target_i += append(buffer_limit, target_buffer, to_string(v));
 				}
 				break;
 			}
@@ -76,12 +76,12 @@ namespace String
 				if (args[arg_i].type == Arg::Type::UINT32)
 				{
 					uint32 v = args[arg_i++].uint32_value[0];         //Fetch Integer argument
-					target_i += string_append(buffer_limit, target_buffer, to_string(v));
+					target_i += append(buffer_limit, target_buffer, to_string(v));
 				}
 				else
 				{
 					uint64 v = args[arg_i++].uint64_value;         //Fetch Integer argument
-					target_i += string_append(buffer_limit, target_buffer, to_string(v));
+					target_i += append(buffer_limit, target_buffer, to_string(v));
 				}
 				break;
 			}
@@ -90,7 +90,7 @@ namespace String
 				if (args[arg_i].type == Arg::Type::CHAR_PTR)
 				{
 					char* v = args[arg_i++].char_ptr;         //Fetch String argument
-					target_i += string_append(buffer_limit, target_buffer, v);
+					target_i += append(buffer_limit, target_buffer, v);
 				}
 				break;
 			}
@@ -99,7 +99,7 @@ namespace String
 				if (args[arg_i].type == Arg::Type::CHAR)
 				{
 					char v = args[arg_i++].char_value[0];         //Fetch Character argument
-					target_i += string_append(buffer_limit, target_buffer, v);
+					target_i += append(buffer_limit, target_buffer, v);
 				}
 				break;
 			}
@@ -121,12 +121,12 @@ namespace String
 				if (args[arg_i].type == Arg::Type::FLOAT32)
 				{
 					float32 v = args[arg_i++].float32_value[0];         //Fetch Character argument
-					target_i += string_append(buffer_limit, target_buffer, to_string(v, decimals));
+					target_i += append(buffer_limit, target_buffer, to_string(v, decimals));
 				}
 				else
 				{
 					float64 v = args[arg_i++].float64_value;         //Fetch Integer argument
-					target_i += string_append(buffer_limit, target_buffer, to_string(v, decimals));
+					target_i += append(buffer_limit, target_buffer, to_string(v, decimals));
 				}
 				break;
 			}
@@ -151,10 +151,10 @@ namespace String
 			char format_identifier = temp_format_ptr[0];
 
 			bool32 ll_value = false;
-			if (temp_format_ptr[1] == 'l' && temp_format_ptr[2] == 'l')
+			if (format_identifier == 'l')
 			{
 				ll_value = true;
-				temp_format_ptr += 2;
+				temp_format_ptr++;
 			}
 
 			switch (format_identifier)
@@ -245,7 +245,7 @@ namespace String
 	}
 
 	// TODO: Replace asserts width regular errors
-	bool32 _string_scan_base(const char* source, const char* format, const Arg* args, uint64 arg_count)
+	bool32 _scan_base(const char* source, const char* format, const Arg* args, uint64 arg_count)
 	{
 
 		SHMASSERT_MSG(arg_count <= 20, "Argument count exceeded string scan limit");
@@ -268,10 +268,10 @@ namespace String
 				char format_identifier = format[0];
 
 				bool32 ll_value = false;
-				if (format[1] == 'l' && format[2] == 'l')
+				if (format_identifier == 'l')
 				{
 					ll_value = true;
-					format += 2;
+					format++;
 				}
 
 				const uint32 parse_buffer_size = 512;
@@ -401,7 +401,7 @@ namespace String
 
 	}
 
-	bool32 string_scan(const char* source, const char* format, ...)
+	bool32 scan(const char* source, const char* format, ...)
 	{
 
 		va_list arg_ptr;
@@ -418,10 +418,10 @@ namespace String
 			char format_identifier = temp_format_ptr[0];
 
 			bool32 ll_value = false;
-			if (temp_format_ptr[1] == 'l' && temp_format_ptr[2] == 'l')
+			if (format_identifier == 'l')
 			{
 				ll_value = true;
-				temp_format_ptr += 2;
+				temp_format_ptr++;
 			}
 
 			switch (format_identifier)
@@ -479,7 +479,7 @@ namespace String
 			macro_index = index_of(temp_format_ptr, '%');
 		}
 
-		bool32 res = _string_scan_base(source, format, args, arg_count);
+		bool32 res = _scan_base(source, format, args, arg_count);
 
 		va_end(arg_ptr);
 

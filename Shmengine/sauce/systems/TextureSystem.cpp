@@ -3,7 +3,6 @@
 #include "core/Logging.hpp"
 #include "utility/String.hpp"
 #include "core/Memory.hpp"
-#include "memory/LinearAllocator.hpp"
 #include "containers/Hashtable.hpp"
 
 #include "renderer/RendererFrontend.hpp"
@@ -37,6 +36,7 @@ namespace TextureSystem
 	static SystemState* system_state = 0;
 	
 	static bool32 load_texture(const char* texture_name, Texture* t);
+	static void destroy_texture(Texture* t);
 
 	static void create_default_textures();
 	static void destroy_default_textures();
@@ -95,7 +95,7 @@ namespace TextureSystem
 		if (!system_state)
 			return 0;
 		
-		if (String::strings_eq_case_insensitive(name, Config::default_texture_name))
+		if (String::strings_eq_case_insensitive(name, Config::default_diffuse_name))
 		{
 			SHMWARN("using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
 			return &system_state->default_diffuse;
@@ -144,38 +144,37 @@ namespace TextureSystem
 	void release(const char* name)
 	{
 
-		if (String::strings_eq_case_insensitive(name, Config::default_texture_name))
+		if (String::strings_eq_case_insensitive(name, Config::default_diffuse_name))
 			return;
 
-		TextureReference ref = system_state->registered_texture_table.get_value(name);
+		TextureReference ref = system_state->registered_texture_table.get_ref(name);
 		if (ref.reference_count == 0)
 		{
 			SHMWARNV("Tried to release no existent texture: %s", name);
 			return;
 		}
 
+		char name_copy[Texture::max_name_length] = {};
+		String::copy(Texture::max_name_length, name_copy, name);
+
 		ref.reference_count--;
 		if (ref.reference_count == 0 && ref.auto_release)
 		{
-			Texture* t = &system_state->registered_textures[ref.handle];
+			Texture* t = &system_state->registered_textures[ref.handle];	
 
-			Renderer::destroy_texture(t);
-
-			Memory::zero_memory(t, sizeof(Texture));
-			t->id = INVALID_OBJECT_ID;
-			t->generation = INVALID_OBJECT_ID;
+			destroy_texture(t);
 
 			ref.handle = INVALID_OBJECT_ID;
 			ref.auto_release = false;
 
-			SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count > 0 and auto_release enabled.", name, ref.reference_count);
+			SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count > 0 and auto_release enabled.", name_copy, ref.reference_count);
 		}
 		else
 		{
-			SHMTRACEV("Released Texture '%s'. ref count is now %i.", name, ref.reference_count);
+			SHMTRACEV("Released Texture '%s'. ref count is now %i.", name_copy, ref.reference_count);
 		}
 
-		system_state->registered_texture_table.set_value(name, ref);
+		system_state->registered_texture_table.set_value(name_copy, ref);
 
 	}
 
@@ -201,7 +200,8 @@ namespace TextureSystem
 
 		if (stbi_failure_reason())
 		{
-			SHMWARNV("load_texture failed to load texture file '%s': %s", full_file_path, stbi_failure_reason);
+			SHMWARNV("load_texture failed to load texture file '%s': %s", full_file_path, stbi_failure_reason());
+			stbi__err(0, 0);
 			return false;
 		}
 
@@ -223,9 +223,13 @@ namespace TextureSystem
 				}
 			}
 
-			Renderer::create_texture(texture_name, temp_texture.width, temp_texture.height, temp_texture.channel_count, data, has_transparency, &temp_texture);
+			String::copy(Texture::max_name_length, temp_texture.name, texture_name);
+			temp_texture.generation = INVALID_OBJECT_ID;
+			temp_texture.has_transparency = has_transparency;
 
-			Renderer::destroy_texture(t);
+			Renderer::create_texture(data, &temp_texture);
+
+			destroy_texture(t);
 			(*t).move(temp_texture);
 
 			if (current_generation == INVALID_OBJECT_ID)
@@ -276,7 +280,14 @@ namespace TextureSystem
 			}
 		}
 
-		Renderer::create_texture("default", tex_dim, tex_dim, channel_count, pixels, false, &system_state->default_diffuse);
+		String::copy(Texture::max_name_length, system_state->default_diffuse.name, Config::default_diffuse_name);
+		system_state->default_diffuse.width = tex_dim;
+		system_state->default_diffuse.height = tex_dim;
+		system_state->default_diffuse.channel_count = 4;
+		system_state->default_diffuse.generation = INVALID_OBJECT_ID;
+		system_state->default_diffuse.has_transparency = false;
+
+		Renderer::create_texture(pixels, &system_state->default_diffuse);
 		system_state->default_diffuse.generation = INVALID_OBJECT_ID;
 
 	}
@@ -285,7 +296,16 @@ namespace TextureSystem
 	{
 		if (system_state)
 		{
-			Renderer::destroy_texture(&system_state->default_diffuse);
+			destroy_texture(&system_state->default_diffuse);
 		}
+	}
+
+	static void destroy_texture(Texture* t)
+	{
+		Renderer::destroy_texture(t);
+
+		Memory::zero_memory(t, sizeof(t));
+		t->id = INVALID_OBJECT_ID;
+		t->generation = INVALID_OBJECT_ID;
 	}
 }

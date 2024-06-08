@@ -20,6 +20,8 @@ namespace Renderer
 			out_backend->update_object = vulkan_renderer_update_object;
 			out_backend->create_texture = vulkan_create_texture;
 			out_backend->destroy_texture = vulkan_destroy_texture;
+			out_backend->create_material = vulkan_create_material;
+			out_backend->destroy_material = vulkan_destroy_material;
 
 			return true;
 		}
@@ -38,5 +40,7 @@ namespace Renderer
 		backend->update_object = 0;
 		backend->create_texture = 0;
 		backend->destroy_texture = 0;
+		backend->create_material = 0;
+		backend->destroy_material = 0;
 	}
 }

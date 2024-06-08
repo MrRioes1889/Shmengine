@@ -224,7 +224,7 @@ namespace Renderer
 		context.images_in_flight.init(context.swapchain.images.count);
 		context.images_in_flight.clear();
 
-		if (!vulkan_material_shader_create(&context, &context.object_shader))
+		if (!vulkan_material_shader_create(&context, &context.material_shader))
 		{
 			SHMERROR("Failed loading basic builtin object shader");
 			return false;
@@ -248,13 +248,6 @@ namespace Renderer
 		tmp_upload_data_range(context.device.graphics_command_pool,	0, context.device.graphics_queue, &context.object_vertex_buffer, 0, sizeof(verts), verts);
 		tmp_upload_data_range(context.device.graphics_command_pool, 0, context.device.graphics_queue, &context.object_index_buffer, 0, sizeof(indices), indices);
 
-		uint32 object_id = 0;
-		if (!vulkan_material_shader_acquire_resources(&context, &context.object_shader, &object_id))
-		{
-			SHMERROR("Failed to acquire resources for shader.");
-			return false;
-		}
-
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
 	}
@@ -269,7 +262,7 @@ namespace Renderer
 		vulkan_buffer_destroy(&context, &context.object_index_buffer);
 
 		SHMDEBUG("Destroying vulkan shaders...");
-		vulkan_material_shader_destroy(&context, &context.object_shader);
+		vulkan_material_shader_destroy(&context, &context.material_shader);
 
 		SHMDEBUG("Destroying vulkan semaphores and fences...");
 		for (uint32 i = 0; i < context.swapchain.images.count; i++)
@@ -407,14 +400,14 @@ namespace Renderer
 	void vulkan_renderer_update_global_state(Math::Mat4 projection, Math::Mat4 view, Math::Vec3f view_position, Math::Vec4f ambient_colour, int32 mode) 
 	{		
 
-		vulkan_material_shader_use(&context, &context.object_shader);
+		vulkan_material_shader_use(&context, &context.material_shader);
 
-		context.object_shader.global_ubo.projection = projection;
-		context.object_shader.global_ubo.view = view;
+		context.material_shader.global_ubo.projection = projection;
+		context.material_shader.global_ubo.view = view;
 
 		// TODO: other ubo properties
 
-		vulkan_material_shader_update_global_state(&context, &context.object_shader);
+		vulkan_material_shader_update_global_state(&context, &context.material_shader);
 
 	}
 
@@ -469,10 +462,10 @@ namespace Renderer
 	{
 		VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
 
-		vulkan_material_shader_update_object(&context, &context.object_shader, data);
+		vulkan_material_shader_update_object(&context, &context.material_shader, data);
 
 		// TODO: temporary test code
-		vulkan_material_shader_use(&context, &context.object_shader);
+		vulkan_material_shader_use(&context, &context.material_shader);
 
 		// Bind vertex buffer at offset.
 		VkDeviceSize offsets[1] = { 0 };
@@ -502,17 +495,12 @@ namespace Renderer
 		return -1;
 	}
 
-	void vulkan_create_texture(const char* name, uint32 width, uint32 height, uint32 channel_count, const void* pixels, bool32 has_transparency, Texture* out_texture)
+	void vulkan_create_texture(const void* pixels, Texture* texture)
 	{
 
-		out_texture->width = width;
-		out_texture->height = height;
-		out_texture->channel_count = channel_count;
-		out_texture->generation = INVALID_OBJECT_ID;
-
-		out_texture->buffer.init(sizeof(VulkanTextureData), AllocationTag::MAIN);
-		VulkanTextureData* data = (VulkanTextureData*)out_texture->buffer.data;
-		VkDeviceSize image_size = width * height * channel_count;
+		texture->buffer.init(sizeof(VulkanTextureData), AllocationTag::MAIN);
+		VulkanTextureData* data = (VulkanTextureData*)texture->buffer.data;
+		VkDeviceSize image_size = texture->width * texture->height * texture->channel_count;
 
 		VkFormat image_format = VK_FORMAT_R8G8B8A8_UNORM;
 
@@ -526,8 +514,8 @@ namespace Renderer
 		vulkan_image_create(
 			&context,
 			VK_IMAGE_TYPE_2D,
-			width,
-			height,
+			texture->width,
+			texture->height,
 			image_format,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -572,8 +560,7 @@ namespace Renderer
 			return;
 		}
 
-		out_texture->has_transparency = has_transparency;
-		out_texture->generation++;
+		texture->generation++;
 
 	}
 
@@ -595,6 +582,26 @@ namespace Renderer
 	
 		Memory::zero_memory(texture, sizeof(Texture));
 
+	}
+
+	bool32 vulkan_create_material(Material* material)
+	{
+		if (!vulkan_material_shader_acquire_resources(&context, &context.material_shader, material))
+		{
+			SHMERROR("vulkan_create_material - Failed to acquire shader resources!");
+			return false;
+		}
+
+		SHMTRACE("Renderer: Material created.");
+		return true;
+	}
+
+	void vulkan_destroy_material(Material* material)
+	{
+		if (material->internal_id != INVALID_OBJECT_ID)
+			vulkan_material_shader_release_resources(&context, &context.material_shader, material);
+		else
+			SHMWARN("vulkan_destroy_material called when internal material id was already invalid!");
 	}
 
 	static void create_command_buffers(Renderer::Backend* backend)

@@ -11,6 +11,7 @@
 
 #include "renderer/RendererFrontend.hpp"
 #include "systems/TextureSystem.hpp"
+#include "systems/MaterialSystem.hpp"
 
 namespace Application
 {
@@ -33,6 +34,7 @@ namespace Application
 		void* input_system_state;
 		void* renderer_system_state;
 		void* texture_system_state;
+		void* material_system_state;
 
 	};
 
@@ -122,10 +124,18 @@ namespace Application
 		}
 
 		TextureSystem::Config texture_sys_config;
-		texture_sys_config.max_texture_count = 0xFFFF;
+		texture_sys_config.max_texture_count = 0x10000;
 		if (!TextureSystem::system_init(allocate_subsystem_callback, app_state->texture_system_state, texture_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize texture system. Application shutting down..");
+			return false;
+		}
+
+		MaterialSystem::Config material_sys_config;
+		material_sys_config.max_material_count = 0x1000;
+		if (!MaterialSystem::system_init(allocate_subsystem_callback, app_state->material_system_state, material_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize material system. Application shutting down..");
 			return false;
 		}
 
@@ -206,6 +216,7 @@ namespace Application
 
 		app_state->is_running = false;
 	
+		MaterialSystem::system_shutdown();
 		TextureSystem::system_shutdown();
 		Renderer::system_shutdown();
 		Platform::system_shutdown();

@@ -31,6 +31,7 @@ bool32 create_shader_module(
 
 	uint32 size = 0;
 
+	shader_stages[stage_index].shader_code_buffer.init(FileSystem::get_file_size32(&file), AllocationTag::MAIN);
 	if (!FileSystem::read_all_bytes(&file, &shader_stages[stage_index].shader_code_buffer, &size))
 	{
 		SHMERRORV("Unable to read file for shader module: %s.", file_name);
