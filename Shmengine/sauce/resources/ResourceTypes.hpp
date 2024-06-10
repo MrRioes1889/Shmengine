@@ -53,3 +53,17 @@ struct Material
 	TextureMap diffuse_map;
 
 };
+
+struct Geometry
+{
+
+	static const uint32 max_name_length = 128;
+
+	uint32 id;
+	uint32 generation;
+	uint32 internal_id;
+	char name[max_name_length];
+	Material* material;
+
+};
+

@@ -9,7 +9,7 @@ namespace MaterialSystem
 	{
 		uint32 max_material_count;
 
-		inline static const char* default_diffuse_name = "default_diffuse";
+		inline static const char* default_name = "default";
 	};
 
 	struct MaterialConfig
@@ -24,7 +24,9 @@ namespace MaterialSystem
 	void system_shutdown();
 
 	Material* acquire(const char* name);
-	Material* acquire_from_config(MaterialConfig config);
+	Material* acquire_from_config(const MaterialConfig& config);
 	void release(const char* name);
+
+	Material* get_default_material();
 
 }

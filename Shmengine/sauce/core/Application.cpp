@@ -8,10 +8,16 @@
 #include "core/Clock.hpp"
 #include "core/Event.hpp"
 #include "core/Input.hpp"
+#include "utility/String.hpp"
 
 #include "renderer/RendererFrontend.hpp"
 #include "systems/TextureSystem.hpp"
 #include "systems/MaterialSystem.hpp"
+#include "systems/GeometrySystem.hpp"
+
+// TODO: temp
+#include "utility/Math.hpp"
+// end
 
 namespace Application
 {
@@ -35,15 +41,44 @@ namespace Application
 		void* renderer_system_state;
 		void* texture_system_state;
 		void* material_system_state;
+		void* geometry_system_state;
 
+		Geometry* test_geometry;
 	};
+
+	static bool32 initialized = false;
+	static ApplicationState* app_state;
 
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
 	bool32 on_key(uint16 code, void* sender, void* listener_inst, EventData data);
 	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data);
 
-	static bool32 initialized = false;
-	static ApplicationState* app_state;
+	bool32 event_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
+	{
+		const char* names[3] = {
+			"cobblestone",
+			"paving",
+			"paving2"
+		};
+
+		static int32 choice = 2;
+		const char* old_name = names[choice];
+		choice++;
+		choice %= 3;
+
+		if (app_state->test_geometry)
+		{
+			app_state->test_geometry->material->diffuse_map.texture = TextureSystem::acquire(names[choice], true);
+			if (!app_state->test_geometry->material->diffuse_map.texture)
+			{
+				SHMWARN("event_on_debug_event no texture! using default.");
+				app_state->test_geometry->material->diffuse_map.texture = TextureSystem::get_default_texture();
+			}
+			TextureSystem::release(old_name);
+		}
+		
+		return true;
+	}
 
 	void* allocate_subsystem_callback (uint64 size)
 	{
@@ -102,7 +137,10 @@ namespace Application
 		Event::event_register(EVENT_CODE_APPLICATION_QUIT, 0, on_event);
 		Event::event_register(EVENT_CODE_KEY_PRESSED, 0, on_key);
 		Event::event_register(EVENT_CODE_KEY_RELEASED, 0, on_key);
-		Event::event_register(EVENT_CODE_WINDOW_RESIZED, 0, on_resized);			
+		Event::event_register(EVENT_CODE_WINDOW_RESIZED, 0, on_resized);
+		// TODO: temporary
+		Event::event_register(EVENT_CODE_DEBUG0, 0, event_on_debug_event);
+		// end
 
 		if (!Platform::system_init(
 			allocate_subsystem_callback,
@@ -138,6 +176,20 @@ namespace Application
 			SHMFATAL("ERROR: Failed to initialize material system. Application shutting down..");
 			return false;
 		}
+
+		GeometrySystem::Config geometry_sys_config;
+		geometry_sys_config.max_geometry_count = 0x1000;
+		if (!GeometrySystem::system_init(allocate_subsystem_callback, app_state->geometry_system_state, geometry_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize geometry system. Application shutting down..");
+			return false;
+		}
+
+		// TODO: temporary
+		GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_plane_config(10.0f, 5.0f, 5, 5, 5.0f, 2.0f, "test geometry", "test_material");
+		app_state->test_geometry = GeometrySystem::acquire_from_config(g_config, true);
+		//app_state->test_geometry = GeometrySystem::get_default_geometry();
+		// end
 
 		if (!game_inst->init(game_inst))
 		{
@@ -193,6 +245,16 @@ namespace Application
 
 				Renderer::RenderData r_data;
 				r_data.delta_time = delta_time;
+
+				// TODO: temporary
+				Renderer::GeometryRenderData test_render;
+				test_render.geometry = app_state->test_geometry;
+				test_render.model = MAT4_IDENTITY;
+
+				r_data.geometry_count = 1;
+				r_data.geometries = &test_render;
+				// end
+
 				Renderer::draw_frame(&r_data);
 			}
 
@@ -216,6 +278,7 @@ namespace Application
 
 		app_state->is_running = false;
 	
+		GeometrySystem::system_shutdown();
 		MaterialSystem::system_shutdown();
 		TextureSystem::system_shutdown();
 		Renderer::system_shutdown();

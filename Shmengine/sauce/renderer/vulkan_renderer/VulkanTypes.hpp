@@ -15,6 +15,12 @@
 		SHMASSERT((x) == VK_SUCCESS);		\
 	}	
 
+struct VulkanConfig
+{
+	inline static const uint32 max_material_count = 0x400;
+	inline static const uint32 max_geometry_count = 0x1000;
+};
+
 struct VulkanBuffer
 {
 	VkBuffer handle;
@@ -164,7 +170,6 @@ struct VulkanMaterialShader
 	inline static const uint32 shader_stage_count = 2;
 	inline static const uint32 attribute_count = 2;
 	inline static const uint32 sampler_count = 1;
-	inline static const uint32 max_material_count = 1024;
 	inline static const char* builtin_shader_name = "Builtin.MaterialShader";
 
 	VulkanShaderStage stages[VulkanMaterialShader::shader_stage_count];
@@ -183,10 +188,22 @@ struct VulkanMaterialShader
 
 	TextureUse sampler_uses[sampler_count];
 
-	VulkanMaterialShaderInstanceState instance_states[VulkanMaterialShader::max_material_count];
+	VulkanMaterialShaderInstanceState instance_states[VulkanConfig::max_material_count];
 
 	VulkanPipeline pipeline;
 	
+};
+
+struct VulkanGeometryData
+{
+	uint32 id;
+	uint32 generation;
+	uint32 vertex_count;
+	uint32 vertex_size;
+	uint32 vertex_buffer_offset;
+	uint32 index_count;
+	uint32 index_size;
+	uint32 index_buffer_offset;
 };
 
 struct VulkanContext
@@ -206,6 +223,8 @@ struct VulkanContext
 
 	uint64 geometry_vertex_offset;
 	uint64 geometry_index_offset;
+
+	VulkanGeometryData geometries[VulkanConfig::max_geometry_count];
 
 	VulkanMaterialShader material_shader;
 

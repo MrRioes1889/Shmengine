@@ -89,7 +89,7 @@ bool32 vulkan_pipeline_create
     // Vertex input
     VkVertexInputBindingDescription binding_description;
     binding_description.binding = 0;  // Binding index
-    binding_description.stride = sizeof(Math::Vert3);
+    binding_description.stride = sizeof(Renderer::Vert3);
     binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;  // Move to next data entry for each vertex.
 
     // Attributes

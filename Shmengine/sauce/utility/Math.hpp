@@ -13,12 +13,6 @@
 
 namespace Math
 {
-
-	struct Vert3
-	{
-		Vec3f position;
-		Vec2f tex_coordinates;
-	};
 	
 	SHMINLINE bool32 is_power_of_2(uint64 value) {
 		return (value != 0) && ((value & (value - 1)) == 0);

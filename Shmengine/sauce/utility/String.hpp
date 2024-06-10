@@ -7,7 +7,6 @@
 #include "utility/Math.hpp"
 #include <stdarg.h>
 
-// TODO: These have to be replaced! Should not be called inside a contiguous function call at the moment and probably arent sufficiently fast as well!
 namespace String
 {
 
@@ -51,11 +50,15 @@ namespace String
 			return ret;
 	}
 
-	SHMINLINE void empty(char* buffer)
+	SHMINLINE void empty(char* buffer, bool32 full_empty = false)
 	{
 		char* p = buffer;
-		while (*p)
-			*p++ = 0;
+		*p++ = 0;
+		if (full_empty)
+		{
+			while (*p)
+				*p++ = 0;
+		}	
 	}
 
 	SHMINLINE void left_of_last(uint32 length, char* buffer_output, char split_c, bool32 exclude_last = false)

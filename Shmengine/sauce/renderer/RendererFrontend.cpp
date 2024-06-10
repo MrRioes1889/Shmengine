@@ -23,44 +23,16 @@ namespace Renderer
 
 		float32 near_clip;
 		float32 far_clip;
-
-		// TODO: temporary
-		Material* test_material;
-		// end
 	};
 
 	static SystemState* system_state;
 
-	bool32 event_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
-	{
-		const char* names[3] = {
-			"cobblestone",
-			"paving",
-			"paving2"
-		};
-		
-		static int32 choice = 2;
-		const char* old_name = names[choice];
-		choice++;
-		choice %= 3;
-
-		system_state->test_material->diffuse_map.texture = TextureSystem::acquire(names[choice], true);
-		if (!system_state->test_material->diffuse_map.texture)
-		{
-			SHMWARN("event_on_debug_event no texture! using default.");
-			system_state->test_material->diffuse_map.texture = TextureSystem::get_default_texture();
-		}
-		TextureSystem::release(old_name);
-		return true;
-	}
 
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name)
 	{
 
 		out_state = allocator_callback(sizeof(SystemState));
 		system_state = (SystemState*)out_state;
-
-		Event::event_register(EVENT_CODE_DEBUG0, system_state, event_on_debug_event);
 
 		backend_create(RENDERER_BACKEND_TYPE_VULKAN, &system_state->backend);
 		system_state->backend.frame_count = 0;
@@ -83,11 +55,8 @@ namespace Renderer
 	{
 		if (system_state)
 		{
-			Event::event_unregister(EVENT_CODE_DEBUG0, system_state, event_on_debug_event);
-
 			system_state->backend.shutdown(&system_state->backend);
-		}
-			
+		}		
 
 		system_state = 0;
 	}
@@ -111,33 +80,10 @@ namespace Renderer
 
 			system_state->backend.update_global_state(system_state->projection, system_state->view, VEC3_ZERO, VEC4F_ONE, 0);		
 
-			// TODO: temporary
-			if (!system_state->test_material)
+			for (uint32 i = 0; i < data->geometry_count; i++)
 			{
-				system_state->test_material = MaterialSystem::acquire("test_material");
-				if (!system_state->test_material)
-				{
-					SHMWARN("Automatic material load failed, falling back to manual default material!");
-
-					MaterialSystem::MaterialConfig config;
-					String::copy(Material::max_name_length, config.name, "test_material");
-					config.auto_release = false;
-					config.diffuse_color = VEC4F_ONE;
-					String::copy(Texture::max_name_length, config.diffuse_map_name, TextureSystem::Config::default_diffuse_name);
-					system_state->test_material = MaterialSystem::acquire_from_config(config);
-				}
+				system_state->backend.draw_geometry(data->geometries[i]);
 			}
-			// end
-
-			GeometryRenderData geometry_data = {};
-			geometry_data.material = system_state->test_material;
-
-			static float32 angle = 0.01f;
-			angle += 0.001f;
-			Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_BACK, angle, false);
-			geometry_data.model = Math::quat_to_rotation_matrix(rotation, VEC3_ZERO);
-
-			system_state->backend.update_object(geometry_data);
 
 			if (!end_frame(data->delta_time))
 			{
@@ -184,6 +130,16 @@ namespace Renderer
 	void destroy_material(Material* material)
 	{
 		system_state->backend.destroy_material(material);
+	}
+
+	bool32 create_geometry(Geometry* geometry, uint32 vertex_count, const Vert3* vertices, uint32 index_count, const uint32* indices)
+	{
+		return system_state->backend.create_geometry(geometry, vertex_count, vertices, index_count, indices);
+	}
+
+	void destroy_geometry(Geometry* geometry)
+	{
+		system_state->backend.destroy_geometry(geometry);
 	}
 	
 }

@@ -5,14 +5,18 @@
 
 #include "utility/Math.hpp"
 
-bool32 vulkan_material_shader_create(VulkanContext* context, VulkanMaterialShader* out_shader);
-void vulkan_material_shader_destroy(VulkanContext* context, VulkanMaterialShader* shader);
+namespace Renderer::Vulkan
+{
+	bool32 material_shader_create(VulkanContext* context, VulkanMaterialShader* out_shader);
+	void material_shader_destroy(VulkanContext* context, VulkanMaterialShader* shader);
 
-void vulkan_material_shader_use(VulkanContext* context, VulkanMaterialShader* shader);
+	void material_shader_use(VulkanContext* context, VulkanMaterialShader* shader);
 
-void vulkan_material_shader_update_global_state(VulkanContext* context, VulkanMaterialShader* shader);
+	void material_shader_update_global_state(VulkanContext* context, VulkanMaterialShader* shader);
 
-void vulkan_material_shader_update_object(VulkanContext* context, VulkanMaterialShader* shader, const Renderer::GeometryRenderData& data);
+	void material_shader_set_model(VulkanContext* context, VulkanMaterialShader* shader, const Math::Mat4& model);
+	void material_shader_apply_material(VulkanContext* context, VulkanMaterialShader* shader, Material* material);
 
-bool32 vulkan_material_shader_acquire_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material);
-void vulkan_material_shader_release_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material);
+	bool32 material_shader_acquire_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material);
+	void material_shader_release_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material);
+}

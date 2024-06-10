@@ -11,17 +11,19 @@ namespace Renderer
 
 		if (type == RENDERER_BACKEND_TYPE_VULKAN)
 		{
-			out_backend->init = vulkan_init;
-			out_backend->shutdown = vulkan_shutdown;
-			out_backend->begin_frame = vulkan_begin_frame;
-			out_backend->end_frame = vulkan_end_frame;
-			out_backend->on_resized = vulkan_on_resized;
-			out_backend->update_global_state = vulkan_renderer_update_global_state;
-			out_backend->update_object = vulkan_renderer_update_object;
-			out_backend->create_texture = vulkan_create_texture;
-			out_backend->destroy_texture = vulkan_destroy_texture;
-			out_backend->create_material = vulkan_create_material;
-			out_backend->destroy_material = vulkan_destroy_material;
+			out_backend->init = Vulkan::init;
+			out_backend->shutdown = Vulkan::shutdown;
+			out_backend->begin_frame = Vulkan::begin_frame;
+			out_backend->end_frame = Vulkan::end_frame;
+			out_backend->on_resized = Vulkan::on_resized;
+			out_backend->update_global_state = Vulkan::update_global_state;
+			out_backend->draw_geometry = Vulkan::draw_geometry;
+			out_backend->create_texture = Vulkan::create_texture;
+			out_backend->destroy_texture = Vulkan::destroy_texture;
+			out_backend->create_material = Vulkan::create_material;
+			out_backend->destroy_material = Vulkan::destroy_material;
+			out_backend->create_geometry = Vulkan::create_geometry;
+			out_backend->destroy_geometry = Vulkan::destroy_geometry;
 
 			return true;
 		}
@@ -37,10 +39,12 @@ namespace Renderer
 		backend->init = 0;
 		backend->on_resized = 0;
 		backend->update_global_state = 0;
-		backend->update_object = 0;
+		backend->draw_geometry = 0;
 		backend->create_texture = 0;
 		backend->destroy_texture = 0;
 		backend->create_material = 0;
 		backend->destroy_material = 0;
+		backend->create_geometry = 0;
+		backend->destroy_geometry = 0;
 	}
 }

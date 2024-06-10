@@ -117,9 +117,9 @@ namespace MaterialSystem
         return acquire_from_config(config);
     }
 
-    Material* acquire_from_config(MaterialConfig config) {
+    Material* acquire_from_config(const MaterialConfig& config) {
         // Return default material.
-        if (String::strings_eq_case_insensitive(config.name, Config::default_diffuse_name)) {
+        if (String::strings_eq_case_insensitive(config.name, Config::default_name)) {
             return &system_state->default_material;
         }
 
@@ -179,7 +179,7 @@ namespace MaterialSystem
 
     void release(const char* name) {
         // Ignore release requests for the default material.
-        if (String::strings_eq_case_insensitive(name, Config::default_diffuse_name)) {
+        if (String::strings_eq_case_insensitive(name, Config::default_name)) {
             return;
         }
         MaterialReference ref = system_state->registered_material_table.get_value(name);
@@ -268,7 +268,7 @@ namespace MaterialSystem
         Memory::zero_memory(&system_state->default_material, sizeof(Material));
         system_state->default_material.id = INVALID_OBJECT_ID;
         system_state->default_material.generation = INVALID_OBJECT_ID;
-        String::copy(Material::max_name_length, system_state->default_material.name, Config::default_diffuse_name);
+        String::copy(Material::max_name_length, system_state->default_material.name, Config::default_name);
         system_state->default_material.diffuse_color = VEC4F_ONE;  // white
         system_state->default_material.diffuse_map.use = TextureUse::MAP_DIFFUSE;
         system_state->default_material.diffuse_map.texture = TextureSystem::get_default_texture();
@@ -367,6 +367,11 @@ namespace MaterialSystem
         FileSystem::file_close(&f);
 
         return true;
+    }
+
+    Material* get_default_material()
+    {
+        return &system_state->default_material;
     }
 
 
