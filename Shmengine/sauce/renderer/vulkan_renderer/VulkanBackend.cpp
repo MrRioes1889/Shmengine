@@ -127,7 +127,7 @@ namespace Renderer::Vulkan
 			bool32 found = false;
 			for (uint32 j = 0; j < available_layer_count; j++)
 			{
-				if (String::strings_eq((char*)validation_layer_names[i], available_layers[j].layerName))
+				if (String::equal((char*)validation_layer_names[i], available_layers[j].layerName))
 				{
 					found = true;
 					SHMDEBUG("Found.");

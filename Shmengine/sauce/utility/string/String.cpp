@@ -272,7 +272,7 @@ namespace String
 
 	}
 
-	bool32 strings_eq(const char* a, const char* b)
+	bool32 equal(const char* a, const char* b)
 	{
 		while (*a != 0)
 		{
@@ -288,7 +288,7 @@ namespace String
 			return false;
 	}
 
-	bool32 strings_eq_case_insensitive(const char* a, const char* b)
+	bool32 equal_i(const char* a, const char* b)
 	{
 
 		int32 upper_lower_offset = 'a' - 'A';

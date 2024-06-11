@@ -6,11 +6,9 @@
 #include "utility/Math.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "systems/TextureSystem.hpp"
+#include "systems/ResourceSystem.hpp"
 #include "containers/Sarray.hpp"
 
-// TODO: temporary
-#include "platform/FileSystem.hpp"
-// end
 
 namespace MaterialSystem
 {
@@ -34,12 +32,10 @@ namespace MaterialSystem
 
 	static SystemState* system_state = 0;
 
-	static bool32 load_material(MaterialConfig config, Material* m);
+	static bool32 load_material(ResourceDataMaterial config, Material* m);
 	static void destroy_material(Material* m);
 
 	static bool32 create_default_material();
-
-	static bool32 load_config_file(const char* path, MaterialConfig* out_config);
 
     bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config) {
 
@@ -99,27 +95,25 @@ namespace MaterialSystem
 
     Material* acquire(const char* name) {
         // Load the given material configuration from disk.
-        MaterialConfig config;
+        ResourceDataMaterial config;
 
-        // Load file from disk
-        // TODO: Should be able to be located anywhere.
-        const char* format_str = "D:/dev/Shmengine/assets/materials/%s.%s";
-        char full_file_path[MAX_FILEPATH_LENGTH];
-
-        // TODO: try different extensions
-        String::print_s(full_file_path, MAX_FILEPATH_LENGTH, format_str, name, "mt");
-        if (!load_config_file(full_file_path, &config)) {
-            SHMERRORV("Failed to load material file: '%s'. Null pointer will be returned.", full_file_path);
+        Resource mt_resource;
+        if (!ResourceSystem::load(name, ResourceType::MATERIAL, &mt_resource))
+        {
+            SHMERRORV("load_mt_file - Failed to load material resources for material '%s'", name);
             return 0;
         }
+
+        config = *((ResourceDataMaterial*)mt_resource.data);
+        ResourceSystem::unload(&mt_resource);
 
         // Now acquire from loaded config.
         return acquire_from_config(config);
     }
 
-    Material* acquire_from_config(const MaterialConfig& config) {
+    Material* acquire_from_config(const ResourceDataMaterial& config) {
         // Return default material.
-        if (String::strings_eq_case_insensitive(config.name, Config::default_name)) {
+        if (String::equal_i(config.name, Config::default_name)) {
             return &system_state->default_material;
         }
 
@@ -179,7 +173,7 @@ namespace MaterialSystem
 
     void release(const char* name) {
         // Ignore release requests for the default material.
-        if (String::strings_eq_case_insensitive(name, Config::default_name)) {
+        if (String::equal_i(name, Config::default_name)) {
             return;
         }
         MaterialReference ref = system_state->registered_material_table.get_value(name);
@@ -209,7 +203,7 @@ namespace MaterialSystem
 
     }
 
-    static bool32 load_material(MaterialConfig config, Material* m)
+    static bool32 load_material(ResourceDataMaterial config, Material* m)
     {
         Memory::zero_memory(m, sizeof(Material));
 
@@ -277,94 +271,6 @@ namespace MaterialSystem
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;
         }
-
-        return true;
-    }
-
-    static bool32 load_config_file(const char* path, MaterialConfig* out_config)
-    {
-
-        FileSystem::FileHandle f;
-        if (!FileSystem::file_open(path, FILE_MODE_READ, &f)) {
-            SHMERRORV("load_configuration_file - unable to open material file for reading: '%s'.", path);
-            return false;
-        }
-
-        uint32 file_size = FileSystem::get_file_size32(&f);
-        Sarray<char> file_content(file_size + 1, AllocationTag::TRANSIENT);
-        uint32 bytes_read = 0;
-        if (!FileSystem::read_all_bytes(&f, file_content.data, file_content.count, &bytes_read))
-        {
-            SHMERRORV("load_configuration_file - failed to read from file: '%s'.", path);
-            return false;
-        }
-
-        // Read each line of the file.
-        const uint32 line_buf_length = 512;
-        char line_buf[line_buf_length] = "";
-        char* p = &line_buf[0];
-        uint64 line_length = 0;
-        uint32 line_number = 1;
-
-        const char* continue_ptr = 0;
-        while (FileSystem::read_line(file_content.data, line_buf, line_buf_length, &continue_ptr)) {
-            // Trim the string.
-            char* line = String::trim(line_buf);
-            
-            // Get the trimmed length.
-            line_length = String::length(line);
-
-            // Skip blank lines and comments.
-            if (line_length < 1 || line[0] == '#') {
-                line_number++;
-                continue;
-            }
-
-            // Split into var/value
-            int32 equal_index = String::index_of(line, '=');
-            if (equal_index == -1) {
-                SHMWARNV("Potential formatting issue found in file '%s': '=' token not found. Skipping line %ui.", path, line_number);
-                line_number++;
-                continue;
-            }
-
-            // Assume a max of 64 characters for the variable name.
-            char raw_var_name[64] = {};
-            String::mid(64, raw_var_name, line, 0, equal_index);
-            char* trimmed_var_name = String::trim(raw_var_name);     
-
-            // Assume a max of 511-65 (446) for the max length of the value to account for the variable name and the '='.
-            char raw_value[446];
-            Memory::zero_memory(raw_value, sizeof(char) * 446);
-            String::mid(446, raw_value, line, equal_index + 1, -1);  // Read the rest of the line
-            char* trimmed_value = String::trim(raw_value);
-
-            // Process the variable.
-            if (String::strings_eq_case_insensitive(trimmed_var_name, "version")) {
-                // TODO: version
-            }
-            else if (String::strings_eq_case_insensitive(trimmed_var_name, "name")) {
-                String::copy(Material::max_name_length, out_config->name, trimmed_value);
-            }
-            else if (String::strings_eq_case_insensitive(trimmed_var_name, "diffuse_map_name")) {
-                String::copy(Texture::max_name_length, out_config->diffuse_map_name, trimmed_value);
-            }
-            else if (String::strings_eq_case_insensitive(trimmed_var_name, "diffuse_color")) {
-                // Parse the colour
-                if (!String::parse(trimmed_value, out_config->diffuse_color)) {
-                    SHMWARNV("Error parsing diffuse_colour in file '%s'. Using default of white instead.", path);
-                    out_config->diffuse_color = VEC4F_ONE;  // white
-                }
-            }
-
-            // TODO: more fields.
-
-            // Clear the line buffer.
-            Memory::zero_memory(line_buf, sizeof(char) * line_buf_length);
-            line_number++;
-        }
-
-        FileSystem::file_close(&f);
 
         return true;
     }

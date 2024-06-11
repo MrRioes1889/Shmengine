@@ -89,7 +89,7 @@ namespace String
 			{
 				if (args[arg_i].type == Arg::Type::CHAR_PTR)
 				{
-					char* v = args[arg_i++].char_ptr;         //Fetch String argument
+					const char* v = args[arg_i++].char_ptr;         //Fetch String argument
 					target_i += append(buffer_limit, target_buffer, v);
 				}
 				break;

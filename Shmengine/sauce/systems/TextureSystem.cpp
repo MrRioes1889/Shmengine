@@ -7,12 +7,7 @@
 
 #include "renderer/RendererFrontend.hpp"
 
-// TODO: temporary
-#include "resources/ResourceTypes.hpp"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "vendor/stb/stb_image.h"
-// end
+#include "systems/ResourceSystem.hpp"
 
 namespace TextureSystem
 {
@@ -95,7 +90,7 @@ namespace TextureSystem
 		if (!system_state)
 			return 0;
 		
-		if (String::strings_eq_case_insensitive(name, Config::default_diffuse_name))
+		if (String::equal_i(name, Config::default_diffuse_name))
 		{
 			SHMWARN("using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
 			return &system_state->default_diffuse;
@@ -144,7 +139,7 @@ namespace TextureSystem
 	void release(const char* name)
 	{
 
-		if (String::strings_eq_case_insensitive(name, Config::default_diffuse_name))
+		if (String::equal_i(name, Config::default_diffuse_name))
 			return;
 
 		TextureReference ref = system_state->registered_texture_table.get_ref(name);
@@ -186,62 +181,54 @@ namespace TextureSystem
 	static bool32 load_texture(const char* texture_name, Texture* t)
 	{
 
-		const char* format_str = "D:/dev/Shmengine/assets/textures/%s.%s";
-		const uint32 required_channel_count = 4;
-		stbi_set_flip_vertically_on_load(true);
-		char full_file_path[MAX_FILEPATH_LENGTH];
-
-		String::print_s(full_file_path, MAX_FILEPATH_LENGTH, format_str, texture_name, "png");
+		Resource img_resource;
+		if (!ResourceSystem::load(texture_name, ResourceType::IMAGE, &img_resource))
+		{
+			SHMERRORV("load_texture - Failed to load image resources for texture '%s'", texture_name);
+			return false;
+		}	
 
 		Texture temp_texture;
 
-		uint8* data = stbi_load(full_file_path, (int32*)&temp_texture.width, (int32*)&temp_texture.height, (int32*)&temp_texture.channel_count, required_channel_count);
-		temp_texture.channel_count = required_channel_count;
+		ResourceDataImage* img_resource_data = (ResourceDataImage*)img_resource.data;
+		temp_texture.channel_count = img_resource_data->channel_count;
+		temp_texture.width = img_resource_data->width;
+		temp_texture.height = img_resource_data->height;
 
-		if (stbi_failure_reason())
+		uint32 current_generation = t->generation;
+		t->generation = INVALID_OBJECT_ID;
+
+		uint8* pixels = img_resource_data->pixels;
+		uint64 size = temp_texture.width * temp_texture.height * temp_texture.channel_count;
+		bool32 has_transparency = false;
+		for (uint64 i = 0; i < size; i += img_resource_data->channel_count)
 		{
-			SHMWARNV("load_texture failed to load texture file '%s': %s", full_file_path, stbi_failure_reason());
-			stbi__err(0, 0);
-			return false;
-		}
-
-		if (data)
-		{
-
-			uint32 current_generation = t->generation;
-			t->generation = INVALID_OBJECT_ID;
-
-			uint64 size = temp_texture.width * temp_texture.height * temp_texture.channel_count;
-			bool32 has_transparency = false;
-			for (uint64 i = 0; i < size; i += required_channel_count)
+			uint8 a = pixels[i + 3];
+			if (a < 255)
 			{
-				uint8 a = data[i + 3];
-				if (a < 255)
-				{
-					has_transparency = true;
-					break;
-				}
+				has_transparency = true;
+				break;
 			}
-
-			String::copy(Texture::max_name_length, temp_texture.name, texture_name);
-			temp_texture.generation = INVALID_OBJECT_ID;
-			temp_texture.has_transparency = has_transparency;
-
-			Renderer::create_texture(data, &temp_texture);
-
-			destroy_texture(t);
-			(*t).move(temp_texture);
-
-			if (current_generation == INVALID_OBJECT_ID)
-				t->generation = 0;
-			else
-				t->generation = current_generation + 1;
-
-			stbi_image_free(data);
-			return true;
 		}
 
-		return false;
+		String::copy(Texture::max_name_length, temp_texture.name, texture_name);
+		temp_texture.generation = INVALID_OBJECT_ID;
+		temp_texture.has_transparency = has_transparency;
+
+		Renderer::create_texture(pixels, &temp_texture);
+
+		destroy_texture(t);
+		(*t).move(temp_texture);
+
+		if (current_generation == INVALID_OBJECT_ID)
+			t->generation = 0;
+		else
+			t->generation = current_generation + 1;
+
+		ResourceSystem::unload(&img_resource);
+
+		return true;
+
 	}
 
 	static void create_default_textures()

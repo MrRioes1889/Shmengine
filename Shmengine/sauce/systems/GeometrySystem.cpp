@@ -61,7 +61,7 @@ namespace GeometrySystem
 
 	void system_shutdown()
 	{
-
+		system_state = 0;
 	}
 
 	Geometry* acquire_by_id(uint32 id)

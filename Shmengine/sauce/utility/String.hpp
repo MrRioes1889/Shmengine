@@ -10,16 +10,7 @@
 namespace String
 {
 
-	SHMINLINE bool32 is_whitespace(char c)
-	{
-		return (
-			c == ' ' ||
-			c == '\f' ||
-			c == '\n' ||
-			c == '\r' ||
-			c == '\t' ||
-			c == '\v');
-	}
+	
 
 	char* to_string(uint32 val);
 	char* to_string(uint64 val);
@@ -48,6 +39,11 @@ namespace String
 			return -1;
 		else			
 			return ret;
+	}
+
+	SHMINLINE bool32 is_whitespace(char c)
+	{
+		return index_of(" \f\n\r\t\v", c) != -1;
 	}
 
 	SHMINLINE void empty(char* buffer, bool32 full_empty = false)
@@ -82,8 +78,9 @@ namespace String
 
 	SHMAPI void copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length = 0);
 
-	SHMAPI bool32 strings_eq(const char* a, const char* b);
-	SHMAPI bool32 strings_eq_case_insensitive(const char* a, const char* b);
+	// Case insensitive version: equal_i()
+	SHMAPI bool32 equal(const char* a, const char* b);
+	SHMAPI bool32 equal_i(const char* a, const char* b);
 
 	SHMAPI char* trim(char* string);
 
@@ -110,7 +107,7 @@ namespace String
 			float32 float32_value[2];
 			float64 float64_value;
 			char char_value[8];
-			char* char_ptr;
+			const char* char_ptr;
 			float32* float32_ptr;
 			float64* float64_ptr;
 			int32* int32_ptr;
@@ -130,6 +127,7 @@ namespace String
 		Arg(char value) : type(Type::CHAR) { char_value[0] = value; }
 
 		Arg(char* value) : type(Type::CHAR_PTR) { char_ptr = value; }
+		Arg(const char* value) : type(Type::CHAR_PTR) { char_ptr = value; }
 		Arg(int32* value) : type(Type::INT32_PTR) { int32_ptr = value; }
 		Arg(int64* value) : type(Type::INT64_PTR) { int64_ptr = value; }
 		Arg(uint32* value) : type(Type::UINT32_PTR) { uint32_ptr = value; }

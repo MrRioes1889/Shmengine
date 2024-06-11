@@ -4,6 +4,32 @@
 
 #include "utility/Math.hpp"
 
+enum class ResourceType
+{
+	GENERIC,
+	IMAGE,
+	MATERIAL,
+	STATIC_MESH,
+	CUSTOM
+};
+
+struct Resource
+{
+	uint32 loader_id;
+	uint32 data_size;
+	const char* name;
+	char* full_path;	
+	void* data;
+};
+
+struct ResourceDataImage
+{
+	uint32 channel_count;
+	uint32 width;
+	uint32 height;
+	uint8* pixels;
+};
+
 struct Texture
 {
 
@@ -52,6 +78,14 @@ struct Material
 	Math::Vec4f diffuse_color;
 	TextureMap diffuse_map;
 
+};
+
+struct ResourceDataMaterial
+{
+	char name[Material::max_name_length];
+	char diffuse_map_name[Texture::max_name_length];
+	Math::Vec4f diffuse_color;
+	bool32 auto_release;
 };
 
 struct Geometry

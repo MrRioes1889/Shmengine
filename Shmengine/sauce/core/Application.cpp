@@ -14,6 +14,7 @@
 #include "systems/TextureSystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/GeometrySystem.hpp"
+#include "systems/ResourceSystem.hpp"
 
 // TODO: temp
 #include "utility/Math.hpp"
@@ -36,8 +37,10 @@ namespace Application
 
 		void* logging_system_state;
 		void* memory_system_state;
-		void* event_system_state;
 		void* input_system_state;
+		void* event_system_state;
+		void* platform_system_state;
+		void* resource_system_state;
 		void* renderer_system_state;
 		void* texture_system_state;
 		void* material_system_state;
@@ -144,7 +147,7 @@ namespace Application
 
 		if (!Platform::system_init(
 			allocate_subsystem_callback,
-			app_state->memory_system_state,
+			app_state->platform_system_state,
 			game_inst->config.name,
 			game_inst->config.start_pos_x,
 			game_inst->config.start_pos_y,
@@ -152,6 +155,15 @@ namespace Application
 			game_inst->config.start_height))
 		{
 			SHMFATAL("ERROR: Failed to startup platform layer!");
+			return false;
+		}
+
+		ResourceSystem::Config resource_sys_config;
+		resource_sys_config.asset_base_path = "D:/dev/Shmengine/assets/";
+		resource_sys_config.max_loader_count = 32;
+		if (!ResourceSystem::system_init(allocate_subsystem_callback, app_state->resource_system_state, resource_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize resource system. Application shutting down..");
 			return false;
 		}
 
@@ -183,7 +195,7 @@ namespace Application
 		{
 			SHMFATAL("ERROR: Failed to initialize geometry system. Application shutting down..");
 			return false;
-		}
+		}	
 
 		// TODO: temporary
 		GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_plane_config(10.0f, 5.0f, 5, 5, 5.0f, 2.0f, "test geometry", "test_material");
@@ -282,6 +294,7 @@ namespace Application
 		MaterialSystem::system_shutdown();
 		TextureSystem::system_shutdown();
 		Renderer::system_shutdown();
+		ResourceSystem::system_shutdown();
 		Platform::system_shutdown();
 		Event::system_shutdown();
 		Input::system_shutdown();

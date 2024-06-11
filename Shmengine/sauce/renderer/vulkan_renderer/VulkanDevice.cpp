@@ -444,7 +444,7 @@ static bool32 physical_device_meets_requirements(
 				bool32 found = false;
 				for (uint32 j = 0; i < available_extension_count; j++)
 				{
-					if (String::strings_eq(requirements->device_extension_names[i], available_extensions[j].extensionName))
+					if (String::equal(requirements->device_extension_names[i], available_extensions[j].extensionName))
 					{
 						found = true;
 						break;

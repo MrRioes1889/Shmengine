@@ -34,7 +34,7 @@ namespace FileSystem
 	{
 
 		int64 file_size = get_file_size(file);
-		if (file_size < 0)
+		if (file_size < 0 || file_size > 0xFFFFFFFF)
 		{
 			SHMERROR("Failed to get file size for reading file");
 			return 0;

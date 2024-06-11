@@ -3,7 +3,7 @@
 #include "utility/String.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
-#include "platform/FileSystem.hpp"
+#include "systems/ResourceSystem.hpp"
 
 bool32 create_shader_module(
 	VulkanContext* context,
@@ -16,46 +16,30 @@ bool32 create_shader_module(
 {
 
 	char file_name[MAX_FILEPATH_LENGTH];
-	String::print_s(file_name, MAX_FILEPATH_LENGTH, (char*)"D:/dev/Shmengine/bin/assets/shaders/%s.%s.spv", name, type_str);
+	String::print_s(file_name, MAX_FILEPATH_LENGTH, (char*)"shaders/%s.%s.spv", name, type_str);
+
+	Resource res;
+	if (!ResourceSystem::load(file_name, ResourceType::GENERIC, &res))
+	{
+		SHMERRORV("Unable to load resources for shader module: %s.", file_name);
+		return false;
+	}
 
 	VkShaderModuleCreateInfo& module_create_info = shader_stages[stage_index].module_create_info;
 	module_create_info = {};
 	module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-
-	FileSystem::FileHandle file;
-	if (!FileSystem::file_open(file_name, FILE_MODE_READ, &file))
-	{
-		SHMERRORV("Unable to open file for shader module: %s.", file_name);
-		return false;
-	}
-
-	uint32 size = 0;
-
-	shader_stages[stage_index].shader_code_buffer.init(FileSystem::get_file_size32(&file), AllocationTag::MAIN);
-	if (!FileSystem::read_all_bytes(&file, &shader_stages[stage_index].shader_code_buffer, &size))
-	{
-		SHMERRORV("Unable to read file for shader module: %s.", file_name);
-		return false;
-	}
-
-	module_create_info.codeSize = (size_t)size;
-	module_create_info.pCode = (uint32*)shader_stages[stage_index].shader_code_buffer.data;
-
-	FileSystem::file_close(&file);
+	module_create_info.codeSize = res.data_size;
+	module_create_info.pCode = (uint32*)res.data;
 
 	VK_CHECK(vkCreateShaderModule(context->device.logical_device, &module_create_info, context->allocator_callbacks, &shader_stages[stage_index].handle));
+
+	ResourceSystem::unload(&res);
 
 	VkPipelineShaderStageCreateInfo& stage_create_info = shader_stages[stage_index].shader_stage_create_info;
 	stage_create_info = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
 	stage_create_info.stage = stage_flags;
 	stage_create_info.module = shader_stages[stage_index].handle;
 	stage_create_info.pName = "main";
-
-	/*if (file_buffer)
-	{
-		Memory::free_memory(file_buffer, true, AllocationTag::RAW);
-		file_buffer = 0;
-	}*/
 
 	return true;
 
