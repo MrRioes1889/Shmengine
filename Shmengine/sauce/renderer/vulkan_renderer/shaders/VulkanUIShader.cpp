@@ -1,4 +1,4 @@
-#include "VulkanMaterialShader.hpp"
+#include "VulkanUIShader.hpp"
 
 #include "utility/Math.hpp"
 #include "core/Logging.hpp"
@@ -12,17 +12,17 @@
 namespace Renderer::Vulkan
 {
 
-    bool32 material_shader_create(VulkanContext* context, VulkanMaterialShader* out_shader)
+    bool32 ui_shader_create(VulkanContext* context, VulkanUIShader* out_shader)
     {
 
-        const char stage_type_strs[VulkanMaterialShader::shader_stage_count][5] = { "vert", "frag" };
-        VkShaderStageFlagBits stage_types[VulkanMaterialShader::shader_stage_count] = { VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT };
+        const char stage_type_strs[VulkanUIShader::shader_stage_count][5] = { "vert", "frag" };
+        VkShaderStageFlagBits stage_types[VulkanUIShader::shader_stage_count] = { VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT };
 
-        for (uint32 i = 0; i < VulkanMaterialShader::shader_stage_count; i++)
+        for (uint32 i = 0; i < VulkanUIShader::shader_stage_count; i++)
         {
-            if (!create_shader_module(context, VulkanMaterialShader::builtin_shader_name, stage_type_strs[i], stage_types[i], i, out_shader->stages))
+            if (!create_shader_module(context, VulkanUIShader::builtin_shader_name, stage_type_strs[i], stage_types[i], i, out_shader->stages))
             {
-                SHMERRORV("Unable to create %s shader module for '%s'.", stage_type_strs[i], VulkanMaterialShader::builtin_shader_name);
+                SHMERRORV("Unable to create %s shader module for '%s'.", stage_type_strs[i], VulkanUIShader::builtin_shader_name);
                 return false;
             }
         }
@@ -53,13 +53,13 @@ namespace Renderer::Vulkan
         out_shader->sampler_uses[0] = TextureUse::MAP_DIFFUSE;
 
         // Local/Object Descriptors
-        VkDescriptorType descriptor_types[VulkanMaterialShaderInstanceState::descriptor_count] = {
+        VkDescriptorType descriptor_types[VulkanUIShaderInstanceState::descriptor_count] = {
           VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
           VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
         };
 
-        VkDescriptorSetLayoutBinding bindings[VulkanMaterialShaderInstanceState::descriptor_count] = {};
-        for (uint32 i = 0; i < VulkanMaterialShaderInstanceState::descriptor_count; i++)
+        VkDescriptorSetLayoutBinding bindings[VulkanUIShaderInstanceState::descriptor_count] = {};
+        for (uint32 i = 0; i < VulkanUIShaderInstanceState::descriptor_count; i++)
         {
             bindings[i].binding = i;
             bindings[i].descriptorCount = 1;
@@ -68,7 +68,7 @@ namespace Renderer::Vulkan
         }
 
         VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        layout_info.bindingCount = VulkanMaterialShaderInstanceState::descriptor_count;
+        layout_info.bindingCount = VulkanUIShaderInstanceState::descriptor_count;
         layout_info.pBindings = bindings;
         VK_CHECK(vkCreateDescriptorSetLayout(context->device.logical_device, &layout_info, context->allocator_callbacks, &out_shader->object_descriptor_set_layout));
 
@@ -78,7 +78,7 @@ namespace Renderer::Vulkan
         object_pool_sizes[0].descriptorCount = VulkanConfig::max_material_count;
 
         object_pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        object_pool_sizes[1].descriptorCount = VulkanMaterialShader::sampler_count * VulkanConfig::max_material_count;
+        object_pool_sizes[1].descriptorCount = VulkanUIShader::sampler_count * VulkanConfig::max_material_count;
 
         VkDescriptorPoolCreateInfo object_pool_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
         object_pool_info.poolSizeCount = object_pool_size_count;
@@ -103,17 +103,17 @@ namespace Renderer::Vulkan
 
         // Attributes
         uint32 attribute_offset = 0;
-        VkVertexInputAttributeDescription attribute_descriptions[VulkanMaterialShader::attribute_count];
+        VkVertexInputAttributeDescription attribute_descriptions[VulkanUIShader::attribute_count];
         // Position
-        VkFormat formats[VulkanMaterialShader::attribute_count] = {
-            VK_FORMAT_R32G32B32_SFLOAT,
+        VkFormat formats[VulkanUIShader::attribute_count] = {
+            VK_FORMAT_R32G32_SFLOAT,
             VK_FORMAT_R32G32_SFLOAT
         };
-        uint32 sizes[VulkanMaterialShader::attribute_count] = {
-            sizeof(Math::Vec3f),
+        uint32 sizes[VulkanUIShader::attribute_count] = {
+            sizeof(Math::Vec2f),
             sizeof(Math::Vec2f)         // Size of texture coordinates
         };
-        for (uint32 i = 0; i < VulkanMaterialShader::attribute_count; ++i) {
+        for (uint32 i = 0; i < VulkanUIShader::attribute_count; ++i) {
             attribute_descriptions[i].binding = 0;   // binding index - should match binding desc
             attribute_descriptions[i].location = i;  // attrib location
             attribute_descriptions[i].format = formats[i];
@@ -126,25 +126,25 @@ namespace Renderer::Vulkan
         VkDescriptorSetLayout descr_set_layouts[descr_set_layout_count] = { out_shader->global_descriptor_set_layout, out_shader->object_descriptor_set_layout };
 
         // Stages
-        VkPipelineShaderStageCreateInfo stage_create_infos[VulkanMaterialShader::shader_stage_count] = {};
-        for (uint32 i = 0; i < VulkanMaterialShader::shader_stage_count; ++i) {
+        VkPipelineShaderStageCreateInfo stage_create_infos[VulkanUIShader::shader_stage_count] = {};
+        for (uint32 i = 0; i < VulkanUIShader::shader_stage_count; ++i) {
             stage_create_infos[i] = out_shader->stages[i].shader_stage_create_info;
         }
 
         if (!pipeline_create(
             context,
-            &context->world_renderpass,
+            &context->ui_renderpass,
             sizeof(Vertex3D),
-            VulkanMaterialShader::attribute_count,
+            VulkanUIShader::attribute_count,
             attribute_descriptions,
             descr_set_layout_count,
             descr_set_layouts,
-            VulkanMaterialShader::shader_stage_count,
+            VulkanUIShader::shader_stage_count,
             stage_create_infos,
             viewport,
             scissor,
             false,
-            true,
+            false,
             &out_shader->pipeline)) {
 
             SHMERROR("Failed to load graphics pipeline for object shader.");
@@ -155,7 +155,7 @@ namespace Renderer::Vulkan
         uint32 device_local_bits = context->device.supports_device_local_host_visible ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
         if (!vulkan_buffer_create(
             context,
-            sizeof(VulkanMaterialShader::GlobalUBO) * 3,
+            sizeof(VulkanUIShader::GlobalUBO) * 3,
             (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
             device_local_bits | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             true,
@@ -176,7 +176,7 @@ namespace Renderer::Vulkan
         // Creating object layout buffer
         if (!vulkan_buffer_create(
             context,
-            sizeof(VulkanMaterialShader::InstanceUBO) * VulkanConfig::max_material_count,
+            sizeof(VulkanUIShader::InstanceUBO) * VulkanConfig::max_material_count,
             (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             true,
@@ -190,7 +190,7 @@ namespace Renderer::Vulkan
 
     }
 
-    void material_shader_destroy(VulkanContext* context, VulkanMaterialShader* shader)
+    void ui_shader_destroy(VulkanContext* context, VulkanUIShader* shader)
     {
 
         VkDevice& device = context->device.logical_device;
@@ -206,7 +206,7 @@ namespace Renderer::Vulkan
         vkDestroyDescriptorPool(device, shader->global_descriptor_pool, context->allocator_callbacks);
         vkDestroyDescriptorSetLayout(device, shader->global_descriptor_set_layout, context->allocator_callbacks);
 
-        for (uint32 i = 0; i < VulkanMaterialShader::shader_stage_count; i++)
+        for (uint32 i = 0; i < VulkanUIShader::shader_stage_count; i++)
         {
             shader->stages[i].shader_code_buffer.free_data();
             vkDestroyShaderModule(device, shader->stages[i].handle, context->allocator_callbacks);
@@ -215,7 +215,7 @@ namespace Renderer::Vulkan
 
     }
 
-    void material_shader_use(VulkanContext* context, VulkanMaterialShader* shader)
+    void ui_shader_use(VulkanContext* context, VulkanUIShader* shader)
     {
 
         uint32 image_index = context->image_index;
@@ -223,7 +223,7 @@ namespace Renderer::Vulkan
 
     }
 
-    void material_shader_update_global_state(VulkanContext* context, VulkanMaterialShader* shader)
+    void ui_shader_update_global_state(VulkanContext* context, VulkanUIShader* shader)
     {
 
         uint32 image_index = context->image_index;
@@ -231,8 +231,8 @@ namespace Renderer::Vulkan
         VkDescriptorSet& global_descriptor = shader->global_descriptor_sets[image_index];
 
         // Configure the descriptors for the given index.
-        uint32 range = sizeof(VulkanMaterialShader::GlobalUBO);
-        uint64 offset = sizeof(VulkanMaterialShader::GlobalUBO) * image_index;
+        uint32 range = sizeof(VulkanUIShader::GlobalUBO);
+        uint64 offset = sizeof(VulkanUIShader::GlobalUBO) * image_index;
 
         // Copy data to buffer
         vulkan_buffer_load_data(context, &shader->global_uniform_buffer, offset, range, 0, &shader->global_ubo);
@@ -258,28 +258,28 @@ namespace Renderer::Vulkan
 
     }
 
-    void material_shader_set_model(VulkanContext* context, VulkanMaterialShader* shader, const Math::Mat4& model)
+    void ui_shader_set_model(VulkanContext* context, VulkanUIShader* shader, const Math::Mat4& model)
     {
         VkCommandBuffer& command_buffer = context->graphics_command_buffers[context->image_index].handle;
         vkCmdPushConstants(command_buffer, shader->pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Math::Mat4), &model);
     }
 
-    void material_shader_apply_material(VulkanContext* context, VulkanMaterialShader* shader, Material* material)
+    void ui_shader_apply_material(VulkanContext* context, VulkanUIShader* shader, Material* material)
     {
 
         uint32 image_index = context->image_index;
         VkCommandBuffer& command_buffer = context->graphics_command_buffers[image_index].handle;
 
-        VulkanMaterialShaderInstanceState& instance_state = shader->instance_states[material->internal_id];
+        VulkanUIShaderInstanceState& instance_state = shader->instance_states[material->internal_id];
         VkDescriptorSet object_descriptor_set = instance_state.descriptor_sets[image_index];
 
-        VkWriteDescriptorSet descriptor_writes[VulkanMaterialShaderInstanceState::descriptor_count] = {};
+        VkWriteDescriptorSet descriptor_writes[VulkanUIShaderInstanceState::descriptor_count] = {};
         uint32 new_descriptor_count = 0;
         uint32 descriptor_index = 0;
 
-        uint32 range = sizeof(VulkanMaterialShader::InstanceUBO);
-        uint64 offset = sizeof(VulkanMaterialShader::InstanceUBO) * material->internal_id;
-        VulkanMaterialShader::InstanceUBO instance_ubo;
+        uint32 range = sizeof(VulkanUIShader::InstanceUBO);
+        uint64 offset = sizeof(VulkanUIShader::InstanceUBO) * material->internal_id;
+        VulkanUIShader::InstanceUBO instance_ubo;
 
         instance_ubo.diffuse_color = material->diffuse_color;
 
@@ -374,14 +374,14 @@ namespace Renderer::Vulkan
 
     }
 
-    bool32 material_shader_acquire_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material)
+    bool32 ui_shader_acquire_resources(VulkanContext* context, VulkanUIShader* shader, Material* material)
     {
         // TODO: free list
         material->internal_id = shader->object_uniform_buffer_index;
         shader->object_uniform_buffer_index++;
 
-        VulkanMaterialShaderInstanceState& instance_state = shader->instance_states[material->internal_id];
-        for (uint32 i = 0; i < VulkanMaterialShaderInstanceState::descriptor_count; ++i) {
+        VulkanUIShaderInstanceState& instance_state = shader->instance_states[material->internal_id];
+        for (uint32 i = 0; i < VulkanUIShaderInstanceState::descriptor_count; ++i) {
             for (uint32 j = 0; j < 3; ++j) {
                 instance_state.descriptor_states[i].generations[j] = INVALID_OBJECT_ID;
                 instance_state.descriptor_states[i].ids[j] = INVALID_OBJECT_ID;
@@ -408,12 +408,12 @@ namespace Renderer::Vulkan
 
     }
 
-    void material_shader_release_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material)
+    void ui_shader_release_resources(VulkanContext* context, VulkanUIShader* shader, Material* material)
     {
 
         vkDeviceWaitIdle(context->device.logical_device);
 
-        VulkanMaterialShaderInstanceState& instance_state = shader->instance_states[material->internal_id];
+        VulkanUIShaderInstanceState& instance_state = shader->instance_states[material->internal_id];
 
         const uint32 descriptor_set_count = 3;
         // Release object descriptor sets.
@@ -422,7 +422,7 @@ namespace Renderer::Vulkan
             SHMERROR("Error freeing object shader descriptor sets!");
         }
 
-        for (uint32 i = 0; i < VulkanMaterialShaderInstanceState::descriptor_count; ++i) {
+        for (uint32 i = 0; i < VulkanUIShaderInstanceState::descriptor_count; ++i) {
             for (uint32 j = 0; j < 3; ++j) {
                 instance_state.descriptor_states[i].generations[j] = INVALID_OBJECT_ID;
                 instance_state.descriptor_states[i].ids[j] = INVALID_OBJECT_ID;

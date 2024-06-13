@@ -41,12 +41,12 @@ int WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev_instance, _In_ LPST
     // Initialization.
     if (!Application::create(&game_inst)) {
         SHMERROR("Failed to create_application!");
-        return 1;
+        return -4;
     } 
 
     // Begin the game loop.
     if (!Application::run()) {
-        return 2;
+        return 1;
     }
 
     return 0;

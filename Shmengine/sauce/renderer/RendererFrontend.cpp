@@ -18,8 +18,10 @@ namespace Renderer
 	{
 		Renderer::Backend backend;
 
-		Math::Mat4 projection;
-		Math::Mat4 view;
+		Math::Mat4 world_projection;
+		Math::Mat4 world_view;
+		Math::Mat4 ui_projection;
+		Math::Mat4 ui_view;
 
 		float32 near_clip;
 		float32 far_clip;
@@ -37,7 +39,7 @@ namespace Renderer
 		backend_create(RENDERER_BACKEND_TYPE_VULKAN, &system_state->backend);
 		system_state->backend.frame_count = 0;
 
-		if (!system_state->backend.init(&system_state->backend, application_name))
+		if (!system_state->backend.init(application_name))
 		{
 			SHMFATAL("ERROR: Failed to initialize renderer backend.");
 			return false;
@@ -45,8 +47,11 @@ namespace Renderer
 
 		system_state->near_clip = 0.1f;
 		system_state->far_clip = 1000.0f;
-		system_state->projection = Math::mat_perspective(Math::deg_to_rad(45.0f), 1280 / 720.0f, system_state->near_clip, system_state->far_clip);
-		system_state->view = Math::mat_translation({0.0f, 0.0f, -30.0f});
+		system_state->world_projection = Math::mat_perspective(Math::deg_to_rad(45.0f), 1280 / 720.0f, system_state->near_clip, system_state->far_clip);
+		system_state->world_view = Math::mat_translation({0.0f, 0.0f, -30.0f});
+
+		system_state->ui_projection = Math::mat_orthographic(0.0f, 1280.0f, 720.0f, 0.0f, -100.0f, 100.0f);
+		system_state->ui_view = Math::mat_inverse(MAT4_IDENTITY);
 
 		return true;
 	}
@@ -55,41 +60,63 @@ namespace Renderer
 	{
 		if (system_state)
 		{
-			system_state->backend.shutdown(&system_state->backend);
+			system_state->backend.shutdown();
 		}		
 
 		system_state = 0;
 	}
 
-	static bool32 begin_frame(float32 delta_time)
-	{
-		return system_state->backend.begin_frame(&system_state->backend, delta_time);
-	}
-
-	static bool32 end_frame(float32 delta_time)
-	{
-		bool32 r = system_state->backend.end_frame(&system_state->backend, delta_time);
-		system_state->backend.frame_count++;
-		return r;
-	}
-
 	bool32 draw_frame(RenderData* data)
 	{
-		if (begin_frame(data->delta_time))
+		Backend& backend = system_state->backend;
+
+		if (backend.begin_frame(data->delta_time))
 		{
 
-			system_state->backend.update_global_state(system_state->projection, system_state->view, VEC3_ZERO, VEC4F_ONE, 0);		
-
-			for (uint32 i = 0; i < data->geometry_count; i++)
+			if (!backend.begin_renderpass(BuiltinRenderpass::WORLD))
 			{
-				system_state->backend.draw_geometry(data->geometries[i]);
+				SHMERROR("draw_frame - BuiltinRenderpass::WORLD failed to begin renderpass!");
+				return false;
 			}
 
-			if (!end_frame(data->delta_time))
+			backend.update_global_world_state(system_state->world_projection, system_state->world_view, VEC3_ZERO, VEC4F_ONE, 0);		
+
+			for (uint32 i = 0; i < data->world_geometry_count; i++)
+			{
+				backend.draw_geometry(data->world_geometries[i]);
+			}
+
+			if (!backend.end_renderpass(BuiltinRenderpass::WORLD))
+			{
+				SHMERROR("draw_frame - BuiltinRenderpass::WORLD failed to end renderpass!");
+				return false;
+			}
+
+			if (!backend.begin_renderpass(BuiltinRenderpass::UI))
+			{
+				SHMERROR("draw_frame - BuiltinRenderpass::UI failed to begin renderpass!");
+				return false;
+			}
+
+			backend.update_global_ui_state(system_state->ui_projection, system_state->ui_view, 0);
+
+			for (uint32 i = 0; i < data->ui_geometry_count; i++)
+			{
+				backend.draw_geometry(data->ui_geometries[i]);
+			}
+
+			if (!backend.end_renderpass(BuiltinRenderpass::UI))
+			{
+				SHMERROR("draw_frame - BuiltinRenderpass::UI failed to end renderpass!");
+				return false;
+			}
+
+			if (!backend.end_frame(data->delta_time))
 			{
 				SHMERROR("ERROR: Failed to finish drawing frame. Application shutting down...");
 				return false;
 			};
+			backend.frame_count++;
 
 		}
 
@@ -100,8 +127,9 @@ namespace Renderer
 	{
 		if (system_state)
 		{
-			system_state->projection = Math::mat_perspective(Math::deg_to_rad(45.0f), width / (float32)height, system_state->near_clip, system_state->far_clip);
-			system_state->backend.on_resized(&system_state->backend, width, height);
+			system_state->world_projection = Math::mat_perspective(Math::deg_to_rad(45.0f), width / (float32)height, system_state->near_clip, system_state->far_clip);
+			system_state->ui_projection = Math::mat_orthographic(0.0f, (float32)width, (float32)height, 0.0f, -100.0f, 100.0f);
+			system_state->backend.on_resized(width, height);
 		}		
 		else
 			SHMWARN("Renderer backend does not exist to accept resize!");
@@ -109,7 +137,7 @@ namespace Renderer
 
 	void set_view(Math::Mat4 view)
 	{
-		system_state->view = view;
+		system_state->world_view = view;
 	}
 
 	void create_texture(const void* pixels, Texture* texture)
@@ -132,7 +160,7 @@ namespace Renderer
 		system_state->backend.destroy_material(material);
 	}
 
-	bool32 create_geometry(Geometry* geometry, uint32 vertex_count, const Vert3* vertices, uint32 index_count, const uint32* indices)
+	bool32 create_geometry(Geometry* geometry, uint32 vertex_count, const Vertex3D* vertices, uint32 index_count, const uint32* indices)
 	{
 		return system_state->backend.create_geometry(geometry, vertex_count, vertices, index_count, indices);
 	}

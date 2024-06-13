@@ -18,7 +18,9 @@
 struct VulkanConfig
 {
 	inline static const uint32 max_material_count = 0x400;
-	inline static const uint32 max_geometry_count = 0x1000;
+	inline static const uint32 max_ui_count = 0x400;
+	inline static const uint32 max_geometry_count = 0x1000;	
+	inline static const uint32 frames_count = 3;
 };
 
 struct VulkanBuffer
@@ -87,26 +89,22 @@ enum class VulkanRenderpassState
 struct VulkanRenderpass
 {
 	VkRenderPass handle;
+	float32 depth;
+	uint32 stencil;
 	Math::Vec2i offset;
 	Math::Vec2ui dim;
 	Math::Vec4f clear_color;
-	float32 depth;
-	uint32 stencil;
 	VulkanRenderpassState state;
-};
-
-struct VulkanFramebuffer
-{
-	VkFramebuffer handle;
-	Sarray<VkImageView> attachments = {};
-	VulkanRenderpass* renderpass;
+	uint32 clear_flags;
+	bool32 has_prev_pass;
+	bool32 has_next_pass;
 };
 
 struct VulkanSwapchain
 {
 	VulkanImage depth_attachment;
 
-	Sarray<VulkanFramebuffer> framebuffers = {};
+	VkFramebuffer framebuffers[VulkanConfig::frames_count];
 
 	VkSurfaceFormatKHR image_format;
 	VkSwapchainKHR handle;
@@ -131,12 +129,6 @@ struct VulkanCommandBuffer
 	VulkanCommandBufferState state;
 };
 
-struct VulkanFence
-{
-	VkFence handle;
-	bool32 signaled;
-};
-
 struct VulkanShaderStage
 {
 	VkShaderModuleCreateInfo module_create_info;
@@ -153,14 +145,14 @@ struct VulkanPipeline
 
 struct VulkanDesriptorState
 {
-	uint32 generations[3];
-	uint32 ids[3];
+	uint32 generations[VulkanConfig::frames_count];
+	uint32 ids[VulkanConfig::frames_count];
 };
 
 struct VulkanMaterialShaderInstanceState
 {
 	inline static const uint32 descriptor_count = 2;
-	VkDescriptorSet descriptor_sets[3];
+	VkDescriptorSet descriptor_sets[VulkanConfig::frames_count];
 	VulkanDesriptorState descriptor_states[VulkanMaterialShaderInstanceState::descriptor_count];
 };
 
@@ -172,13 +164,31 @@ struct VulkanMaterialShader
 	inline static const uint32 sampler_count = 1;
 	inline static const char* builtin_shader_name = "Builtin.MaterialShader";
 
+	struct GlobalUBO
+	{
+		Math::Mat4 projection;
+		Math::Mat4 view;
+
+		// NOTE: Padding added to comply with some Nvidia standard about uniform object having to be a multiple of 256 bytes large.
+		uint8 padding[256 - sizeof(projection) - sizeof(view)];
+	};
+	static_assert(sizeof(GlobalUBO) % 256 == 0);
+
+	struct InstanceUBO
+	{
+		Math::Vec4f diffuse_color;
+
+		uint8 padding[256 - sizeof(diffuse_color)];
+	};
+	static_assert(sizeof(InstanceUBO) % 256 == 0);
+
 	VulkanShaderStage stages[VulkanMaterialShader::shader_stage_count];
 
 	VkDescriptorPool global_descriptor_pool;	
 	// NOTE: One descriptor set per frame - max 3 for triple-buffering
-	VkDescriptorSet global_descriptor_sets[3];
+	VkDescriptorSet global_descriptor_sets[VulkanConfig::frames_count];
 	VkDescriptorSetLayout global_descriptor_set_layout;
-	Renderer::GlobalUniformObject global_ubo;
+	GlobalUBO global_ubo;
 	VulkanBuffer global_uniform_buffer;
 
 	VkDescriptorPool object_descriptor_pool;
@@ -192,6 +202,61 @@ struct VulkanMaterialShader
 
 	VulkanPipeline pipeline;
 	
+};
+
+struct VulkanUIShaderInstanceState
+{
+	inline static const uint32 descriptor_count = 2;
+	VkDescriptorSet descriptor_sets[VulkanConfig::frames_count];
+	VulkanDesriptorState descriptor_states[VulkanUIShaderInstanceState::descriptor_count];
+};
+
+struct VulkanUIShader
+{
+
+	inline static const uint32 shader_stage_count = 2;
+	inline static const uint32 attribute_count = 2;
+	inline static const uint32 sampler_count = 1;
+	inline static const char* builtin_shader_name = "Builtin.UIShader";
+
+	struct GlobalUBO
+	{
+		Math::Mat4 projection;
+		Math::Mat4 view;
+
+		// NOTE: Padding added to comply with some Nvidia standard about uniform object having to be a multiple of 256 bytes large.
+		uint8 padding[256 - sizeof(projection) - sizeof(view)];
+	};
+	static_assert(sizeof(GlobalUBO) % 256 == 0);
+
+	struct InstanceUBO
+	{
+		Math::Vec4f diffuse_color;
+
+		uint8 padding[256 - sizeof(diffuse_color)];
+	};
+	static_assert(sizeof(InstanceUBO) % 256 == 0);
+
+	VulkanShaderStage stages[VulkanUIShader::shader_stage_count];
+
+	VkDescriptorPool global_descriptor_pool;
+	// NOTE: One descriptor set per frame - max 3 for triple-buffering
+	VkDescriptorSet global_descriptor_sets[VulkanConfig::frames_count];
+	VkDescriptorSetLayout global_descriptor_set_layout;
+	GlobalUBO global_ubo;
+	VulkanBuffer global_uniform_buffer;
+
+	VkDescriptorPool object_descriptor_pool;
+	VkDescriptorSetLayout object_descriptor_set_layout;
+	VulkanBuffer object_uniform_buffer;
+	uint32 object_uniform_buffer_index;
+
+	TextureUse sampler_uses[sampler_count];
+
+	VulkanUIShaderInstanceState instance_states[VulkanConfig::max_ui_count];
+
+	VulkanPipeline pipeline;
+
 };
 
 struct VulkanGeometryData
@@ -216,7 +281,8 @@ struct VulkanContext
 	VulkanDevice device;
 
 	VulkanSwapchain swapchain;
-	VulkanRenderpass main_renderpass;
+	VulkanRenderpass world_renderpass;
+	VulkanRenderpass ui_renderpass;
 
 	VulkanBuffer object_vertex_buffer;
 	VulkanBuffer object_index_buffer;
@@ -224,17 +290,20 @@ struct VulkanContext
 	uint64 geometry_vertex_offset;
 	uint64 geometry_index_offset;
 
+	VkFramebuffer world_framebuffers[VulkanConfig::frames_count];
+
 	VulkanGeometryData geometries[VulkanConfig::max_geometry_count];
 
 	VulkanMaterialShader material_shader;
+	VulkanUIShader ui_shader;
 
 	Sarray<VulkanCommandBuffer> graphics_command_buffers = {};
 
 	Sarray<VkSemaphore> image_available_semaphores = {};
 	Sarray<VkSemaphore> queue_complete_semaphores = {};
 
-	Sarray<VulkanFence> fences_in_flight = {};
-	Sarray<VulkanFence*> images_in_flight = {};
+	VkFence fences_in_flight[VulkanConfig::frames_count - 1];
+	VkFence* images_in_flight[VulkanConfig::frames_count];
 
 #if defined(_DEBUG)
 	VkDebugUtilsMessengerEXT debug_messenger;

@@ -100,3 +100,34 @@ STATIC_ASSERT(sizeof(float64) == 8, "Expected f64 to be 8 bytes.");
 #define SHMINLINE static inline
 #define SHMNOINLINE
 #endif
+
+//#define ENUM_CLASS_BITFLAG_OPERATOR_OVERLOADS(classname, result_type) \
+//SHMINLINE result_type operator&(classname flag, classname comp) \
+//{ \
+//	return (result_type)flag & (result_type)comp; \
+//} \
+// \
+//SHMINLINE result_type operator|(classname flag, classname comp) \
+//{ \
+//	return (result_type)flag | (result_type)comp; \
+//} \
+// \
+//SHMINLINE result_type operator&(classname flag, result_type comp) \
+//{ \
+//	return (result_type)flag & comp; \
+//} \
+// \
+//SHMINLINE result_type operator&(result_type comp, classname flag) \
+//{ \
+//	return (result_type)flag & comp; \
+//} \
+//\
+//SHMINLINE result_type operator|(classname flag, result_type comp) \
+//{ \
+//	return (result_type)flag | comp; \
+//} \
+// \
+//SHMINLINE result_type operator|(result_type comp, classname flag) \
+//{ \
+//	return (result_type)flag | comp; \
+//} \

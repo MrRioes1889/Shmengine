@@ -263,8 +263,11 @@ namespace Application
 				test_render.geometry = app_state->test_geometry;
 				test_render.model = MAT4_IDENTITY;
 
-				r_data.geometry_count = 1;
-				r_data.geometries = &test_render;
+				r_data.world_geometry_count = 1;
+				r_data.world_geometries = &test_render;
+
+				r_data.ui_geometry_count = 0;
+				r_data.ui_geometries = 0;
 				// end
 
 				Renderer::draw_frame(&r_data);

@@ -183,7 +183,7 @@ namespace GeometrySystem
 	bool32 create_default_geometry()
 	{
 
-		Renderer::Vert3 verts[4] = {};
+		Renderer::Vertex3D verts[4] = {};
 
 		const float32 f = 10.0f;
 
@@ -253,7 +253,7 @@ namespace GeometrySystem
 
 		GeometryConfig config;
 		config.vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
-		config.vertices = (Renderer::Vert3*)Memory::allocate(sizeof(Renderer::Vert3) * config.vertex_count, true, AllocationTag::MAIN);
+		config.vertices = (Renderer::Vertex3D*)Memory::allocate(sizeof(Renderer::Vertex3D) * config.vertex_count, true, AllocationTag::MAIN);
 		config.index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
 		config.indices = (uint32*)Memory::allocate(sizeof(uint32) * config.index_count, true, AllocationTag::MAIN);
 
@@ -275,10 +275,10 @@ namespace GeometrySystem
 				float32 max_uvy = ((y + 1) / (float32)y_segment_count) * tile_y;
 
 				uint32 v_offset = ((y * x_segment_count) + x) * 4;
-				Renderer::Vert3* v0 = &config.vertices[v_offset + 0];
-				Renderer::Vert3* v1 = &config.vertices[v_offset + 1];
-				Renderer::Vert3* v2 = &config.vertices[v_offset + 2];
-				Renderer::Vert3* v3 = &config.vertices[v_offset + 3];
+				Renderer::Vertex3D* v0 = &config.vertices[v_offset + 0];
+				Renderer::Vertex3D* v1 = &config.vertices[v_offset + 1];
+				Renderer::Vertex3D* v2 = &config.vertices[v_offset + 2];
+				Renderer::Vertex3D* v3 = &config.vertices[v_offset + 3];
 
 				v0->position.x = min_x;
 				v0->position.y = min_y;

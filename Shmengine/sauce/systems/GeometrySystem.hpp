@@ -15,7 +15,7 @@ namespace GeometrySystem
 	struct GeometryConfig
 	{
 		uint32 vertex_count;
-		Renderer::Vert3* vertices;
+		Renderer::Vertex3D* vertices;
 		uint32 index_count;
 		uint32* indices;
 		char name[Geometry::max_name_length];

@@ -20,7 +20,7 @@ namespace Math
     SHMAPI float32 abs(float32 x);
     SHMAPI float32 sqrt(float32 a);
 
-#pragma pack(push, 1)
+//#pragma pack(push, 1)
 
 	struct alignas(16) Mat4
 	{
@@ -32,7 +32,7 @@ namespace Math
 		};	
 	};
 
-#pragma pack(pop)
+//#pragma pack(pop)
 
 	SHMINLINE Mat4 mat_mul(Mat4 m1, Mat4 m2)
 	{
