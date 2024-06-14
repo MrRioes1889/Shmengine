@@ -210,7 +210,7 @@ namespace MaterialSystem
         // name
         String::copy(Material::max_name_length ,m->name, config.name);
 
-        // Diffuse colour
+        m->type = config.type;
         m->diffuse_color = config.diffuse_color;
 
         // Diffuse map
@@ -232,7 +232,7 @@ namespace MaterialSystem
 
         // Send it off to the renderer to acquire resources.
         if (!Renderer::create_material(m)) {
-            SHMERRORV("Failed to acquire renderer resources for material '%s'.", m->name);
+            SHMERRORV("Failed to acquire resources for material '%s'.", m->name);
             return false;
         }
 
@@ -262,6 +262,7 @@ namespace MaterialSystem
         Memory::zero_memory(&system_state->default_material, sizeof(Material));
         system_state->default_material.id = INVALID_OBJECT_ID;
         system_state->default_material.generation = INVALID_OBJECT_ID;
+        system_state->default_material.type = MaterialType::WORLD;
         String::copy(Material::max_name_length, system_state->default_material.name, Config::default_name);
         system_state->default_material.diffuse_color = VEC4F_ONE;  // white
         system_state->default_material.diffuse_map.use = TextureUse::MAP_DIFFUSE;

@@ -36,7 +36,7 @@ namespace Renderer
 		out_state = allocator_callback(sizeof(SystemState));
 		system_state = (SystemState*)out_state;
 
-		backend_create(RENDERER_BACKEND_TYPE_VULKAN, &system_state->backend);
+		backend_create(VULKAN, &system_state->backend);
 		system_state->backend.frame_count = 0;
 
 		if (!system_state->backend.init(application_name))
@@ -73,7 +73,7 @@ namespace Renderer
 		if (backend.begin_frame(data->delta_time))
 		{
 
-			if (!backend.begin_renderpass(BuiltinRenderpass::WORLD))
+			if (!backend.begin_renderpass(RenderpassType::WORLD))
 			{
 				SHMERROR("draw_frame - BuiltinRenderpass::WORLD failed to begin renderpass!");
 				return false;
@@ -86,13 +86,13 @@ namespace Renderer
 				backend.draw_geometry(data->world_geometries[i]);
 			}
 
-			if (!backend.end_renderpass(BuiltinRenderpass::WORLD))
+			if (!backend.end_renderpass(RenderpassType::WORLD))
 			{
 				SHMERROR("draw_frame - BuiltinRenderpass::WORLD failed to end renderpass!");
 				return false;
 			}
 
-			if (!backend.begin_renderpass(BuiltinRenderpass::UI))
+			if (!backend.begin_renderpass(RenderpassType::UI))
 			{
 				SHMERROR("draw_frame - BuiltinRenderpass::UI failed to begin renderpass!");
 				return false;
@@ -105,7 +105,7 @@ namespace Renderer
 				backend.draw_geometry(data->ui_geometries[i]);
 			}
 
-			if (!backend.end_renderpass(BuiltinRenderpass::UI))
+			if (!backend.end_renderpass(RenderpassType::UI))
 			{
 				SHMERROR("draw_frame - BuiltinRenderpass::UI failed to end renderpass!");
 				return false;
@@ -160,9 +160,9 @@ namespace Renderer
 		system_state->backend.destroy_material(material);
 	}
 
-	bool32 create_geometry(Geometry* geometry, uint32 vertex_count, const Vertex3D* vertices, uint32 index_count, const uint32* indices)
+	bool32 create_geometry(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices)
 	{
-		return system_state->backend.create_geometry(geometry, vertex_count, vertices, index_count, indices);
+		return system_state->backend.create_geometry(geometry, vertex_size, vertex_count, vertices, index_count, indices);
 	}
 
 	void destroy_geometry(Geometry* geometry)

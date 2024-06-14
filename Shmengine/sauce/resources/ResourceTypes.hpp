@@ -66,6 +66,12 @@ struct TextureMap
 	TextureUse use;
 };
 
+enum class MaterialType
+{
+	WORLD = 1,
+	UI = 2
+};
+
 struct Material
 {
 
@@ -74,6 +80,7 @@ struct Material
 	uint32 id;
 	uint32 generation;
 	uint32 internal_id;
+	MaterialType type;
 	char name[max_name_length];
 	Math::Vec4f diffuse_color;
 	TextureMap diffuse_map;
@@ -84,6 +91,7 @@ struct ResourceDataMaterial
 {
 	char name[Material::max_name_length];
 	char diffuse_map_name[Texture::max_name_length];
+	MaterialType type;
 	Math::Vec4f diffuse_color;
 	bool32 auto_release;
 };

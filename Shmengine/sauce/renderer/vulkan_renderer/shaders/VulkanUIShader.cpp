@@ -134,7 +134,7 @@ namespace Renderer::Vulkan
         if (!pipeline_create(
             context,
             &context->ui_renderpass,
-            sizeof(Vertex3D),
+            sizeof(Vertex2D),
             VulkanUIShader::attribute_count,
             attribute_descriptions,
             descr_set_layout_count,

@@ -1,5 +1,6 @@
 #include "GenericLoader.hpp"
 
+#include "LoaderUtils.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
@@ -51,16 +52,8 @@ namespace ResourceSystem
     }
 
     static void generic_loader_unload(ResourceLoader* loader, Resource* resource)
-    {
-        if (resource->data)
-            Memory::free_memory(resource->data, true, AllocationTag::MAIN);
-        if (resource->full_path)
-            Memory::free_memory(resource->full_path, true, AllocationTag::MAIN);
-
-        resource->data = 0;
-        resource->data_size = 0;
-        resource->full_path = 0;
-        resource->loader_id = INVALID_OBJECT_ID;
+    {      
+        resource_unload(loader, resource, AllocationTag::MAIN);
     }
 
     ResourceLoader generic_resource_loader_create()

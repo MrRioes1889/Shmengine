@@ -14,8 +14,9 @@ namespace GeometrySystem
 
 	struct GeometryConfig
 	{
+		uint32 vertex_size;
 		uint32 vertex_count;
-		Renderer::Vertex3D* vertices;
+		void* vertices;
 		uint32 index_count;
 		uint32* indices;
 		char name[Geometry::max_name_length];
@@ -30,6 +31,7 @@ namespace GeometrySystem
 	void release(Geometry* geometry);
 
 	Geometry* get_default_geometry();
+	Geometry* get_default_geometry_2d();
 
 	GeometryConfig generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, const char* material_name);
 

@@ -271,6 +271,7 @@ namespace TextureSystem
 		system_state->default_diffuse.width = tex_dim;
 		system_state->default_diffuse.height = tex_dim;
 		system_state->default_diffuse.channel_count = 4;
+		system_state->default_diffuse.id = INVALID_OBJECT_ID;
 		system_state->default_diffuse.generation = INVALID_OBJECT_ID;
 		system_state->default_diffuse.has_transparency = false;
 

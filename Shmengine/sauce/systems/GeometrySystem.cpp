@@ -21,6 +21,7 @@ namespace GeometrySystem
 		GeometrySystem::Config config;
 
 		Geometry default_geometry;
+		Geometry default_geometry_2d;
 
 		GeometryReference* registered_geometries;
 	};
@@ -29,7 +30,7 @@ namespace GeometrySystem
 
 	bool32 create_geometry(GeometryConfig config, Geometry* g);
 	void destroy_geometry(Geometry* g);
-	bool32 create_default_geometry();
+	bool32 create_default_geometries();
 	
 
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
@@ -50,8 +51,8 @@ namespace GeometrySystem
             system_state->registered_geometries[i].geometry.internal_id = INVALID_OBJECT_ID;
         }
 
-        if (!create_default_geometry()) {
-            SHMFATAL("Failed to create default geometry. Application cannot continue.");
+        if (!create_default_geometries()) {
+            SHMFATAL("Failed to create default geometries. Application cannot continue.");
             return false;
         }
 
@@ -87,6 +88,8 @@ namespace GeometrySystem
 				system_state->registered_geometries[i].reference_count = 1;
 				system_state->registered_geometries[i].auto_release = auto_release;
 				g = &system_state->registered_geometries[i].geometry;
+				g->id = i;
+				break;
 			}
 		}
 
@@ -139,10 +142,15 @@ namespace GeometrySystem
 		return &system_state->default_geometry;
 	}
 
+	Geometry* get_default_geometry_2d()
+	{
+		return &system_state->default_geometry_2d;
+	}
+
 	bool32 create_geometry(GeometryConfig config, Geometry* g)
 	{
 
-		if (!Renderer::create_geometry(g, config.vertex_count, config.vertices, config.index_count, config.indices))
+		if (!Renderer::create_geometry(g, config.vertex_size, config.vertex_count, config.vertices, config.index_count, config.indices))
 		{
 			system_state->registered_geometries[g->id].reference_count = 0;
 			system_state->registered_geometries[g->id].auto_release = false;
@@ -180,43 +188,82 @@ namespace GeometrySystem
 		}
 	}
 
-	bool32 create_default_geometry()
+	bool32 create_default_geometries()
 	{
 
 		Renderer::Vertex3D verts[4] = {};
 
-		const float32 f = 10.0f;
+		float32 f = 10.0f;
 
-		verts[0].position.x = -0.5 * f;  // 0    3
-		verts[0].position.y = -0.5 * f;  //
+		verts[0].position.x = -0.5f * f;  // 0    3
+		verts[0].position.y = -0.5f * f;  //
 		verts[0].tex_coordinates.x = 0.0f;      //
 		verts[0].tex_coordinates.y = 0.0f;      // 2    1
 
-		verts[1].position.y = 0.5 * f;
-		verts[1].position.x = 0.5 * f;
+		verts[1].position.y = 0.5f * f;
+		verts[1].position.x = 0.5f * f;
 		verts[1].tex_coordinates.x = 1.0f;
 		verts[1].tex_coordinates.y = 1.0f;
 
-		verts[2].position.x = -0.5 * f;
-		verts[2].position.y = 0.5 * f;
+		verts[2].position.x = -0.5f * f;
+		verts[2].position.y = 0.5f * f;
 		verts[2].tex_coordinates.x = 0.0f;
 		verts[2].tex_coordinates.y = 1.0f;
 
-		verts[3].position.x = 0.5 * f;
-		verts[3].position.y = -0.5 * f;
+		verts[3].position.x = 0.5f * f;
+		verts[3].position.y = -0.5f * f;
 		verts[3].tex_coordinates.x = 1.0f;
 		verts[3].tex_coordinates.y = 0.0f;
 
 		uint32 indices[6] = { 0, 1, 2, 0, 3, 1 };
 
 		// Send the geometry off to the renderer to be uploaded to the GPU.
-		if (!Renderer::create_geometry(&system_state->default_geometry, 4, verts, 6, indices)) {
+		system_state->default_geometry.id = INVALID_OBJECT_ID;
+		system_state->default_geometry.internal_id = INVALID_OBJECT_ID;
+		system_state->default_geometry.generation = INVALID_OBJECT_ID;
+		if (!Renderer::create_geometry(&system_state->default_geometry, sizeof(Renderer::Vertex3D), 4, verts, 6, indices)) {
+			SHMFATAL("Failed to create default geometry. Application cannot continue.");
+			return false;
+		}
+
+		Renderer::Vertex2D verts_2d[4] = {};
+
+		f = 10.0f;
+
+		verts_2d[0].position.x = -0.5f * f;
+		verts_2d[0].position.y = -0.5f * f;
+		verts_2d[0].tex_coordinates.x = 0.0f;
+		verts_2d[0].tex_coordinates.y = 0.0f;
+
+		verts_2d[1].position.y = 0.5f * f;
+		verts_2d[1].position.x = 0.5f * f;
+		verts_2d[1].tex_coordinates.x = 1.0f;
+		verts_2d[1].tex_coordinates.y = 1.0f;
+
+		verts_2d[2].position.x = -0.5f * f;
+		verts_2d[2].position.y = 0.5f * f;
+		verts_2d[2].tex_coordinates.x = 0.0f;
+		verts_2d[2].tex_coordinates.y = 1.0f;
+
+		verts_2d[3].position.x = 0.5f * f;
+		verts_2d[3].position.y = -0.5f * f;
+		verts_2d[3].tex_coordinates.x = 1.0f;
+		verts_2d[3].tex_coordinates.y = 0.0f;
+
+		uint32 indices_2d[6] = { 2, 1, 0, 3, 0, 1 };
+
+		// Send the geometry off to the renderer to be uploaded to the GPU.
+		system_state->default_geometry_2d.id = INVALID_OBJECT_ID;
+		system_state->default_geometry_2d.internal_id = INVALID_OBJECT_ID;
+		system_state->default_geometry_2d.generation = INVALID_OBJECT_ID;
+		if (!Renderer::create_geometry(&system_state->default_geometry_2d, sizeof(Renderer::Vertex2D), 4, verts_2d, 6, indices_2d)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;
 		}
 
 		// Acquire the default material.
 		system_state->default_geometry.material = MaterialSystem::get_default_material();
+		system_state->default_geometry_2d.material = MaterialSystem::get_default_material();
 
 		return true;
 
@@ -252,8 +299,9 @@ namespace GeometrySystem
 		}
 
 		GeometryConfig config;
+		config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
 		config.vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
-		config.vertices = (Renderer::Vertex3D*)Memory::allocate(sizeof(Renderer::Vertex3D) * config.vertex_count, true, AllocationTag::MAIN);
+		config.vertices = (Renderer::Vertex3D*)Memory::allocate(config.vertex_size * config.vertex_count, true, AllocationTag::MAIN);
 		config.index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
 		config.indices = (uint32*)Memory::allocate(sizeof(uint32) * config.index_count, true, AllocationTag::MAIN);
 
@@ -275,10 +323,10 @@ namespace GeometrySystem
 				float32 max_uvy = ((y + 1) / (float32)y_segment_count) * tile_y;
 
 				uint32 v_offset = ((y * x_segment_count) + x) * 4;
-				Renderer::Vertex3D* v0 = &config.vertices[v_offset + 0];
-				Renderer::Vertex3D* v1 = &config.vertices[v_offset + 1];
-				Renderer::Vertex3D* v2 = &config.vertices[v_offset + 2];
-				Renderer::Vertex3D* v3 = &config.vertices[v_offset + 3];
+				Renderer::Vertex3D* v0 = &((Renderer::Vertex3D*)config.vertices)[v_offset + 0];
+				Renderer::Vertex3D* v1 = &((Renderer::Vertex3D*)config.vertices)[v_offset + 1];
+				Renderer::Vertex3D* v2 = &((Renderer::Vertex3D*)config.vertices)[v_offset + 2];
+				Renderer::Vertex3D* v3 = &((Renderer::Vertex3D*)config.vertices)[v_offset + 3];
 
 				v0->position.x = min_x;
 				v0->position.y = min_y;

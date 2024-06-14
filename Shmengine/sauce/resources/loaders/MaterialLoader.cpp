@@ -1,5 +1,6 @@
 #include "MaterialLoader.hpp"
 
+#include "LoaderUtils.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
@@ -27,6 +28,7 @@ namespace ResourceSystem
 
 		ResourceDataMaterial tmp_res_data;
 		tmp_res_data.auto_release = true;
+		tmp_res_data.type = MaterialType::WORLD;
 		tmp_res_data.diffuse_color = VEC4F_ONE;
 		String::empty(tmp_res_data.diffuse_map_name);
 		String::copy(Material::max_name_length, tmp_res_data.name, name);
@@ -87,6 +89,21 @@ namespace ResourceSystem
             else if (String::equal_i(trimmed_var_name, "name")) {
                 String::copy(Material::max_name_length, tmp_res_data.name, trimmed_value);
             }
+            else if (String::equal_i(trimmed_var_name, "type")) {
+                if (String::equal_i(trimmed_value, "ui"))
+                {
+                    tmp_res_data.type = MaterialType::UI;
+                }
+                else if (String::equal_i(trimmed_value, "world"))
+                {
+                    tmp_res_data.type = MaterialType::WORLD;
+                }
+                else
+                {
+                    SHMWARNV("Error parsing material type in file '%s'. Using default of 'world' instead.", full_filepath);
+                }
+                
+            }
             else if (String::equal_i(trimmed_var_name, "diffuse_map_name")) {
                 String::copy(Texture::max_name_length, tmp_res_data.diffuse_map_name, trimmed_value);
             }
@@ -123,15 +140,7 @@ namespace ResourceSystem
 
 	static void material_loader_unload(ResourceLoader* loader, Resource* resource)
 	{
-		if (resource->data)
-			Memory::free_memory(resource->data, true, AllocationTag::MAIN);
-		if (resource->full_path)
-			Memory::free_memory(resource->full_path, true, AllocationTag::MAIN);
-
-		resource->data = 0;
-		resource->data_size = 0;
-		resource->full_path = 0;
-		resource->loader_id = INVALID_OBJECT_ID;
+        resource_unload(loader, resource, AllocationTag::MAIN);
 	}
 
 	ResourceLoader material_resource_loader_create()

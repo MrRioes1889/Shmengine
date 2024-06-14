@@ -47,6 +47,7 @@ namespace Application
 		void* geometry_system_state;
 
 		Geometry* test_geometry;
+		Geometry* test_ui_geometry;
 	};
 
 	static bool32 initialized = false;
@@ -201,6 +202,50 @@ namespace Application
 		GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_plane_config(10.0f, 5.0f, 5, 5, 5.0f, 2.0f, "test geometry", "test_material");
 		app_state->test_geometry = GeometrySystem::acquire_from_config(g_config, true);
 		//app_state->test_geometry = GeometrySystem::get_default_geometry();
+		// 
+		// Load up some test UI geometry.
+		GeometrySystem::GeometryConfig ui_config;
+		ui_config.vertex_size = sizeof(Renderer::Vertex2D);
+		ui_config.vertex_count = 4;
+		ui_config.index_count = 6;
+		String::copy(Material::max_name_length, ui_config.material_name, "test_ui_material");
+		String::copy(Geometry::max_name_length, ui_config.name, "test_ui_geometry");
+
+		ui_config.vertices = Memory::allocate(ui_config.vertex_size * ui_config.vertex_count, true, AllocationTag::MAIN);
+		ui_config.indices = (uint32*)Memory::allocate(sizeof(uint32) * ui_config.index_count, true, AllocationTag::MAIN);
+		Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)ui_config.vertices;
+
+		const float32 f = 512.0f;
+		uiverts[0].position.x = 0.0f;  // 0    3
+		uiverts[0].position.y = 0.0f;  //
+		uiverts[0].tex_coordinates.x = 0.0f;  //
+		uiverts[0].tex_coordinates.y = 0.0f;  // 2    1
+
+		uiverts[1].position.y = f;
+		uiverts[1].position.x = f;
+		uiverts[1].tex_coordinates.x = 1.0f;
+		uiverts[1].tex_coordinates.y = 1.0f;
+
+		uiverts[2].position.x = 0.0f;
+		uiverts[2].position.y = f;
+		uiverts[2].tex_coordinates.x = 0.0f;
+		uiverts[2].tex_coordinates.y = 1.0f;
+
+		uiverts[3].position.x = f;
+		uiverts[3].position.y = 0.0;
+		uiverts[3].tex_coordinates.x = 1.0f;
+		uiverts[3].tex_coordinates.y = 0.0f;
+
+		// Indices - counter-clockwise
+		ui_config.indices[0] = 2;
+		ui_config.indices[1] = 1;
+		ui_config.indices[2] = 0;
+		ui_config.indices[3] = 3;
+		ui_config.indices[4] = 0;
+		ui_config.indices[5] = 1;
+
+		// Get UI geometry from config.
+		app_state->test_ui_geometry = GeometrySystem::acquire_from_config(ui_config, true);
 		// end
 
 		if (!game_inst->init(game_inst))
@@ -262,12 +307,16 @@ namespace Application
 				Renderer::GeometryRenderData test_render;
 				test_render.geometry = app_state->test_geometry;
 				test_render.model = MAT4_IDENTITY;
-
 				r_data.world_geometry_count = 1;
 				r_data.world_geometries = &test_render;
 
-				r_data.ui_geometry_count = 0;
-				r_data.ui_geometries = 0;
+				Renderer::GeometryRenderData test_ui_render;
+				test_ui_render.geometry = app_state->test_ui_geometry;
+				test_ui_render.model = Math::mat_translation({ 0.0f, 0.0f, 0.0f });
+				r_data.ui_geometry_count = 1;
+				r_data.ui_geometries = &test_ui_render;
+				/*r_data.ui_geometry_count = 0;
+				r_data.ui_geometries = 0;*/
 				// end
 
 				Renderer::draw_frame(&r_data);

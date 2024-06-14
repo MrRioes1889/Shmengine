@@ -498,13 +498,13 @@ namespace Renderer::Vulkan
 
 		switch (renderpass_id)
 		{
-		case (uint32)BuiltinRenderpass::WORLD:
+		case (uint32)RenderpassType::WORLD:
 		{
 			renderpass = &context.world_renderpass;
 			framebuffer = context.world_framebuffers[context.image_index];
 			break;
 		}
-		case (uint32)BuiltinRenderpass::UI:
+		case (uint32)RenderpassType::UI:
 		{
 			renderpass = &context.ui_renderpass;
 			framebuffer = context.swapchain.framebuffers[context.image_index];
@@ -521,12 +521,12 @@ namespace Renderer::Vulkan
 
 		switch (renderpass_id)
 		{
-		case (uint32)BuiltinRenderpass::WORLD:
+		case (uint32)RenderpassType::WORLD:
 		{
 			material_shader_use(&context, &context.material_shader);
 			break;
 		}
-		case (uint32)BuiltinRenderpass::UI:
+		case (uint32)RenderpassType::UI:
 		{
 			ui_shader_use(&context, &context.ui_shader);
 			break;
@@ -546,13 +546,13 @@ namespace Renderer::Vulkan
 
 		switch (renderpass_id)
 		{
-		case (uint32)BuiltinRenderpass::WORLD:
+		case (uint32)RenderpassType::WORLD:
 		{
 			renderpass = &context.world_renderpass;
 			framebuffer = context.world_framebuffers[context.image_index];
 			break;
 		}
-		case (uint32)BuiltinRenderpass::UI:
+		case (uint32)RenderpassType::UI:
 		{
 			renderpass = &context.ui_renderpass;
 			framebuffer = context.swapchain.framebuffers[context.image_index];
@@ -661,11 +661,34 @@ namespace Renderer::Vulkan
 
 	bool32 create_material(Material* material)
 	{
-		if (!material_shader_acquire_resources(&context, &context.material_shader, material))
+
+		
+		switch (material->type)
 		{
-			SHMERROR("vulkan_create_material - Failed to acquire shader resources!");
+		case MaterialType::WORLD:
+		{
+			if (!material_shader_acquire_resources(&context, &context.material_shader, material))
+			{
+				SHMERROR("vulkan_create_material - Failed to acquire shader resources!");
+				return false;
+			}
+			break;
+		}
+		case MaterialType::UI:
+		{
+			if (!ui_shader_acquire_resources(&context, &context.ui_shader, material))
+			{
+				SHMERROR("vulkan_create_material - Failed to acquire shader resources!");
+				return false;
+			}
+			break;
+		}
+		default:
+		{
+			SHMERROR("create_material - Passed in material type is unknown!");
 			return false;
 		}
+		}	
 
 		SHMTRACE("Renderer: Material created.");
 		return true;
@@ -673,13 +696,34 @@ namespace Renderer::Vulkan
 
 	void destroy_material(Material* material)
 	{
-		if (material->internal_id != INVALID_OBJECT_ID)
-			material_shader_release_resources(&context, &context.material_shader, material);
-		else
+		if (material->internal_id == INVALID_OBJECT_ID)
+		{
 			SHMWARN("vulkan_destroy_material called when internal material id was already invalid!");
+			return;
+		}
+
+		switch (material->type)
+		{
+		case MaterialType::WORLD:
+		{
+			material_shader_release_resources(&context, &context.material_shader, material);
+			break;
+		}
+		case MaterialType::UI:
+		{
+			ui_shader_release_resources(&context, &context.ui_shader, material);
+			break;
+		}
+		default:
+		{
+			SHMERROR("destroy_material - Passed in material type is unknown!");
+			return;
+		}
+		}
+			
 	}
 
-	bool32 create_geometry(Geometry* geometry, uint32 vertex_count, const Vertex3D* vertices, uint32 index_count, const uint32* indices)
+	bool32 create_geometry(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices)
 	{
 
 		if (!vertices)
@@ -688,7 +732,7 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		bool32 is_reupload = geometry->id != INVALID_OBJECT_ID;
+		bool32 is_reupload = geometry->internal_id != INVALID_OBJECT_ID;
 		VulkanGeometryData old_range = {};
 
 		VulkanGeometryData* internal_data = 0;
@@ -722,17 +766,19 @@ namespace Renderer::Vulkan
 
 		internal_data->vertex_buffer_offset = (uint32)context.geometry_vertex_offset;
 		internal_data->vertex_count = vertex_count;
-		internal_data->vertex_size = sizeof(Vertex3D) * vertex_count;
-		upload_data_range(pool, 0, queue, &context.object_vertex_buffer, internal_data->vertex_buffer_offset, internal_data->vertex_size, vertices);
-		context.geometry_vertex_offset += internal_data->vertex_size;
+		internal_data->vertex_size = vertex_size;
+		uint32 vertices_size = internal_data->vertex_count * internal_data->vertex_size;
+		upload_data_range(pool, 0, queue, &context.object_vertex_buffer, internal_data->vertex_buffer_offset, vertices_size, vertices);
+		context.geometry_vertex_offset += vertices_size;
 
 		if (index_count && indices)
 		{
 			internal_data->index_buffer_offset = (uint32)context.geometry_index_offset;
 			internal_data->index_count = index_count;
-			internal_data->index_size = sizeof(Vertex3D) * index_count;
-			upload_data_range(pool, 0, queue, &context.object_index_buffer, internal_data->index_buffer_offset, internal_data->index_size, indices);
-			context.geometry_index_offset += internal_data->index_size;
+			internal_data->index_size = sizeof(uint32);
+			uint32 indices_size = internal_data->index_count * internal_data->index_size;
+			upload_data_range(pool, 0, queue, &context.object_index_buffer, internal_data->index_buffer_offset, indices_size, indices);
+			context.geometry_index_offset += indices_size;
 		}
 		else
 		{
@@ -747,9 +793,9 @@ namespace Renderer::Vulkan
 
 		if (is_reupload)
 		{
-			free_data_range(&context.object_vertex_buffer, old_range.vertex_buffer_offset, old_range.vertex_size);
+			free_data_range(&context.object_vertex_buffer, old_range.vertex_buffer_offset, old_range.vertex_count * old_range.vertex_size);
 			if (old_range.index_size)
-				free_data_range(&context.object_index_buffer, old_range.index_buffer_offset, old_range.index_size);
+				free_data_range(&context.object_index_buffer, old_range.index_buffer_offset, old_range.index_count * old_range.index_size);
 		}
 
 		return true;
@@ -763,9 +809,9 @@ namespace Renderer::Vulkan
 
 			VulkanGeometryData& internal_data = context.geometries[geometry->internal_id];
 
-			free_data_range(&context.object_vertex_buffer, internal_data.vertex_buffer_offset, internal_data.vertex_size);
+			free_data_range(&context.object_vertex_buffer, internal_data.vertex_buffer_offset, internal_data.vertex_size * internal_data.vertex_count);
 			if (internal_data.index_size)
-				free_data_range(&context.object_index_buffer, internal_data.index_buffer_offset, internal_data.index_size);
+				free_data_range(&context.object_index_buffer, internal_data.index_buffer_offset, internal_data.index_size * internal_data.index_count);
 
 			internal_data = {};
 			internal_data.id = INVALID_OBJECT_ID;
@@ -780,16 +826,32 @@ namespace Renderer::Vulkan
 			return;
 
 		VulkanGeometryData& buffer_data = context.geometries[data.geometry->internal_id];
-		VulkanCommandBuffer& command_buffer = context.graphics_command_buffers[context.image_index];
-
-		material_shader_use(&context, &context.material_shader);
-
-		material_shader_set_model(&context, &context.material_shader, data.model);
+		VulkanCommandBuffer& command_buffer = context.graphics_command_buffers[context.image_index];	
 
 		Material* m = data.geometry->material;
 		if (!m)
 			m = MaterialSystem::get_default_material();
-		material_shader_apply_material(&context, &context.material_shader, m);
+
+		switch (m->type)
+		{
+		case MaterialType::WORLD:
+		{
+			material_shader_set_model(&context, &context.material_shader, data.model);
+			material_shader_apply_material(&context, &context.material_shader, m);
+			break;
+		}
+		case MaterialType::UI:
+		{		
+			ui_shader_set_model(&context, &context.ui_shader, data.model);
+			ui_shader_apply_material(&context, &context.ui_shader, m);
+			break;
+		}
+		default:
+		{
+			SHMERROR("draw_geometry - Unknown material type!");
+			return;
+		}
+		}	
 
 		// Bind vertex buffer at offset.
 		VkDeviceSize offsets[1] = { buffer_data.vertex_buffer_offset };

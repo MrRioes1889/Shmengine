@@ -9,7 +9,7 @@ namespace Renderer
 
 		out_backend->frame_count = 0;
 
-		if (type == RENDERER_BACKEND_TYPE_VULKAN)
+		if (type == VULKAN)
 		{
 			out_backend->init = Vulkan::init;
 			out_backend->shutdown = Vulkan::shutdown;

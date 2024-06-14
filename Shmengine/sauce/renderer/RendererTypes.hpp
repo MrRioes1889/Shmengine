@@ -15,9 +15,9 @@ namespace Renderer
 
 	enum BackendType
 	{
-		RENDERER_BACKEND_TYPE_VULKAN,
-		RENDERER_BACKEND_TYPE_OPENGL,
-		RENDERER_BACKEND_TYPE_DIRECTX,
+		VULKAN,
+		OPENGL,
+		DIRECTX,
 	};
 
 	struct GeometryRenderData
@@ -26,7 +26,7 @@ namespace Renderer
 		Geometry* geometry;
 	};
 
-	namespace BuiltinRenderpass
+	namespace RenderpassType
 	{
 		enum
 		{
@@ -73,7 +73,7 @@ namespace Renderer
 		bool32 (*create_material)(Material* material);
 		void (*destroy_material)(Material* material);
 
-		bool32(*create_geometry)(Geometry* geometry, uint32 vertex_count, const Vertex3D* vertices, uint32 index_count, const uint32* indices);
+		bool32(*create_geometry)(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
 		void (*destroy_geometry)(Geometry* geometry);
 	};
 
