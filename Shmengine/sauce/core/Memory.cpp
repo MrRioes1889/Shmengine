@@ -9,9 +9,10 @@ namespace Memory
 
     struct SystemState
     {
-        //ArenaAllocator main_memory;
-        /*ArenaAllocator transient_memory;
-        ArenaAllocator temp_memory;*/
+
+        SystemConfig config;
+
+        uint64 allocated_size;
 
         Buffer main_memory;
         DynamicAllocator main_allocator;
@@ -24,27 +25,35 @@ namespace Memory
     static bool32 system_initialized = false;
     static SystemState* system_state;
 
+    static void* platform_allocate(uint64 size, bool32 aligned);
+    static void* platform_reallocate(uint64 size, void* block, bool32 aligned);
+    static void platform_free(void* block, bool32 aligned);
+
     static void init_buffer_and_allocator_pair(Buffer* buffer, DynamicAllocator* allocator, uint64 size, AllocatorPageSize page_size, AllocationTag tag, uint32 node_count_limit = 0)
     {
-        uint64 main_nodes_size = 0;
+        uint64 nodes_size = 0;
         if (node_count_limit)
-            main_nodes_size = DynamicAllocator::get_required_nodes_array_memory_size_by_node_count(node_count_limit, page_size);
+            nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(node_count_limit, page_size);
         else
-            main_nodes_size = DynamicAllocator::get_required_nodes_array_memory_size_by_data_size(size, page_size);
+            nodes_size = Freelist::get_required_nodes_array_memory_size_by_data_size(size, page_size);
 
-        buffer->init(size + main_nodes_size, tag);
+        buffer->init(size + nodes_size, tag);
         void* main_nodes = (((uint8*)buffer->data) + size);
-        allocator->init(size, buffer->data, page_size, main_nodes, node_count_limit);
+        allocator->init(size, buffer->data, nodes_size, main_nodes, page_size, node_count_limit);
     }
 
-    bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state)
+    bool32 system_init(SystemConfig config)
     {
 
-        out_state = allocator_callback(sizeof(SystemState));
-        system_state = (SystemState*)out_state;
+        system_state = (SystemState*)platform_allocate(sizeof(SystemState), true);
+        zero_memory(system_state, sizeof(SystemState));
+        system_state->config = config;
 
-        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, Mebibytes(256), AllocatorPageSize::SMALL, AllocationTag::RAW, 10000);
-        init_buffer_and_allocator_pair(&system_state->transient_memory, &system_state->transient_allocator, Mebibytes(256), AllocatorPageSize::SMALL, AllocationTag::RAW, 10000);
+        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, config.total_allocation_size, AllocatorPageSize::SMALL, AllocationTag::PLAT, 10000);
+
+        init_buffer_and_allocator_pair(&system_state->transient_memory, &system_state->transient_allocator, config.total_allocation_size / 16, AllocatorPageSize::SMALL, AllocationTag::MAIN, 10000);
+
+        system_state->allocated_size = 0;
 
         system_initialized = true;
         return system_initialized;
@@ -53,38 +62,50 @@ namespace Memory
 
     void system_shutdown()
     {
-        system_state->main_memory.free_data();
         system_state->transient_memory.free_data();
+        system_state->main_memory.free_data();      
         system_state = 0;
     }
-
-    static void* raw_allocate(uint64 size, bool32 aligned);
-    static void* raw_reallocate(uint64 size, void* block, bool32 aligned);
-    static void raw_free(void* block, bool32 aligned);
 
     void* allocate(uint64 size, bool32 aligned, AllocationTag tag)
     {
         if (size == 0)
             return 0;
 
+        void* ret = 0;
+
         if (!system_state)
         {
             if (system_initialized)
                 return 0;
             else
-                return raw_allocate(size, aligned);
+                ret = platform_allocate(size, aligned);
         }
-
-        switch (tag)
+        else
         {
-        case AllocationTag::RAW:
-            return raw_allocate(size, aligned);
-        case AllocationTag::TRANSIENT:
-            return system_state->transient_allocator.allocate(size);
-        default:
-            return system_state->main_allocator.allocate(size);
-        }
-        
+            switch (tag)
+            {
+            case AllocationTag::PLAT:
+            {
+                ret = platform_allocate(size, aligned);
+                break;
+            }
+            case AllocationTag::TRANSIENT:
+            {
+                ret = system_state->transient_allocator.allocate(size);
+                break;
+            }
+            default:
+            {
+                ret = system_state->main_allocator.allocate(size);
+                break;
+            }
+            }
+        }   
+
+        zero_memory(ret, size);
+        return ret;
+
     }
 
     void* reallocate(uint64 size, void* block, bool32 aligned, AllocationTag tag)
@@ -94,13 +115,13 @@ namespace Memory
             if (system_initialized)
                 return 0;
             else
-                return raw_reallocate(size, block, aligned);
+                return platform_reallocate(size, block, aligned);
         }
 
         switch (tag)
         {
-        case AllocationTag::RAW:
-            return raw_reallocate(size, block, aligned);
+        case AllocationTag::PLAT:
+            return platform_reallocate(size, block, aligned);
         case AllocationTag::TRANSIENT:
             return system_state->transient_allocator.reallocate(size, block);
         default:
@@ -116,17 +137,19 @@ namespace Memory
             if (system_initialized)
                 return;
             else
-                return raw_free(block, aligned);
+                return platform_free(block, aligned);
         }
 
         switch (tag)
         {
-        case AllocationTag::RAW:
-            return raw_free(block, aligned);
+        case AllocationTag::PLAT:
+            return platform_free(block, aligned);
         case AllocationTag::TRANSIENT:
-            return system_state->transient_allocator.free(block);
+            system_state->transient_allocator.free(block);
+            return;
         default:
-            return system_state->main_allocator.free(block);
+            system_state->main_allocator.free(block);
+            return;
         }
         
     }
@@ -146,20 +169,20 @@ namespace Memory
         return Platform::set_memory(dest, value, size);
     }
 
-    static void* raw_allocate(uint64 size, bool32 aligned)
+    static void* platform_allocate(uint64 size, bool32 aligned)
     {
         return Platform::allocate(size, aligned);
     }
 
-    static void* raw_reallocate(uint64 size, void* block, bool32 aligned)
+    static void* platform_reallocate(uint64 size, void* block, bool32 aligned)
     {
         void* new_block = Platform::allocate(size, aligned);
         copy_memory(block, new_block, size);
-        free_memory(block, aligned, AllocationTag::RAW);
+        free_memory(block, aligned, AllocationTag::PLAT);
         return new_block;
     }
 
-    static void raw_free(void* block, bool32 aligned)
+    static void platform_free(void* block, bool32 aligned)
     {
         Platform::free_memory(block, aligned);
     }

@@ -11,6 +11,7 @@ struct Game
 	bool32 (*render)(Game* game_inst, float32 delta_time);
 	void (*on_resize)(Game* game_inst, uint32 width, uint32 height);
 
+	uint64 state_size;
 	void* state;
 
 	void* app_state;

@@ -1,4 +1,5 @@
 #include "Buffer.hpp"
+#include "core/Assert.hpp"
 
 Buffer::Buffer(uint32 reserve_size, AllocationTag tag, void* memory)
 {
@@ -14,8 +15,7 @@ Buffer::~Buffer()
 
 void Buffer::init(uint64 reserve_size, AllocationTag tag, void* memory)
 {
-	if (data)
-		free_data();
+	SHMASSERT(!data);
 
 	owns_memory = (memory == 0);
 	allocation_tag = (uint16)tag;
@@ -23,8 +23,10 @@ void Buffer::init(uint64 reserve_size, AllocationTag tag, void* memory)
 	if (owns_memory)
 		data = Memory::allocate(size, true, (AllocationTag)allocation_tag);
 	else
+	{
 		data = memory;
-	clear();
+		clear();
+	}		
 }
 
 void Buffer::free_data()
@@ -34,6 +36,16 @@ void Buffer::free_data()
 
 	data = 0;
 	size = 0;
+}
+
+void Buffer::resize(uint64 new_size, void* memory)
+{
+	if (owns_memory && data)
+		data = Memory::reallocate(new_size, memory, true, (AllocationTag)allocation_tag);
+	else
+		data = memory;
+
+	size = new_size;
 }
 
 void Buffer::clear()

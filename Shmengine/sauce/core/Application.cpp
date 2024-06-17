@@ -36,7 +36,6 @@ namespace Application
 		Memory::LinearAllocator systems_allocator;
 
 		void* logging_system_state;
-		void* memory_system_state;
 		void* input_system_state;
 		void* event_system_state;
 		void* platform_system_state;
@@ -94,8 +93,16 @@ namespace Application
 	bool32 init_primitive_subsystems(Game* game_inst)
 	{
 
+		Memory::SystemConfig mem_config;
+		mem_config.total_allocation_size = Gibibytes(1);
+		if (!Memory::system_init(mem_config))
+		{
+			SHMFATAL("Failed to initialize memory subsytem!");
+			return false;
+		}
+
 		*game_inst = {};
-		game_inst->app_state = Memory::allocate(sizeof(ApplicationState), true, AllocationTag::RAW);
+		game_inst->app_state = Memory::allocate(sizeof(ApplicationState), true, AllocationTag::MAIN);
 		app_state = (ApplicationState*)game_inst->app_state;
 
 		app_state->game_inst = game_inst;
@@ -108,12 +115,6 @@ namespace Application
 		if (!Log::system_init(allocate_subsystem_callback, app_state->logging_system_state))
 		{
 			SHMFATAL("Failed to initialize logging subsytem!");
-			return false;
-		}
-
-		if (!Memory::system_init(allocate_subsystem_callback, app_state->memory_system_state))
-		{
-			SHMFATAL("Failed to initialize memory subsytem!");
 			return false;
 		}
 
@@ -137,6 +138,8 @@ namespace Application
 
 		if (initialized)
 			return false;
+
+		game_inst->state = Memory::allocate(game_inst->state_size, true, AllocationTag::MAIN);
 
 		Event::event_register(EVENT_CODE_APPLICATION_QUIT, 0, on_event);
 		Event::event_register(EVENT_CODE_KEY_PRESSED, 0, on_key);

@@ -9,10 +9,10 @@ struct SHMAPI Buffer
 	Buffer(uint32 reserve_size, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
 	~Buffer();
 
-	Buffer(const Buffer& other) = delete;
-	Buffer& operator=(const Buffer& other) = delete;
+	Buffer(const Buffer& other)=default;
+	Buffer& operator=(const Buffer& other)=default;
 
-	SHMINLINE void move(Buffer& other)
+	SHMINLINE void steal(Buffer& other)
 	{
 		data = other.data;
 		size = other.size;
@@ -25,11 +25,11 @@ struct SHMAPI Buffer
 
 	Buffer(Buffer&& other) noexcept
 	{
-		move(other);
+		steal(other);
 	};
 	Buffer& operator=(Buffer&& other) noexcept
 	{
-		move(other);
+		steal(other);
 		return *this;
 	};
 
@@ -37,6 +37,7 @@ struct SHMAPI Buffer
 	void init(uint64 reserve_size, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
 	void free_data();
 
+	void resize(uint64 new_size, void* memory = 0);
 	void clear();
 
 	void* data = 0;

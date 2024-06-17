@@ -153,7 +153,7 @@ namespace Renderer::Vulkan
 
         // Creating global layout buffer
         uint32 device_local_bits = context->device.supports_device_local_host_visible ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
-        if (!vulkan_buffer_create(
+        if (!buffer_create(
             context,
             sizeof(VulkanMaterialShader::GlobalUBO) * 3,
             (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
@@ -174,7 +174,7 @@ namespace Renderer::Vulkan
         VK_CHECK(vkAllocateDescriptorSets(context->device.logical_device, &alloc_info, out_shader->global_descriptor_sets));
 
         // Creating object layout buffer
-        if (!vulkan_buffer_create(
+        if (!buffer_create(
             context,
             sizeof(VulkanMaterialShader::InstanceUBO) * VulkanConfig::max_material_count,
             (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
@@ -195,8 +195,8 @@ namespace Renderer::Vulkan
 
         VkDevice& device = context->device.logical_device;
 
-        vulkan_buffer_destroy(context, &shader->object_uniform_buffer);
-        vulkan_buffer_destroy(context, &shader->global_uniform_buffer);
+        buffer_destroy(context, &shader->object_uniform_buffer);
+        buffer_destroy(context, &shader->global_uniform_buffer);
 
         pipeline_destroy(context, &shader->pipeline);
 
@@ -235,7 +235,7 @@ namespace Renderer::Vulkan
         uint64 offset = sizeof(VulkanMaterialShader::GlobalUBO) * image_index;
 
         // Copy data to buffer
-        vulkan_buffer_load_data(context, &shader->global_uniform_buffer, offset, range, 0, &shader->global_ubo);
+        buffer_load_data(context, &shader->global_uniform_buffer, offset, range, 0, &shader->global_ubo);
 
         VkDescriptorBufferInfo bufferInfo;
         bufferInfo.buffer = shader->global_uniform_buffer.handle;
@@ -283,7 +283,7 @@ namespace Renderer::Vulkan
 
         instance_ubo.diffuse_color = material->diffuse_color;
 
-        vulkan_buffer_load_data(context, &shader->object_uniform_buffer, offset, range, 0, &instance_ubo);
+        buffer_load_data(context, &shader->object_uniform_buffer, offset, range, 0, &instance_ubo);
 
         uint32& global_ubo_generation = instance_state.descriptor_states[descriptor_index].generations[image_index];
         if (global_ubo_generation == INVALID_OBJECT_ID || global_ubo_generation != material->generation)

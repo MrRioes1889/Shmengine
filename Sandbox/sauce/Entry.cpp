@@ -17,7 +17,8 @@ bool32 create_game(Game* out_game) {
     out_game->on_resize = game_on_resize;
 
     // Create the game state.
-    out_game->state = Memory::allocate(sizeof(GameState), false, AllocationTag::MAIN);
+    out_game->state_size = sizeof(GameState);
+    out_game->state = 0;
 
     return true;
 }

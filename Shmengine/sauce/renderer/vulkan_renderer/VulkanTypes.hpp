@@ -5,6 +5,7 @@
 #include "containers/Sarray.hpp"
 #include "containers/Buffer.hpp"
 #include "utility/Math.hpp"
+#include "memory/DynamicAllocator.hpp"
 
 #include "renderer/RendererTypes.hpp"
 
@@ -32,6 +33,9 @@ struct VulkanBuffer
 	VkBufferUsageFlagBits usage;
 	int32 memory_index;
 	uint32 memory_property_flags;
+
+	Buffer freelist_data;
+	Freelist freelist;
 };
 
 struct VulkanSwapchainSupportInfo
@@ -149,8 +153,6 @@ struct VulkanDesriptorState
 	uint32 ids[VulkanConfig::frames_count];
 };
 
-
-
 struct VulkanMaterialShader
 {
 
@@ -205,8 +207,6 @@ struct VulkanMaterialShader
 	VulkanPipeline pipeline;
 	
 };
-
-
 
 struct VulkanUIShader
 {
@@ -269,10 +269,10 @@ struct VulkanGeometryData
 	uint32 generation;
 	uint32 vertex_count;
 	uint32 vertex_size;
-	uint32 vertex_buffer_offset;
+	uint64 vertex_buffer_offset;
 	uint32 index_count;
 	uint32 index_size;
-	uint32 index_buffer_offset;
+	uint64 index_buffer_offset;
 };
 
 struct VulkanContext
@@ -290,9 +290,6 @@ struct VulkanContext
 
 	VulkanBuffer object_vertex_buffer;
 	VulkanBuffer object_index_buffer;
-
-	uint64 geometry_vertex_offset;
-	uint64 geometry_index_offset;
 
 	VkFramebuffer world_framebuffers[VulkanConfig::frames_count];
 

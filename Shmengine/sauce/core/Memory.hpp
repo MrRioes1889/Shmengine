@@ -8,7 +8,7 @@ enum class AllocationTag
 	MAIN,
 	TRANSIENT,
 	PERMANENT,
-	RAW,
+	PLAT,
 	TBD,
 
 	TAG_COUNT
@@ -16,7 +16,13 @@ enum class AllocationTag
 
 namespace Memory
 {
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state);
+
+	struct SystemConfig
+	{
+		uint64 total_allocation_size;
+	};
+
+	bool32 system_init(SystemConfig config);
 	void system_shutdown();
 
 	SHMAPI void* allocate(uint64 size, bool32 aligned, AllocationTag tag);

@@ -49,7 +49,7 @@ struct Texture
 	{
 		Memory::copy_memory(&other, this, sizeof(Texture));
 
-		buffer.move(other.buffer);
+		buffer.steal(other.buffer);
 	}
 
 };

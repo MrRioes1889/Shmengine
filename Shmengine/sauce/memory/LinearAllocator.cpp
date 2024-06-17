@@ -15,13 +15,13 @@ namespace Memory
 		out_allocator->owns_memory = memory == 0;
 
 		if (out_allocator->owns_memory)
-			out_allocator->memory = allocate(size, true, AllocationTag::RAW);
+			out_allocator->memory = allocate(size, true, AllocationTag::PLAT);
 	}
 
 	void linear_allocator_destroy(LinearAllocator* allocator)
 	{
 		if (allocator->owns_memory)
-			free_memory(allocator->memory, true, AllocationTag::RAW);
+			free_memory(allocator->memory, true, AllocationTag::PLAT);
 
 		*allocator = {};
 	}

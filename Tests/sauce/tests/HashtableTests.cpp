@@ -12,7 +12,7 @@ uint8 hashtable_should_set_and_get_successfully()
 
     uint32 element_count = 3;
 
-    table.init(element_count, AllocationTag::RAW);
+    table.init(element_count, AllocationTag::PLAT);
 
     expect_should_not_be(0, table.buffer.data);
     expect_should_be(3, table.element_count);
@@ -41,7 +41,7 @@ uint8 hashtable_should_set_and_get_ptr_successfully() {
     Hashtable<ht_test_struct*> table;
     uint32 element_count = 3;
 
-    table.init(element_count, AllocationTag::RAW);
+    table.init(element_count, AllocationTag::PLAT);
 
     expect_should_not_be(0, table.buffer.data);
     expect_should_be(3, table.element_count);
@@ -71,7 +71,7 @@ uint8 hashtable_should_set_and_get_nonexistant() {
     Hashtable<uint64> table;
     uint32 element_count = 3;
 
-    table.init(element_count, AllocationTag::RAW);
+    table.init(element_count, AllocationTag::PLAT);
 
     expect_should_not_be(0, table.buffer.data);
     expect_should_be(3, table.element_count);
@@ -94,7 +94,7 @@ uint8 hashtable_should_set_and_get_ptr_nonexistant() {
     Hashtable<ht_test_struct*> table;
     uint32 element_count = 3;
 
-    table.init(element_count, AllocationTag::RAW);
+    table.init(element_count, AllocationTag::PLAT);
 
     expect_should_not_be(0, table.buffer.data);
     expect_should_be(3, table.element_count);
@@ -122,7 +122,7 @@ uint8 hashtable_should_set_and_unset_ptr() {
     Hashtable<ht_test_struct*> table;
     uint32 element_count = 3;
 
-    table.init(element_count, AllocationTag::RAW);
+    table.init(element_count, AllocationTag::PLAT);
 
     expect_should_not_be(0, table.buffer.data);
     expect_should_be(3, table.element_count);
@@ -161,7 +161,7 @@ uint8 hashtable_should_set_get_and_update_ptr_successfully() {
     Hashtable<ht_test_struct*> table;
     uint32 element_count = 3;
 
-    table.init(element_count, AllocationTag::RAW);
+    table.init(element_count, AllocationTag::PLAT);
 
     expect_should_not_be(0, table.buffer.data);
     expect_should_be(3, table.element_count);

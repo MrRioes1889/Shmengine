@@ -67,20 +67,30 @@ namespace Renderer::Vulkan
 	static uint32 cached_framebuffer_width = 0;
 	static uint32 cached_framebuffer_height = 0;
 
-	static void upload_data_range(VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, uint64 offset, uint64 size, const void* data)
+	static bool32 upload_data_range(VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, uint64* out_offset, uint64 size, const void* data)
 	{
+
+		if (!buffer_allocate(buffer, size, out_offset))
+		{
+			SHMERROR("upload_data_range - Failed to allocate data size for buffer!");
+			return false;
+		}
+
 		VkBufferUsageFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 		VulkanBuffer staging;
-		vulkan_buffer_create(&context, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true, &staging);
+		buffer_create(&context, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true, &staging);
 
-		vulkan_buffer_load_data(&context, &staging, 0, size, 0, data);
-		vulkan_buffer_copy_to(&context, pool, fence, queue, staging.handle, 0, buffer->handle, offset, size);
-		vulkan_buffer_destroy(&context, &staging);
+		buffer_load_data(&context, &staging, 0, size, 0, data);
+		buffer_copy_to(&context, pool, fence, queue, staging.handle, 0, buffer->handle, *out_offset, size);
+		buffer_destroy(&context, &staging);
+
+		return true;
+
 	}
 
-	static void free_data_range(VulkanBuffer* buffer, uint32 offset, uint32 size)
+	static void free_data_range(VulkanBuffer* buffer, uint64 offset, uint64 size)
 	{
-
+		buffer_free(buffer, offset);
 	}
 
 	bool32 init(const char* application_name)
@@ -265,8 +275,8 @@ namespace Renderer::Vulkan
 		vkDeviceWaitIdle(context.device.logical_device);
 
 		SHMDEBUG("Destroying vulkan buffers...");
-		vulkan_buffer_destroy(&context, &context.object_vertex_buffer);
-		vulkan_buffer_destroy(&context, &context.object_index_buffer);
+		buffer_destroy(&context, &context.object_vertex_buffer);
+		buffer_destroy(&context, &context.object_index_buffer);
 
 		SHMDEBUG("Destroying vulkan shaders...");
 		ui_shader_destroy(&context, &context.ui_shader);
@@ -587,9 +597,9 @@ namespace Renderer::Vulkan
 		VkBufferUsageFlagBits usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		VkMemoryPropertyFlags memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 		VulkanBuffer staging;
-		vulkan_buffer_create(&context, image_size, usage, memory_flags, true, &staging);
+		buffer_create(&context, image_size, usage, memory_flags, true, &staging);
 
-		vulkan_buffer_load_data(&context, &staging, 0, image_size, 0, pixels);
+		buffer_load_data(&context, &staging, 0, image_size, 0, pixels);
 
 		vulkan_image_create(
 			&context,
@@ -614,7 +624,7 @@ namespace Renderer::Vulkan
 		vulkan_image_transition_layout(&context, &temp_buffer, &data->image, image_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		vulkan_command_buffer_end_single_use(&context, pool, &temp_buffer, queue);
 
-		vulkan_buffer_destroy(&context, &staging);
+		buffer_destroy(&context, &staging);
 
 		VkSamplerCreateInfo sampler_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
 		// TODO: These filters should be configurable.
@@ -769,21 +779,19 @@ namespace Renderer::Vulkan
 		VkCommandPool& pool = context.device.graphics_command_pool;
 		VkQueue& queue = context.device.graphics_queue;
 
-		internal_data->vertex_buffer_offset = (uint32)context.geometry_vertex_offset;
 		internal_data->vertex_count = vertex_count;
 		internal_data->vertex_size = vertex_size;
 		uint32 vertices_size = internal_data->vertex_count * internal_data->vertex_size;
-		upload_data_range(pool, 0, queue, &context.object_vertex_buffer, internal_data->vertex_buffer_offset, vertices_size, vertices);
-		context.geometry_vertex_offset += vertices_size;
+		upload_data_range(pool, 0, queue, &context.object_vertex_buffer, &internal_data->vertex_buffer_offset, vertices_size, vertices);
+		//context.geometry_vertex_offset += vertices_size;
 
 		if (index_count && indices)
 		{
-			internal_data->index_buffer_offset = (uint32)context.geometry_index_offset;
 			internal_data->index_count = index_count;
 			internal_data->index_size = sizeof(uint32);
 			uint32 indices_size = internal_data->index_count * internal_data->index_size;
-			upload_data_range(pool, 0, queue, &context.object_index_buffer, internal_data->index_buffer_offset, indices_size, indices);
-			context.geometry_index_offset += indices_size;
+			upload_data_range(pool, 0, queue, &context.object_index_buffer, &internal_data->index_buffer_offset, indices_size, indices);
+			//context.geometry_index_offset += indices_size;
 		}
 		else
 		{
@@ -1011,7 +1019,7 @@ namespace Renderer::Vulkan
 		VkMemoryPropertyFlagBits memory_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
 		const uint64 vertex_buffer_size = sizeof(Vertex3D) * 1024 * 1024;
-		if (!vulkan_buffer_create(
+		if (!buffer_create(
 			&context,
 			vertex_buffer_size,
 			(VkBufferUsageFlagBits)(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
@@ -1022,10 +1030,9 @@ namespace Renderer::Vulkan
 			SHMERROR("Error creating vertex buffer;");
 			return false;
 		}
-		context.geometry_vertex_offset = 0;
 
 		const uint64 index_buffer_size = sizeof(uint32) * 1024 * 1024;
-		if (!vulkan_buffer_create(
+		if (!buffer_create(
 			&context,
 			index_buffer_size,
 			(VkBufferUsageFlagBits)(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
@@ -1036,7 +1043,6 @@ namespace Renderer::Vulkan
 			SHMERROR("Error creating index buffer;");
 			return false;
 		}
-		context.geometry_index_offset = 0;
 
 		return true;
 
