@@ -49,7 +49,8 @@ namespace Renderer::Vulkan
 	static const uint32 validation_layer_count = 1;
 	static const char* validation_layer_names[validation_layer_count] = 
 	{
-		"VK_LAYER_KHRONOS_validation"
+		"VK_LAYER_KHRONOS_validation",
+		// "VK_LAYER_LUNARG_api_dump"
 	};
 #else
 	static const uint32 validation_layer_count = 0;
@@ -379,7 +380,11 @@ namespace Renderer::Vulkan
 		
 		if (!vulkan_swapchain_acquire_next_image_index(
 			&context, &context.swapchain, UINT64_MAX, context.image_available_semaphores[context.current_frame], 0, &context.image_index))
+		{
+			SHMERROR("begin_frame - Failed to acquire next image!");
 			return false;
+		}
+			
 
 		VulkanCommandBuffer* cmd = &context.graphics_command_buffers[context.image_index];
 		vulkan_command_reset(cmd);

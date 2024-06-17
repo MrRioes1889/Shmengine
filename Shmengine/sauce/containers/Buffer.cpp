@@ -12,7 +12,7 @@ Buffer::~Buffer()
 		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
 }
 
-void Buffer::init(uint32 reserve_size, AllocationTag tag, void* memory)
+void Buffer::init(uint64 reserve_size, AllocationTag tag, void* memory)
 {
 	if (data)
 		free_data();

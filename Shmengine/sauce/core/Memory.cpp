@@ -1,6 +1,7 @@
 #include "Memory.hpp"
 #include "platform/Platform.hpp"
-#include "memory/ArenaAllocator.hpp"
+#include "containers/Buffer.hpp"
+#include "memory/DynamicAllocator.hpp"
 #include "memory/LinearAllocator.hpp"
 
 namespace Memory
@@ -8,14 +9,33 @@ namespace Memory
 
     struct SystemState
     {
-        ArenaAllocator main_memory;
-        ArenaAllocator transient_memory;
-        ArenaAllocator temp_memory;
+        //ArenaAllocator main_memory;
+        /*ArenaAllocator transient_memory;
+        ArenaAllocator temp_memory;*/
 
-        bool32 initialized = false;
+        Buffer main_memory;
+        DynamicAllocator main_allocator;
+
+        Buffer transient_memory;
+        DynamicAllocator transient_allocator;
+        
     };
     
+    static bool32 system_initialized = false;
     static SystemState* system_state;
+
+    static void init_buffer_and_allocator_pair(Buffer* buffer, DynamicAllocator* allocator, uint64 size, AllocatorPageSize page_size, AllocationTag tag, uint32 node_count_limit = 0)
+    {
+        uint64 main_nodes_size = 0;
+        if (node_count_limit)
+            main_nodes_size = DynamicAllocator::get_required_nodes_array_memory_size_by_node_count(node_count_limit, page_size);
+        else
+            main_nodes_size = DynamicAllocator::get_required_nodes_array_memory_size_by_data_size(size, page_size);
+
+        buffer->init(size + main_nodes_size, tag);
+        void* main_nodes = (((uint8*)buffer->data) + size);
+        allocator->init(size, buffer->data, page_size, main_nodes, node_count_limit);
+    }
 
     bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state)
     {
@@ -23,20 +43,19 @@ namespace Memory
         out_state = allocator_callback(sizeof(SystemState));
         system_state = (SystemState*)out_state;
 
-        arena_create(Mebibytes(256), ArenaPageType::medium_pages, &system_state->main_memory);
-        arena_create(Mebibytes(256), ArenaPageType::medium_pages, &system_state->transient_memory);
-        arena_create(Mebibytes(256), ArenaPageType::medium_pages, &system_state->temp_memory);
+        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, Mebibytes(256), AllocatorPageSize::SMALL, AllocationTag::RAW, 10000);
+        init_buffer_and_allocator_pair(&system_state->transient_memory, &system_state->transient_allocator, Mebibytes(256), AllocatorPageSize::SMALL, AllocationTag::RAW, 10000);
 
-        system_state->initialized = true;
-        return system_state->initialized;
+        system_initialized = true;
+        return system_initialized;
 
     }
 
     void system_shutdown()
     {
-        arena_destroy(&system_state->main_memory);
-        arena_destroy(&system_state->transient_memory);
-        arena_destroy(&system_state->temp_memory);
+        system_state->main_memory.free_data();
+        system_state->transient_memory.free_data();
+        system_state = 0;
     }
 
     static void* raw_allocate(uint64 size, bool32 aligned);
@@ -48,53 +67,66 @@ namespace Memory
         if (size == 0)
             return 0;
 
-        if (!system_state || !system_state->initialized)
-            return raw_allocate(size, aligned);
+        if (!system_state)
+        {
+            if (system_initialized)
+                return 0;
+            else
+                return raw_allocate(size, aligned);
+        }
 
         switch (tag)
         {
         case AllocationTag::RAW:
             return raw_allocate(size, aligned);
         case AllocationTag::TRANSIENT:
-            return arena_allocate(&system_state->transient_memory, size);
-        case AllocationTag::TBD:
-            return arena_allocate(&system_state->temp_memory, size);
+            return system_state->transient_allocator.allocate(size);
         default:
-            return arena_allocate(&system_state->main_memory, size);
+            return system_state->main_allocator.allocate(size);
         }
         
     }
 
     void* reallocate(uint64 size, void* block, bool32 aligned, AllocationTag tag)
     {
-        if (!system_state || !system_state->initialized)
-            return raw_reallocate(size, block, aligned);  
+        if (!system_state)
+        {
+            if (system_initialized)
+                return 0;
+            else
+                return raw_reallocate(size, block, aligned);
+        }
 
         switch (tag)
         {
         case AllocationTag::RAW:
             return raw_reallocate(size, block, aligned);
         case AllocationTag::TRANSIENT:
-            return arena_reallocate(&system_state->transient_memory, size, block);
+            return system_state->transient_allocator.reallocate(size, block);
         default:
-            return arena_reallocate(&system_state->main_memory, size, block);
+            return system_state->main_allocator.reallocate(size, block);
         }
    
     }
 
     void free_memory(void* block, bool32 aligned, AllocationTag tag)
     {
-        if (!system_state || !system_state->initialized)
-            return raw_free(block, aligned);
+        if (!system_state)
+        {
+            if (system_initialized)
+                return;
+            else
+                return raw_free(block, aligned);
+        }
 
         switch (tag)
         {
         case AllocationTag::RAW:
             return raw_free(block, aligned);
         case AllocationTag::TRANSIENT:
-            return arena_free(&system_state->transient_memory, block);
+            return system_state->transient_allocator.free(block);
         default:
-            return arena_free(&system_state->main_memory, block);
+            return system_state->main_allocator.free(block);
         }
         
     }

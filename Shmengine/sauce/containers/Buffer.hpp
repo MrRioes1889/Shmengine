@@ -34,13 +34,13 @@ struct SHMAPI Buffer
 	};
 
 	// NOTE: Call for already instantiated arrays
-	void init(uint32 reserve_size, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
+	void init(uint64 reserve_size, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
 	void free_data();
 
 	void clear();
 
 	void* data = 0;
-	uint32 size = 0;
+	uint64 size = 0;
 	uint16 allocation_tag;
 	bool8 owns_memory = false;
 };

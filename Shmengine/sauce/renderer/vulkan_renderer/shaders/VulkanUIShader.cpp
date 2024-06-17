@@ -53,13 +53,13 @@ namespace Renderer::Vulkan
         out_shader->sampler_uses[0] = TextureUse::MAP_DIFFUSE;
 
         // Local/Object Descriptors
-        VkDescriptorType descriptor_types[VulkanUIShaderInstanceState::descriptor_count] = {
+        VkDescriptorType descriptor_types[VulkanUIShader::descriptor_count] = {
           VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
           VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
         };
 
-        VkDescriptorSetLayoutBinding bindings[VulkanUIShaderInstanceState::descriptor_count] = {};
-        for (uint32 i = 0; i < VulkanUIShaderInstanceState::descriptor_count; i++)
+        VkDescriptorSetLayoutBinding bindings[VulkanUIShader::descriptor_count] = {};
+        for (uint32 i = 0; i < VulkanUIShader::descriptor_count; i++)
         {
             bindings[i].binding = i;
             bindings[i].descriptorCount = 1;
@@ -68,7 +68,7 @@ namespace Renderer::Vulkan
         }
 
         VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        layout_info.bindingCount = VulkanUIShaderInstanceState::descriptor_count;
+        layout_info.bindingCount = VulkanUIShader::descriptor_count;
         layout_info.pBindings = bindings;
         VK_CHECK(vkCreateDescriptorSetLayout(context->device.logical_device, &layout_info, context->allocator_callbacks, &out_shader->object_descriptor_set_layout));
 
@@ -270,10 +270,10 @@ namespace Renderer::Vulkan
         uint32 image_index = context->image_index;
         VkCommandBuffer& command_buffer = context->graphics_command_buffers[image_index].handle;
 
-        VulkanUIShaderInstanceState& instance_state = shader->instance_states[material->internal_id];
+        VulkanUIShader::InstanceState& instance_state = shader->instance_states[material->internal_id];
         VkDescriptorSet object_descriptor_set = instance_state.descriptor_sets[image_index];
 
-        VkWriteDescriptorSet descriptor_writes[VulkanUIShaderInstanceState::descriptor_count] = {};
+        VkWriteDescriptorSet descriptor_writes[VulkanUIShader::descriptor_count] = {};
         uint32 new_descriptor_count = 0;
         uint32 descriptor_index = 0;
 
@@ -380,8 +380,8 @@ namespace Renderer::Vulkan
         material->internal_id = shader->object_uniform_buffer_index;
         shader->object_uniform_buffer_index++;
 
-        VulkanUIShaderInstanceState& instance_state = shader->instance_states[material->internal_id];
-        for (uint32 i = 0; i < VulkanUIShaderInstanceState::descriptor_count; ++i) {
+        VulkanUIShader::InstanceState& instance_state = shader->instance_states[material->internal_id];
+        for (uint32 i = 0; i < VulkanUIShader::descriptor_count; ++i) {
             for (uint32 j = 0; j < 3; ++j) {
                 instance_state.descriptor_states[i].generations[j] = INVALID_OBJECT_ID;
                 instance_state.descriptor_states[i].ids[j] = INVALID_OBJECT_ID;
@@ -413,7 +413,7 @@ namespace Renderer::Vulkan
 
         vkDeviceWaitIdle(context->device.logical_device);
 
-        VulkanUIShaderInstanceState& instance_state = shader->instance_states[material->internal_id];
+        VulkanUIShader::InstanceState& instance_state = shader->instance_states[material->internal_id];
 
         const uint32 descriptor_set_count = 3;
         // Release object descriptor sets.
@@ -422,7 +422,7 @@ namespace Renderer::Vulkan
             SHMERROR("Error freeing object shader descriptor sets!");
         }
 
-        for (uint32 i = 0; i < VulkanUIShaderInstanceState::descriptor_count; ++i) {
+        for (uint32 i = 0; i < VulkanUIShader::descriptor_count; ++i) {
             for (uint32 j = 0; j < 3; ++j) {
                 instance_state.descriptor_states[i].generations[j] = INVALID_OBJECT_ID;
                 instance_state.descriptor_states[i].ids[j] = INVALID_OBJECT_ID;

@@ -33,15 +33,15 @@ namespace FileSystem
 
 	SHMINLINE bool32 read_bytes(FileHandle* file, uint32 size, Buffer* out_buffer, uint32* out_bytes_read)
 	{
-		return read_bytes(file, size, out_buffer->data, out_buffer->size, out_bytes_read);
+		return read_bytes(file, size, out_buffer->data, (uint32)out_buffer->size, out_bytes_read);
 	}
 	SHMINLINE bool32 read_all_bytes(FileHandle* file, Buffer* out_buffer, uint32* out_bytes_read)
 	{
-		return read_all_bytes(file, out_buffer->data, out_buffer->size, out_bytes_read);
+		return read_all_bytes(file, out_buffer->data, (uint32)out_buffer->size, out_bytes_read);
 	}
 	SHMINLINE int32 read_line(const Buffer* file_buffer, const Buffer* line_buffer, const char** out_continue_ptr = 0)
 	{
-		return read_line((const char*)file_buffer->data, (char*)line_buffer->data, line_buffer->size, out_continue_ptr);
+		return read_line((const char*)file_buffer->data, (char*)line_buffer->data, (uint32)line_buffer->size, out_continue_ptr);
 	}
 
 }

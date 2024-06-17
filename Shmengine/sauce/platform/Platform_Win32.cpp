@@ -139,12 +139,18 @@ namespace Platform
 
     void* allocate(uint64 size, bool32 aligned)
     {
-        return malloc(size);
+        if (aligned)
+            return _aligned_malloc(size, 0x40);
+        else
+            return malloc(size);
     }
 
     void free_memory(void* block, bool32 aligned)
     {
-        free(block);
+        if (aligned)
+            return _aligned_free(block);
+        else
+            return free(block);
     }
 
     void* zero_memory(void* block, uint64 size)

@@ -149,12 +149,7 @@ struct VulkanDesriptorState
 	uint32 ids[VulkanConfig::frames_count];
 };
 
-struct VulkanMaterialShaderInstanceState
-{
-	inline static const uint32 descriptor_count = 2;
-	VkDescriptorSet descriptor_sets[VulkanConfig::frames_count];
-	VulkanDesriptorState descriptor_states[VulkanMaterialShaderInstanceState::descriptor_count];
-};
+
 
 struct VulkanMaterialShader
 {
@@ -163,6 +158,13 @@ struct VulkanMaterialShader
 	inline static const uint32 attribute_count = 2;
 	inline static const uint32 sampler_count = 1;
 	inline static const char* builtin_shader_name = "Builtin.MaterialShader";
+	inline static const uint32 descriptor_count = 2;
+
+	struct InstanceState
+	{		
+		VkDescriptorSet descriptor_sets[VulkanConfig::frames_count];
+		VulkanDesriptorState descriptor_states[VulkanMaterialShader::descriptor_count];
+	};
 
 	struct GlobalUBO
 	{
@@ -198,18 +200,13 @@ struct VulkanMaterialShader
 
 	TextureUse sampler_uses[sampler_count];
 
-	VulkanMaterialShaderInstanceState instance_states[VulkanConfig::max_material_count];
+	InstanceState instance_states[VulkanConfig::max_material_count];
 
 	VulkanPipeline pipeline;
 	
 };
 
-struct VulkanUIShaderInstanceState
-{
-	inline static const uint32 descriptor_count = 2;
-	VkDescriptorSet descriptor_sets[VulkanConfig::frames_count];
-	VulkanDesriptorState descriptor_states[VulkanUIShaderInstanceState::descriptor_count];
-};
+
 
 struct VulkanUIShader
 {
@@ -218,6 +215,13 @@ struct VulkanUIShader
 	inline static const uint32 attribute_count = 2;
 	inline static const uint32 sampler_count = 1;
 	inline static const char* builtin_shader_name = "Builtin.UIShader";
+	inline static const uint32 descriptor_count = 2;
+
+	struct InstanceState
+	{		
+		VkDescriptorSet descriptor_sets[VulkanConfig::frames_count];
+		VulkanDesriptorState descriptor_states[VulkanUIShader::descriptor_count];
+	};
 
 	struct GlobalUBO
 	{
@@ -253,7 +257,7 @@ struct VulkanUIShader
 
 	TextureUse sampler_uses[sampler_count];
 
-	VulkanUIShaderInstanceState instance_states[VulkanConfig::max_ui_count];
+	InstanceState instance_states[VulkanConfig::max_ui_count];
 
 	VulkanPipeline pipeline;
 
