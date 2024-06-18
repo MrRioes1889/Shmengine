@@ -169,7 +169,7 @@ namespace Renderer::Vulkan
 
         VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
         alloc_info.descriptorPool = out_shader->global_descriptor_pool;
-        alloc_info.descriptorSetCount = 3;
+        alloc_info.descriptorSetCount = context->swapchain.images.count;
         alloc_info.pSetLayouts = global_layouts;
         VK_CHECK(vkAllocateDescriptorSets(context->device.logical_device, &alloc_info, out_shader->global_descriptor_sets));
 
@@ -396,7 +396,7 @@ namespace Renderer::Vulkan
 
         VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
         alloc_info.descriptorPool = shader->object_descriptor_pool;
-        alloc_info.descriptorSetCount = 3;  // one per frame
+        alloc_info.descriptorSetCount = context->swapchain.images.count;  // one per frame
         alloc_info.pSetLayouts = layouts;
         VkResult result = vkAllocateDescriptorSets(context->device.logical_device, &alloc_info, instance_state.descriptor_sets);
         if (result != VK_SUCCESS) {
@@ -415,7 +415,7 @@ namespace Renderer::Vulkan
 
         VulkanUIShader::InstanceState& instance_state = shader->instance_states[material->internal_id];
 
-        const uint32 descriptor_set_count = 3;
+        const uint32 descriptor_set_count = context->swapchain.images.count;
         // Release object descriptor sets.
         VkResult result = vkFreeDescriptorSets(context->device.logical_device, shader->object_descriptor_pool, descriptor_set_count, instance_state.descriptor_sets);
         if (result != VK_SUCCESS) {

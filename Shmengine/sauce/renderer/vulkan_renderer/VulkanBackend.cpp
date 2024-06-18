@@ -420,6 +420,9 @@ namespace Renderer::Vulkan
 		context.world_renderpass.dim.width = context.framebuffer_width;
 		context.world_renderpass.dim.height = context.framebuffer_height;
 
+		context.ui_renderpass.dim.width = context.framebuffer_width;
+		context.ui_renderpass.dim.height = context.framebuffer_height;
+
 		return true;
 
 	}
@@ -461,14 +464,14 @@ namespace Renderer::Vulkan
 
 		if (context.images_in_flight[context.image_index])
 		{
-			VkResult res = vkWaitForFences(context.device.logical_device, 1, context.images_in_flight[context.image_index], true, UINT64_MAX);
+			VkResult res = vkWaitForFences(context.device.logical_device, 1, &context.images_in_flight[context.image_index], true, UINT64_MAX);
 			if (!vulkan_result_is_success(res))
 			{
 				SHMFATALV("In-flight fence wait failure! Error: %s", vulkan_result_string(res, true));
 			}
 		}
 
-		context.images_in_flight[context.image_index] = &context.fences_in_flight[context.current_frame];
+		context.images_in_flight[context.image_index] = context.fences_in_flight[context.current_frame];
 		VK_CHECK(vkResetFences(context.device.logical_device, 1, &context.fences_in_flight[context.current_frame]));
 
 		VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -983,8 +986,6 @@ namespace Renderer::Vulkan
 
 		context.framebuffer_width = cached_framebuffer_width;
 		context.framebuffer_height = cached_framebuffer_height;	
-		context.world_renderpass.dim.width = context.framebuffer_width;
-		context.world_renderpass.dim.height = context.framebuffer_height;
 		cached_framebuffer_width = 0;
 		cached_framebuffer_height = 0;
 
@@ -997,13 +998,17 @@ namespace Renderer::Vulkan
 		{
 			vkDestroyFramebuffer(context.device.logical_device, context.swapchain.framebuffers[i], context.allocator_callbacks);
 			vkDestroyFramebuffer(context.device.logical_device, context.world_framebuffers[i], context.allocator_callbacks);
-		}
-			
+		}		
 
 		context.world_renderpass.offset.x = 0;
 		context.world_renderpass.offset.y = 0;
 		context.world_renderpass.dim.width = context.framebuffer_width;
 		context.world_renderpass.dim.height = context.framebuffer_height;
+
+		context.ui_renderpass.offset.x = 0;
+		context.ui_renderpass.offset.y = 0;
+		context.ui_renderpass.dim.width = context.framebuffer_width;
+		context.ui_renderpass.dim.height = context.framebuffer_height;
 
 		regenerate_framebuffers();
 		create_command_buffers();

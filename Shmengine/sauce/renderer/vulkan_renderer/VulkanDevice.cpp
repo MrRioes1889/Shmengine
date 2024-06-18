@@ -18,10 +18,10 @@ struct VulkanPhysicalDeviceRequirements
 
 struct VulkanPhysicalDeviceQueueFamilyInfo
 {
-	uint32 graphics_family_index;
-	uint32 present_family_index;
-	uint32 compute_family_index;
-	uint32 transfer_family_index;
+	int32 graphics_family_index;
+	int32 present_family_index;
+	int32 compute_family_index;
+	int32 transfer_family_index;
 };
 
 static bool32 select_physical_device(VulkanContext* context);
@@ -336,15 +336,15 @@ static bool32 physical_device_meets_requirements(
 	const VkPhysicalDeviceProperties* properties,
 	const VkPhysicalDeviceFeatures* features,
 	VulkanPhysicalDeviceRequirements* requirements,
-	VulkanPhysicalDeviceQueueFamilyInfo* out_queue_family_info,
+	VulkanPhysicalDeviceQueueFamilyInfo* out_queue_info,
 	VulkanSwapchainSupportInfo* out_swapchain_support
 )
 {
 
-	out_queue_family_info->graphics_family_index = (uint32)-1;
-	out_queue_family_info->compute_family_index = (uint32)-1;
-	out_queue_family_info->present_family_index = (uint32)-1;
-	out_queue_family_info->transfer_family_index = (uint32)-1;
+	out_queue_info->graphics_family_index = (uint32)-1;
+	out_queue_info->compute_family_index = (uint32)-1;
+	out_queue_info->present_family_index = (uint32)-1;
+	out_queue_info->transfer_family_index = (uint32)-1;
 
 	if (requirements->discrete_gpu && properties->deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 	{
@@ -363,15 +363,22 @@ static bool32 physical_device_meets_requirements(
 	{
 		uint8 transfer_score = 0;
 
-		if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		if (out_queue_info->graphics_family_index < 0 && queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
-			out_queue_family_info->graphics_family_index = i;
+			out_queue_info->graphics_family_index = i;
 			transfer_score++;
+
+			VkBool32 supports_present = false;
+			VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &supports_present));
+			if (supports_present) {
+				out_queue_info->present_family_index = i;
+				transfer_score++;
+			}
 		}
 
 		if (queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
 		{
-			out_queue_family_info->compute_family_index = i;
+			out_queue_info->compute_family_index = i;
 			transfer_score++;
 		}
 
@@ -380,35 +387,45 @@ static bool32 physical_device_meets_requirements(
 			if (transfer_score <= min_transfer_score)
 			{
 				min_transfer_score = transfer_score;
-				out_queue_family_info->transfer_family_index = i;
+				out_queue_info->transfer_family_index = i;
+			}
+		}	
+	}
+
+	if (out_queue_info->present_family_index < 0) {
+		for (uint32 i = 0; i < queue_family_count; ++i) {
+			VkBool32 supports_present = VK_FALSE;
+			VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &supports_present));
+			if (supports_present) {
+				out_queue_info->present_family_index = i;
+
+				if (out_queue_info->present_family_index != out_queue_info->graphics_family_index) {
+					SHMWARNV("Warning: Different queue index used for present vs graphics: %u.", i);
+				}
+				break;
 			}
 		}
-
-		VkBool32 supports_present = VK_FALSE;
-		VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &supports_present));
-		if (supports_present)
-			out_queue_family_info->present_family_index = i;
 	}
 
 	SHMINFOV("	%i |	%i |	%i |	%i | %s",
-		out_queue_family_info->graphics_family_index != -1,
-		out_queue_family_info->present_family_index != -1,
-		out_queue_family_info->compute_family_index != -1,
-		out_queue_family_info->transfer_family_index != -1,
+		out_queue_info->graphics_family_index != -1,
+		out_queue_info->present_family_index != -1,
+		out_queue_info->compute_family_index != -1,
+		out_queue_info->transfer_family_index != -1,
 		properties->deviceName);
 
 	if (
-		(!requirements->graphics || out_queue_family_info->graphics_family_index != -1) &&
-		(!requirements->present || out_queue_family_info->present_family_index != -1) &&
-		(!requirements->compute || out_queue_family_info->compute_family_index != -1) &&
-		(!requirements->transfer || out_queue_family_info->transfer_family_index != -1)
+		(!requirements->graphics || out_queue_info->graphics_family_index != -1) &&
+		(!requirements->present || out_queue_info->present_family_index != -1) &&
+		(!requirements->compute || out_queue_info->compute_family_index != -1) &&
+		(!requirements->transfer || out_queue_info->transfer_family_index != -1)
 		)
 	{
 		SHMINFO("Device meets queue requirements.");
-		SHMTRACEV("Graphics Family index: %i", out_queue_family_info->graphics_family_index);
-		SHMTRACEV("Present Family index: %i", out_queue_family_info->present_family_index);
-		SHMTRACEV("Compute Family index: %i", out_queue_family_info->compute_family_index);
-		SHMTRACEV("Transfer Family index: %i", out_queue_family_info->transfer_family_index);
+		SHMTRACEV("Graphics Family index: %i", out_queue_info->graphics_family_index);
+		SHMTRACEV("Present Family index: %i", out_queue_info->present_family_index);
+		SHMTRACEV("Compute Family index: %i", out_queue_info->compute_family_index);
+		SHMTRACEV("Transfer Family index: %i", out_queue_info->transfer_family_index);
 
 		vulkan_device_query_swapchain_support(device, surface, out_swapchain_support);
 

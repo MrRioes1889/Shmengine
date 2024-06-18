@@ -304,7 +304,7 @@ struct VulkanContext
 	Sarray<VkSemaphore> queue_complete_semaphores = {};
 
 	VkFence fences_in_flight[VulkanConfig::frames_count - 1];
-	VkFence* images_in_flight[VulkanConfig::frames_count];
+	VkFence images_in_flight[VulkanConfig::frames_count];
 
 #if defined(_DEBUG)
 	VkDebugUtilsMessengerEXT debug_messenger;
