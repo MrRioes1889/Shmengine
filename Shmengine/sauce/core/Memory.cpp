@@ -19,6 +19,9 @@ namespace Memory
 
         Buffer transient_memory;
         DynamicAllocator transient_allocator;
+
+        Buffer string_memory;
+        DynamicAllocator string_allocator;
         
     };
     
@@ -52,6 +55,7 @@ namespace Memory
         init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, config.total_allocation_size, AllocatorPageSize::SMALL, AllocationTag::PLAT, 10000);
 
         init_buffer_and_allocator_pair(&system_state->transient_memory, &system_state->transient_allocator, config.total_allocation_size / 16, AllocatorPageSize::SMALL, AllocationTag::MAIN, 10000);
+        init_buffer_and_allocator_pair(&system_state->string_memory, &system_state->string_allocator, Mebibytes(64), AllocatorPageSize::MINIMAL, AllocationTag::MAIN, 100000);
 
         system_state->allocated_size = 0;
 
@@ -95,6 +99,11 @@ namespace Memory
                 ret = system_state->transient_allocator.allocate(size);
                 break;
             }
+            case AllocationTag::STRING:
+            {
+                ret = system_state->string_allocator.allocate(size);
+                break;
+            }
             default:
             {
                 ret = system_state->main_allocator.allocate(size);
@@ -124,6 +133,8 @@ namespace Memory
             return platform_reallocate(size, block, aligned);
         case AllocationTag::TRANSIENT:
             return system_state->transient_allocator.reallocate(size, block);
+        case AllocationTag::STRING:
+            return system_state->string_allocator.reallocate(size, block);
         default:
             return system_state->main_allocator.reallocate(size, block);
         }
@@ -145,11 +156,20 @@ namespace Memory
         case AllocationTag::PLAT:
             return platform_free(block, aligned);
         case AllocationTag::TRANSIENT:
+        {
             system_state->transient_allocator.free(block);
             return;
+        }        
+        case AllocationTag::STRING:
+        {
+            system_state->string_allocator.free(block);
+            return;
+        }          
         default:
+        {
             system_state->main_allocator.free(block);
             return;
+        }          
         }
         
     }

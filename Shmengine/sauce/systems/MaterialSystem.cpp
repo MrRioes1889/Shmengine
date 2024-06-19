@@ -1,7 +1,7 @@
 #include "MaterialSystem.hpp"
 
 #include "core/Logging.hpp"
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 #include "containers/Hashtable.hpp"
 #include "utility/Math.hpp"
 #include "renderer/RendererFrontend.hpp"
@@ -113,7 +113,7 @@ namespace MaterialSystem
 
     Material* acquire_from_config(const ResourceDataMaterial& config) {
         // Return default material.
-        if (String::equal_i(config.name, Config::default_name)) {
+        if (CString::equal_i(config.name, Config::default_name)) {
             return &system_state->default_material;
         }
 
@@ -173,7 +173,7 @@ namespace MaterialSystem
 
     void release(const char* name) {
         // Ignore release requests for the default material.
-        if (String::equal_i(name, Config::default_name)) {
+        if (CString::equal_i(name, Config::default_name)) {
             return;
         }
         MaterialReference ref = system_state->registered_material_table.get_value(name);
@@ -208,13 +208,13 @@ namespace MaterialSystem
         Memory::zero_memory(m, sizeof(Material));
 
         // name
-        String::copy(Material::max_name_length ,m->name, config.name);
+        CString::copy(Material::max_name_length ,m->name, config.name);
 
         m->type = config.type;
         m->diffuse_color = config.diffuse_color;
 
         // Diffuse map
-        if (String::length(config.diffuse_map_name) > 0) {
+        if (CString::length(config.diffuse_map_name) > 0) {
             m->diffuse_map.use = TextureUse::MAP_DIFFUSE;
             m->diffuse_map.texture = TextureSystem::acquire(config.diffuse_map_name, true);
             if (!m->diffuse_map.texture) {
@@ -263,7 +263,7 @@ namespace MaterialSystem
         system_state->default_material.id = INVALID_OBJECT_ID;
         system_state->default_material.generation = INVALID_OBJECT_ID;
         system_state->default_material.type = MaterialType::WORLD;
-        String::copy(Material::max_name_length, system_state->default_material.name, Config::default_name);
+        CString::copy(Material::max_name_length, system_state->default_material.name, Config::default_name);
         system_state->default_material.diffuse_color = VEC4F_ONE;  // white
         system_state->default_material.diffuse_map.use = TextureUse::MAP_DIFFUSE;
         system_state->default_material.diffuse_map.texture = TextureSystem::get_default_texture();

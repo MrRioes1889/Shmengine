@@ -4,7 +4,7 @@
 #include "platform/Platform.hpp"
 #include "platform/FileSystem.hpp"
 
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 #include "memory/LinearAllocator.hpp"
 
 #include <stdarg.h>
@@ -47,7 +47,7 @@ namespace Log
     static void append_to_log_file(const char* message)
     {
 
-        uint32 length = String::length(message);
+        uint32 length = CString::length(message);
         uint32 written = 0;
 
         if (!FileSystem::write(&system_state->log_file, length, message, &written))
@@ -65,14 +65,14 @@ namespace Log
         const uint32 msg_length = 4096;
         char out_message[msg_length] = {};
 
-        String::append(msg_length, out_message, level_strings[level]);
+        CString::append(msg_length, out_message, level_strings[level]);
 
         va_list arg_ptr;
         va_start(arg_ptr, message);
-        String::print_s(out_message + (sizeof(level_strings[level])), msg_length - (sizeof(level_strings[level])), message, arg_ptr);
+        CString::print_s(out_message + (sizeof(level_strings[level])), msg_length - (sizeof(level_strings[level])), message, arg_ptr);
         va_end(arg_ptr);
 
-        String::append(msg_length, out_message, "\n");
+        CString::append(msg_length, out_message, "\n");
 
         // Platform-specific output.
         if (is_error) {

@@ -3,7 +3,7 @@
 #include "LoaderUtils.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "vendor/stb/stb_image.h"
@@ -19,7 +19,7 @@ namespace ResourceSystem
 		stbi_set_flip_vertically_on_load(true);
 		char full_filepath[MAX_FILEPATH_LENGTH];
 
-		String::safe_print_s<const char*, const char*, const char*, const char*>
+		CString::safe_print_s<const char*, const char*, const char*, const char*>
 			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader->type_path, name, ".png");
 
 		int32 width;
@@ -44,9 +44,9 @@ namespace ResourceSystem
 			return false;
 		}
 
-		uint32 full_path_size = String::length(full_filepath) + 1;
+		uint32 full_path_size = CString::length(full_filepath) + 1;
 		out_resource->full_path = (char*)Memory::allocate(full_path_size, true, AllocationTag::MAIN);
-		String::copy(full_path_size, out_resource->full_path, full_filepath);
+		CString::copy(full_path_size, out_resource->full_path, full_filepath);
 
 		ResourceDataImage* resource_data = (ResourceDataImage*)Memory::allocate(sizeof(ResourceDataImage), true, AllocationTag::MAIN);
 		resource_data->pixels = data;

@@ -8,7 +8,7 @@
 #include "core/Clock.hpp"
 #include "core/Event.hpp"
 #include "core/Input.hpp"
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 
 #include "renderer/RendererFrontend.hpp"
 #include "systems/TextureSystem.hpp"
@@ -18,6 +18,7 @@
 
 // TODO: temp
 #include "utility/Math.hpp"
+#include "utility/String.hpp"
 // end
 
 namespace Application
@@ -211,8 +212,8 @@ namespace Application
 		ui_config.vertex_size = sizeof(Renderer::Vertex2D);
 		ui_config.vertex_count = 4;
 		ui_config.index_count = 6;
-		String::copy(Material::max_name_length, ui_config.material_name, "test_ui_material");
-		String::copy(Geometry::max_name_length, ui_config.name, "test_ui_geometry");
+		CString::copy(Material::max_name_length, ui_config.material_name, "test_ui_material");
+		CString::copy(Geometry::max_name_length, ui_config.name, "test_ui_geometry");
 
 		ui_config.vertices = Memory::allocate(ui_config.vertex_size * ui_config.vertex_count, true, AllocationTag::MAIN);
 		ui_config.indices = (uint32*)Memory::allocate(sizeof(uint32) * ui_config.index_count, true, AllocationTag::MAIN);

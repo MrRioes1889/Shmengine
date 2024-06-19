@@ -7,9 +7,8 @@ enum class AllocationTag
 	UNKNOWN,
 	MAIN,
 	TRANSIENT,
-	PERMANENT,
+	STRING,
 	PLAT,
-	TBD,
 
 	TAG_COUNT
 };

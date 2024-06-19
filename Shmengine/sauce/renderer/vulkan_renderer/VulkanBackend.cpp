@@ -15,7 +15,7 @@
 
 #include "core/Logging.hpp"
 #include "containers/Darray.hpp"
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 #include "systems/MaterialSystem.hpp"
 
 #include "core/Application.hpp"
@@ -137,7 +137,7 @@ namespace Renderer::Vulkan
 			bool32 found = false;
 			for (uint32 j = 0; j < available_layer_count; j++)
 			{
-				if (String::equal((char*)validation_layer_names[i], available_layers[j].layerName))
+				if (CString::equal((char*)validation_layer_names[i], available_layers[j].layerName))
 				{
 					found = true;
 					SHMDEBUG("Found.");

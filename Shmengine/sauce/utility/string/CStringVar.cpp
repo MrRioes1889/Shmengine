@@ -1,9 +1,9 @@
-#include "../String.hpp"
+#include "../CString.hpp"
 
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
 
-namespace String
+namespace CString
 {
 
 	bool32 _print_s_base(char* target_buffer, uint32 buffer_limit, const char* format, const Arg* args, uint64 arg_count)

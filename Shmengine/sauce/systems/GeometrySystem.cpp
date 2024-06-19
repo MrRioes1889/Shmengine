@@ -1,7 +1,7 @@
 #include "GeometrySystem.hpp"
 
 #include "core/Logging.hpp"
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 #include "core/Memory.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "renderer/RendererFrontend.hpp"
@@ -179,7 +179,7 @@ namespace GeometrySystem
 		g->generation = INVALID_OBJECT_ID;
 		g->id = INVALID_OBJECT_ID;
 
-		String::empty(g->name);
+		CString::empty(g->name);
 
 		if (g->material)
 		{
@@ -359,18 +359,18 @@ namespace GeometrySystem
 			}
 		}
 
-		if (name && String::length(name) > 0) {
-			String::copy(Geometry::max_name_length, config.name, name);
+		if (name && CString::length(name) > 0) {
+			CString::copy(Geometry::max_name_length, config.name, name);
 		}
 		else {
-			String::copy(Geometry::max_name_length, config.name, Config::default_name);
+			CString::copy(Geometry::max_name_length, config.name, Config::default_name);
 		}
 
-		if (material_name && String::length(material_name) > 0) {
-			String::copy(Material::max_name_length, config.material_name, material_name);
+		if (material_name && CString::length(material_name) > 0) {
+			CString::copy(Material::max_name_length, config.material_name, material_name);
 		}
 		else {
-			String::copy(Material::max_name_length, config.material_name, MaterialSystem::Config::default_name);
+			CString::copy(Material::max_name_length, config.material_name, MaterialSystem::Config::default_name);
 		}
 
 		return config;

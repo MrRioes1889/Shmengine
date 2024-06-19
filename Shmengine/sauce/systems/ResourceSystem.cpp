@@ -1,7 +1,7 @@
 #include "ResourceSystem.hpp"
 
 #include "core/Logging.hpp"
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 
 #include "resources/loaders/GenericLoader.hpp"
 #include "resources/loaders/ImageLoader.hpp"
@@ -64,7 +64,7 @@ namespace ResourceSystem
                     SHMERRORV("register_loader - Loader of type %u already exists!", loader.type);
                     return false;
                 }
-                else if (loader.custom_type && String::equal_i(loader.custom_type, reg_loader.custom_type))
+                else if (loader.custom_type && CString::equal_i(loader.custom_type, reg_loader.custom_type))
                 {
                     SHMERRORV("register_loader - Loader of custom type %s already exists!", loader.custom_type);
                     return false;
@@ -114,7 +114,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < system_state->config.max_loader_count; i++)
         {
             ResourceLoader& reg_loader = system_state->registered_loaders[i];
-            if (reg_loader.id != INVALID_OBJECT_ID && reg_loader.type == ResourceType::CUSTOM && String::equal_i(custom_type, reg_loader.custom_type))
+            if (reg_loader.id != INVALID_OBJECT_ID && reg_loader.type == ResourceType::CUSTOM && CString::equal_i(custom_type, reg_loader.custom_type))
             {
                 return load(name, &reg_loader, out_resource);
             }

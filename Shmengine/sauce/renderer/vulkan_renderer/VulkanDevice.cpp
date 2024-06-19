@@ -1,7 +1,7 @@
 #include "VulkanDevice.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 #include "containers/Sarray.hpp"
 
 struct VulkanPhysicalDeviceRequirements
@@ -461,7 +461,7 @@ static bool32 physical_device_meets_requirements(
 				bool32 found = false;
 				for (uint32 j = 0; i < available_extension_count; j++)
 				{
-					if (String::equal(requirements->device_extension_names[i], available_extensions[j].extensionName))
+					if (CString::equal(requirements->device_extension_names[i], available_extensions[j].extensionName))
 					{
 						found = true;
 						break;

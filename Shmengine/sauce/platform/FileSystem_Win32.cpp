@@ -2,7 +2,7 @@
 
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 #include "utility/Utility.hpp"
 
 #if _WIN32
@@ -136,14 +136,14 @@ namespace FileSystem
 		if (!*source)
 			return 0;
 
-		int32 read_length = String::index_of(source, '\n');
+		int32 read_length = CString::index_of(source, '\n');
 		if (read_length < 0)
-			read_length = String::length(source);
+			read_length = CString::length(source);
 
 		if ((uint32)read_length > line_buffer_size - 1)
 			read_length = line_buffer_size - 1;
 			
-		String::copy(line_buffer_size, line_buffer, source, (uint32)read_length);
+		CString::copy(line_buffer_size, line_buffer, source, (uint32)read_length);
 
 		if (out_continue_ptr)
 			*out_continue_ptr = &source[read_length + 1];

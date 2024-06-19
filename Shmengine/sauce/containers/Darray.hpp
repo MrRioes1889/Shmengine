@@ -25,11 +25,12 @@ struct Darray
 	SHMINLINE void clear();
 
 	SHMINLINE void resize();
+	SHMINLINE void resize(uint32 requested_size);
 
-	SHMINLINE T* push(const T& obj);
+	SHMINLINE void push(const T& obj);
 	SHMINLINE void pop();
 
-	SHMINLINE T* insert_at(const T& obj, uint32 index);
+	SHMINLINE void insert_at(const T& obj, uint32 index);
 	SHMINLINE void remove_at(uint32 index);
 
 	T& operator[](const uint32& index)
@@ -62,9 +63,7 @@ SHMINLINE Darray<T>::~Darray()
 template<typename T>
 SHMINLINE void Darray<T>::init(uint32 reserve_count, AllocationTag tag)
 {
-	//SHMASSERT_MSG(!data, "Cannot initialize Darray with existing data!");
-	if (data)
-		free_data();
+	SHMASSERT_MSG(!data, "Cannot initialize Darray with existing data!");
 
 	allocation_tag = tag;
 	size = reserve_count;
@@ -79,6 +78,7 @@ SHMINLINE void Darray<T>::free_data()
 	if (data)
 		Memory::free_memory(data, true, allocation_tag);
 
+	size = 0;
 	data = 0;
 	count = 0;
 }
@@ -93,13 +93,25 @@ SHMINLINE void Darray<T>::clear()
 template<typename T>
 inline SHMINLINE void Darray<T>::resize()
 {
-	uint64 requested_size = size * sizeof(T) * DARRAY_RESIZE_FACTOR;
+	resize(size * DARRAY_RESIZE_FACTOR);
+	/*uint64 requested_size = size * sizeof(T) * DARRAY_RESIZE_FACTOR;
 	data = (T*)Memory::reallocate(requested_size, data, true, allocation_tag);
-	size = size * DARRAY_RESIZE_FACTOR;
+	size = size * DARRAY_RESIZE_FACTOR;*/
 }
 
 template<typename T>
-inline SHMINLINE T* Darray<T>::push(const T& obj)
+inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
+{
+	uint32 new_size = size;
+	while (new_size < requested_size)
+		new_size *= DARRAY_RESIZE_FACTOR;
+	uint64 allocation_size = new_size * sizeof(T);
+	data = (T*)Memory::reallocate(allocation_size, data, true, allocation_tag);
+	size = new_size;
+}
+
+template<typename T>
+inline SHMINLINE void Darray<T>::push(const T& obj)
 {
 
 	if (count + 1 > size)
@@ -107,10 +119,8 @@ inline SHMINLINE T* Darray<T>::push(const T& obj)
 		resize();
 	}
 
-	T* push_ptr = data + count;
-	Memory::copy_memory(&obj, push_ptr, sizeof(T));
+	data[count] = obj;
 	count++;
-	return push_ptr;
 
 }
 
@@ -128,7 +138,7 @@ inline SHMINLINE void Darray<T>::pop()
 }
 
 template<typename T>
-inline SHMINLINE T* Darray<T>::insert_at(const T& obj, uint32 index)
+inline SHMINLINE void Darray<T>::insert_at(const T& obj, uint32 index)
 {
 
 	SHMASSERT_MSG(index <= count, "ERROR: Index is out of darray's scope!");
@@ -145,8 +155,6 @@ inline SHMINLINE T* Darray<T>::insert_at(const T& obj, uint32 index)
 	Memory::copy_memory(copy_source, copy_dest, copy_block_size);
 	Memory::copy_memory(&obj, copy_source, sizeof(T));
 	count++;
-
-	return insert_ptr;
 
 }
 

@@ -8,7 +8,7 @@
 #include "systems/MaterialSystem.hpp"
 
 // TODO: temporary
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 #include "core/Event.hpp"
 // end
 

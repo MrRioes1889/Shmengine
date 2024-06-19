@@ -1,6 +1,6 @@
 #include "VulkanShaderUtils.hpp"
 
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "systems/ResourceSystem.hpp"
@@ -16,7 +16,7 @@ bool32 create_shader_module(
 {
 
 	char file_name[MAX_FILEPATH_LENGTH];
-	String::print_s(file_name, MAX_FILEPATH_LENGTH, (char*)"shaders/%s.%s.spv", name, type_str);
+	CString::print_s(file_name, MAX_FILEPATH_LENGTH, (char*)"shaders/%s.%s.spv", name, type_str);
 
 	Resource res;
 	if (!ResourceSystem::load(file_name, ResourceType::GENERIC, &res))

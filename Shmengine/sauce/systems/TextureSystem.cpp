@@ -1,7 +1,7 @@
 #include "TextureSystem.hpp"
 
 #include "core/Logging.hpp"
-#include "utility/String.hpp"
+#include "utility/CString.hpp"
 #include "core/Memory.hpp"
 #include "containers/Hashtable.hpp"
 
@@ -90,7 +90,7 @@ namespace TextureSystem
 		if (!system_state)
 			return 0;
 		
-		if (String::equal_i(name, Config::default_diffuse_name))
+		if (CString::equal_i(name, Config::default_diffuse_name))
 		{
 			SHMWARN("using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
 			return &system_state->default_diffuse;
@@ -139,7 +139,7 @@ namespace TextureSystem
 	void release(const char* name)
 	{
 
-		if (String::equal_i(name, Config::default_diffuse_name))
+		if (CString::equal_i(name, Config::default_diffuse_name))
 			return;
 
 		TextureReference ref = system_state->registered_texture_table.get_ref(name);
@@ -150,7 +150,7 @@ namespace TextureSystem
 		}
 
 		char name_copy[Texture::max_name_length] = {};
-		String::copy(Texture::max_name_length, name_copy, name);
+		CString::copy(Texture::max_name_length, name_copy, name);
 
 		ref.reference_count--;
 		if (ref.reference_count == 0 && ref.auto_release)
@@ -211,7 +211,7 @@ namespace TextureSystem
 			}
 		}
 
-		String::copy(Texture::max_name_length, temp_texture.name, texture_name);
+		CString::copy(Texture::max_name_length, temp_texture.name, texture_name);
 		temp_texture.generation = INVALID_OBJECT_ID;
 		temp_texture.has_transparency = has_transparency;
 
@@ -267,7 +267,7 @@ namespace TextureSystem
 			}
 		}
 
-		String::copy(Texture::max_name_length, system_state->default_diffuse.name, Config::default_diffuse_name);
+		CString::copy(Texture::max_name_length, system_state->default_diffuse.name, Config::default_diffuse_name);
 		system_state->default_diffuse.width = tex_dim;
 		system_state->default_diffuse.height = tex_dim;
 		system_state->default_diffuse.channel_count = 4;
