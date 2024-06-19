@@ -34,28 +34,27 @@ namespace ResourceSystem
 		CString::copy(Material::max_name_length, tmp_res_data.name, name);
 
         uint32 file_size = FileSystem::get_file_size32(&f);
-        Sarray<char> file_content(file_size + 1, AllocationTag::TRANSIENT);
+        String file_content(file_size + 1);
         uint32 bytes_read = 0;
-        if (!FileSystem::read_all_bytes(&f, file_content.data, file_content.count, &bytes_read))
+        if (!FileSystem::read_all_bytes(&f, file_content, &bytes_read))
         {
             SHMERRORV("material_loader_load - failed to read from file: '%s'.", full_filepath);
             return false;
         }
 
         // Read each line of the file.
-        const uint32 line_buf_length = 512;
-        char line_buf[line_buf_length] = "";
-        char* p = &line_buf[0];
+        String line(512);
         uint64 line_length = 0;
         uint32 line_number = 1;
 
         const char* continue_ptr = 0;
-        while (FileSystem::read_line(file_content.data, line_buf, line_buf_length, &continue_ptr)) {
+        while (FileSystem::read_line(file_content, line, &continue_ptr)) {
             // Trim the string.
-            char* line = CString::trim(line_buf);
+
+            line.trim();
 
             // Get the trimmed length.
-            line_length = CString::length(line);
+            line_length = line.len();
 
             // Skip blank lines and comments.
             if (line_length < 1 || line[0] == '#') {
@@ -64,37 +63,32 @@ namespace ResourceSystem
             }
 
             // Split into var/value
-            int32 equal_index = CString::index_of(line, '=');
+            int32 equal_index = line.index_of('=');
             if (equal_index == -1) {
                 SHMWARNV("Potential formatting issue found in file '%s': '=' token not found. Skipping line %ui.", full_filepath, line_number);
                 line_number++;
                 continue;
             }
 
-            // Assume a max of 64 characters for the variable name.
-            char raw_var_name[64] = {};
-            CString::mid(64, raw_var_name, line, 0, equal_index);
-            char* trimmed_var_name = CString::trim(raw_var_name);
+            String var_name = mid(line, 0, equal_index);
+            var_name.trim();
 
-            // Assume a max of 511-65 (446) for the max length of the value to account for the variable name and the '='.
-            char raw_value[446];
-            Memory::zero_memory(raw_value, sizeof(char) * 446);
-            CString::mid(446, raw_value, line, equal_index + 1, -1);  // Read the rest of the line
-            char* trimmed_value = CString::trim(raw_value);
+            String value = mid(line, equal_index + 1);
+            value.trim();
 
             // Process the variable.
-            if (CString::equal_i(trimmed_var_name, "version")) {
+            if (var_name.equal_i("version")) {
                 // TODO: version
             }
-            else if (CString::equal_i(trimmed_var_name, "name")) {
-                CString::copy(Material::max_name_length, tmp_res_data.name, trimmed_value);
+            else if (var_name.equal_i("name")) {
+                CString::copy(Material::max_name_length, tmp_res_data.name, value.c_str());
             }
-            else if (CString::equal_i(trimmed_var_name, "type")) {
-                if (CString::equal_i(trimmed_value, "ui"))
+            else if (var_name.equal_i("type")) {
+                if (value.equal_i("ui"))
                 {
                     tmp_res_data.type = MaterialType::UI;
                 }
-                else if (CString::equal_i(trimmed_value, "world"))
+                else if (value.equal_i("world"))
                 {
                     tmp_res_data.type = MaterialType::WORLD;
                 }
@@ -104,12 +98,12 @@ namespace ResourceSystem
                 }
                 
             }
-            else if (CString::equal_i(trimmed_var_name, "diffuse_map_name")) {
-                CString::copy(Texture::max_name_length, tmp_res_data.diffuse_map_name, trimmed_value);
+            else if (var_name.equal_i("diffuse_map_name")) {
+                CString::copy(Texture::max_name_length, tmp_res_data.diffuse_map_name, value.c_str());
             }
-            else if (CString::equal_i(trimmed_var_name, "diffuse_color")) {
+            else if (var_name.equal_i("diffuse_color")) {
                 // Parse the colour
-                if (!CString::parse(trimmed_value, tmp_res_data.diffuse_color)) {
+                if (!CString::parse(value.c_str(), tmp_res_data.diffuse_color)) {
                     SHMWARNV("Error parsing diffuse_colour in file '%s'. Using default of white instead.", full_filepath);
                 }
             }
@@ -117,7 +111,6 @@ namespace ResourceSystem
             // TODO: more fields.
 
             // Clear the line buffer.
-            Memory::zero_memory(line_buf, sizeof(char) * line_buf_length);
             line_number++;
         }
 

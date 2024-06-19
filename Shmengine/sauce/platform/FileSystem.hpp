@@ -2,7 +2,7 @@
 
 #include "Defines.hpp"
 
-#include "containers/Buffer.hpp"
+#include "utility/String.hpp"
 
 enum FileMode
 {
@@ -30,18 +30,17 @@ namespace FileSystem
 
 	SHMAPI bool32 write(FileHandle* file, uint32 size, const void* data, uint32* out_bytes_written);
 
-
-	SHMINLINE bool32 read_bytes(FileHandle* file, uint32 size, Buffer* out_buffer, uint32* out_bytes_read)
+	SHMINLINE bool32 read_bytes(FileHandle* file, uint32 size, String& out_buffer, uint32* out_bytes_read)
 	{
-		return read_bytes(file, size, out_buffer->data, (uint32)out_buffer->size, out_bytes_read);
+		return read_bytes(file, size, out_buffer.arr.data, out_buffer.arr.size, out_bytes_read);
 	}
-	SHMINLINE bool32 read_all_bytes(FileHandle* file, Buffer* out_buffer, uint32* out_bytes_read)
+	SHMINLINE bool32 read_all_bytes(FileHandle* file, String& out_buffer, uint32* out_bytes_read)
 	{
-		return read_all_bytes(file, out_buffer->data, (uint32)out_buffer->size, out_bytes_read);
+		return read_all_bytes(file, out_buffer.arr.data, out_buffer.arr.size, out_bytes_read);
 	}
-	SHMINLINE int32 read_line(const Buffer* file_buffer, const Buffer* line_buffer, const char** out_continue_ptr = 0)
+	SHMINLINE int32 read_line(const String& file_buffer, String& line_buffer, const char** out_continue_ptr = 0)
 	{
-		return read_line((const char*)file_buffer->data, (char*)line_buffer->data, (uint32)line_buffer->size, out_continue_ptr);
+		return read_line(file_buffer.c_str(), line_buffer.arr.data, line_buffer.arr.size, out_continue_ptr);
 	}
 
 }

@@ -80,9 +80,9 @@ namespace CString
 	SHMAPI bool32 equal(const char* a, const char* b);
 	SHMAPI bool32 equal_i(const char* a, const char* b);
 
-	SHMAPI char* trim(char* string);
+	SHMAPI uint32 trim(char* string);
 
-	SHMAPI void mid(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 start, int32 length = -1);
+	SHMAPI uint32 mid(char* buffer, uint32 start, int32 length = -1);
 
 	SHMAPI bool32 parse(const char* s, float32& out_f);
 	SHMAPI bool32 parse(const char* s, float64& out_f);

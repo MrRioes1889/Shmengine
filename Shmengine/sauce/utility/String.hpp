@@ -43,6 +43,8 @@ struct String
 
 	void free_data();
 
+	SHMINLINE char& operator[](uint32 index) { return arr.data[index]; }
+
 	SHMINLINE bool32 equal(const char* other) { return CString::equal(arr.data, other); }
 	SHMINLINE bool32 equal(const String& other) { return CString::equal(arr.data, other.c_str()); }
 	SHMINLINE bool32 operator==(const char* other) { return CString::equal(arr.data, other); }
@@ -57,6 +59,9 @@ struct String
 	SHMINLINE String operator+(char appendage) { String s = *this; s.append(appendage); return s; }
 	SHMINLINE String operator+(const char* appendage) { String s = *this; s.append(appendage); return s; }
 	SHMINLINE String operator+(const String& appendage) { String s = *this; s.append(appendage); return s; }
+
+	SHMINLINE void trim() { arr.count = CString::trim(arr.data); }
+	SHMINLINE void mid(uint32 start, int32 length = -1) { arr.count = CString::mid(arr.data, start, length); }
 
 	SHMINLINE int32 index_of(char c) { return CString::index_of(arr.data, c); }
 	SHMINLINE bool32 is_empty() { return arr.count > 0; }
@@ -73,6 +78,20 @@ struct String
 namespace CString
 {
 	String::Array split(const char* s, char delimiter);
+}
+
+SHMINLINE String mid(const String& source, uint32 start, int32 length = -1)
+{
+	String s = source;
+	s.arr.count = CString::mid(s.arr.data, start, length);
+	return s;
+}
+
+SHMINLINE String trim(const String& other) 
+{ 
+	String s = other; 
+	s.arr.count = CString::trim(s.arr.data);
+	return s; 
 }
 
 SHMINLINE String::Array String::split(char delimiter) 

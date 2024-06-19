@@ -320,49 +320,67 @@ namespace CString
 
 	}
 
-	char* trim(char* string)
+	uint32 trim(char* string)
 	{
-		char* start = string;
-		char* end = string;
+		uint32 l = length(string);
+		if (!l)
+			return l;
 
-		while (*end)
-		{
-			if (is_whitespace(*start))
-				start++;
+		uint32 skip = 0;
+		uint32 shorten = 0;
+		bool8 end_part = false;
 
-			end++;
-		}
-		
-		if (end != start)
+		for(uint32 i = 0; i < l; i++)
 		{
-			end--;
-			while (!*end || is_whitespace(*end))
+			if (is_whitespace(string[i]))
 			{
-				*end = 0;
-				end--;
+				skip += 1 * !end_part;
+				shorten += 1 * end_part;
+			}			
+			else
+			{
+				end_part = true;
+				shorten = 0;
 			}
 		}
 
-		return start;
-	}
-
-	void mid(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 start, int32 len)
-	{
-		SHMASSERT((int32)buffer_output_size > len && length(buffer_source) >= start);
-
-		const char* source = buffer_source;
-		char* dest = buffer_output;
-		Memory::zero_memory(dest, buffer_output_size);
-		
-		for (uint32 i = start; (len < 0 || (i < start + len)) && source[i]; i++)
+		if (skip)
 		{
-			*dest = source[i];
-			dest++;
+			l -= skip;
+			Memory::copy_memory(&string[skip], string, l);
+		}			
+		
+		if (shorten)
+		{
+			l -= shorten;
+			string[l] = 0;
 		}
 
-		dest++;
-		*dest = 0;
-		return;
+		return l;
+	}
+
+	uint32 mid(char* buffer, uint32 start, int32 len)
+	{
+
+		uint32 s_length = length(buffer);
+		SHMASSERT(start < s_length);
+		s_length -= start;
+
+		if (start)
+			Memory::copy_memory(&buffer[start], buffer, s_length);
+
+		if (len >= 0)
+		{
+			buffer[len] = 0;
+			s_length = len;
+		}
+		else
+		{
+			buffer[s_length] = 0;
+		}		
+
+		return s_length;
+
 	}
 
 	bool32 parse(const char* s, float32& out_f)
