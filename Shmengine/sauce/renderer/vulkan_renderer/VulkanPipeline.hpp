@@ -20,6 +20,8 @@ namespace Renderer::Vulkan
 		VkRect2D scissor,
 		bool32 is_wireframe,
 		bool32 depth_test_enabled,
+		uint32 push_constant_range_count,
+		Range* push_constant_ranges,
 		VulkanPipeline* out_pipeline
 	);
 	void pipeline_destroy(VulkanContext* context, VulkanPipeline* pipeline);

@@ -7,25 +7,7 @@
 struct String
 {
 
-	struct Array
-	{
-		static const uint32 min_reserve_size = 5;
-
-		Array();
-		~Array();
-
-		Array(const Array& other);
-		Array& operator=(const Array& other);
-
-		Array(Array&& other) noexcept;
-		Array& operator=(Array&& other) noexcept;
-
-		void free_data();
-
-		Darray<String> strings;
-	};
-
-	static const uint32 min_reserve_size = 32;
+	static const uint32 min_reserve_size = 16;
 
 	String();
 	String(uint32 reserve_size);
@@ -69,7 +51,7 @@ struct String
 	SHMINLINE const char* c_str() const { return arr.data; }
 	SHMINLINE uint32 len() const { return arr.count; }
 
-	SHMINLINE Array split(char delimiter);
+	SHMINLINE Darray<String> split(char delimiter);
 
 	Darray<char> arr = {};
 
@@ -77,7 +59,7 @@ struct String
 
 namespace CString
 {
-	String::Array split(const char* s, char delimiter);
+	Darray<String> split(const char* s, char delimiter);
 }
 
 SHMINLINE String mid(const String& source, uint32 start, int32 length = -1)
@@ -94,7 +76,7 @@ SHMINLINE String trim(const String& other)
 	return s; 
 }
 
-SHMINLINE String::Array String::split(char delimiter) 
+SHMINLINE Darray<String> String::split(char delimiter) 
 { 
 	return CString::split(arr.data, delimiter); 
 }

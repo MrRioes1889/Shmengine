@@ -22,6 +22,8 @@ namespace Renderer::Vulkan
         VkRect2D scissor,
         bool32 is_wireframe,
         bool32 depth_test_enabled,
+        uint32 push_constant_range_count,
+        Range* push_constant_ranges,
         VulkanPipeline* out_pipeline
     )
     {
@@ -113,13 +115,25 @@ namespace Renderer::Vulkan
         VkPipelineLayoutCreateInfo pipeline_layout_create_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
         //Push Constants
-        VkPushConstantRange push_constant;
-        push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        push_constant.offset = sizeof(Math::Mat4) * 0;
-        push_constant.size = sizeof(Math::Mat4) * 2;
+        if (push_constant_range_count > 0) {
+            if (push_constant_range_count > VulkanConfig::shader_max_push_const_ranges) {
+                SHMERRORV("vulkan_graphics_pipeline_create: cannot have more than 32 push constant ranges. Passed count: %i", push_constant_range_count);
+                return false;
+            }
 
-        pipeline_layout_create_info.pushConstantRangeCount = 1;
-        pipeline_layout_create_info.pPushConstantRanges = &push_constant;
+            VkPushConstantRange ranges[VulkanConfig::shader_max_push_const_ranges];
+            for (uint32 i = 0; i < push_constant_range_count; ++i) {
+                ranges[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+                ranges[i].offset = (uint32)push_constant_ranges[i].offset;
+                ranges[i].size = (uint32)push_constant_ranges[i].size;
+            }
+            pipeline_layout_create_info.pushConstantRangeCount = push_constant_range_count;
+            pipeline_layout_create_info.pPushConstantRanges = ranges;
+        }
+        else {
+            pipeline_layout_create_info.pushConstantRangeCount = 0;
+            pipeline_layout_create_info.pPushConstantRanges = 0;
+        }
 
         // Descriptor set layouts
         pipeline_layout_create_info.setLayoutCount = descriptor_set_layout_count;

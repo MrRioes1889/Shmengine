@@ -3,6 +3,7 @@
 #include "containers/Buffer.hpp"
 #include "memory/DynamicAllocator.hpp"
 #include "memory/LinearAllocator.hpp"
+#include "Logging.hpp"
 
 namespace Memory
 {
@@ -127,17 +128,33 @@ namespace Memory
                 return platform_reallocate(size, block, aligned);
         }
 
+        void* ret = 0;
+
         switch (tag)
         {
         case AllocationTag::PLAT:
-            return platform_reallocate(size, block, aligned);
+        {
+            ret = platform_reallocate(size, block, aligned);
+            break;
+        }           
         case AllocationTag::TRANSIENT:
-            return system_state->transient_allocator.reallocate(size, block);
+        {
+            ret = system_state->transient_allocator.reallocate(size, block);
+            break;
+        }         
         case AllocationTag::STRING:
-            return system_state->string_allocator.reallocate(size, block);
+        {
+            ret = system_state->string_allocator.reallocate(size, block);
+            break;
+        }         
         default:
-            return system_state->main_allocator.reallocate(size, block);
+        {
+            ret = system_state->main_allocator.reallocate(size, block);
+            break;
+        }          
         }
+
+        return ret;
    
     }
 

@@ -44,18 +44,16 @@ namespace ResourceSystem
 			return false;
 		}
 
-		uint32 full_path_size = CString::length(full_filepath) + 1;
-		out_resource->full_path = (char*)Memory::allocate(full_path_size, true, AllocationTag::MAIN);
-		CString::copy(full_path_size, out_resource->full_path, full_filepath);
+		out_resource->full_path = full_filepath;
 
-		ResourceDataImage* resource_data = (ResourceDataImage*)Memory::allocate(sizeof(ResourceDataImage), true, AllocationTag::MAIN);
+		ImageConfig* resource_data = (ImageConfig*)Memory::allocate(sizeof(ImageConfig), true, AllocationTag::MAIN);
 		resource_data->pixels = data;
 		resource_data->width = width;
 		resource_data->height = height;
 		resource_data->channel_count = required_channel_count;
 
 		out_resource->data = resource_data;
-		out_resource->data_size = sizeof(ResourceDataImage);
+		out_resource->data_size = sizeof(ImageConfig);
 		out_resource->name = name;
 
 		return true;
@@ -64,6 +62,12 @@ namespace ResourceSystem
 
 	static void image_loader_unload(ResourceLoader* loader, Resource* resource)
 	{
+		if (resource->data)
+		{
+			ImageConfig* data = (ImageConfig*)resource->data;
+			(*data).~ImageConfig();
+		}	
+
 		resource_unload(loader, resource, AllocationTag::MAIN);
 	}
 

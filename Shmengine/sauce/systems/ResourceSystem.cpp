@@ -6,6 +6,7 @@
 #include "resources/loaders/GenericLoader.hpp"
 #include "resources/loaders/ImageLoader.hpp"
 #include "resources/loaders/MaterialLoader.hpp"
+#include "resources/loaders/ShaderLoader.hpp"
 
 
 namespace ResourceSystem
@@ -33,12 +34,13 @@ namespace ResourceSystem
 
         // Invalidate all geometries in the array.
         for (uint32 i = 0; i < system_state->config.max_loader_count; ++i) {
-            system_state->registered_loaders[i].id = INVALID_OBJECT_ID;
+            system_state->registered_loaders[i].id = INVALID_ID;
         }
 
         register_loader(generic_resource_loader_create());
         register_loader(image_resource_loader_create());
         register_loader(material_resource_loader_create());     
+        register_loader(shader_resource_loader_create());     
 
         SHMINFOV("Resource system initialized with base path: %s", config.asset_base_path);
 
@@ -57,7 +59,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < system_state->config.max_loader_count; i++)
         {
             ResourceLoader& reg_loader = system_state->registered_loaders[i];
-            if (reg_loader.id != INVALID_OBJECT_ID)
+            if (reg_loader.id != INVALID_ID)
             {
                 if (reg_loader.type == loader.type)
                 {
@@ -75,7 +77,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < system_state->config.max_loader_count; i++)
         {
             ResourceLoader& reg_loader = system_state->registered_loaders[i];
-            if (reg_loader.id == INVALID_OBJECT_ID)
+            if (reg_loader.id == INVALID_ID)
             {
                 reg_loader = loader;
                 reg_loader.id = i;
@@ -99,7 +101,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < system_state->config.max_loader_count; i++)
         {
             ResourceLoader& reg_loader = system_state->registered_loaders[i];
-            if (reg_loader.id != INVALID_OBJECT_ID && reg_loader.type == type)
+            if (reg_loader.id != INVALID_ID && reg_loader.type == type)
             {
                 return load(name, &reg_loader, out_resource);
             }
@@ -114,7 +116,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < system_state->config.max_loader_count; i++)
         {
             ResourceLoader& reg_loader = system_state->registered_loaders[i];
-            if (reg_loader.id != INVALID_OBJECT_ID && reg_loader.type == ResourceType::CUSTOM && CString::equal_i(custom_type, reg_loader.custom_type))
+            if (reg_loader.id != INVALID_ID && reg_loader.type == ResourceType::CUSTOM && CString::equal_i(custom_type, reg_loader.custom_type))
             {
                 return load(name, &reg_loader, out_resource);
             }
@@ -126,12 +128,11 @@ namespace ResourceSystem
 
     void unload(Resource* resource)
     {
-        if (resource->loader_id != INVALID_OBJECT_ID)
+        if (resource->loader_id != INVALID_ID)
         {
             ResourceLoader& reg_loader = system_state->registered_loaders[resource->loader_id];
-            if (reg_loader.id != INVALID_OBJECT_ID)
+            if (reg_loader.id != INVALID_ID)
                 reg_loader.unload(&reg_loader, resource);
-
         }
     }
 

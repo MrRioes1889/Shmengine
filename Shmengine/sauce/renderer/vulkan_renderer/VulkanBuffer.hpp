@@ -10,6 +10,7 @@ namespace Renderer::Vulkan
 		VkBufferUsageFlagBits usage,
 		uint32 memory_property_flags,
 		bool32 bind_on_create,
+		bool32 use_freelist,
 		VulkanBuffer* out_buffer);
 	void buffer_destroy(VulkanContext* context, VulkanBuffer* buffer);
 	void buffer_resize(VulkanContext* context, uint64 new_size, VulkanBuffer* buffer, VkQueue queue, VkCommandPool pool);

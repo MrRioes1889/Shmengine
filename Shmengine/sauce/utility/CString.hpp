@@ -84,12 +84,13 @@ namespace CString
 
 	SHMAPI uint32 mid(char* buffer, uint32 start, int32 length = -1);
 
-	SHMAPI bool32 parse(const char* s, float32& out_f);
-	SHMAPI bool32 parse(const char* s, float64& out_f);
-	SHMAPI bool32 parse(const char* s, int32& out_f);
-	SHMAPI bool32 parse(const char* s, int64& out_f);
-	SHMAPI bool32 parse(const char* s, uint32& out_f);
-	SHMAPI bool32 parse(const char* s, uint64& out_f);
+	SHMAPI bool32 parse_f32(const char* s, float32& out);
+	SHMAPI bool32 parse_f64(const char* s, float64& out);
+	SHMAPI bool32 parse_i32(const char* s, int32& out);
+	SHMAPI bool32 parse_i64(const char* s, int64& out);
+	SHMAPI bool32 parse_u32(const char* s, uint32& out);
+	SHMAPI bool32 parse_u64(const char* s, uint64& out);
+	SHMAPI bool32 parse_b32(const char* s, bool32& out);
 
 	struct Arg
 	{

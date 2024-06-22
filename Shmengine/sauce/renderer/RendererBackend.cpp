@@ -18,15 +18,24 @@ namespace Renderer
 			out_backend->begin_renderpass = Vulkan::begin_renderpass;
 			out_backend->end_renderpass = Vulkan::end_renderpass;
 			out_backend->on_resized = Vulkan::on_resized;
-			out_backend->update_global_world_state = Vulkan::update_global_world_state;
-			out_backend->update_global_ui_state = Vulkan::update_global_ui_state;
 			out_backend->draw_geometry = Vulkan::draw_geometry;
 			out_backend->create_texture = Vulkan::create_texture;
 			out_backend->destroy_texture = Vulkan::destroy_texture;
-			out_backend->create_material = Vulkan::create_material;
-			out_backend->destroy_material = Vulkan::destroy_material;
 			out_backend->create_geometry = Vulkan::create_geometry;
 			out_backend->destroy_geometry = Vulkan::destroy_geometry;
+
+			out_backend->shader_create = Vulkan::shader_create;
+			out_backend->shader_destroy = Vulkan::shader_destroy;
+			out_backend->shader_set_uniform = Vulkan::shader_set_uniform;
+			out_backend->shader_init = Vulkan::shader_init;
+			out_backend->shader_use = Vulkan::shader_use;
+			out_backend->shader_bind_globals = Vulkan::shader_bind_globals;
+			out_backend->shader_bind_instance = Vulkan::shader_bind_instance;
+
+			out_backend->shader_apply_globals = Vulkan::shader_apply_globals;
+			out_backend->shader_apply_instance = Vulkan::shader_apply_instance;
+			out_backend->shader_acquire_instance_resources = Vulkan::shader_acquire_instance_resources;
+			out_backend->shader_release_instance_resources = Vulkan::shader_release_instance_resources;
 
 			return true;
 		}
@@ -36,21 +45,6 @@ namespace Renderer
 
 	void Renderer::backend_destroy(Backend* backend)
 	{
-		backend->begin_frame = 0;
-		backend->end_frame = 0;
-		backend->begin_renderpass = 0;
-		backend->end_renderpass = 0;
-		backend->shutdown = 0;
-		backend->init = 0;
-		backend->on_resized = 0;
-		backend->update_global_world_state = 0;
-		backend->update_global_ui_state = 0;
-		backend->draw_geometry = 0;
-		backend->create_texture = 0;
-		backend->destroy_texture = 0;
-		backend->create_material = 0;
-		backend->destroy_material = 0;
-		backend->create_geometry = 0;
-		backend->destroy_geometry = 0;
+		Memory::zero_memory(backend, sizeof(Backend));
 	}
 }

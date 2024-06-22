@@ -2,7 +2,10 @@
 
 #include "containers/Buffer.hpp"
 
+#include "containers/Hashtable.hpp"
 #include "utility/Math.hpp"
+#include "utility/String.hpp"
+#include "utility/Utility.hpp"
 
 enum class ResourceType
 {
@@ -10,6 +13,7 @@ enum class ResourceType
 	IMAGE,
 	MATERIAL,
 	STATIC_MESH,
+	SHADER,
 	CUSTOM
 };
 
@@ -18,11 +22,11 @@ struct Resource
 	uint32 loader_id;
 	uint32 data_size;
 	const char* name;
-	char* full_path;	
+	String full_path;	
 	void* data;
 };
 
-struct ResourceDataImage
+struct ImageConfig
 {
 	uint32 channel_count;
 	uint32 width;
@@ -35,7 +39,7 @@ struct Texture
 
 	static const uint32 max_name_length = 128;
 
-	Buffer buffer = {};
+	Buffer internal_data = {};
 
 	char name[max_name_length];
 	uint32 id;
@@ -49,7 +53,7 @@ struct Texture
 	{
 		Memory::copy_memory(&other, this, sizeof(Texture));
 
-		buffer.steal(other.buffer);
+		internal_data.steal(other.internal_data);
 	}
 
 };
@@ -66,10 +70,152 @@ struct TextureMap
 	TextureUse use;
 };
 
-enum class MaterialType
+namespace ShaderStage
 {
-	WORLD = 1,
-	UI = 2
+	enum Value
+	{
+		VERTEX = 1,
+		GEOMETRY = 1 << 1,
+		FRAGMENT = 1 << 2,
+		COMPUTE = 1 << 3,
+	};
+}
+
+enum class ShaderAttributeType
+{
+	FLOAT32,
+	FLOAT32_2,
+	FLOAT32_3,
+	FLOAT32_4,
+	MAT4,
+	INT8,
+	UINT8,
+	INT16,
+	UINT16,
+	INT32,
+	UINT32,
+};
+
+enum class ShaderUniformType
+{
+	FLOAT32,
+	FLOAT32_2,
+	FLOAT32_3,
+	FLOAT32_4,
+	INT8,
+	UINT8,
+	INT16,
+	UINT16,
+	INT32,
+	UINT32,
+	MAT4,
+	SAMPLER,
+	CUSTOM = 255
+};
+
+enum class ShaderScope
+{
+	GLOBAL,
+	INSTANCE,
+	LOCAL
+};
+
+struct ShaderAttributeConfig
+{
+	String name;
+	uint8 size;
+	ShaderAttributeType type;
+};
+
+struct ShaderUniformConfig
+{
+	String name;
+	uint8 size;
+	uint32 location;
+	ShaderUniformType type;
+	ShaderScope scope;
+};
+
+struct ShaderConfig
+{
+	String name;	
+
+	String renderpass_name;
+	Darray<ShaderAttributeConfig> attributes;
+	Darray<ShaderUniformConfig> uniforms;
+	Darray<ShaderStage::Value> stages;
+	Darray<String> stage_names;
+	Darray<String> stage_filenames;
+
+	bool32 use_instances;
+	bool32 use_local;
+};
+
+enum class ShaderState
+{
+	NOT_CREATED,
+	UNINITIALIZED,
+	INITIALIZED
+};
+
+struct ShaderUniform
+{
+	uint32 offset;
+	uint16 location;
+	uint16 index;
+	uint16 size;
+	uint8 set_index;
+
+	ShaderScope scope;
+	ShaderUniformType type;
+};
+
+struct ShaderAttribute
+{
+	String name;
+	ShaderAttributeType type;
+	uint32 size;
+};
+
+struct Shader
+{
+	uint32 id;
+	bool32 use_instances;
+	bool32 use_locals;	
+	uint64 required_ubo_alignment;
+
+	uint32 global_ubo_size;
+	uint32 global_ubo_stride;
+	uint64 global_ubo_offset;
+
+	uint32 ubo_size;
+	uint32 ubo_stride;
+
+	uint32 push_constant_size;
+	uint32 push_constant_stride;
+
+	String name;
+
+	Darray<Texture*> global_textures;
+
+	ShaderScope bound_scope;
+
+	uint32 bound_instance_id;
+	uint64 bound_ubo_offset;
+
+	ShaderState state;
+	uint32 instance_texture_count;
+
+	Hashtable<uint16> uniform_lookup;
+	Darray<ShaderUniform> uniforms;
+	Darray<ShaderAttribute> attributes;
+
+	uint16 attribute_stride;
+	uint32 push_constant_range_count;
+	Range push_constant_ranges[32];
+
+	void* internal_data;
+
 };
 
 struct Material
@@ -80,18 +226,18 @@ struct Material
 	uint32 id;
 	uint32 generation;
 	uint32 internal_id;
-	MaterialType type;
+	uint32 shader_id;
 	char name[max_name_length];
 	Math::Vec4f diffuse_color;
 	TextureMap diffuse_map;
 
 };
 
-struct ResourceDataMaterial
+struct MaterialConfig
 {
 	char name[Material::max_name_length];
 	char diffuse_map_name[Texture::max_name_length];
-	MaterialType type;
+	String shader_name;
 	Math::Vec4f diffuse_color;
 	bool32 auto_release;
 };

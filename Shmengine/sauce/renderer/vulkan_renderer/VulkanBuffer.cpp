@@ -15,6 +15,7 @@ namespace Renderer::Vulkan
 		VkBufferUsageFlagBits usage,
 		uint32 memory_property_flags,
 		bool32 bind_on_create,
+		bool32 use_freelist,
 		VulkanBuffer* out_buffer)
 	{
 
@@ -22,11 +23,15 @@ namespace Renderer::Vulkan
 		out_buffer->size = size;
 		out_buffer->usage = usage;
 		out_buffer->memory_property_flags = memory_property_flags;
+		out_buffer->has_freelist = use_freelist;
 
-		uint64 freelist_nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(10000, AllocatorPageSize::SMALL);
-		out_buffer->freelist_data.init(freelist_nodes_size, AllocationTag::MAIN);
-		out_buffer->freelist.init(size, freelist_nodes_size, out_buffer->freelist_data.data, AllocatorPageSize::SMALL, 10000);
-
+		if (out_buffer->has_freelist)
+		{
+			uint64 freelist_nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(10000, AllocatorPageSize::SMALL);
+			out_buffer->freelist_data.init(freelist_nodes_size, AllocationTag::MAIN);
+			out_buffer->freelist.init(size, freelist_nodes_size, out_buffer->freelist_data.data, AllocatorPageSize::SMALL, 10000);
+		}
+		
 		VkBufferCreateInfo buffer_create_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		buffer_create_info.size = size;
 		buffer_create_info.usage = usage;
@@ -80,8 +85,11 @@ namespace Renderer::Vulkan
 			buffer->handle = 0;
 		}
 
-		buffer->freelist.destroy();
-		buffer->freelist_data.free_data();
+		if (buffer->has_freelist)
+		{
+			buffer->freelist.destroy();
+			buffer->freelist_data.free_data();
+		}	
 
 		buffer->size = 0;
 		buffer->is_locked = false;
@@ -93,12 +101,15 @@ namespace Renderer::Vulkan
 
 		SHMASSERT(new_size >= buffer->size);
 
-		uint64 freelist_nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(10000, AllocatorPageSize::SMALL);
-		buffer->freelist_data.resize(new_size);
-		buffer->freelist.resize(buffer->freelist_data.data, new_size);
+		if (buffer->has_freelist)
+		{
+			uint64 freelist_nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(10000, AllocatorPageSize::SMALL);
+			buffer->freelist_data.resize(new_size);
+			buffer->freelist.resize(buffer->freelist_data.data, new_size);
+		}	
 
 		VulkanBuffer old_buffer = *buffer;
-		if (!buffer_create(context, new_size, buffer->usage, buffer->memory_property_flags, true, buffer))
+		if (!buffer_create(context, new_size, buffer->usage, buffer->memory_property_flags, true, buffer->has_freelist, buffer))
 		{
 			SHMERROR("Failed to create new buffer for resizing operation.");
 			return;
@@ -112,12 +123,29 @@ namespace Renderer::Vulkan
 
 	bool32 buffer_allocate(VulkanBuffer* buffer, uint64 size, uint64* out_offset)
 	{
-		return buffer->freelist.allocate(size, out_offset);
+		if (buffer->has_freelist)
+		{
+			return buffer->freelist.allocate(size, out_offset);
+		}
+		else
+		{
+			SHMWARN("buffer_allocate - Called allocate on a buffer without freelist. Returning offset of 0.");
+			*out_offset = 0;
+			return true;
+		}
 	}
 
 	bool32 buffer_free(VulkanBuffer* buffer, uint64 offset)
 	{
-		return buffer->freelist.free(offset);
+		if (buffer->has_freelist)
+		{
+			return buffer->freelist.free(offset);
+		}
+		else
+		{
+			SHMWARN("buffer_free - Called free on a buffer without freelist.");
+			return true;
+		}
 	}
 
 	void buffer_bind(VulkanContext* context, VulkanBuffer* buffer, uint64 offset)

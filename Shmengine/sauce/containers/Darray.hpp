@@ -11,12 +11,14 @@ template <typename T>
 struct Darray
 {
 
-	Darray(const Darray& other) = delete;
-	Darray(Darray&& other) = delete;
-
-	SHMINLINE Darray() : count(0), data(0), allocation_tag(AllocationTag::UNKNOWN) {};
+	SHMINLINE Darray() : count(0), data(0), allocation_tag((uint16)AllocationTag::UNKNOWN) {};
 	SHMINLINE Darray(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
 	SHMINLINE ~Darray();
+
+	SHMINLINE Darray(const Darray& other);
+	SHMINLINE Darray& operator=(const Darray& other);
+	SHMINLINE Darray(Darray&& other) noexcept;
+	SHMINLINE Darray& operator=(Darray&& other);
 
 	// NOTE: Call for already instantiated arrays
 	SHMINLINE void init(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
@@ -32,10 +34,16 @@ struct Darray
 
 	SHMINLINE void insert_at(const T& obj, uint32 index);
 	SHMINLINE void remove_at(uint32 index);
-
-	T& operator[](const uint32& index)
+	
+	SHMINLINE T& operator[](uint32 index)
 	{
-		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Darray.");
+		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
+		return data[index];
+	}
+
+	SHMINLINE const T& operator[](uint32 index) const
+	{
+		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
 		return data[index];
 	}
 
@@ -43,7 +51,7 @@ struct Darray
 	uint32 size = 0; // Max Capacity of contained objects
 	uint32 count = 0; // Count of contained objects
 
-	AllocationTag allocation_tag;
+	uint16 allocation_tag;
 };
 
 template<typename T>
@@ -56,8 +64,53 @@ SHMINLINE Darray<T>::Darray(uint32 reserve_count, AllocationTag tag)
 template<typename T>
 SHMINLINE Darray<T>::~Darray()
 {
-	if (data)
-		Memory::free_memory(data, true, allocation_tag);
+	free_data();
+}
+
+template<typename T>
+SHMINLINE Darray<T>::Darray(const Darray& other)
+{
+	init(other.count, other.allocation_tag);
+	for (uint32 i = 0; i < other.count; i++)
+		push(other[i]);
+}
+
+template<typename T>
+SHMINLINE Darray<T>& Darray<T>::operator=(const Darray& other)
+{
+	free_data();
+	init(other.count, other.allocation_tag);
+	for (uint32 i = 0; i < other.count; i++)
+		push(other[i]);
+	return *this;
+}
+
+template<typename T>
+SHMINLINE Darray<T>::Darray(Darray&& other) noexcept
+{
+	free_data();
+	data = other.data;
+	size = other.size;
+	count = other.count;
+	allocation_tag = other.allocation_tag;
+
+	other.data = 0;
+	other.size = 0;
+	other.count = 0;
+}
+
+template<typename T>
+SHMINLINE Darray<T>& Darray<T>::operator=(Darray&& other)
+{
+	data = other.data;
+	size = other.size;
+	count = other.count;
+	allocation_tag = other.allocation_tag;
+
+	other.data = 0;
+	other.size = 0;
+	other.count = 0;
+	return *this;
 }
 
 template<typename T>
@@ -65,18 +118,24 @@ SHMINLINE void Darray<T>::init(uint32 reserve_count, AllocationTag tag)
 {
 	SHMASSERT_MSG(!data, "Cannot initialize Darray with existing data!");
 
-	allocation_tag = tag;
+	allocation_tag = (uint16)tag;
 	size = reserve_count;
 	count = 0;
-	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true, allocation_tag);
+	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true, (AllocationTag)allocation_tag);
 	clear();
 }
 
 template<typename T>
 SHMINLINE void Darray<T>::free_data()
 {
+
 	if (data)
-		Memory::free_memory(data, true, allocation_tag);
+	{
+		for (uint32 i = 0; i < count; i++)
+			data[i].~T();
+
+		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
+	}
 
 	size = 0;
 	data = 0;
@@ -86,28 +145,31 @@ SHMINLINE void Darray<T>::free_data()
 template<typename T>
 SHMINLINE void Darray<T>::clear()
 {
+
+	for (uint32 i = 0; i < count; i++)
+		data[i].~T();
+
 	Memory::zero_memory(data, sizeof(T) * size);
 	count = 0;
+
 }
 
 template<typename T>
 inline SHMINLINE void Darray<T>::resize()
 {
 	resize(size * DARRAY_RESIZE_FACTOR);
-	/*uint64 requested_size = size * sizeof(T) * DARRAY_RESIZE_FACTOR;
-	data = (T*)Memory::reallocate(requested_size, data, true, allocation_tag);
-	size = size * DARRAY_RESIZE_FACTOR;*/
 }
 
 template<typename T>
 inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 {
-	uint32 new_size = size;
-	while (new_size < requested_size)
-		new_size *= DARRAY_RESIZE_FACTOR;
-	uint64 allocation_size = new_size * sizeof(T);
-	data = (T*)Memory::reallocate(allocation_size, data, true, allocation_tag);
-	size = new_size;
+	uint32 old_size = size;
+	while (size < requested_size)
+		size *= DARRAY_RESIZE_FACTOR;
+	uint64 allocation_size = size * sizeof(T);
+	data = (T*)Memory::reallocate(allocation_size, data, true, (AllocationTag)allocation_tag);
+	// TODO: Remove this and put zeroin out in reallocation function instead
+	Memory::zero_memory((data + old_size), (size - old_size) * sizeof(T));
 }
 
 template<typename T>
@@ -132,6 +194,7 @@ inline SHMINLINE void Darray<T>::pop()
 		return;
 
 	T* pop_ptr = data + (count - 1);
+	(*pop_ptr).~T();
 	Memory::zero_memory(pop_ptr, sizeof(T));
 	count--;
 
@@ -166,6 +229,7 @@ inline SHMINLINE void Darray<T>::remove_at(uint32 index)
 
 	uint32 copy_block_size = (count - index - 1) * sizeof(T);
 	T* remove_ptr = data + index;
+	(*remove_ptr).~T();
 
 	T* copy_source = remove_ptr + 1;
 	T* copy_dest = remove_ptr;

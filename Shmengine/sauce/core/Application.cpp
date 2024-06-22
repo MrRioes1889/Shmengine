@@ -15,6 +15,7 @@
 #include "systems/MaterialSystem.hpp"
 #include "systems/GeometrySystem.hpp"
 #include "systems/ResourceSystem.hpp"
+#include "systems/ShaderSystem.hpp"
 
 // TODO: temp
 #include "utility/Math.hpp"
@@ -41,6 +42,7 @@ namespace Application
 		void* event_system_state;
 		void* platform_system_state;
 		void* resource_system_state;
+		void* shader_system_state;
 		void* renderer_system_state;
 		void* texture_system_state;
 		void* material_system_state;
@@ -119,6 +121,12 @@ namespace Application
 			return false;
 		}
 
+		{
+			String test1 = "test1";
+			String test2 = test1;
+			String test3 = mid(test2, 3);
+		}
+
 		if (!Input::system_init(allocate_subsystem_callback, app_state->input_system_state))
 		{
 			SHMFATAL("Failed to initialize input subsystem!");
@@ -169,6 +177,17 @@ namespace Application
 		if (!ResourceSystem::system_init(allocate_subsystem_callback, app_state->resource_system_state, resource_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize resource system. Application shutting down..");
+			return false;
+		}
+
+		ShaderSystem::Config shader_sys_config;
+		shader_sys_config.max_shader_count = 1024;
+		shader_sys_config.max_uniform_count = 128;
+		shader_sys_config.max_global_textures = 31;
+		shader_sys_config.max_instance_textures = 31;
+		if (!ShaderSystem::system_init(allocate_subsystem_callback, app_state->shader_system_state, shader_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize shader system. Application shutting down..");
 			return false;
 		}
 
@@ -349,7 +368,8 @@ namespace Application
 		GeometrySystem::system_shutdown();
 		MaterialSystem::system_shutdown();
 		TextureSystem::system_shutdown();
-		Renderer::system_shutdown();
+		ShaderSystem::system_shutdown();
+		Renderer::system_shutdown();	
 		ResourceSystem::system_shutdown();
 		Platform::system_shutdown();
 		Event::system_shutdown();

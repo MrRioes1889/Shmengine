@@ -51,8 +51,10 @@ void* DynamicAllocator::reallocate(uint64 requested_size, void* data_ptr)
 	if (old_size >= requested_size)
 		return data_ptr;
 
+	// NOTE: Freeing data first to allow the same data block to be part of the new allocation. Feels unsafe but should work fine.
+	free(data_ptr);
 	void* new_data = allocate(requested_size);
 	Memory::copy_memory(data_ptr, new_data, old_size);
-	free(data_ptr);
+
 	return new_data;
 }

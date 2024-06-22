@@ -17,12 +17,8 @@ struct Freelist
 
 	struct Node
 	{
-		uint32 value;
-		static const uint32 reserved_mask = 0x80000000;
-		static const uint32 page_offset_mask = reserved_mask - 1;
-
-		SHMINLINE bool32 reserved() { return value & reserved_mask; }
-		SHMINLINE uint32 page_count() { return value & page_offset_mask; }
+		bool32 reserved;
+		uint32 page_count;
 	};
 
 	static SHMINLINE uint64 get_required_nodes_array_memory_size_by_node_count(uint32 node_count_limit, AllocatorPageSize page_size)

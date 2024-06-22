@@ -21,7 +21,13 @@ struct Sarray
 
 	SHMINLINE void clear();
 
-	T& operator[](const uint32& index)
+	SHMINLINE T& operator[](uint32 index)
+	{
+		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
+		return data[index];
+	}
+
+	SHMINLINE const T& operator[](uint32 index) const
 	{
 		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
 		return data[index];
@@ -51,8 +57,7 @@ SHMINLINE Sarray<T>::~Sarray()
 template<typename T>
 SHMINLINE void Sarray<T>::init(uint32 reserve_count, AllocationTag tag, void* memory)
 {
-	if (data)
-		free_data();	
+	SHMASSERT_MSG(!data, "Cannot init non empty sarray!");
 
 	owns_memory = (memory == 0);
 	allocation_tag = (uint16)tag;

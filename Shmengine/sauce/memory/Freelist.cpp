@@ -2,11 +2,12 @@
 
 #include "core/Memory.hpp"
 #include "core/Assert.hpp"
+#include "utility/Math.hpp"
 
 static bool32 insert_reservation_at(Freelist* freelist, uint64 index, uint32 reservation_page_count);
 static bool32 remove_reservation_at(Freelist* freelist, uint64 index);
 
-static SHMINLINE int64 find_first_free_node(Freelist* freelist, uint64 size, uint32* out_page_index);
+static SHMINLINE int64 find_first_free_node(Freelist* freelist, uint32 pages_needed, uint32* out_page_index);
 static SHMINLINE int64 find_allocated_node(Freelist* freelist, uint64 expected_offset);
 
 Freelist::Freelist()
@@ -33,8 +34,6 @@ void Freelist::init(uint64 buffer_size, uint64 in_nodes_size, void* nodes_ptr, A
 	else
 		max_nodes_count = pages_count;
 
-	SHMASSERT_MSG(max_nodes_count <= Freelist::Node::page_offset_mask, "Node count for freelist exceeds maximum of 2^31 - 1!");
-
 	nodes = (Freelist::Node*)nodes_ptr;
 
 	clear_nodes();
@@ -51,7 +50,8 @@ void Freelist::resize(void* nodes_ptr, uint64 in_nodes_size)
 void Freelist::clear_nodes()
 {
 	Memory::zero_memory(nodes, max_nodes_count * sizeof(Freelist::Node));
-	nodes[0].value = pages_count;
+	nodes[0].reserved = false;
+	nodes[0].page_count = pages_count;
 	nodes_count = 1;
 }
 
@@ -69,12 +69,15 @@ bool32 Freelist::allocate(uint64 size, uint64* out_offset)
 	if (nodes_count >= max_nodes_count)
 		return false;
 
+	uint32 pages_needed = (uint32)((size / (uint64)page_size));
+	if (size % (uint64)page_size != 0)
+		pages_needed++;
+
 	uint32 page_index = 0;
-	int64 node_index = find_first_free_node(this, size, &page_index);
+	int64 node_index = find_first_free_node(this, pages_needed, &page_index);
 	if (node_index < 0)
 		return false;
-
-	uint32 pages_needed = (uint32)((size / (uint32)page_size) + 1);
+	
 	insert_reservation_at(this, (uint64)node_index, pages_needed);
 
 	*out_offset = (uint64)page_index * (uint32)page_size;
@@ -97,19 +100,17 @@ int64 Freelist::get_reserved_size(uint64 offset)
 	if (node_index < 0)
 		return -1;
 
-	return (nodes[node_index].page_count() * (int64)page_size);
+	return (nodes[node_index].page_count * (int64)page_size);
 }
 
 static bool32 insert_reservation_at(Freelist* freelist, uint64 index, uint32 reservation_page_count)
 {
 
 	Freelist::Node* node = &freelist->nodes[index];
-	uint32 page_count = (node->value & Freelist::Node::page_offset_mask);
-	bool32 reserved = (node->value & Freelist::Node::reserved_mask);
 
-	if (page_count == reservation_page_count)
+	if (node->page_count == reservation_page_count)
 	{
-		node->value |= Freelist::Node::reserved_mask;
+		node->reserved = true;
 		return true;
 	}
 	else
@@ -117,11 +118,11 @@ static bool32 insert_reservation_at(Freelist* freelist, uint64 index, uint32 res
 
 		Memory::copy_memory((void*)node, (void*)(node + 1), sizeof(Freelist::Node) * (freelist->nodes_count - index));
 
-		node->value = reservation_page_count;
-		node->value |= Freelist::Node::reserved_mask;
+		(node + 1)->reserved = false;
+		(node + 1)->page_count = node->page_count - reservation_page_count;
 
-		(node + 1)->value &= Freelist::Node::page_offset_mask;
-		(node + 1)->value -= reservation_page_count;
+		node->page_count = reservation_page_count;
+		node->reserved = true;	
 
 		freelist->nodes_count++;
 
@@ -135,16 +136,15 @@ static bool32 remove_reservation_at(Freelist* freelist, uint64 index)
 
 	int32 merge_offset = 0;
 	bool32 both_chunks_free = false;
-	uint32 freed_page_count = (nodes[index].value & Freelist::Node::page_offset_mask);
-	//uint32 freed_page_index = chunks[index].page_index;
+
 	if (index > 0)
 	{
-		if (!(nodes[index - 1].reserved()))
+		if (!(nodes[index - 1].reserved))
 			merge_offset = -1;
 	}
 	if (index < freelist->max_nodes_count - 1)
 	{
-		if (!(nodes[index + 1].reserved()))
+		if (!(nodes[index + 1].reserved))
 		{
 			if (merge_offset == 0)
 				merge_offset = 1;
@@ -157,7 +157,7 @@ static bool32 remove_reservation_at(Freelist* freelist, uint64 index)
 	if (merge_offset != 0)
 	{
 
-		nodes[index + merge_offset].value += nodes[index].page_count();
+		nodes[index + merge_offset].page_count += nodes[index].page_count;
 
 		if (!both_chunks_free)
 		{
@@ -167,7 +167,7 @@ static bool32 remove_reservation_at(Freelist* freelist, uint64 index)
 		}
 		else
 		{
-			nodes[index + merge_offset].value += nodes[index + 1].page_count();
+			nodes[index + merge_offset].page_count += nodes[index + 1].page_count;
 			Memory::copy_memory((void*)(&nodes[index] + 2), (void*)&nodes[index], sizeof(Freelist::Node) * (freelist->nodes_count - index - 2));
 			nodes[freelist->nodes_count - 1] = {};
 			nodes[freelist->nodes_count - 2] = {};
@@ -176,26 +176,26 @@ static bool32 remove_reservation_at(Freelist* freelist, uint64 index)
 	}
 	else
 	{
-		nodes[index].value &= Freelist::Node::page_offset_mask;
+		nodes[index].reserved = false;
 	}
 
 	return true;
 }
 
-static SHMINLINE int64 find_first_free_node(Freelist* freelist, uint64 size, uint32* out_page_index)
+static SHMINLINE int64 find_first_free_node(Freelist* freelist, uint32 pages_needed, uint32* out_page_index)
 {
 	int64 allocation_index = -1;
 	uint32 page_index = 0;
 	for (uint32 i = 0; i < freelist->nodes_count; i++)
 	{
-		if (!freelist->nodes[i].reserved() && (freelist->nodes[i].page_count() * (uint32)freelist->page_size) >= size)
+		if (!freelist->nodes[i].reserved && (freelist->nodes[i].page_count >= pages_needed))
 		{
 			allocation_index = (int64)i;
 			break;
 		}
 		else
 		{
-			page_index += freelist->nodes[i].page_count();
+			page_index += freelist->nodes[i].page_count;
 		}
 	}
 
@@ -216,7 +216,7 @@ static SHMINLINE int64 find_allocated_node(Freelist* freelist, uint64 expected_o
 			break;
 		}
 
-		offset += (freelist->nodes[i].page_count() * (uint32)freelist->page_size);
+		offset += (freelist->nodes[i].page_count * (uint32)freelist->page_size);
 		SHMASSERT_MSG(offset <= expected_offset, "Error: Freeing data block does not align with chunks of mem arena!");
 	}
 

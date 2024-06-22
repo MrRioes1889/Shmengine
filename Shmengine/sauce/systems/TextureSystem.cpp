@@ -53,14 +53,14 @@ namespace TextureSystem
 
 		TextureReference invalid_ref;
 		invalid_ref.auto_release = false;
-		invalid_ref.handle = INVALID_OBJECT_ID;
+		invalid_ref.handle = INVALID_ID;
 		invalid_ref.reference_count = 0;
 		system_state->registered_texture_table.floodfill(invalid_ref);
 
 		for (uint32 i = 0; i < config.max_texture_count; i++)
 		{
-			system_state->registered_textures[i].id = INVALID_OBJECT_ID;
-			system_state->registered_textures[i].generation = INVALID_OBJECT_ID;
+			system_state->registered_textures[i].id = INVALID_ID;
+			system_state->registered_textures[i].generation = INVALID_ID;
 		}
 
 		create_default_textures();
@@ -75,7 +75,7 @@ namespace TextureSystem
 		{
 			for (uint32 i = 0; i < system_state->config.max_texture_count; i++)
 			{
-				if (system_state->registered_textures[i].generation != INVALID_OBJECT_ID)
+				if (system_state->registered_textures[i].generation != INVALID_ID)
 					Renderer::destroy_texture(&system_state->registered_textures[i]);
 			}
 
@@ -99,18 +99,18 @@ namespace TextureSystem
 		TextureReference ref = system_state->registered_texture_table.get_value(name);
 		ref.auto_release = auto_release;
 		ref.reference_count++;
-		if (ref.handle == INVALID_OBJECT_ID)
+		if (ref.handle == INVALID_ID)
 		{
 			for (uint32 i = 0; i < system_state->config.max_texture_count; i++)
 			{
-				if (system_state->registered_textures[i].id == INVALID_OBJECT_ID)
+				if (system_state->registered_textures[i].id == INVALID_ID)
 				{
 					ref.handle = i;
 					break;
 				}
 			}
 
-			if (ref.handle == INVALID_OBJECT_ID)
+			if (ref.handle == INVALID_ID)
 			{
 				SHMFATAL("Could not acquire new texture to texture system since no free slots are left!");
 				return 0;
@@ -159,7 +159,7 @@ namespace TextureSystem
 
 			destroy_texture(t);
 
-			ref.handle = INVALID_OBJECT_ID;
+			ref.handle = INVALID_ID;
 			ref.auto_release = false;
 
 			SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count > 0 and auto_release enabled.", name_copy, ref.reference_count);
@@ -190,13 +190,13 @@ namespace TextureSystem
 
 		Texture temp_texture;
 
-		ResourceDataImage* img_resource_data = (ResourceDataImage*)img_resource.data;
+		ImageConfig* img_resource_data = (ImageConfig*)img_resource.data;
 		temp_texture.channel_count = img_resource_data->channel_count;
 		temp_texture.width = img_resource_data->width;
 		temp_texture.height = img_resource_data->height;
 
 		uint32 current_generation = t->generation;
-		t->generation = INVALID_OBJECT_ID;
+		t->generation = INVALID_ID;
 
 		uint8* pixels = img_resource_data->pixels;
 		uint64 size = temp_texture.width * temp_texture.height * temp_texture.channel_count;
@@ -212,7 +212,7 @@ namespace TextureSystem
 		}
 
 		CString::copy(Texture::max_name_length, temp_texture.name, texture_name);
-		temp_texture.generation = INVALID_OBJECT_ID;
+		temp_texture.generation = INVALID_ID;
 		temp_texture.has_transparency = has_transparency;
 
 		Renderer::create_texture(pixels, &temp_texture);
@@ -220,7 +220,7 @@ namespace TextureSystem
 		destroy_texture(t);
 		(*t).move(temp_texture);
 
-		if (current_generation == INVALID_OBJECT_ID)
+		if (current_generation == INVALID_ID)
 			t->generation = 0;
 		else
 			t->generation = current_generation + 1;
@@ -271,12 +271,12 @@ namespace TextureSystem
 		system_state->default_diffuse.width = tex_dim;
 		system_state->default_diffuse.height = tex_dim;
 		system_state->default_diffuse.channel_count = 4;
-		system_state->default_diffuse.id = INVALID_OBJECT_ID;
-		system_state->default_diffuse.generation = INVALID_OBJECT_ID;
+		system_state->default_diffuse.id = INVALID_ID;
+		system_state->default_diffuse.generation = INVALID_ID;
 		system_state->default_diffuse.has_transparency = false;
 
 		Renderer::create_texture(pixels, &system_state->default_diffuse);
-		system_state->default_diffuse.generation = INVALID_OBJECT_ID;
+		system_state->default_diffuse.generation = INVALID_ID;
 
 	}
 
@@ -293,7 +293,7 @@ namespace TextureSystem
 		Renderer::destroy_texture(t);
 
 		Memory::zero_memory(t, sizeof(t));
-		t->id = INVALID_OBJECT_ID;
-		t->generation = INVALID_OBJECT_ID;
+		t->id = INVALID_ID;
+		t->generation = INVALID_ID;
 	}
 }

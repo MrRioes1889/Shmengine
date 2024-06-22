@@ -5,7 +5,6 @@
 #include "core/Memory.hpp"
 #include "utility/CString.hpp"
 #include "platform/FileSystem.hpp"
-#include "containers/Sarray.hpp"
 
 namespace ResourceSystem
 {
@@ -41,9 +40,7 @@ namespace ResourceSystem
 
         FileSystem::file_close(&f);
 
-        uint32 full_path_size = CString::length(full_filepath) + 1;
-        out_resource->full_path = (char*)Memory::allocate(full_path_size, true, AllocationTag::MAIN);
-        CString::copy(full_path_size, out_resource->full_path, full_filepath);
+        out_resource->full_path = full_filepath;
 
         out_resource->name = name;
 

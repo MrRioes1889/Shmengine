@@ -3,6 +3,12 @@
 #include "Defines.hpp"
 #include "core/Assert.hpp"
 
+struct Range
+{
+	uint64 offset;
+	uint64 size;
+};
+
 SHMINLINE SHMAPI uint32 swap_endianness32(uint32 i)
 {
 	uint32 b0, b1, b2, b3;
@@ -60,4 +66,14 @@ SHMINLINE SHMAPI float32 clamp(float32 x, float32 min, float32 max)
 SHMINLINE SHMAPI uint32 clamp(uint32 x, uint32 min, uint32 max)
 {
 	return (x < min ? min : (x > max ? max : x));
+}
+
+SHMINLINE uint64 get_aligned(uint64 operand, uint64 granularity)
+{
+	return ((operand + (granularity - 1)) & ~(granularity - 1));
+}
+
+SHMINLINE Range get_aligned_range(uint64 offset, uint64 size, uint64 granularity)
+{
+	return { get_aligned(offset, granularity), get_aligned(size, granularity) };
 }

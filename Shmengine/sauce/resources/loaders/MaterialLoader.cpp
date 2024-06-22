@@ -26,9 +26,9 @@ namespace ResourceSystem
 			return false;
 		}
 
-		ResourceDataMaterial tmp_res_data;
+		MaterialConfig tmp_res_data;
 		tmp_res_data.auto_release = true;
-		tmp_res_data.type = MaterialType::WORLD;
+        tmp_res_data.shader_name = "Builtin.Material";
 		tmp_res_data.diffuse_color = VEC4F_ONE;
 		CString::empty(tmp_res_data.diffuse_map_name);
 		CString::copy(Material::max_name_length, tmp_res_data.name, name);
@@ -83,20 +83,8 @@ namespace ResourceSystem
             else if (var_name.equal_i("name")) {
                 CString::copy(Material::max_name_length, tmp_res_data.name, value.c_str());
             }
-            else if (var_name.equal_i("type")) {
-                if (value.equal_i("ui"))
-                {
-                    tmp_res_data.type = MaterialType::UI;
-                }
-                else if (value.equal_i("world"))
-                {
-                    tmp_res_data.type = MaterialType::WORLD;
-                }
-                else
-                {
-                    SHMWARNV("Error parsing material type in file '%s'. Using default of 'world' instead.", full_filepath);
-                }
-                
+            else if (var_name.equal_i("shader")) {
+                tmp_res_data.shader_name = value;             
             }
             else if (var_name.equal_i("diffuse_map_name")) {
                 CString::copy(Texture::max_name_length, tmp_res_data.diffuse_map_name, value.c_str());
@@ -116,15 +104,13 @@ namespace ResourceSystem
 
         FileSystem::file_close(&f);
 
-		uint32 full_path_size = CString::length(full_filepath) + 1;
-		out_resource->full_path = (char*)Memory::allocate(full_path_size, true, AllocationTag::MAIN);
-		CString::copy(full_path_size, out_resource->full_path, full_filepath);
+		out_resource->full_path = full_filepath;
 
-		ResourceDataMaterial* resource_data = (ResourceDataMaterial*)Memory::allocate(sizeof(ResourceDataMaterial), true, AllocationTag::MAIN);
+		MaterialConfig* resource_data = (MaterialConfig*)Memory::allocate(sizeof(MaterialConfig), true, AllocationTag::MAIN);
         *resource_data = tmp_res_data;
 
 		out_resource->data = resource_data;
-		out_resource->data_size = sizeof(ResourceDataMaterial);
+		out_resource->data_size = sizeof(MaterialConfig);
 		out_resource->name = name;
 
 		return true;
@@ -133,6 +119,12 @@ namespace ResourceSystem
 
 	static void material_loader_unload(ResourceLoader* loader, Resource* resource)
 	{
+        if (resource->data)
+        {
+            MaterialConfig* data = (MaterialConfig*)resource->data;
+            (*data).~MaterialConfig();
+        }
+
         resource_unload(loader, resource, AllocationTag::MAIN);
 	}
 

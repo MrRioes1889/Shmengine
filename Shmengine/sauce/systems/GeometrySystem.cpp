@@ -46,9 +46,9 @@ namespace GeometrySystem
         // Invalidate all geometries in the array.
         uint32 count = system_state->config.max_geometry_count;
         for (uint32 i = 0; i < count; ++i) {
-            system_state->registered_geometries[i].geometry.id = INVALID_OBJECT_ID;
-            system_state->registered_geometries[i].geometry.generation = INVALID_OBJECT_ID;
-            system_state->registered_geometries[i].geometry.internal_id = INVALID_OBJECT_ID;
+            system_state->registered_geometries[i].geometry.id = INVALID_ID;
+            system_state->registered_geometries[i].geometry.generation = INVALID_ID;
+            system_state->registered_geometries[i].geometry.internal_id = INVALID_ID;
         }
 
         if (!create_default_geometries()) {
@@ -67,7 +67,7 @@ namespace GeometrySystem
 
 	Geometry* acquire_by_id(uint32 id)
 	{
-		if (id != INVALID_OBJECT_ID && system_state->registered_geometries[id].geometry.id != INVALID_OBJECT_ID)
+		if (id != INVALID_ID && system_state->registered_geometries[id].geometry.id != INVALID_ID)
 		{
 			system_state->registered_geometries[id].reference_count++;
 			return &system_state->registered_geometries[id].geometry;
@@ -83,7 +83,7 @@ namespace GeometrySystem
 		Geometry* g = 0;
 		for (uint32 i = 0; i < system_state->config.max_geometry_count; i++)
 		{
-			if (system_state->registered_geometries[i].geometry.id == INVALID_OBJECT_ID)
+			if (system_state->registered_geometries[i].geometry.id == INVALID_ID)
 			{
 				system_state->registered_geometries[i].reference_count = 1;
 				system_state->registered_geometries[i].auto_release = auto_release;
@@ -111,7 +111,7 @@ namespace GeometrySystem
 
 	void release(Geometry* g)
 	{
-		if (g->id != INVALID_OBJECT_ID)
+		if (g->id != INVALID_ID)
 		{
 			GeometryReference& ref = system_state->registered_geometries[g->id];
 
@@ -154,9 +154,9 @@ namespace GeometrySystem
 		{
 			system_state->registered_geometries[g->id].reference_count = 0;
 			system_state->registered_geometries[g->id].auto_release = false;
-			g->id = INVALID_OBJECT_ID;
-			g->generation = INVALID_OBJECT_ID;
-			g->internal_id = INVALID_OBJECT_ID;
+			g->id = INVALID_ID;
+			g->generation = INVALID_ID;
+			g->internal_id = INVALID_ID;
 
 			return false;
 		}
@@ -175,9 +175,9 @@ namespace GeometrySystem
 	void destroy_geometry(Geometry* g)
 	{
 		Renderer::destroy_geometry(g);
-		g->internal_id = INVALID_OBJECT_ID;
-		g->generation = INVALID_OBJECT_ID;
-		g->id = INVALID_OBJECT_ID;
+		g->internal_id = INVALID_ID;
+		g->generation = INVALID_ID;
+		g->id = INVALID_ID;
 
 		CString::empty(g->name);
 
@@ -218,9 +218,9 @@ namespace GeometrySystem
 		uint32 indices[6] = { 0, 1, 2, 0, 3, 1 };
 
 		// Send the geometry off to the renderer to be uploaded to the GPU.
-		system_state->default_geometry.id = INVALID_OBJECT_ID;
-		system_state->default_geometry.internal_id = INVALID_OBJECT_ID;
-		system_state->default_geometry.generation = INVALID_OBJECT_ID;
+		system_state->default_geometry.id = INVALID_ID;
+		system_state->default_geometry.internal_id = INVALID_ID;
+		system_state->default_geometry.generation = INVALID_ID;
 		if (!Renderer::create_geometry(&system_state->default_geometry, sizeof(Renderer::Vertex3D), 4, verts, 6, indices)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;
@@ -253,9 +253,9 @@ namespace GeometrySystem
 		uint32 indices_2d[6] = { 2, 1, 0, 3, 0, 1 };
 
 		// Send the geometry off to the renderer to be uploaded to the GPU.
-		system_state->default_geometry_2d.id = INVALID_OBJECT_ID;
-		system_state->default_geometry_2d.internal_id = INVALID_OBJECT_ID;
-		system_state->default_geometry_2d.generation = INVALID_OBJECT_ID;
+		system_state->default_geometry_2d.id = INVALID_ID;
+		system_state->default_geometry_2d.internal_id = INVALID_ID;
+		system_state->default_geometry_2d.generation = INVALID_ID;
 		if (!Renderer::create_geometry(&system_state->default_geometry_2d, sizeof(Renderer::Vertex2D), 4, verts_2d, 6, indices_2d)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;

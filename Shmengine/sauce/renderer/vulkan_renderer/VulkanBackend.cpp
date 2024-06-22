@@ -7,16 +7,18 @@
 #include "VulkanRenderpass.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanBuffer.hpp"
+#include "VulkanShader.hpp"
 #include "VulkanUtils.hpp"
 #include "VulkanImage.hpp"
-
-#include "shaders/VulkanMaterialShader.hpp"
-#include "shaders/VulkanUIShader.hpp"
 
 #include "core/Logging.hpp"
 #include "containers/Darray.hpp"
 #include "utility/CString.hpp"
+
+#include "systems/ShaderSystem.hpp"
 #include "systems/MaterialSystem.hpp"
+#include "systems/TextureSystem.hpp"
+#include "systems/ResourceSystem.hpp"
 
 #include "core/Application.hpp"
 
@@ -78,7 +80,7 @@ namespace Renderer::Vulkan
 
 		VkBufferUsageFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 		VulkanBuffer staging;
-		buffer_create(&context, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true, &staging);
+		buffer_create(&context, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true, false, &staging);
 
 		buffer_load_data(&context, &staging, 0, size, 0, data);
 		buffer_copy_to(&context, pool, fence, queue, staging.handle, 0, buffer->handle, *out_offset, size);
@@ -246,24 +248,14 @@ namespace Renderer::Vulkan
 		for (uint32 i = 0; i < 3; i++)
 			context.images_in_flight[i] = 0;
 
-		if (!material_shader_create(&context, &context.material_shader))
-		{
-			SHMERROR("Failed loading basic builtin object shader");
-			return false;
-		}
-
-		if (!ui_shader_create(&context, &context.ui_shader))
-		{
-			SHMERROR("Failed loading basic builtin object shader");
-			return false;
-		}
-
 		create_buffers();
 
 		for (uint32 i = 0; i < VulkanConfig::max_geometry_count; i++)
 		{
-			context.geometries[i].id = INVALID_OBJECT_ID;
+			context.geometries[i].id = INVALID_ID;
 		}
+
+		shaders_init_context(&context);
 
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
@@ -277,10 +269,6 @@ namespace Renderer::Vulkan
 		SHMDEBUG("Destroying vulkan buffers...");
 		buffer_destroy(&context, &context.object_vertex_buffer);
 		buffer_destroy(&context, &context.object_index_buffer);
-
-		SHMDEBUG("Destroying vulkan shaders...");
-		ui_shader_destroy(&context, &context.ui_shader);
-		material_shader_destroy(&context, &context.material_shader);
 
 		SHMDEBUG("Destroying vulkan semaphores and fences...");
 		for (uint32 i = 0; i < context.swapchain.max_frames_in_flight; i++)
@@ -427,34 +415,6 @@ namespace Renderer::Vulkan
 
 	}
 
-	void update_global_world_state(const Math::Mat4& projection, const Math::Mat4& view, Math::Vec3f view_position, Math::Vec4f ambient_colour, int32 mode) 
-	{		
-
-		material_shader_use(&context, &context.material_shader);
-
-		context.material_shader.global_ubo.projection = projection;
-		context.material_shader.global_ubo.view = view;
-
-		// TODO: other ubo properties
-
-		material_shader_update_global_state(&context, &context.material_shader);
-
-	}
-
-	void update_global_ui_state(const Math::Mat4& projection, const Math::Mat4& view, int32 mode)
-	{
-
-		ui_shader_use(&context, &context.ui_shader);
-
-		context.ui_shader.global_ubo.projection = projection;
-		context.ui_shader.global_ubo.view = view;
-
-		// TODO: other ubo properties
-
-		ui_shader_update_global_state(&context, &context.ui_shader);
-
-	}
-
 	bool32 end_frame(float32 delta_time)
 	{
 
@@ -516,13 +476,13 @@ namespace Renderer::Vulkan
 
 		switch (renderpass_id)
 		{
-		case (uint32)RenderpassType::WORLD:
+		case (uint32)BuiltinRenderpassType::WORLD:
 		{
 			renderpass = &context.world_renderpass;
 			framebuffer = context.world_framebuffers[context.image_index];
 			break;
 		}
-		case (uint32)RenderpassType::UI:
+		case (uint32)BuiltinRenderpassType::UI:
 		{
 			renderpass = &context.ui_renderpass;
 			framebuffer = context.swapchain.framebuffers[context.image_index];
@@ -537,20 +497,6 @@ namespace Renderer::Vulkan
 
 		vulkan_renderpass_begin(command_buffer, renderpass, framebuffer);
 
-		switch (renderpass_id)
-		{
-		case (uint32)RenderpassType::WORLD:
-		{
-			material_shader_use(&context, &context.material_shader);
-			break;
-		}
-		case (uint32)RenderpassType::UI:
-		{
-			ui_shader_use(&context, &context.ui_shader);
-			break;
-		}
-		}
-
 		return true;
 
 	}
@@ -564,13 +510,13 @@ namespace Renderer::Vulkan
 
 		switch (renderpass_id)
 		{
-		case (uint32)RenderpassType::WORLD:
+		case (uint32)BuiltinRenderpassType::WORLD:
 		{
 			renderpass = &context.world_renderpass;
 			framebuffer = context.world_framebuffers[context.image_index];
 			break;
 		}
-		case (uint32)RenderpassType::UI:
+		case (uint32)BuiltinRenderpassType::UI:
 		{
 			renderpass = &context.ui_renderpass;
 			framebuffer = context.swapchain.framebuffers[context.image_index];
@@ -591,8 +537,8 @@ namespace Renderer::Vulkan
 	void create_texture(const void* pixels, Texture* texture)
 	{
 
-		texture->buffer.init(sizeof(VulkanTextureData), AllocationTag::MAIN);
-		VulkanTextureData* data = (VulkanTextureData*)texture->buffer.data;
+		texture->internal_data.init(sizeof(VulkanTextureData), AllocationTag::MAIN);
+		VulkanTextureData* data = (VulkanTextureData*)texture->internal_data.data;
 		VkDeviceSize image_size = texture->width * texture->height * texture->channel_count;
 
 		VkFormat image_format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -600,7 +546,7 @@ namespace Renderer::Vulkan
 		VkBufferUsageFlagBits usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		VkMemoryPropertyFlags memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 		VulkanBuffer staging;
-		buffer_create(&context, image_size, usage, memory_flags, true, &staging);
+		buffer_create(&context, image_size, usage, memory_flags, true, false, &staging);
 
 		buffer_load_data(&context, &staging, 0, image_size, 0, pixels);
 
@@ -662,7 +608,7 @@ namespace Renderer::Vulkan
 
 		vkDeviceWaitIdle(context.device.logical_device);
 
-		VulkanTextureData* data = (VulkanTextureData*)texture->buffer.data;
+		VulkanTextureData* data = (VulkanTextureData*)texture->internal_data.data;
 		if (data)
 		{
 			vulkan_image_destroy(&context, &data->image);
@@ -670,76 +616,13 @@ namespace Renderer::Vulkan
 			vkDestroySampler(context.device.logical_device, data->sampler, context.allocator_callbacks);
 			data->sampler = 0;
 
-			texture->buffer.free_data();
+			texture->internal_data.free_data();
 		}
 	
 		Memory::zero_memory(texture, sizeof(Texture));
 
 	}
 
-	bool32 create_material(Material* material)
-	{
-
-		
-		switch (material->type)
-		{
-		case MaterialType::WORLD:
-		{
-			if (!material_shader_acquire_resources(&context, &context.material_shader, material))
-			{
-				SHMERROR("vulkan_create_material - Failed to acquire shader resources!");
-				return false;
-			}
-			break;
-		}
-		case MaterialType::UI:
-		{
-			if (!ui_shader_acquire_resources(&context, &context.ui_shader, material))
-			{
-				SHMERROR("vulkan_create_material - Failed to acquire shader resources!");
-				return false;
-			}
-			break;
-		}
-		default:
-		{
-			SHMERROR("create_material - Passed in material type is unknown!");
-			return false;
-		}
-		}	
-
-		SHMTRACE("Renderer: Material created.");
-		return true;
-	}
-
-	void destroy_material(Material* material)
-	{
-		if (material->internal_id == INVALID_OBJECT_ID)
-		{
-			SHMWARN("vulkan_destroy_material called when internal material id was already invalid!");
-			return;
-		}
-
-		switch (material->type)
-		{
-		case MaterialType::WORLD:
-		{
-			material_shader_release_resources(&context, &context.material_shader, material);
-			break;
-		}
-		case MaterialType::UI:
-		{
-			ui_shader_release_resources(&context, &context.ui_shader, material);
-			break;
-		}
-		default:
-		{
-			SHMERROR("destroy_material - Passed in material type is unknown!");
-			return;
-		}
-		}
-			
-	}
 
 	bool32 create_geometry(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices)
 	{
@@ -750,7 +633,7 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		bool32 is_reupload = geometry->internal_id != INVALID_OBJECT_ID;
+		bool32 is_reupload = geometry->internal_id != INVALID_ID;
 		VulkanGeometryData old_range = {};
 
 		VulkanGeometryData* internal_data = 0;
@@ -763,7 +646,7 @@ namespace Renderer::Vulkan
 		{
 			for (uint32 i = 0; i < VulkanConfig::max_geometry_count; i++)
 			{
-				if (context.geometries[i].id == INVALID_OBJECT_ID)
+				if (context.geometries[i].id == INVALID_ID)
 				{
 					geometry->internal_id = i;
 					context.geometries[i].id = i;
@@ -802,7 +685,7 @@ namespace Renderer::Vulkan
 			internal_data->index_size = 0;
 		}
 
-		if (internal_data->generation == INVALID_OBJECT_ID)
+		if (internal_data->generation == INVALID_ID)
 			internal_data->generation = 0;
 		else
 			internal_data->generation++;
@@ -819,7 +702,7 @@ namespace Renderer::Vulkan
 
 	void destroy_geometry(Geometry* geometry)
 	{
-		if (geometry->internal_id != INVALID_OBJECT_ID)
+		if (geometry->internal_id != INVALID_ID)
 		{
 			vkDeviceWaitIdle(context.device.logical_device);
 
@@ -830,44 +713,19 @@ namespace Renderer::Vulkan
 				free_data_range(&context.object_index_buffer, internal_data.index_buffer_offset, internal_data.index_size * internal_data.index_count);
 
 			internal_data = {};
-			internal_data.id = INVALID_OBJECT_ID;
-			internal_data.generation = INVALID_OBJECT_ID;
+			internal_data.id = INVALID_ID;
+			internal_data.generation = INVALID_ID;
 		}
 	}
 
 	void draw_geometry(const GeometryRenderData& data)
 	{
 
-		if (!data.geometry || data.geometry->internal_id == INVALID_OBJECT_ID)
+		if (!data.geometry || data.geometry->internal_id == INVALID_ID)
 			return;
 
 		VulkanGeometryData& buffer_data = context.geometries[data.geometry->internal_id];
 		VulkanCommandBuffer& command_buffer = context.graphics_command_buffers[context.image_index];	
-
-		Material* m = data.geometry->material;
-		if (!m)
-			m = MaterialSystem::get_default_material();
-
-		switch (m->type)
-		{
-		case MaterialType::WORLD:
-		{
-			material_shader_set_model(&context, &context.material_shader, data.model);
-			material_shader_apply_material(&context, &context.material_shader, m);
-			break;
-		}
-		case MaterialType::UI:
-		{		
-			ui_shader_set_model(&context, &context.ui_shader, data.model);
-			ui_shader_apply_material(&context, &context.ui_shader, m);
-			break;
-		}
-		default:
-		{
-			SHMERROR("draw_geometry - Unknown material type!");
-			return;
-		}
-		}	
 
 		// Bind vertex buffer at offset.
 		VkDeviceSize offsets[1] = { buffer_data.vertex_buffer_offset };
@@ -1030,6 +888,7 @@ namespace Renderer::Vulkan
 			(VkBufferUsageFlagBits)(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
 			memory_property_flags,
 			true,
+			true,
 			&context.object_vertex_buffer))
 		{
 			SHMERROR("Error creating vertex buffer;");
@@ -1043,6 +902,7 @@ namespace Renderer::Vulkan
 			(VkBufferUsageFlagBits)(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
 			memory_property_flags,
 			true,
+			true,
 			&context.object_index_buffer))
 		{
 			SHMERROR("Error creating index buffer;");
@@ -1052,6 +912,8 @@ namespace Renderer::Vulkan
 		return true;
 
 	}
+
+	
 
 }
 

@@ -16,9 +16,14 @@ namespace MaterialSystem
 	void system_shutdown();
 
 	Material* acquire(const char* name);
-	Material* acquire_from_config(const ResourceDataMaterial& config);
+	Material* acquire_from_config(const MaterialConfig& config);
 	void release(const char* name);
 
 	Material* get_default_material();
+
+	bool32 apply_globals(uint32 shader_id, const Math::Mat4& projection, const Math::Mat4& view);
+	bool32 apply_instance(Material* m);
+	bool32 apply_local(Material* m, const Math::Mat4& model);
+
 
 }

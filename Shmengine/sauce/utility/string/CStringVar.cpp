@@ -40,6 +40,7 @@ namespace CString
 			{
 				ll_value = true;
 				c++;
+				format_identifier = c[0];
 			}
 
 			bool32 format_parse_successful = true;
@@ -155,6 +156,7 @@ namespace CString
 			{
 				ll_value = true;
 				temp_format_ptr++;
+				format_identifier = temp_format_ptr[0];
 			}
 
 			switch (format_identifier)
@@ -303,9 +305,9 @@ namespace CString
 					}
 
 					if (args[ptr_i].type == Arg::Type::FLOAT32_PTR)
-						parse(parse_buffer, arg_copies[ptr_i++].float32_value[0]);
+						parse_f32(parse_buffer, arg_copies[ptr_i++].float32_value[0]);
 					else
-						parse(parse_buffer, arg_copies[ptr_i++].float64_value);
+						parse_f64(parse_buffer, arg_copies[ptr_i++].float64_value);
 
 					format++;				
 					break;
@@ -319,9 +321,9 @@ namespace CString
 					}
 
 					if (args[ptr_i].type == Arg::Type::INT32_PTR)
-						parse(parse_buffer, arg_copies[ptr_i++].int32_value[0]);
+						parse_i32(parse_buffer, arg_copies[ptr_i++].int32_value[0]);
 					else
-						parse(parse_buffer, arg_copies[ptr_i++].int64_value);
+						parse_i64(parse_buffer, arg_copies[ptr_i++].int64_value);
 
 					format++;
 					break;
@@ -335,9 +337,9 @@ namespace CString
 					}
 
 					if (args[ptr_i].type == Arg::Type::UINT32_PTR)
-						parse(parse_buffer, arg_copies[ptr_i++].uint32_value[0]);
+						parse_u32(parse_buffer, arg_copies[ptr_i++].uint32_value[0]);
 					else
-						parse(parse_buffer, arg_copies[ptr_i++].uint64_value);
+						parse_u64(parse_buffer, arg_copies[ptr_i++].uint64_value);
 
 					format++;
 					break;
