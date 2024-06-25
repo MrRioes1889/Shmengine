@@ -62,19 +62,8 @@ namespace CString
 	Darray<String> split(const char* s, char delimiter);
 }
 
-SHMINLINE String mid(const String& source, uint32 start, int32 length = -1)
-{
-	String s = source;
-	s.arr.count = CString::mid(s.arr.data, start, length);
-	return s;
-}
-
-SHMINLINE String trim(const String& other) 
-{ 
-	String s = other; 
-	s.arr.count = CString::trim(s.arr.data);
-	return s; 
-}
+String mid(const String& source, uint32 start, int32 length = -1);
+String trim(const String& other);
 
 SHMINLINE Darray<String> String::split(char delimiter) 
 { 

@@ -32,33 +32,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
 namespace Renderer::Vulkan
 {
 
-#if _WIN32
-	static const uint32 extension_count = 2 + _DEBUG;
-	static const char* extension_names[extension_count] =
-	{
-		VK_KHR_SURFACE_EXTENSION_NAME,
-		"VK_KHR_win32_surface",
-#if defined(_DEBUG) 
-		VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-#endif
-	};
-
-#else
-	throw an error
-#endif	
-
-#if defined(_DEBUG)
-	static const uint32 validation_layer_count = 1;
-	static const char* validation_layer_names[validation_layer_count] = 
-	{
-		"VK_LAYER_KHRONOS_validation",
-		// "VK_LAYER_LUNARG_api_dump"
-	};
-#else
-	static const uint32 validation_layer_count = 0;
-	static const char** validation_layer_names = 0;
-#endif
-
 	static void create_command_buffers();
 	static void regenerate_framebuffers();
 	static bool32 recreate_swapchain();
@@ -119,12 +92,35 @@ namespace Renderer::Vulkan
 		VkInstanceCreateInfo inst_create_info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
 		inst_create_info.pApplicationInfo = &app_info;
 
-#if defined(_DEBUG)
+		const uint32 max_extension_count = 10;
+		uint32 extension_count = 1;
+		const char* extension_names[max_extension_count] =
+		{
+			VK_KHR_SURFACE_EXTENSION_NAME
+		};
+
+#if defined(_WIN32)		
+		extension_names[extension_count] = "VK_KHR_win32_surface";;
+		extension_count++;
+#endif
+
 		SHMDEBUG("Required vulkan extensions:");
 
 		for (uint32 i = 0; i < extension_count; i++)
 			SHMDEBUG(extension_names[i]);
 
+#if defined(_DEBUG)
+
+		const uint32 validation_layer_count = 1;
+		const char* validation_layer_names[validation_layer_count] =
+		{
+			"VK_LAYER_KHRONOS_validation",
+			// "VK_LAYER_LUNARG_api_dump"
+		};
+		
+		extension_names[extension_count] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+		SHMDEBUG(extension_names[extension_count]);
+		extension_count++;
 
 		SHMDEBUG("Vulkan Validation layers enabled.");
 
@@ -155,13 +151,14 @@ namespace Renderer::Vulkan
 		}
 
 		SHMDEBUG("All required vulkan validation layers present.");
-#endif
-
-		inst_create_info.enabledExtensionCount = extension_count;
-		inst_create_info.ppEnabledExtensionNames = extension_names;
 
 		inst_create_info.enabledLayerCount = validation_layer_count;
 		inst_create_info.ppEnabledLayerNames = validation_layer_names;
+
+#endif
+
+		inst_create_info.enabledExtensionCount = extension_count;
+		inst_create_info.ppEnabledExtensionNames = extension_names;		
 
 		//NOTE: The second agument for this function is meant to contain callbacks for custom memory allocation.
 		VK_CHECK(vkCreateInstance(&inst_create_info, context.allocator_callbacks, &context.instance));
@@ -314,6 +311,7 @@ namespace Renderer::Vulkan
 			context.surface = 0;
 		}	
 
+#if defined(_DEBUG)
 		if (context.debug_messenger)
 		{
 			SHMDEBUG("Destroying vulkan debugger...");
@@ -321,6 +319,7 @@ namespace Renderer::Vulkan
 				(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context.instance, "vkDestroyDebugUtilsMessengerEXT");
 			func(context.instance, context.debug_messenger, context.allocator_callbacks);
 		}
+#endif
 
 		SHMDEBUG("Destroying vulkan instance...");
 		vkDestroyInstance(context.instance, context.allocator_callbacks);

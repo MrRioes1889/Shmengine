@@ -44,6 +44,7 @@ namespace Renderer
 	struct Vertex3D
 	{
 		Math::Vec3f position;
+		Math::Vec3f normal;
 		Math::Vec2f tex_coordinates;
 	};
 

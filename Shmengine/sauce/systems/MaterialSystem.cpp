@@ -18,6 +18,7 @@ namespace MaterialSystem
     {
         uint16 projection;
         uint16 view;
+        uint16 ambient_color;
         uint16 diffuse_color;
         uint16 diffuse_texture;
         uint16 model;
@@ -188,6 +189,7 @@ namespace MaterialSystem
                 system_state->material_shader_id = s->id;
                 system_state->material_locations.projection = ShaderSystem::get_uniform_index(s, "projection");
                 system_state->material_locations.view = ShaderSystem::get_uniform_index(s, "view");
+                system_state->material_locations.ambient_color = ShaderSystem::get_uniform_index(s, "ambient_color");
                 system_state->material_locations.diffuse_color = ShaderSystem::get_uniform_index(s, "diffuse_color");
                 system_state->material_locations.diffuse_texture = ShaderSystem::get_uniform_index(s, "diffuse_texture");
                 system_state->material_locations.model = ShaderSystem::get_uniform_index(s, "model");
@@ -260,11 +262,12 @@ namespace MaterialSystem
         return false;                                 \
     }
 
-    bool32 apply_globals(uint32 shader_id, const Math::Mat4& projection, const Math::Mat4& view)
+    bool32 apply_globals(uint32 shader_id, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color)
     {
         if (shader_id == system_state->material_shader_id) {
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.projection, &projection));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.view, &view));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.projection, projection));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.view, view));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.ambient_color, ambient_color));
         }
         else if (shader_id == system_state->ui_shader_id) {
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.projection, &projection));
@@ -393,6 +396,8 @@ namespace MaterialSystem
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;
         }
+
+        system_state->default_material.shader_id = s->id;
 
         return true;
     }

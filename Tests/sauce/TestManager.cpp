@@ -49,7 +49,7 @@ void test_manager_run_tests() {
             ++failed;
         }
         char status[20];
-        String::print_s(status, 20, failed ? (char*)"*** %u FAILED ***" : (char*)"SUCCESS", failed);
+        CString::print_s(status, 20, failed ? (char*)"*** %u FAILED ***" : (char*)"SUCCESS", failed);
         clock_update(&total_time);
         SHMINFOV("Executed %u of %u (skipped %u) %s (%f6 sec / %f6 sec total", i + 1, tests.count, skipped, status, test_time.elapsed, total_time.elapsed);
     }

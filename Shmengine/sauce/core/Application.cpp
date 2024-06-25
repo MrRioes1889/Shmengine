@@ -222,7 +222,8 @@ namespace Application
 		}	
 
 		// TODO: temporary
-		GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_plane_config(10.0f, 5.0f, 5, 5, 5.0f, 2.0f, "test geometry", "test_material");
+		//GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_plane_config(10.0f, 5.0f, 5, 5, 5.0f, 2.0f, "test geometry", "test_material");
+		GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test geometry", "test_material");
 		app_state->test_geometry = GeometrySystem::acquire_from_config(g_config, true);
 		//app_state->test_geometry = GeometrySystem::get_default_geometry();
 		// 
@@ -238,23 +239,24 @@ namespace Application
 		ui_config.indices = (uint32*)Memory::allocate(sizeof(uint32) * ui_config.index_count, true, AllocationTag::MAIN);
 		Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)ui_config.vertices;
 
-		const float32 f = 512.0f;
+		const float32 w = 1077.0f * 0.25f;
+		const float32 h = 1278.0f * 0.25f;
 		uiverts[0].position.x = 0.0f;  // 0    3
 		uiverts[0].position.y = 0.0f;  //
 		uiverts[0].tex_coordinates.x = 0.0f;  //
 		uiverts[0].tex_coordinates.y = 0.0f;  // 2    1
 
-		uiverts[1].position.y = f;
-		uiverts[1].position.x = f;
+		uiverts[1].position.y = h;
+		uiverts[1].position.x = w;
 		uiverts[1].tex_coordinates.x = 1.0f;
 		uiverts[1].tex_coordinates.y = 1.0f;
 
 		uiverts[2].position.x = 0.0f;
-		uiverts[2].position.y = f;
+		uiverts[2].position.y = h;
 		uiverts[2].tex_coordinates.x = 0.0f;
 		uiverts[2].tex_coordinates.y = 1.0f;
 
-		uiverts[3].position.x = f;
+		uiverts[3].position.x = w;
 		uiverts[3].position.y = 0.0;
 		uiverts[3].tex_coordinates.x = 1.0f;
 		uiverts[3].tex_coordinates.y = 0.0f;
@@ -329,7 +331,10 @@ namespace Application
 				// TODO: temporary
 				Renderer::GeometryRenderData test_render;
 				test_render.geometry = app_state->test_geometry;
-				test_render.model = MAT4_IDENTITY;
+				static float32 angle = 0;
+				angle += (1.0f * delta_time);
+				Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, angle, true);
+				test_render.model = Math::quat_to_mat(rotation);
 				r_data.world_geometry_count = 1;
 				r_data.world_geometries = &test_render;
 

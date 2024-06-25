@@ -162,7 +162,7 @@ namespace TextureSystem
 			ref.handle = INVALID_ID;
 			ref.auto_release = false;
 
-			SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count > 0 and auto_release enabled.", name_copy, ref.reference_count);
+			SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count == 0 and auto_release enabled.", name_copy, ref.reference_count);
 		}
 		else
 		{

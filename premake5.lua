@@ -1,6 +1,6 @@
 workspace "Shmengine"
     architecture "x64"
-    configurations {"Debug", "Release"}
+    configurations {"Debug", "ODebug", "Release"}
     location ""
     startproject "Sandbox"
 
@@ -52,14 +52,22 @@ project  (engine_name)
 		cppdialect "C++20"
         staticruntime "on"
 
-        postbuildcommands
+        buildmessage 'Post build events'
+        buildcommands 
         {
-            "$(SolutionDir)/post-build.bat"
+            '$(SolutionDir)/post-build.bat'
         }
+        -- Output file does not get generated. Only there so that post build event is triggered every time.
+        buildoutputs { '$(SolutionDir)/dummy_target_file' }
 
     filter "configurations:Debug"
         defines {"DEBUG"}
         symbols "On"
+
+    filter "configurations:ODebug"
+        defines {"DEBUG"}
+        symbols "On"
+        optimize "On"
 
     filter "configurations:Release"
         defines {"NDEBUG"}
@@ -116,6 +124,11 @@ project (app_name)
         defines {"DEBUG"}
         symbols "On"
 
+    filter "configurations:ODebug"
+        defines {"DEBUG"}
+        symbols "On"
+        optimize "On"
+
     filter "configurations:Release"
         defines {"NDEBUG"}
         optimize "On"
@@ -170,6 +183,11 @@ project (tests_name)
     filter "configurations:Debug"
         defines {"DEBUG"}
         symbols "On"
+
+    filter "configurations:ODebug"
+        defines {"DEBUG"}
+        symbols "On"
+        optimize "On"
 
     filter "configurations:Release"
         defines {"NDEBUG"}

@@ -3,5 +3,5 @@
 version=0.1
 name=test_ui_material
 diffuse_color=1.0 1.0 1.0 1.0
-diffuse_map_name=orange_lines_512
+diffuse_map_name=spongebob_smug
 shader=Shader.Builtin.UI

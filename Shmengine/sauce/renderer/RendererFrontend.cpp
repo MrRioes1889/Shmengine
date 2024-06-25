@@ -22,6 +22,8 @@ namespace Renderer
 
 		Math::Mat4 world_projection;
 		Math::Mat4 world_view;
+		Math::Vec4f world_ambient_color;
+
 		Math::Mat4 ui_projection;
 		Math::Mat4 ui_view;
 
@@ -73,6 +75,7 @@ namespace Renderer
 		system_state->far_clip = 1000.0f;
 		system_state->world_projection = Math::mat_perspective(Math::deg_to_rad(45.0f), 1280 / 720.0f, system_state->near_clip, system_state->far_clip);
 		system_state->world_view = Math::mat_translation({0.0f, 0.0f, -30.0f});
+		system_state->world_ambient_color = { 0.25f, 0.25f, 0.25f, 1.0f };
 
 		system_state->ui_projection = Math::mat_orthographic(0.0f, 1280.0f, 720.0f, 0.0f, -100.0f, 100.0f);
 		system_state->ui_view = Math::mat_inverse(MAT4_IDENTITY);
@@ -90,7 +93,7 @@ namespace Renderer
 		system_state = 0;
 	}
 
-	static bool32 draw_using_shader(uint32 shader_id, BuiltinRenderpassType::Value renderpass_type, const Math::Mat4& projection, const Math::Mat4& view, uint32 geometry_count, GeometryRenderData* geometries)
+	static bool32 draw_using_shader(uint32 shader_id, BuiltinRenderpassType::Value renderpass_type, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, uint32 geometry_count, GeometryRenderData* geometries)
 	{
 
 		Backend& backend = system_state->backend;
@@ -107,7 +110,7 @@ namespace Renderer
 		}
 
 		// Apply globals
-		if (!MaterialSystem::apply_globals(shader_id, projection, view)) {
+		if (!MaterialSystem::apply_globals(shader_id, projection, view, ambient_color)) {
 			SHMERROR("Failed to use apply globals for material shader. Render frame failed.");
 			return false;
 		}
@@ -158,8 +161,9 @@ namespace Renderer
 		if (!draw_using_shader(
 			system_state->material_shader_id,
 			BuiltinRenderpassType::WORLD,
-			system_state->world_projection,
-			system_state->world_view,
+			&system_state->world_projection,
+			&system_state->world_view,
+			&system_state->world_ambient_color,
 			data->world_geometry_count,
 			data->world_geometries))
 		{
@@ -170,8 +174,9 @@ namespace Renderer
 		if (!draw_using_shader(
 			system_state->ui_shader_id,
 			BuiltinRenderpassType::UI,
-			system_state->ui_projection,
-			system_state->ui_view,
+			&system_state->ui_projection,
+			&system_state->ui_view,
+			0,
 			data->ui_geometry_count,
 			data->ui_geometries))
 		{

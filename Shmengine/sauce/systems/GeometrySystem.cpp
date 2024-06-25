@@ -376,4 +376,167 @@ namespace GeometrySystem
 		return config;
 
 	}
+
+	GeometryConfig generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, const char* material_name)
+	{
+
+		if (width == 0) {
+			SHMWARN("Width must be nonzero. Defaulting to one.");
+			width = 1.0f;
+		}
+		if (height == 0) {
+			SHMWARN("Height must be nonzero. Defaulting to one.");
+			height = 1.0f;
+		}
+		if (depth == 0) {
+			SHMWARN("x_segment_count must be a positive number. Defaulting to one.");
+			depth = 1.0f;
+		}
+
+		if (tile_x == 0) {
+			SHMWARN("tile_x must be nonzero. Defaulting to one.");
+			tile_x = 1.0f;
+		}
+		if (tile_y == 0) {
+			SHMWARN("tile_y must be nonzero. Defaulting to one.");
+			tile_y = 1.0f;
+		}
+
+		GeometryConfig config;
+		config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
+		config.vertex_count = 4 * 6;  // 4 verts per segment
+		config.vertices = (Renderer::Vertex3D*)Memory::allocate(config.vertex_size * config.vertex_count, true, AllocationTag::MAIN);
+		config.index_count = 6 * 6;  // 6 indices per segment
+		config.indices = (uint32*)Memory::allocate(sizeof(uint32) * config.index_count, true, AllocationTag::MAIN);
+
+		// TODO: This generates extra vertices, but we can always deduplicate them later.
+		float32 half_width = width * 0.5f;
+		float32 half_height = height * 0.5f;
+		float32 half_depth = depth * 0.5f;
+
+		float32 min_x = -half_width;
+		float32 min_y = -half_height;
+		float32 min_z = -half_depth;
+		float32 max_x = half_width;
+		float32 max_y = half_height;
+		float32 max_z = half_depth;
+		float32 min_uvx = 0.0f;
+		float32 min_uvy = 0.0f;
+		float32 max_uvx = tile_x;
+		float32 max_uvy = tile_y;
+
+		Renderer::Vertex3D* verts = (Renderer::Vertex3D*)config.vertices;
+
+		// Front
+		verts[(0 * 4) + 0].position = { min_x, min_y, max_z };
+		verts[(0 * 4) + 1].position = { max_x, max_y, max_z };
+		verts[(0 * 4) + 2].position = { min_x, max_y, max_z };
+		verts[(0 * 4) + 3].position = { max_x, min_y, max_z };
+		verts[(0 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
+		verts[(0 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
+		verts[(0 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
+		verts[(0 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(0 * 4) + 0].normal = { 0.0f, 0.0f, 1.0f };
+		verts[(0 * 4) + 1].normal = { 0.0f, 0.0f, 1.0f };
+		verts[(0 * 4) + 2].normal = { 0.0f, 0.0f, 1.0f };
+		verts[(0 * 4) + 3].normal = { 0.0f, 0.0f, 1.0f };
+
+		//Back
+		verts[(1 * 4) + 0].position = { max_x, min_y, min_z };
+		verts[(1 * 4) + 1].position = { min_x, max_y, min_z };
+		verts[(1 * 4) + 2].position = { max_x, max_y, min_z };
+		verts[(1 * 4) + 3].position = { min_x, min_y, min_z };
+		verts[(1 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
+		verts[(1 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
+		verts[(1 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
+		verts[(1 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(1 * 4) + 0].normal = { 0.0f, 0.0f, -1.0f };
+		verts[(1 * 4) + 1].normal = { 0.0f, 0.0f, -1.0f };
+		verts[(1 * 4) + 2].normal = { 0.0f, 0.0f, -1.0f };
+		verts[(1 * 4) + 3].normal = { 0.0f, 0.0f, -1.0f };
+
+		//Left
+		verts[(2 * 4) + 0].position = { min_x, min_y, min_z };
+		verts[(2 * 4) + 1].position = { min_x, max_y, max_z };
+		verts[(2 * 4) + 2].position = { min_x, max_y, min_z };
+		verts[(2 * 4) + 3].position = { min_x, min_y, max_z };
+		verts[(2 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
+		verts[(2 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
+		verts[(2 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
+		verts[(2 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(2 * 4) + 0].normal = { -1.0f, 0.0f, 0.0f };
+		verts[(2 * 4) + 1].normal = { -1.0f, 0.0f, 0.0f };
+		verts[(2 * 4) + 2].normal = { -1.0f, 0.0f, 0.0f };
+		verts[(2 * 4) + 3].normal = { -1.0f, 0.0f, 0.0f };
+
+		//Right
+		verts[(3 * 4) + 0].position = { max_x, min_y, max_z };
+		verts[(3 * 4) + 1].position = { max_x, max_y, min_z };
+		verts[(3 * 4) + 2].position = { max_x, max_y, max_z };
+		verts[(3 * 4) + 3].position = { max_x, min_y, min_z };
+		verts[(3 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
+		verts[(3 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
+		verts[(3 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
+		verts[(3 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(3 * 4) + 0].normal = { 1.0f, 0.0f, 0.0f };
+		verts[(3 * 4) + 1].normal = { 1.0f, 0.0f, 0.0f };
+		verts[(3 * 4) + 2].normal = { 1.0f, 0.0f, 0.0f };
+		verts[(3 * 4) + 3].normal = { 1.0f, 0.0f, 0.0f };
+
+		//Bottom
+		verts[(4 * 4) + 0].position = { max_x, min_y, max_z };
+		verts[(4 * 4) + 1].position = { min_x, min_y, min_z };
+		verts[(4 * 4) + 2].position = { max_x, min_y, min_z };
+		verts[(4 * 4) + 3].position = { min_x, min_y, max_z };
+		verts[(4 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
+		verts[(4 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
+		verts[(4 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
+		verts[(4 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(4 * 4) + 0].normal = { 0.0f, -1.0f, 0.0f };
+		verts[(4 * 4) + 1].normal = { 0.0f, -1.0f, 0.0f };
+		verts[(4 * 4) + 2].normal = { 0.0f, -1.0f, 0.0f };
+		verts[(4 * 4) + 3].normal = { 0.0f, -1.0f, 0.0f };
+
+		//Top
+		verts[(5 * 4) + 0].position = { min_x, max_y, max_z };
+		verts[(5 * 4) + 1].position = { max_x, max_y, min_z };
+		verts[(5 * 4) + 2].position = { min_x, max_y, min_z };
+		verts[(5 * 4) + 3].position = { max_x, max_y, max_z };
+		verts[(5 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
+		verts[(5 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
+		verts[(5 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
+		verts[(5 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(5 * 4) + 0].normal = { 0.0f, 1.0f, 0.0f };
+		verts[(5 * 4) + 1].normal = { 0.0f, 1.0f, 0.0f };
+		verts[(5 * 4) + 2].normal = { 0.0f, 1.0f, 0.0f };
+		verts[(5 * 4) + 3].normal = { 0.0f, 1.0f, 0.0f };
+
+		for (uint32 i = 0; i < 6; ++i) {
+			uint32 v_offset = i * 4;
+			uint32 i_offset = i * 6;
+			((uint32*)config.indices)[i_offset + 0] = v_offset + 0;
+			((uint32*)config.indices)[i_offset + 1] = v_offset + 1;
+			((uint32*)config.indices)[i_offset + 2] = v_offset + 2;
+			((uint32*)config.indices)[i_offset + 3] = v_offset + 0;
+			((uint32*)config.indices)[i_offset + 4] = v_offset + 3;
+			((uint32*)config.indices)[i_offset + 5] = v_offset + 1;
+		}
+
+		if (name && CString::length(name) > 0) {
+			CString::copy(Geometry::max_name_length, config.name, name);
+		}
+		else {
+			CString::copy(Geometry::max_name_length, config.name, Config::default_name);
+		}
+
+		if (material_name && CString::length(material_name) > 0) {
+			CString::copy(Material::max_name_length, config.material_name, material_name);
+		}
+		else {
+			CString::copy(Material::max_name_length, config.material_name, MaterialSystem::Config::default_name);
+		}
+
+		return config;
+
+	}
 }

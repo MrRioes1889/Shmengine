@@ -178,3 +178,17 @@ namespace CString
 		return arr;
 	}
 }
+
+String mid(const String& source, uint32 start, int32 length)
+{
+	String s = source;
+	s.arr.count = CString::mid(s.arr.data, start, length);
+	return s;
+}
+
+String trim(const String& other)
+{
+	String s = other;
+	s.arr.count = CString::trim(s.arr.data);
+	return s;
+}

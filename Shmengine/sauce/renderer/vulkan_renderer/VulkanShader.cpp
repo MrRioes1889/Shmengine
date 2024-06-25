@@ -486,21 +486,22 @@ namespace Renderer::Vulkan
 		// Descriptor 0 - Uniform buffer
 		// Only do this if the descriptor has not yet been updated.
 		uint8* instance_ubo_generation = &(object_state->descriptor_set_state.descriptor_states[descriptor_index].generations[image_index]);
+
+		VkDescriptorBufferInfo buffer_info;
+		buffer_info.buffer = v_shader->uniform_buffer.handle;
+		buffer_info.offset = object_state->offset;
+		buffer_info.range = s->ubo_stride;
+
+		VkWriteDescriptorSet ubo_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		ubo_descriptor.dstSet = object_descriptor_set;
+		ubo_descriptor.dstBinding = descriptor_index;
+		ubo_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubo_descriptor.descriptorCount = 1;
+		ubo_descriptor.pBufferInfo = &buffer_info;
+
 		// TODO: determine if update is required.
 		if (*instance_ubo_generation == INVALID_ID8 /*|| *global_ubo_generation != material->generation*/)
-		{
-			VkDescriptorBufferInfo buffer_info;
-			buffer_info.buffer = v_shader->uniform_buffer.handle;
-			buffer_info.offset = object_state->offset;
-			buffer_info.range = s->ubo_stride;
-
-			VkWriteDescriptorSet ubo_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-			ubo_descriptor.dstSet = object_descriptor_set;
-			ubo_descriptor.dstBinding = descriptor_index;
-			ubo_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			ubo_descriptor.descriptorCount = 1;
-			ubo_descriptor.pBufferInfo = &buffer_info;
-
+		{					
 			descriptor_writes[descriptor_count] = ubo_descriptor;
 			descriptor_count++;
 
@@ -510,12 +511,12 @@ namespace Renderer::Vulkan
 		descriptor_index++;
 
 		// Samplers will always be in the binding. If the binding count is less than 2, there are no samplers.
+		VkDescriptorImageInfo image_infos[VulkanConfig::shader_max_instance_textures];
 		if (v_shader->config.descriptor_sets[desc_set_index_instance].binding_count > 1)
 		{
 			// Iterate samplers.
 			uint32 total_sampler_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[binding_index_sampler].descriptorCount;
-			uint32 update_sampler_count = 0;
-			VkDescriptorImageInfo image_infos[VulkanConfig::shader_max_instance_textures];
+			uint32 update_sampler_count = 0;		
 			for (uint32 i = 0; i < total_sampler_count; ++i)
 			{
 				// TODO: only update in the list if actually needing an update.
