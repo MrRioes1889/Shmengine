@@ -19,8 +19,12 @@ namespace MaterialSystem
         uint16 projection;
         uint16 view;
         uint16 ambient_color;
+        uint16 camera_position;
+        uint16 shininess;
         uint16 diffuse_color;
         uint16 diffuse_texture;
+        uint16 specular_texture;
+        uint16 normal_texture;
         uint16 model;
     };
 
@@ -71,12 +75,23 @@ namespace MaterialSystem
         system_state->config = config;
 
         system_state->material_shader_id = INVALID_ID;
+        system_state->material_locations.view = INVALID_ID16;
+        system_state->material_locations.projection = INVALID_ID16;
         system_state->material_locations.diffuse_color = INVALID_ID16;
         system_state->material_locations.diffuse_texture = INVALID_ID16;
+        system_state->material_locations.specular_texture = INVALID_ID16;
+        system_state->material_locations.normal_texture = INVALID_ID16;
+        system_state->material_locations.camera_position = INVALID_ID16;
+        system_state->material_locations.ambient_color = INVALID_ID16;
+        system_state->material_locations.shininess = INVALID_ID16;
+        system_state->material_locations.model = INVALID_ID16;
 
         system_state->ui_shader_id = INVALID_ID;
         system_state->ui_locations.diffuse_color = INVALID_ID16;
         system_state->ui_locations.diffuse_texture = INVALID_ID16;
+        system_state->ui_locations.view = INVALID_ID16;
+        system_state->ui_locations.projection = INVALID_ID16;
+        system_state->ui_locations.model = INVALID_ID16;
 
         uint64 texture_array_size = sizeof(Material) * config.max_material_count;
         system_state->registered_materials = (Material*)allocator_callback(texture_array_size);
@@ -190,8 +205,12 @@ namespace MaterialSystem
                 system_state->material_locations.projection = ShaderSystem::get_uniform_index(s, "projection");
                 system_state->material_locations.view = ShaderSystem::get_uniform_index(s, "view");
                 system_state->material_locations.ambient_color = ShaderSystem::get_uniform_index(s, "ambient_color");
+                system_state->material_locations.camera_position = ShaderSystem::get_uniform_index(s, "camera_position");
                 system_state->material_locations.diffuse_color = ShaderSystem::get_uniform_index(s, "diffuse_color");
                 system_state->material_locations.diffuse_texture = ShaderSystem::get_uniform_index(s, "diffuse_texture");
+                system_state->material_locations.specular_texture = ShaderSystem::get_uniform_index(s, "specular_texture");
+                system_state->material_locations.normal_texture = ShaderSystem::get_uniform_index(s, "normal_texture");
+                system_state->material_locations.shininess = ShaderSystem::get_uniform_index(s, "shininess");
                 system_state->material_locations.model = ShaderSystem::get_uniform_index(s, "model");
             }
             else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config.shader_name.c_str(), Renderer::RendererConfig::builtin_shader_name_ui)) {
@@ -262,12 +281,13 @@ namespace MaterialSystem
         return false;                                 \
     }
 
-    bool32 apply_globals(uint32 shader_id, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color)
+    bool32 apply_globals(uint32 shader_id, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position)
     {
         if (shader_id == system_state->material_shader_id) {
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.projection, projection));
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.view, view));
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.ambient_color, ambient_color));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.camera_position, camera_position));
         }
         else if (shader_id == system_state->ui_shader_id) {
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.projection, &projection));
@@ -288,6 +308,9 @@ namespace MaterialSystem
             // Material shader
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_color, &m->diffuse_color));
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_texture, m->diffuse_map.texture));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.specular_texture, m->specular_map.texture));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.normal_texture, m->normal_map.texture));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.shininess, &m->shininess));
         }
         else if (m->shader_id == system_state->ui_shader_id) {
             // UI shader
@@ -325,21 +348,72 @@ namespace MaterialSystem
 
         m->shader_id = ShaderSystem::get_id(config.shader_name.c_str());
         m->diffuse_color = config.diffuse_color;
+        m->shininess = config.shininess;
 
-        // Diffuse map
-        if (CString::length(config.diffuse_map_name) > 0) {
-            m->diffuse_map.use = TextureUse::MAP_DIFFUSE;
-            m->diffuse_map.texture = TextureSystem::acquire(config.diffuse_map_name, true);
-            if (!m->diffuse_map.texture) {
-                SHMWARNV("Unable to load texture '%s' for material '%s', using default.", config.diffuse_map_name, m->name);
-                m->diffuse_map.texture = TextureSystem::get_default_texture();
-            }
-        }
-        else {
-            // NOTE: Only set for clarity, as call to kzero_memory above does this already.
-            m->diffuse_map.use = TextureUse::UNKNOWN;
-            m->diffuse_map.texture = 0;
-        }
+        auto init_texture_map = [](const char* map_name, const char* material_name, TextureUse use, TextureMap& out_map)
+        {
+                if (CString::length(map_name) > 0) {
+                    out_map.use = use;
+                    out_map.texture = TextureSystem::acquire(map_name, true);
+                    if (!out_map.texture) {
+                        SHMWARNV("Unable to load texture '%s' for material '%s', using default.", material_name);
+                        out_map.texture = TextureSystem::get_default_texture();
+                    }
+                }
+                else {
+                    // NOTE: Only set for clarity, as call to kzero_memory above does this already.
+                    out_map.use = use;
+                    out_map.texture = use == TextureUse::MAP_NORMAL ? TextureSystem::get_default_normal_texture() : 0;
+                }
+        };
+
+        init_texture_map(config.diffuse_map_name, m->name, TextureUse::MAP_DIFFUSE, m->diffuse_map);
+        init_texture_map(config.specular_map_name, m->name, TextureUse::MAP_SPECULAR, m->specular_map);
+        init_texture_map(config.normal_map_name, m->name, TextureUse::MAP_NORMAL, m->normal_map);
+        //// Diffuse map
+        //if (CString::length(config.diffuse_map_name) > 0) {
+        //    m->diffuse_map.use = TextureUse::MAP_DIFFUSE;
+        //    m->diffuse_map.texture = TextureSystem::acquire(config.diffuse_map_name, true);
+        //    if (!m->diffuse_map.texture) {
+        //        SHMWARNV("Unable to load texture '%s' for material '%s', using default.", config.diffuse_map_name, m->name);
+        //        m->diffuse_map.texture = TextureSystem::get_default_texture();
+        //    }
+        //}
+        //else {
+        //    // NOTE: Only set for clarity, as call to kzero_memory above does this already.
+        //    m->diffuse_map.use = TextureUse::UNKNOWN;
+        //    m->diffuse_map.texture = 0;
+        //}
+
+        //// Specular map
+        //if (CString::length(config.specular_map_name) > 0) {
+        //    m->specular_map.use = TextureUse::MAP_SPECULAR;
+        //    m->specular_map.texture = TextureSystem::acquire(config.specular_map_name, true);
+        //    if (!m->specular_map.texture) {
+        //        SHMWARNV("Unable to load specular texture '%s' for material '%s', using default.", config.specular_map_name, m->name);
+        //        m->specular_map.texture = TextureSystem::get_default_specular_texture();
+        //    }
+        //}
+        //else {
+        //    // NOTE: Only set for clarity, as call to kzero_memory above does this already.
+        //    m->specular_map.use = TextureUse::UNKNOWN;
+        //    m->specular_map.texture = 0;
+        //}
+
+        //// Normal map
+        //if (CString::length(config.normal_map_name) > 0) {
+        //    m->normal_map.use = TextureUse::MAP_SPECULAR;
+        //    m->normal_map.texture = TextureSystem::acquire(config.normal_map_name, true);
+        //    if (!m->normal_map.texture) {
+        //        SHMWARNV("Unable to load normal texture '%s' for material '%s', using default.", config.normal_map_name, m->name);
+        //        m->normal_map.texture = TextureSystem::get_default_specular_texture();
+        //    }
+        //}
+        //else {
+        //    // NOTE: Only set for clarity, as call to kzero_memory above does this already.
+        //    m->normal_map.use = TextureUse::UNKNOWN;
+        //    m->normal_map.texture = 0;
+        //}
 
         // TODO: other maps
 
@@ -367,6 +441,14 @@ namespace MaterialSystem
             TextureSystem::release(m->diffuse_map.texture->name);
         }
 
+        if (m->specular_map.texture) {
+            TextureSystem::release(m->specular_map.texture->name);
+        }
+
+        if (m->normal_map.texture) {
+            TextureSystem::release(m->normal_map.texture->name);
+        }
+
         // Release renderer resources.
         if (m->shader_id != INVALID_ID && m->internal_id != INVALID_ID)
         {
@@ -387,8 +469,15 @@ namespace MaterialSystem
         system_state->default_material.generation = INVALID_ID;
         CString::copy(Material::max_name_length, system_state->default_material.name, Config::default_name);
         system_state->default_material.diffuse_color = VEC4F_ONE;  // white
+
         system_state->default_material.diffuse_map.use = TextureUse::MAP_DIFFUSE;
         system_state->default_material.diffuse_map.texture = TextureSystem::get_default_texture();
+
+        system_state->default_material.specular_map.use = TextureUse::MAP_SPECULAR;
+        system_state->default_material.specular_map.texture = TextureSystem::get_default_specular_texture();
+
+        system_state->default_material.normal_map.use = TextureUse::MAP_NORMAL;
+        system_state->default_material.normal_map.texture = TextureSystem::get_default_normal_texture();
 
         Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material);
         if (!Renderer::shader_acquire_instance_resources(s, &system_state->default_material.internal_id))

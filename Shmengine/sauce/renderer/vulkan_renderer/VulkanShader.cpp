@@ -521,6 +521,7 @@ namespace Renderer::Vulkan
 			{
 				// TODO: only update in the list if actually needing an update.
 				Texture* t = v_shader->instance_states[s->bound_instance_id].instance_textures[i];
+
 				VulkanTextureData* internal_data = (VulkanTextureData*)t->internal_data.data;
 				image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				image_infos[i].imageView = internal_data->image.view;
@@ -531,7 +532,8 @@ namespace Renderer::Vulkan
 				// if (t->generation != INVALID_ID) {
 				//     *descriptor_generation = t->generation;
 				//     *descriptor_id = t->id;
-				// }
+				// }		
+				// 	
 
 				update_sampler_count++;
 			}

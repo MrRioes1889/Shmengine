@@ -20,6 +20,8 @@
 // TODO: temp
 #include "utility/Math.hpp"
 #include "utility/String.hpp"
+
+#include "renderer/RendererGeometry.hpp"
 // end
 
 namespace Application
@@ -66,9 +68,21 @@ namespace Application
 			"paving",
 			"paving2"
 		};
+		const char* spec_names[3] = {
+			"cobblestone_SPEC",
+			"paving_SPEC",
+			"paving2_SPEC"
+		};
+		const char* norm_names[3] = {
+			"cobblestone_NRM",
+			"paving_NRM",
+			"paving2_NRM"
+		};
 
 		static int32 choice = 2;
 		const char* old_name = names[choice];
+		const char* old_spec_name = spec_names[choice];
+		const char* old_norm_name = spec_names[choice];
 		choice++;
 		choice %= 3;
 
@@ -77,10 +91,26 @@ namespace Application
 			app_state->test_geometry->material->diffuse_map.texture = TextureSystem::acquire(names[choice], true);
 			if (!app_state->test_geometry->material->diffuse_map.texture)
 			{
-				SHMWARN("event_on_debug_event no texture! using default.");
+				SHMWARN("event_on_debug_event no diffuse texture! using default.");
 				app_state->test_geometry->material->diffuse_map.texture = TextureSystem::get_default_texture();
 			}
 			TextureSystem::release(old_name);
+
+			app_state->test_geometry->material->specular_map.texture = TextureSystem::acquire(spec_names[choice], true);
+			if (!app_state->test_geometry->material->specular_map.texture)
+			{
+				SHMWARN("event_on_debug_event no specular texture! using default.");
+				app_state->test_geometry->material->specular_map.texture = TextureSystem::get_default_specular_texture();
+			}
+			TextureSystem::release(old_spec_name);
+
+			app_state->test_geometry->material->normal_map.texture = TextureSystem::acquire(norm_names[choice], true);
+			if (!app_state->test_geometry->material->normal_map.texture)
+			{
+				SHMWARN("event_on_debug_event no normal texture! using default.");
+				app_state->test_geometry->material->normal_map.texture = TextureSystem::get_default_normal_texture();
+			}
+			TextureSystem::release(old_norm_name);
 		}
 		
 		return true;
@@ -224,6 +254,7 @@ namespace Application
 		// TODO: temporary
 		//GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_plane_config(10.0f, 5.0f, 5, 5, 5.0f, 2.0f, "test geometry", "test_material");
 		GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test geometry", "test_material");
+		Renderer::geometry_generate_tangents(g_config.vertex_count, (Renderer::Vertex3D*)g_config.vertices, g_config.index_count, g_config.indices);
 		app_state->test_geometry = GeometrySystem::acquire_from_config(g_config, true);
 		//app_state->test_geometry = GeometrySystem::get_default_geometry();
 		// 
@@ -331,10 +362,17 @@ namespace Application
 				// TODO: temporary
 				Renderer::GeometryRenderData test_render;
 				test_render.geometry = app_state->test_geometry;
-				static float32 angle = 0;
-				angle += (1.0f * delta_time);
+				static float32 angle = 0.0f;
+				angle += (0.5f * delta_time);
 				Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, angle, true);
-				test_render.model = Math::quat_to_mat(rotation);
+
+				Math::Mat4 t = Math::mat_translation(VEC3_ZERO);
+				Math::Mat4 r = Math::quat_to_mat(rotation);
+				Math::Mat4 s = Math::mat_scale(VEC3F_ONE);
+				t = Math::mat_mul(r, t);
+				t = Math::mat_mul(s, t);
+				test_render.model = t;
+
 				r_data.world_geometry_count = 1;
 				r_data.world_geometries = &test_render;
 

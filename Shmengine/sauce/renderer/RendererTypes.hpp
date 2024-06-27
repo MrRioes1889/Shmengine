@@ -45,7 +45,9 @@ namespace Renderer
 	{
 		Math::Vec3f position;
 		Math::Vec3f normal;
-		Math::Vec2f tex_coordinates;
+		Math::Vec2f texcoord;
+		Math::Vec4f color;
+		Math::Vec4f tangent;
 	};
 
 	struct Vertex2D

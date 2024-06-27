@@ -23,6 +23,7 @@ namespace Renderer
 		Math::Mat4 world_projection;
 		Math::Mat4 world_view;
 		Math::Vec4f world_ambient_color;
+		Math::Vec3f world_camera_position;
 
 		Math::Mat4 ui_projection;
 		Math::Mat4 ui_view;
@@ -93,7 +94,7 @@ namespace Renderer
 		system_state = 0;
 	}
 
-	static bool32 draw_using_shader(uint32 shader_id, BuiltinRenderpassType::Value renderpass_type, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, uint32 geometry_count, GeometryRenderData* geometries)
+	static bool32 draw_using_shader(uint32 shader_id, BuiltinRenderpassType::Value renderpass_type, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 geometry_count, GeometryRenderData* geometries)
 	{
 
 		Backend& backend = system_state->backend;
@@ -110,7 +111,7 @@ namespace Renderer
 		}
 
 		// Apply globals
-		if (!MaterialSystem::apply_globals(shader_id, projection, view, ambient_color)) {
+		if (!MaterialSystem::apply_globals(shader_id, projection, view, ambient_color, camera_position)) {
 			SHMERROR("Failed to use apply globals for material shader. Render frame failed.");
 			return false;
 		}
@@ -164,6 +165,7 @@ namespace Renderer
 			&system_state->world_projection,
 			&system_state->world_view,
 			&system_state->world_ambient_color,
+			&system_state->world_camera_position,
 			data->world_geometry_count,
 			data->world_geometries))
 		{
@@ -176,6 +178,7 @@ namespace Renderer
 			BuiltinRenderpassType::UI,
 			&system_state->ui_projection,
 			&system_state->ui_view,
+			0,
 			0,
 			data->ui_geometry_count,
 			data->ui_geometries))
@@ -208,9 +211,10 @@ namespace Renderer
 			SHMWARN("Renderer backend does not exist to accept resize!");
 	}
 
-	void set_view(Math::Mat4 view)
+	void set_view(const Math::Mat4& view, Math::Vec3f camera_position)
 	{
 		system_state->world_view = view;
+		system_state->world_camera_position = camera_position;
 	}
 
 	void create_texture(const void* pixels, Texture* texture)

@@ -128,7 +128,7 @@ bool32 game_update(Game* game_inst, float32 delta_time)
     if (state->camera_view_dirty)
         recalculate_view_matrix(state);
 
-    Renderer::set_view(state->view);
+    Renderer::set_view(state->view, state->camera_position);
     return true;
 }
 

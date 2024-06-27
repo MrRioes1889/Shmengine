@@ -30,7 +30,10 @@ namespace ResourceSystem
 		tmp_res_data.auto_release = true;
         tmp_res_data.shader_name = "Builtin.Material";
 		tmp_res_data.diffuse_color = VEC4F_ONE;
+		tmp_res_data.shininess = 32.0f;
 		CString::empty(tmp_res_data.diffuse_map_name);
+		CString::empty(tmp_res_data.specular_map_name);
+		CString::empty(tmp_res_data.normal_map_name);
 		CString::copy(Material::max_name_length, tmp_res_data.name, name);
 
         uint32 file_size = FileSystem::get_file_size32(&f);
@@ -48,7 +51,8 @@ namespace ResourceSystem
         uint32 line_number = 1;
 
         const char* continue_ptr = 0;
-        while (FileSystem::read_line(file_content, line, &continue_ptr)) {
+        while (FileSystem::read_line(file_content, line, &continue_ptr)) 
+        {
             // Trim the string.
 
             line.trim();
@@ -57,7 +61,8 @@ namespace ResourceSystem
             line_length = line.len();
 
             // Skip blank lines and comments.
-            if (line_length < 1 || line[0] == '#') {
+            if (line_length < 1 || line[0] == '#') 
+            {
                 line_number++;
                 continue;
             }
@@ -77,22 +82,44 @@ namespace ResourceSystem
             value.trim();
 
             // Process the variable.
-            if (var_name.equal_i("version")) {
+            if (var_name.equal_i("version")) 
+            {
                 // TODO: version
             }
-            else if (var_name.equal_i("name")) {
+            else if (var_name.equal_i("name")) 
+            {
                 CString::copy(Material::max_name_length, tmp_res_data.name, value.c_str());
             }
-            else if (var_name.equal_i("shader")) {
+            else if (var_name.equal_i("shader")) 
+            {
                 tmp_res_data.shader_name = value;             
             }
-            else if (var_name.equal_i("diffuse_map_name")) {
+            else if (var_name.equal_i("diffuse_map_name")) 
+            {
                 CString::copy(Texture::max_name_length, tmp_res_data.diffuse_map_name, value.c_str());
             }
-            else if (var_name.equal_i("diffuse_color")) {
+            else if (var_name.equal_i("specular_map_name"))
+            {
+                CString::copy(Texture::max_name_length, tmp_res_data.specular_map_name, value.c_str());
+            }
+            else if (var_name.equal_i("normal_map_name"))
+            {
+                CString::copy(Texture::max_name_length, tmp_res_data.normal_map_name, value.c_str());
+            }
+            else if (var_name.equal_i("diffuse_color"))
+            {
                 // Parse the colour
-                if (!CString::parse(value.c_str(), tmp_res_data.diffuse_color)) {
+                if (!CString::parse(value.c_str(), tmp_res_data.diffuse_color))
+                {
                     SHMWARNV("Error parsing diffuse_colour in file '%s'. Using default of white instead.", full_filepath);
+                }
+            }
+            else if (var_name.equal_i("shininess")) 
+            {
+                // Parse the colour
+                if (!CString::parse_f32(value.c_str(), tmp_res_data.shininess)) 
+                {
+                    SHMWARNV("Error parsing shininess in file '%s'. Using default of 32.0 instead.", full_filepath);
                 }
             }
 

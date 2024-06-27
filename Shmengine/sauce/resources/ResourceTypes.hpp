@@ -61,7 +61,9 @@ struct Texture
 enum class TextureUse
 {
 	UNKNOWN = 0,
-	MAP_DIFFUSE = 1
+	MAP_DIFFUSE = 1,
+	MAP_SPECULAR = 2,
+	MAP_NORMAL = 3
 };
 
 struct TextureMap
@@ -229,7 +231,11 @@ struct Material
 	uint32 shader_id;
 	char name[max_name_length];
 	Math::Vec4f diffuse_color;
-	TextureMap diffuse_map;
+	TextureMap diffuse_map;	
+	TextureMap specular_map;	
+	TextureMap normal_map;	
+
+	float32 shininess;
 
 };
 
@@ -237,9 +243,13 @@ struct MaterialConfig
 {
 	char name[Material::max_name_length];
 	char diffuse_map_name[Texture::max_name_length];
+	char specular_map_name[Texture::max_name_length];
+	char normal_map_name[Texture::max_name_length];
 	String shader_name;
 	Math::Vec4f diffuse_color;
 	bool32 auto_release;
+
+	float32 shininess;
 };
 
 struct Geometry

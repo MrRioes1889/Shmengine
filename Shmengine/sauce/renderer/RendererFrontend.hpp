@@ -15,7 +15,7 @@ namespace Renderer
 
 	bool32 draw_frame(RenderData* data);
 
-	SHMAPI void set_view(Math::Mat4 view);
+	SHMAPI void set_view(const Math::Mat4& view, Math::Vec3f camera_position);
 
 	void create_texture(const void* pixels, Texture* texture);
 	void destroy_texture(Texture* texture);

@@ -15,11 +15,11 @@ namespace Math
 {
 //#pragma pack(push, 1)
 
-	struct alignas(16) Vec4f
+	struct Vec4f //alignas(16) Vec4f
 	{
 		union
 		{
-			__m128 data;
+			//__m128 data;
 			struct {
 				float x;
 				float y;

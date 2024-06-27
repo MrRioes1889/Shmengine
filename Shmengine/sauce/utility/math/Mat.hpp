@@ -22,7 +22,7 @@ namespace Math
 
 //#pragma pack(push, 1)
 
-	struct alignas(16) Mat4
+	struct Mat4//alignas(16) Mat4
 	{
 		union
 		{

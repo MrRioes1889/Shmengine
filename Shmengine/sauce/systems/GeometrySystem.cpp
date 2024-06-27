@@ -197,23 +197,23 @@ namespace GeometrySystem
 
 		verts[0].position.x = -0.5f * f;  // 0    3
 		verts[0].position.y = -0.5f * f;  //
-		verts[0].tex_coordinates.x = 0.0f;      //
-		verts[0].tex_coordinates.y = 0.0f;      // 2    1
+		verts[0].texcoord.x = 0.0f;      //
+		verts[0].texcoord.y = 0.0f;      // 2    1
 
 		verts[1].position.y = 0.5f * f;
 		verts[1].position.x = 0.5f * f;
-		verts[1].tex_coordinates.x = 1.0f;
-		verts[1].tex_coordinates.y = 1.0f;
+		verts[1].texcoord.x = 1.0f;
+		verts[1].texcoord.y = 1.0f;
 
 		verts[2].position.x = -0.5f * f;
 		verts[2].position.y = 0.5f * f;
-		verts[2].tex_coordinates.x = 0.0f;
-		verts[2].tex_coordinates.y = 1.0f;
+		verts[2].texcoord.x = 0.0f;
+		verts[2].texcoord.y = 1.0f;
 
 		verts[3].position.x = 0.5f * f;
 		verts[3].position.y = -0.5f * f;
-		verts[3].tex_coordinates.x = 1.0f;
-		verts[3].tex_coordinates.y = 0.0f;
+		verts[3].texcoord.x = 1.0f;
+		verts[3].texcoord.y = 0.0f;
 
 		uint32 indices[6] = { 0, 1, 2, 0, 3, 1 };
 
@@ -330,23 +330,23 @@ namespace GeometrySystem
 
 				v0->position.x = min_x;
 				v0->position.y = min_y;
-				v0->tex_coordinates.x = min_uvx;
-				v0->tex_coordinates.y = min_uvy;
+				v0->texcoord.x = min_uvx;
+				v0->texcoord.y = min_uvy;
 
 				v1->position.x = max_x;
 				v1->position.y = max_y;
-				v1->tex_coordinates.x = max_uvx;
-				v1->tex_coordinates.y = max_uvy;
+				v1->texcoord.x = max_uvx;
+				v1->texcoord.y = max_uvy;
 
 				v2->position.x = min_x;
 				v2->position.y = max_y;
-				v2->tex_coordinates.x = min_uvx;
-				v2->tex_coordinates.y = max_uvy;
+				v2->texcoord.x = min_uvx;
+				v2->texcoord.y = max_uvy;
 
 				v3->position.x = max_x;
 				v3->position.y = min_y;
-				v3->tex_coordinates.x = max_uvx;
-				v3->tex_coordinates.y = min_uvy;
+				v3->texcoord.x = max_uvx;
+				v3->texcoord.y = min_uvy;
 
 				// Generate indices
 				uint32 i_offset = ((y * x_segment_count) + x) * 6;
@@ -432,10 +432,10 @@ namespace GeometrySystem
 		verts[(0 * 4) + 1].position = { max_x, max_y, max_z };
 		verts[(0 * 4) + 2].position = { min_x, max_y, max_z };
 		verts[(0 * 4) + 3].position = { max_x, min_y, max_z };
-		verts[(0 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
-		verts[(0 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
-		verts[(0 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
-		verts[(0 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(0 * 4) + 0].texcoord = { min_uvx, min_uvy };
+		verts[(0 * 4) + 1].texcoord = { max_uvx, max_uvy };
+		verts[(0 * 4) + 2].texcoord = { min_uvx, max_uvy };
+		verts[(0 * 4) + 3].texcoord = { max_uvx, min_uvy };
 		verts[(0 * 4) + 0].normal = { 0.0f, 0.0f, 1.0f };
 		verts[(0 * 4) + 1].normal = { 0.0f, 0.0f, 1.0f };
 		verts[(0 * 4) + 2].normal = { 0.0f, 0.0f, 1.0f };
@@ -446,10 +446,10 @@ namespace GeometrySystem
 		verts[(1 * 4) + 1].position = { min_x, max_y, min_z };
 		verts[(1 * 4) + 2].position = { max_x, max_y, min_z };
 		verts[(1 * 4) + 3].position = { min_x, min_y, min_z };
-		verts[(1 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
-		verts[(1 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
-		verts[(1 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
-		verts[(1 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(1 * 4) + 0].texcoord = { min_uvx, min_uvy };
+		verts[(1 * 4) + 1].texcoord = { max_uvx, max_uvy };
+		verts[(1 * 4) + 2].texcoord = { min_uvx, max_uvy };
+		verts[(1 * 4) + 3].texcoord = { max_uvx, min_uvy };
 		verts[(1 * 4) + 0].normal = { 0.0f, 0.0f, -1.0f };
 		verts[(1 * 4) + 1].normal = { 0.0f, 0.0f, -1.0f };
 		verts[(1 * 4) + 2].normal = { 0.0f, 0.0f, -1.0f };
@@ -460,10 +460,10 @@ namespace GeometrySystem
 		verts[(2 * 4) + 1].position = { min_x, max_y, max_z };
 		verts[(2 * 4) + 2].position = { min_x, max_y, min_z };
 		verts[(2 * 4) + 3].position = { min_x, min_y, max_z };
-		verts[(2 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
-		verts[(2 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
-		verts[(2 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
-		verts[(2 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(2 * 4) + 0].texcoord = { min_uvx, min_uvy };
+		verts[(2 * 4) + 1].texcoord = { max_uvx, max_uvy };
+		verts[(2 * 4) + 2].texcoord = { min_uvx, max_uvy };
+		verts[(2 * 4) + 3].texcoord = { max_uvx, min_uvy };
 		verts[(2 * 4) + 0].normal = { -1.0f, 0.0f, 0.0f };
 		verts[(2 * 4) + 1].normal = { -1.0f, 0.0f, 0.0f };
 		verts[(2 * 4) + 2].normal = { -1.0f, 0.0f, 0.0f };
@@ -474,10 +474,10 @@ namespace GeometrySystem
 		verts[(3 * 4) + 1].position = { max_x, max_y, min_z };
 		verts[(3 * 4) + 2].position = { max_x, max_y, max_z };
 		verts[(3 * 4) + 3].position = { max_x, min_y, min_z };
-		verts[(3 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
-		verts[(3 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
-		verts[(3 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
-		verts[(3 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(3 * 4) + 0].texcoord = { min_uvx, min_uvy };
+		verts[(3 * 4) + 1].texcoord = { max_uvx, max_uvy };
+		verts[(3 * 4) + 2].texcoord = { min_uvx, max_uvy };
+		verts[(3 * 4) + 3].texcoord = { max_uvx, min_uvy };
 		verts[(3 * 4) + 0].normal = { 1.0f, 0.0f, 0.0f };
 		verts[(3 * 4) + 1].normal = { 1.0f, 0.0f, 0.0f };
 		verts[(3 * 4) + 2].normal = { 1.0f, 0.0f, 0.0f };
@@ -488,10 +488,10 @@ namespace GeometrySystem
 		verts[(4 * 4) + 1].position = { min_x, min_y, min_z };
 		verts[(4 * 4) + 2].position = { max_x, min_y, min_z };
 		verts[(4 * 4) + 3].position = { min_x, min_y, max_z };
-		verts[(4 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
-		verts[(4 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
-		verts[(4 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
-		verts[(4 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(4 * 4) + 0].texcoord = { min_uvx, min_uvy };
+		verts[(4 * 4) + 1].texcoord = { max_uvx, max_uvy };
+		verts[(4 * 4) + 2].texcoord = { min_uvx, max_uvy };
+		verts[(4 * 4) + 3].texcoord = { max_uvx, min_uvy };
 		verts[(4 * 4) + 0].normal = { 0.0f, -1.0f, 0.0f };
 		verts[(4 * 4) + 1].normal = { 0.0f, -1.0f, 0.0f };
 		verts[(4 * 4) + 2].normal = { 0.0f, -1.0f, 0.0f };
@@ -502,10 +502,10 @@ namespace GeometrySystem
 		verts[(5 * 4) + 1].position = { max_x, max_y, min_z };
 		verts[(5 * 4) + 2].position = { min_x, max_y, min_z };
 		verts[(5 * 4) + 3].position = { max_x, max_y, max_z };
-		verts[(5 * 4) + 0].tex_coordinates = { min_uvx, min_uvy };
-		verts[(5 * 4) + 1].tex_coordinates = { max_uvx, max_uvy };
-		verts[(5 * 4) + 2].tex_coordinates = { min_uvx, max_uvy };
-		verts[(5 * 4) + 3].tex_coordinates = { max_uvx, min_uvy };
+		verts[(5 * 4) + 0].texcoord = { min_uvx, min_uvy };
+		verts[(5 * 4) + 1].texcoord = { max_uvx, max_uvy };
+		verts[(5 * 4) + 2].texcoord = { min_uvx, max_uvy };
+		verts[(5 * 4) + 3].texcoord = { max_uvx, min_uvy };
 		verts[(5 * 4) + 0].normal = { 0.0f, 1.0f, 0.0f };
 		verts[(5 * 4) + 1].normal = { 0.0f, 1.0f, 0.0f };
 		verts[(5 * 4) + 2].normal = { 0.0f, 1.0f, 0.0f };

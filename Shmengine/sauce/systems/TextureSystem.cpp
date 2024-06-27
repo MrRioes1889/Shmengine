@@ -23,6 +23,8 @@ namespace TextureSystem
 	{
 		Config config;
 		Texture default_diffuse;
+		Texture default_specular;
+		Texture default_normal;
 
 		Texture* registered_textures;
 		Hashtable<TextureReference> registered_texture_table = {};
@@ -178,6 +180,14 @@ namespace TextureSystem
 		return &system_state->default_diffuse;
 	}
 
+	Texture* get_default_specular_texture() {
+		return &system_state->default_specular;
+	}
+
+	Texture* get_default_normal_texture() {
+		return &system_state->default_normal;
+	}
+
 	static bool32 load_texture(const char* texture_name, Texture* t)
 	{
 
@@ -278,6 +288,50 @@ namespace TextureSystem
 		Renderer::create_texture(pixels, &system_state->default_diffuse);
 		system_state->default_diffuse.generation = INVALID_ID;
 
+
+		// Specular texture.
+		SHMTRACE("Creating default specular texture...");
+		uint8 spec_pixels[16 * 16 * 4];
+		// Default spec map is black (no specular)
+		Memory::zero_memory(spec_pixels, sizeof(spec_pixels));
+		CString::copy(Texture::max_name_length, system_state->default_specular.name, Config::default_specular_name);
+		system_state->default_specular.width = 16;
+		system_state->default_specular.height = 16;
+		system_state->default_specular.channel_count = 4;
+		system_state->default_specular.generation = INVALID_ID;
+		system_state->default_specular.has_transparency = false;
+		Renderer::create_texture(spec_pixels, &system_state->default_specular);
+		// Manually set the texture generation to invalid since this is a default texture.
+		system_state->default_specular.generation = INVALID_ID;
+
+		// Normal texture
+		SHMTRACE("Creating default normal texture...");
+		uint8 normal_pixels[16 * 16 * 4];  // w * h * channels
+		Memory::zero_memory(normal_pixels, sizeof(normal_pixels));
+
+		// Each pixel.
+		for (uint32 row = 0; row < 16; ++row) {
+			for (uint32 col = 0; col < 16; ++col) {
+				uint32 index = (row * 16) + col;
+				uint32 index_bpp = index * channel_count;
+				// Set blue, z-axis by default and alpha.
+				normal_pixels[index_bpp + 0] = 128;
+				normal_pixels[index_bpp + 1] = 128;
+				normal_pixels[index_bpp + 2] = 255;
+				normal_pixels[index_bpp + 3] = 255;
+			}
+		}
+
+		CString::copy(Texture::max_name_length, system_state->default_normal.name, Config::default_normal_name);
+		system_state->default_normal.width = 16;
+		system_state->default_normal.height = 16;
+		system_state->default_normal.channel_count = 4;
+		system_state->default_normal.generation = INVALID_ID;
+		system_state->default_normal.has_transparency = false;
+		Renderer::create_texture(normal_pixels, &system_state->default_normal);
+		// Manually set the texture generation to invalid since this is a default texture.
+		system_state->default_normal.generation = INVALID_ID;
+
 	}
 
 	static void destroy_default_textures()
@@ -285,6 +339,8 @@ namespace TextureSystem
 		if (system_state)
 		{
 			destroy_texture(&system_state->default_diffuse);
+			destroy_texture(&system_state->default_specular);
+			destroy_texture(&system_state->default_normal);
 		}
 	}
 

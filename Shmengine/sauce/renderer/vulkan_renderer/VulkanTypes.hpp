@@ -30,7 +30,7 @@ struct VulkanConfig
 	inline static const uint32 shader_max_instance_textures = 31;
 	inline static const uint32 shader_max_attributes = 16;
 	inline static const uint32 shader_max_uniforms = 128;
-	inline static const uint32 shader_max_bindings = 32;
+	inline static const uint32 shader_max_bindings = 2;
 	inline static const uint32 shader_max_push_const_ranges = 32;
 };
 
