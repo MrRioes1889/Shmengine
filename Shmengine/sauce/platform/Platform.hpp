@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "utility/Math.hpp"
 
 namespace Platform
 {
@@ -29,6 +30,10 @@ namespace Platform
 	float64 get_absolute_time();
 
 	void sleep(uint32 ms);
+
+	Math::Vec2i get_cursor_pos();
+	void set_cursor_pos(int32 x, int32 y);
+	bool32 clip_cursor(bool32 clip);
 
 }
 

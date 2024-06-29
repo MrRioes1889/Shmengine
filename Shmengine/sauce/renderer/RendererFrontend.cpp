@@ -32,6 +32,7 @@ namespace Renderer
 		float32 far_clip;
 		uint32 material_shader_id;
 		uint32 ui_shader_id;
+		uint32 render_mode;
 	};
 
 	static SystemState* system_state;
@@ -43,6 +44,38 @@ namespace Renderer
         return false;          \
     }
 
+	static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
+	{
+		switch (code) {
+		case SystemEventCode::SET_RENDER_MODE: {
+			int32 mode = data.i32[0];
+			switch (mode) {
+			case ViewMode::DEFAULT:
+			{
+				SHMDEBUG("Renderer mode set to default.");
+				system_state->render_mode = ViewMode::DEFAULT;
+				break;
+			}			
+			case ViewMode::LIGHTING:
+			{
+				SHMDEBUG("Renderer mode set to lighting.");
+				system_state->render_mode = ViewMode::LIGHTING;
+				break;
+			}			
+			case ViewMode::NORMALS:
+			{
+				SHMDEBUG("Renderer mode set to normals.");
+				system_state->render_mode = ViewMode::NORMALS;
+				break;
+			}			
+			}
+			return true;
+		}
+		}
+
+		return false;
+	}
+
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name)
 	{
 
@@ -51,6 +84,9 @@ namespace Renderer
 
 		backend_create(VULKAN, &system_state->backend);
 		system_state->backend.frame_count = 0;
+		system_state->render_mode = ViewMode::DEFAULT;
+
+		Event::event_register(SystemEventCode::SET_RENDER_MODE, system_state, on_event);
 
 		CRITICAL_INIT(system_state->backend.init(application_name), "ERROR: Failed to initialize renderer backend.");
 
@@ -94,6 +130,56 @@ namespace Renderer
 		system_state = 0;
 	}
 
+	static bool32 draw_using_shader(uint32 shader_id, BuiltinRenderpassType::Value renderpass_type, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 geometry_count, GeometryRenderData* geometries);
+
+	bool32 draw_frame(RenderData* data)
+	{
+		Backend& backend = system_state->backend;
+		backend.frame_count++;
+
+		if (!backend.begin_frame(data->delta_time))
+		{
+			SHMERROR("draw_frame - Failed to begin frame;");
+			return false;
+		}
+
+		if (!draw_using_shader(
+			system_state->material_shader_id,
+			BuiltinRenderpassType::WORLD,
+			&system_state->world_projection,
+			&system_state->world_view,
+			&system_state->world_ambient_color,
+			&system_state->world_camera_position,
+			data->world_geometries.count,
+			data->world_geometries.data))
+		{
+			SHMERROR("draw_frame - Failed to draw using material shader;");
+			return false;
+		}
+
+		if (!draw_using_shader(
+			system_state->ui_shader_id,
+			BuiltinRenderpassType::UI,
+			&system_state->ui_projection,
+			&system_state->ui_view,
+			0,
+			0,
+			data->ui_geometries.count,
+			data->ui_geometries.data))
+		{
+			SHMERROR("draw_frame - Failed to draw using material shader;");
+			return false;
+		}
+
+		if (!backend.end_frame(data->delta_time))
+		{
+			SHMERROR("draw_frame - Failed to begin frame;");
+			return false;
+		}
+
+		return true;
+	}
+
 	static bool32 draw_using_shader(uint32 shader_id, BuiltinRenderpassType::Value renderpass_type, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 geometry_count, GeometryRenderData* geometries)
 	{
 
@@ -111,7 +197,7 @@ namespace Renderer
 		}
 
 		// Apply globals
-		if (!MaterialSystem::apply_globals(shader_id, projection, view, ambient_color, camera_position)) {
+		if (!MaterialSystem::apply_globals(shader_id, projection, view, ambient_color, camera_position, system_state->render_mode)) {
 			SHMERROR("Failed to use apply globals for material shader. Render frame failed.");
 			return false;
 		}
@@ -127,10 +213,18 @@ namespace Renderer
 			}
 
 			// Apply the material
-			if (!MaterialSystem::apply_instance(m)) {
-				SHMWARNV("Failed to apply material '%s'. Skipping draw.", m->name);
-				continue;
-			}
+			if (m->render_frame_number != system_state->backend.frame_count)
+			{
+				if (!MaterialSystem::apply_instance(m)) 
+				{
+					SHMWARNV("Failed to apply material '%s'. Skipping draw.", m->name);
+					continue;
+				}
+				else
+				{
+					m->render_frame_number = (uint32)system_state->backend.frame_count;
+				}
+			}		
 
 			// Apply the locals
 			MaterialSystem::apply_local(m, geometries[i].model);
@@ -139,7 +233,7 @@ namespace Renderer
 			backend.draw_geometry(geometries[i]);
 		}
 
-		if (!backend.end_renderpass(BuiltinRenderpassType::WORLD))
+		if (!backend.end_renderpass(renderpass_type))
 		{
 			SHMERROR("draw_frame - BuiltinRenderpass::WORLD failed to end renderpass!");
 			return false;
@@ -147,56 +241,6 @@ namespace Renderer
 
 		return true;
 
-	}
-
-	bool32 draw_frame(RenderData* data)
-	{
-		Backend& backend = system_state->backend;
-
-		if (!backend.begin_frame(data->delta_time))
-		{
-			SHMERROR("draw_frame - Failed to begin frame;");
-			return false;
-		}
-
-		if (!draw_using_shader(
-			system_state->material_shader_id,
-			BuiltinRenderpassType::WORLD,
-			&system_state->world_projection,
-			&system_state->world_view,
-			&system_state->world_ambient_color,
-			&system_state->world_camera_position,
-			data->world_geometry_count,
-			data->world_geometries))
-		{
-			SHMERROR("draw_frame - Failed to draw using material shader;");
-			return false;
-		}
-
-		if (!draw_using_shader(
-			system_state->ui_shader_id,
-			BuiltinRenderpassType::UI,
-			&system_state->ui_projection,
-			&system_state->ui_view,
-			0,
-			0,
-			data->ui_geometry_count,
-			data->ui_geometries))
-		{
-			SHMERROR("draw_frame - Failed to draw using material shader;");
-			return false;
-		}
-
-		if (!backend.end_frame(data->delta_time))
-		{
-			SHMERROR("draw_frame - Failed to begin frame;");
-			return false;
-		}
-
-
-		backend.frame_count++;
-
-		return true;
 	}
 
 	void on_resized(uint32 width, uint32 height)

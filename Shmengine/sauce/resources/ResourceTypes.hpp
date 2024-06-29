@@ -230,12 +230,14 @@ struct Material
 	uint32 internal_id;
 	uint32 shader_id;
 	char name[max_name_length];
+	uint32 render_frame_number;
+	float32 shininess;	
 	Math::Vec4f diffuse_color;
 	TextureMap diffuse_map;	
 	TextureMap specular_map;	
 	TextureMap normal_map;	
 
-	float32 shininess;
+	
 
 };
 
@@ -263,5 +265,11 @@ struct Geometry
 	char name[max_name_length];
 	Material* material;
 
+};
+
+struct Mesh
+{
+	Darray<Geometry*> geometries;
+	Math::Mat4 model;
 };
 

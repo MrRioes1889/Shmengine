@@ -50,7 +50,7 @@ namespace Application
 		void* material_system_state;
 		void* geometry_system_state;
 
-		Geometry* test_geometry;
+		Darray<Mesh> meshes;
 		Geometry* test_ui_geometry;
 	};
 
@@ -68,49 +68,23 @@ namespace Application
 			"paving",
 			"paving2"
 		};
-		const char* spec_names[3] = {
-			"cobblestone_SPEC",
-			"paving_SPEC",
-			"paving2_SPEC"
-		};
-		const char* norm_names[3] = {
-			"cobblestone_NRM",
-			"paving_NRM",
-			"paving2_NRM"
-		};
 
 		static int32 choice = 2;
 		const char* old_name = names[choice];
-		const char* old_spec_name = spec_names[choice];
-		const char* old_norm_name = spec_names[choice];
 		choice++;
 		choice %= 3;
 
-		if (app_state->test_geometry)
+		Geometry* g = app_state->meshes[0].geometries[0];
+		if (g)
 		{
-			app_state->test_geometry->material->diffuse_map.texture = TextureSystem::acquire(names[choice], true);
-			if (!app_state->test_geometry->material->diffuse_map.texture)
+			g->material = MaterialSystem::acquire(names[choice]);
+			if (!g->material)
 			{
-				SHMWARN("event_on_debug_event no diffuse texture! using default.");
-				app_state->test_geometry->material->diffuse_map.texture = TextureSystem::get_default_texture();
+				SHMWARNV("event_on_debug_event - Failed to acquire material '%s'! Using default.", names[choice]);
+				g->material = MaterialSystem::get_default_material();
 			}
-			TextureSystem::release(old_name);
 
-			app_state->test_geometry->material->specular_map.texture = TextureSystem::acquire(spec_names[choice], true);
-			if (!app_state->test_geometry->material->specular_map.texture)
-			{
-				SHMWARN("event_on_debug_event no specular texture! using default.");
-				app_state->test_geometry->material->specular_map.texture = TextureSystem::get_default_specular_texture();
-			}
-			TextureSystem::release(old_spec_name);
-
-			app_state->test_geometry->material->normal_map.texture = TextureSystem::acquire(norm_names[choice], true);
-			if (!app_state->test_geometry->material->normal_map.texture)
-			{
-				SHMWARN("event_on_debug_event no normal texture! using default.");
-				app_state->test_geometry->material->normal_map.texture = TextureSystem::get_default_normal_texture();
-			}
-			TextureSystem::release(old_norm_name);
+			MaterialSystem::release(old_name);
 		}
 		
 		return true;
@@ -180,12 +154,12 @@ namespace Application
 
 		game_inst->state = Memory::allocate(game_inst->state_size, true, AllocationTag::MAIN);
 
-		Event::event_register(EVENT_CODE_APPLICATION_QUIT, 0, on_event);
-		Event::event_register(EVENT_CODE_KEY_PRESSED, 0, on_key);
-		Event::event_register(EVENT_CODE_KEY_RELEASED, 0, on_key);
-		Event::event_register(EVENT_CODE_WINDOW_RESIZED, 0, on_resized);
+		Event::event_register(SystemEventCode::APPLICATION_QUIT, 0, on_event);
+		Event::event_register(SystemEventCode::KEY_PRESSED, 0, on_key);
+		Event::event_register(SystemEventCode::KEY_RELEASED, 0, on_key);
+		Event::event_register(SystemEventCode::WINDOW_RESIZED, 0, on_resized);
 		// TODO: temporary
-		Event::event_register(EVENT_CODE_DEBUG0, 0, event_on_debug_event);
+		Event::event_register(SystemEventCode::DEBUG0, 0, event_on_debug_event);
 		// end
 
 		if (!Platform::system_init(
@@ -252,12 +226,24 @@ namespace Application
 		}	
 
 		// TODO: temporary
-		//GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_plane_config(10.0f, 5.0f, 5, 5, 5.0f, 2.0f, "test geometry", "test_material");
-		GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test geometry", "test_material");
+		app_state->meshes.init(1, AllocationTag::MAIN);
+
+		Mesh cube_mesh = {};
+		cube_mesh.geometries.init(1, AllocationTag::MAIN);
+		GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material");
 		Renderer::geometry_generate_tangents(g_config.vertex_count, (Renderer::Vertex3D*)g_config.vertices, g_config.index_count, g_config.indices);
-		app_state->test_geometry = GeometrySystem::acquire_from_config(g_config, true);
-		//app_state->test_geometry = GeometrySystem::get_default_geometry();
-		// 
+		cube_mesh.geometries.push(GeometrySystem::acquire_from_config(g_config, true));
+		cube_mesh.model = MAT4_IDENTITY;
+		app_state->meshes.push(cube_mesh);
+
+		Mesh cube_mesh2 = {};
+		cube_mesh2.geometries.init(1, AllocationTag::MAIN);
+		GeometrySystem::GeometryConfig g_config2 = GeometrySystem::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material");
+		Renderer::geometry_generate_tangents(g_config2.vertex_count, (Renderer::Vertex3D*)g_config2.vertices, g_config2.index_count, g_config2.indices);
+		cube_mesh2.geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
+		cube_mesh2.model = MAT4_IDENTITY;
+		app_state->meshes.push(cube_mesh2);
+
 		// Load up some test UI geometry.
 		GeometrySystem::GeometryConfig ui_config;
 		ui_config.vertex_size = sizeof(Renderer::Vertex2D);
@@ -342,6 +328,8 @@ namespace Application
 				app_state->is_running = false;
 			}
 
+			Input::frame_start();
+
 			if (!app_state->is_suspended)
 			{
 				if (!app_state->game_inst->update(app_state->game_inst, delta_time))
@@ -356,31 +344,39 @@ namespace Application
 					break;
 				}
 
-				Renderer::RenderData r_data;
+				Renderer::RenderData r_data = {};
+				r_data.world_geometries.init(1, AllocationTag::MAIN);
+				r_data.ui_geometries.init(1, AllocationTag::MAIN);
 				r_data.delta_time = delta_time;
 
 				// TODO: temporary
-				Renderer::GeometryRenderData test_render;
-				test_render.geometry = app_state->test_geometry;
-				static float32 angle = 0.0f;
-				angle += (0.5f * delta_time);
-				Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, angle, true);
+				if (app_state->meshes.count > 0)
+				{
+					
+					Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * delta_time, true);
+					Math::Mat4 rotation_matrix = Math::quat_to_mat(rotation);
+					app_state->meshes[0].model = Math::mat_mul(app_state->meshes[0].model, rotation_matrix);
 
-				Math::Mat4 t = Math::mat_translation(VEC3_ZERO);
-				Math::Mat4 r = Math::quat_to_mat(rotation);
-				Math::Mat4 s = Math::mat_scale(VEC3F_ONE);
-				t = Math::mat_mul(r, t);
-				t = Math::mat_mul(s, t);
-				test_render.model = t;
+					if (app_state->meshes.count > 1)
+						app_state->meshes[1].model = Math::mat_mul(Math::mat_translation({ 10.0f, 0.0f, 1.0f }), app_state->meshes[0].model);
 
-				r_data.world_geometry_count = 1;
-				r_data.world_geometries = &test_render;
+					for (uint32 i = 0; i < app_state->meshes.count; i++)
+					{
+						for (uint32 j = 0; j < app_state->meshes[i].geometries.count; j++)
+						{
+							Renderer::GeometryRenderData test_render = {};
+							test_render.geometry = app_state->meshes[i].geometries[j];
+							test_render.model = app_state->meshes[i].model;
+							r_data.world_geometries.push(test_render);
+						}
+					}
 
-				Renderer::GeometryRenderData test_ui_render;
+				}
+
+				Renderer::GeometryRenderData test_ui_render = {};
 				test_ui_render.geometry = app_state->test_ui_geometry;
 				test_ui_render.model = Math::mat_translation({ 0.0f, 0.0f, 0.0f });
-				r_data.ui_geometry_count = 1;
-				r_data.ui_geometries = &test_ui_render;
+				r_data.ui_geometries.push(test_ui_render);
 				/*r_data.ui_geometry_count = 0;
 				r_data.ui_geometries = 0;*/
 				// end
@@ -403,7 +399,7 @@ namespace Application
 			}
 			frame_count++;
 
-			Input::system_update(delta_time);	
+			Input::frame_end(delta_time);	
 		}
 
 		app_state->is_running = false;
@@ -434,7 +430,7 @@ namespace Application
 	{
 		switch (code)
 		{
-		case EVENT_CODE_APPLICATION_QUIT:
+		case SystemEventCode::APPLICATION_QUIT:
 		{
 			SHMINFO("Application Quit event received. Shutting down.");
 			app_state->is_running = false;
@@ -447,14 +443,14 @@ namespace Application
 
 	bool32 on_key(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
-		if (code == EVENT_CODE_KEY_PRESSED)
+		if (code == SystemEventCode::KEY_PRESSED)
 		{
 			uint32 key_code = data.ui32[0];
 
 			switch (key_code)
 			{
 			case Keys::KEY_ESCAPE:
-				Event::event_fire(EVENT_CODE_APPLICATION_QUIT, 0, {});
+				Event::event_fire(SystemEventCode::APPLICATION_QUIT, 0, {});
 				return true;
 				break;
 			case Keys::KEY_A:
@@ -465,7 +461,7 @@ namespace Application
 				break;
 			}
 		}
-		else if (code == EVENT_CODE_KEY_RELEASED)
+		else if (code == SystemEventCode::KEY_RELEASED)
 		{
 			uint32 key_code = data.ui32[0];
 
@@ -485,7 +481,7 @@ namespace Application
 
 	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
-		if (code == EVENT_CODE_WINDOW_RESIZED)
+		if (code == SystemEventCode::WINDOW_RESIZED)
 		{
 			uint32 width = data.ui32[0];
 			uint32 height = data.ui32[1];

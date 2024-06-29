@@ -26,6 +26,16 @@ namespace Renderer
 		DIRECTX,
 	};
 
+	namespace ViewMode
+	{
+		enum Value
+		{
+			DEFAULT = 0,
+			LIGHTING = 1,
+			NORMALS = 2,
+		};	
+	}
+
 	struct GeometryRenderData
 	{
 		Math::Mat4 model;
@@ -97,10 +107,7 @@ namespace Renderer
 	{
 		float32 delta_time;
 
-		uint32 world_geometry_count;
-		GeometryRenderData* world_geometries;
-
-		uint32 ui_geometry_count;
-		GeometryRenderData* ui_geometries;
+		Darray<GeometryRenderData> world_geometries;
+		Darray<GeometryRenderData> ui_geometries;
 	};
 }

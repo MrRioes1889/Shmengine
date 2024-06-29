@@ -300,7 +300,8 @@ namespace Input
 {
     bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state);
     void system_shutdown();
-    void system_update(float64 delta_time);
+    void frame_start();
+    void frame_end(float64 delta_time);
 
     SHMAPI bool32 is_key_down(Keys key);
     SHMAPI bool32 is_key_up(Keys key);
@@ -313,11 +314,16 @@ namespace Input
     SHMAPI bool32 was_mousebutton_up(Mousebuttons button);
     SHMAPI Math::Vec2i get_mouse_position();
     SHMAPI Math::Vec2i get_previous_mouse_position();
+    SHMAPI Math::Vec2i get_internal_mouse_offset();
 
     void process_key(Keys key, bool32 pressed);
     void process_mousebutton(Mousebuttons button, bool32 pressed);
     void process_mouse_move(int32 x, int32 y);
+    void process_mouse_internal_move(int32 x_offset, int32 y_offset);
     void process_mouse_scroll(int32 delta);
+
+    SHMAPI bool32 clip_cursor();
+    SHMAPI bool32 is_cursor_clipped();
 
     SHMINLINE SHMAPI bool32 key_pressed(Keys key)
     {

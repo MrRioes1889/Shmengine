@@ -73,9 +73,15 @@ SHMINLINE void Sarray<T>::init(uint32 reserve_count, AllocationTag tag, void* me
 template<typename T>
 SHMINLINE void Sarray<T>::free_data()
 {
-	if (data && owns_memory)
-		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
+	if (data)
+	{
+		for (uint32 i = 0; i < count; i++)
+			data[i].~T();
 
+		if (owns_memory)
+			Memory::free_memory(data, true, (AllocationTag)allocation_tag);
+	}
+		
 	data = 0;
 	count = 0;
 }
@@ -83,5 +89,8 @@ SHMINLINE void Sarray<T>::free_data()
 template<typename T>
 SHMINLINE void Sarray<T>::clear()
 {
+	for (uint32 i = 0; i < count; i++)
+		data[i].~T();
+
 	Memory::zero_memory(data, sizeof(T) * count);
 }

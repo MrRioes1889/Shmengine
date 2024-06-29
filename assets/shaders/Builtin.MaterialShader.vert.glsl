@@ -12,6 +12,7 @@ layout(set = 0, binding = 0) uniform global_uniform_object
     mat4 view;
     vec4 ambient_color;
     vec3 camera_position;
+    int mode;
 } global_ubo;
 
 layout(push_constant) uniform push_constants
@@ -33,7 +34,7 @@ layout(location = 1) out struct dto
 
 void main()
 {
-    out_mode = 0;
+    out_mode = global_ubo.mode;
     out_dto.frag_position = vec3(u_push_constants.model * vec4(in_position, 1.0));
     mat3 m3_model = mat3(u_push_constants.model);
 	out_dto.normal = m3_model * in_normal;

@@ -53,7 +53,7 @@ struct String
 
 	SHMINLINE Darray<String> split(char delimiter);
 
-	Darray<char> arr = {};
+	Darray<char> arr;
 
 };
 

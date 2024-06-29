@@ -2,11 +2,13 @@
 #include "renderer/vulkan_renderer/VulkanPlatform.hpp"
 #include "core/Event.hpp"
 #include "core/Input.hpp"
+#include "core/Logging.hpp"
 #include "memory/LinearAllocator.hpp"
 
 #if _WIN32
 
 #include <windows.h>
+#include <hidusage.h>
 #include <vulkan/vulkan_win32.h>
 
 namespace Platform
@@ -16,9 +18,14 @@ namespace Platform
         HINSTANCE h_instance;
         HWND hwnd;
         VkSurfaceKHR surface;
+        bool32 cursor_clipped;
+        uint32 client_x;
+        uint32 client_y;
+        uint32 client_width;
+        uint32 client_height;
     };
 
-    static PlatformState* plat_state;
+    static PlatformState* plat_state = 0;
 
     // Clock
     static float64 clock_frequency;
@@ -33,6 +40,8 @@ namespace Platform
         plat_state = (PlatformState*)out_state;
 
         plat_state->h_instance = GetModuleHandleA(0);
+
+        plat_state->cursor_clipped = false;
 
         // Setup and register window class.
         HICON icon = LoadIcon(plat_state->h_instance, IDI_APPLICATION);
@@ -54,15 +63,15 @@ namespace Platform
         }
 
         // Create window
-        uint32 client_x = x;
-        uint32 client_y = y;
-        uint32 client_width = width;
-        uint32 client_height = height;
+        plat_state->client_x = x;
+        plat_state->client_y = y;
+        plat_state->client_width = width;
+        plat_state->client_height = height;
 
-        uint32 window_x = client_x;
-        uint32 window_y = client_y;
-        uint32 window_width = client_width;
-        uint32 window_height = client_height;
+        uint32 window_x = plat_state->client_x;
+        uint32 window_y = plat_state->client_y;
+        uint32 window_width = plat_state->client_width;
+        uint32 window_height = plat_state->client_height;
 
         uint32 window_style = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
         uint32 window_ex_style = WS_EX_APPWINDOW;
@@ -105,6 +114,14 @@ namespace Platform
         // If initially minimized, use SW_MINIMIZE : SW_SHOWMINNOACTIVE;
         // If initially maximized, use SW_SHOWMAXIMIZED : SW_MAXIMIZE
         ShowWindow(plat_state->hwnd, show_window_command_flags);
+
+        // Setup mouse for low-level offset input messages
+        RAWINPUTDEVICE Rid[1];
+        Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+        Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+        Rid[0].dwFlags = RIDEV_INPUTSINK;
+        Rid[0].hwndTarget = plat_state->hwnd;
+        RegisterRawInputDevices(Rid, 1, sizeof(Rid[0]));
 
         // Clock setup
         LARGE_INTEGER frequency;
@@ -210,6 +227,42 @@ namespace Platform
         Sleep(ms);
     }
 
+    Math::Vec2i get_cursor_pos()
+    {
+        POINT cursor_pos;
+        GetCursorPos(&cursor_pos);
+        return { cursor_pos.x, cursor_pos.y };
+    }
+
+    void set_cursor_pos(int32 x, int32 y)
+    {
+        SetCursorPos(x, y);
+    }
+
+    bool32 clip_cursor(bool32 clip)
+    {
+        ShowCursor(!clip);
+
+        if (clip)
+        {           
+            RECT window_rect = {};
+            GetWindowRect(plat_state->hwnd, &window_rect);
+            if (!ClipCursor(&window_rect))
+            {
+                SHMDEBUG("ClipCursor failed!");
+                return false;
+            }          
+
+            set_cursor_pos(plat_state->client_width / 2 + plat_state->client_x, plat_state->client_height / 2 + plat_state->client_y);
+        }
+        else
+        {
+            ClipCursor(0);
+        }
+
+        return true;
+    }
+
     bool32 create_vulkan_surface(VulkanContext* context)
     {
 
@@ -225,7 +278,7 @@ namespace Platform
 
         context->surface = plat_state->surface;
         return true;
-    }
+    }  
 
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param) {
         switch (msg) {
@@ -234,54 +287,86 @@ namespace Platform
             return 1;
         case WM_CLOSE:
             // TODO: Fire an event for the application to quit.
-            Event::event_fire(EVENT_CODE_APPLICATION_QUIT, 0, {});
+            Event::event_fire(SystemEventCode::APPLICATION_QUIT, 0, {});
             return 1;
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
-        case WM_SIZE: {
+        case WM_SIZE: 
+        {
             // Get the updated size.
              RECT r;
              GetClientRect(hwnd, &r);
-             uint32 width = r.right - r.left;
-             uint32 height = r.bottom - r.top;
+             plat_state->client_width = r.right - r.left;
+             plat_state->client_height = r.bottom - r.top;
 
              EventData e = {};
-             e.ui32[0] = width;
-             e.ui32[1] = height;
-             Event::event_fire(EVENT_CODE_WINDOW_RESIZED, 0, e);
-        } break;
+             e.ui32[0] = plat_state->client_width;
+             e.ui32[1] = plat_state->client_height;
+             Event::event_fire(SystemEventCode::WINDOW_RESIZED, 0, e);
+             break;
+        } 
+        case WM_MOVE:
+        {
+            plat_state->client_x = LOWORD(l_param);
+            plat_state->client_y = HIWORD(l_param);
+            break;
+        }
+        case WM_INPUT:
+        {
+            
+            static RAWINPUT input_buffer[1];
+            UINT input_size = sizeof(input_buffer);
+
+            GetRawInputData((HRAWINPUT)l_param, RID_INPUT, input_buffer, &input_size, sizeof(RAWINPUTHEADER));
+
+            //RAWINPUT* raw = (RAWINPUT*)input_buffer;
+
+            if (input_buffer[0].header.dwType == RIM_TYPEMOUSE)
+            {
+                int32 x = input_buffer[0].data.mouse.lLastX;
+                int32 y = input_buffer[0].data.mouse.lLastY;
+                Input::process_mouse_internal_move(x, y);
+            }
+            break;
+        }
         case WM_KEYDOWN:
         case WM_SYSKEYDOWN:
         case WM_KEYUP:
-        case WM_SYSKEYUP: {
+        case WM_SYSKEYUP: 
+        {
             // Key pressed/released
             bool32 pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
             Keys key = (Keys)w_param;
 
             Input::process_key(key, pressed);
-
-        } break;
-        case WM_MOUSEMOVE: {
+            break;
+        } 
+        case WM_MOUSEMOVE: 
+        {
             // Mouse move
             int32 x = LOWORD(l_param);
             int32 y = HIWORD(l_param);
             Input::process_mouse_move(x, y);
-        } break;
-        case WM_MOUSEWHEEL: {
+            break;
+        } 
+        case WM_MOUSEWHEEL: 
+        {
              int32 delta = GET_WHEEL_DELTA_WPARAM(w_param);
              if (delta != 0) {
                  // Flatten the input to an OS-independent (-1, 1)
                  delta = (delta < 0) ? -1 : 1;
                  Input::process_mouse_scroll(delta);
              }
-        } break;
+             break;
+        } 
         case WM_LBUTTONDOWN:
         case WM_MBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_LBUTTONUP:
         case WM_MBUTTONUP:
-        case WM_RBUTTONUP: {
+        case WM_RBUTTONUP: 
+        {
             bool32 pressed = msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN;
             Mousebuttons button = Mousebuttons::BUTTON_MAX_BUTTONS;
             switch (msg)

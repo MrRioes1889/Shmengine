@@ -1,6 +1,7 @@
 #include "Input.hpp"
 #include "Event.hpp"
 #include "Logging.hpp"
+#include "platform/Platform.hpp"
 #include "memory/LinearAllocator.hpp"
 
 struct KeyboardState
@@ -8,9 +9,8 @@ struct KeyboardState
     bool32 keys[256];
 };
 
-struct MouseState
-{
-    Math::Vec2i pos;
+struct MouseButtonsState
+{  
     bool32 buttons[Mousebuttons::BUTTON_MAX_BUTTONS];
 };
 
@@ -19,76 +19,106 @@ struct InputState
     KeyboardState keyboard_cur;
     KeyboardState keyboard_prev;
 
-    MouseState mouse_cur;
-    MouseState mouse_prev;
+    MouseButtonsState mouse_cur;
+    MouseButtonsState mouse_prev;
 
-    bool32 initialized = false;
+    Math::Vec2i mouse_pos;
+    Math::Vec2i prev_mouse_pos;
+
+    Math::Vec2i mouse_internal_offset;
+
+    bool32 cursor_clipped;
+    bool32 initialized;
 };
 
-static InputState* state;
+static InputState* system_state;
 
 bool32 Input::system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state)
 {
 
     out_state = allocator_callback(sizeof(InputState));
-    state = (InputState*)out_state;
+    system_state = (InputState*)out_state;
 
-    state->initialized = true;
+    system_state->cursor_clipped = false;
+    system_state->mouse_internal_offset = {};
+
+    system_state->initialized = true;
     SHMINFO("Input subsystem initialized!");
-    return state->initialized;
+    return system_state->initialized;
 
 }
 
 void Input::system_shutdown()
 {
-    state->initialized = false;
+    system_state->initialized = false;
 }
 
-void Input::system_update(float64 delta_time)
+void Input::frame_start()
 {
-    if (!state->initialized)
+    if (!system_state->initialized)
         return;
 
-    state->keyboard_prev = state->keyboard_cur;
-    state->mouse_prev = state->mouse_cur;
+    //system_state->mouse_pos = Platform::get_cursor_pos();
+}
+
+void Input::frame_end(float64 delta_time)
+{
+    if (!system_state->initialized)
+        return;
+
+    system_state->keyboard_prev = system_state->keyboard_cur;
+    system_state->mouse_prev = system_state->mouse_cur;
+
+    system_state->prev_mouse_pos = system_state->mouse_pos;
+    system_state->mouse_internal_offset = { 0, 0 };
 }
 
 void Input::process_key(Keys key, bool32 pressed)
 {
-    if (state->keyboard_cur.keys[key] != pressed)
+    if (system_state->keyboard_cur.keys[key] != pressed)
     {
-        state->keyboard_cur.keys[key] = pressed;
+        system_state->keyboard_cur.keys[key] = pressed;
 
         EventData e;
         e.ui32[0] = key;
-        Event::event_fire(pressed ? (uint16)EVENT_CODE_KEY_PRESSED : (uint16)EVENT_CODE_KEY_RELEASED, 0, e);
+        Event::event_fire(pressed ? (uint16)SystemEventCode::KEY_PRESSED : (uint16)SystemEventCode::KEY_RELEASED, 0, e);
     }
 }
 
 void Input::process_mousebutton(Mousebuttons button, bool32 pressed)
 {
-    if (state->mouse_cur.buttons[button] != pressed)
+    if (system_state->mouse_cur.buttons[button] != pressed)
     {
-        state->mouse_cur.buttons[button] = pressed;
+        system_state->mouse_cur.buttons[button] = pressed;
 
         EventData e;
         e.ui32[0] = button;
-        Event::event_fire(pressed ? (uint16)EVENT_CODE_BUTTON_PRESSED : (uint16)EVENT_CODE_BUTTON_RELEASED, 0, e);
+        Event::event_fire(pressed ? (uint16)SystemEventCode::BUTTON_PRESSED : (uint16)SystemEventCode::BUTTON_RELEASED, 0, e);
     }
 }
 
 void Input::process_mouse_move(int32 x, int32 y)
 {
-    if (state->mouse_cur.pos.x != x || state->mouse_cur.pos.y != y)
+    if (system_state->mouse_pos.x != x || system_state->mouse_pos.y != y)
     {
-        state->mouse_cur.pos.x = x;
-        state->mouse_cur.pos.y = y;
+        system_state->mouse_pos.x = x;
+        system_state->mouse_pos.y = y;
 
         EventData e;
         e.i32[0] = x;
         e.i32[1] = y;
-        Event::event_fire(EVENT_CODE_MOUSE_MOVED, 0, e);
+        Event::event_fire(SystemEventCode::MOUSE_MOVED, 0, e);
     }
+}
+
+void Input::process_mouse_internal_move(int32 x_offset, int32 y_offset)
+{
+    system_state->mouse_internal_offset = { x_offset, y_offset };
+
+    EventData e;
+    e.i32[0] = x_offset;
+    e.i32[1] = y_offset;
+    Event::event_fire(SystemEventCode::MOUSE_INTERNAL_MOVED, 0, e);
 }
 
 void Input::process_mouse_scroll(int32 delta)
@@ -97,56 +127,72 @@ void Input::process_mouse_scroll(int32 delta)
     {
         EventData e;
         e.i32[0] = delta;
-        Event::event_fire(EVENT_CODE_MOUSE_SCROLL, 0, e);
+        Event::event_fire(SystemEventCode::MOUSE_SCROLL, 0, e);
     }
 }
 
-SHMAPI bool32 Input::is_key_down(Keys key)
+bool32 Input::clip_cursor()
 {
-    return state->keyboard_cur.keys[key];
+    system_state->cursor_clipped = !system_state->cursor_clipped;
+    return Platform::clip_cursor(system_state->cursor_clipped);
 }
 
-SHMAPI bool32 Input::is_key_up(Keys key)
+bool32 Input::is_key_down(Keys key)
 {
-    return state->keyboard_cur.keys[key] == false;
+    return system_state->keyboard_cur.keys[key];
 }
 
-SHMAPI bool32 Input::was_key_down(Keys key)
+bool32 Input::is_key_up(Keys key)
 {
-    return state->keyboard_prev.keys[key];
+    return system_state->keyboard_cur.keys[key] == false;
 }
 
-SHMAPI bool32 Input::was_key_up(Keys key)
+bool32 Input::was_key_down(Keys key)
 {
-    return state->keyboard_prev.keys[key] == false;
+    return system_state->keyboard_prev.keys[key];
 }
 
-SHMAPI bool32 Input::is_mousebutton_down(Mousebuttons button)
+bool32 Input::was_key_up(Keys key)
 {
-    return state->mouse_cur.buttons[button];
+    return system_state->keyboard_prev.keys[key] == false;
 }
 
-SHMAPI bool32 Input::is_mousebutton_up(Mousebuttons button)
+bool32 Input::is_mousebutton_down(Mousebuttons button)
 {
-    return state->mouse_cur.buttons[button] == false;
+    return system_state->mouse_cur.buttons[button];
 }
 
-SHMAPI bool32 Input::was_mousebutton_down(Mousebuttons button)
+bool32 Input::is_mousebutton_up(Mousebuttons button)
 {
-    return state->mouse_prev.buttons[button];
+    return system_state->mouse_cur.buttons[button] == false;
 }
 
-SHMAPI bool32 Input::was_mousebutton_up(Mousebuttons button)
+bool32 Input::was_mousebutton_down(Mousebuttons button)
 {
-    return state->mouse_cur.buttons[button] == false;
+    return system_state->mouse_prev.buttons[button];
 }
 
-SHMAPI Math::Vec2i Input::get_mouse_position()
+bool32 Input::was_mousebutton_up(Mousebuttons button)
 {
-    return state->mouse_cur.pos;
+    return system_state->mouse_cur.buttons[button] == false;
 }
 
-SHMAPI Math::Vec2i Input::get_previous_mouse_position()
+Math::Vec2i Input::get_mouse_position()
 {
-    return state->mouse_prev.pos;
+    return system_state->mouse_pos;
+}
+
+Math::Vec2i Input::get_previous_mouse_position()
+{
+    return system_state->prev_mouse_pos;
+}
+
+Math::Vec2i Input::get_internal_mouse_offset()
+{
+    return system_state->mouse_internal_offset;
+}
+
+bool32 Input::is_cursor_clipped()
+{
+    return system_state->cursor_clipped;
 }
