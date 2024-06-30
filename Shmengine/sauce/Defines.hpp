@@ -20,6 +20,8 @@ typedef double float64;
 typedef int bool32;
 typedef char bool8;
 
+typedef unsigned char byte;
+
 typedef void* (*PFN_allocator_allocate_callback)(uint64 size);
 
 #define PI 3.14159265358979323846f

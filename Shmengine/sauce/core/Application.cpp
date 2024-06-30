@@ -19,6 +19,7 @@
 
 // TODO: temp
 #include "utility/Math.hpp"
+#include "utility/math/Transform.hpp"
 #include "utility/String.hpp"
 
 #include "renderer/RendererGeometry.hpp"
@@ -100,6 +101,9 @@ namespace Application
 	bool32 init_primitive_subsystems(Game* game_inst)
 	{
 
+		float32 test2 = 0.0f;
+		float32 test = 2.0f / test2;
+
 		Memory::SystemConfig mem_config;
 		mem_config.total_allocation_size = Gibibytes(1);
 		if (!Memory::system_init(mem_config))
@@ -123,12 +127,6 @@ namespace Application
 		{
 			SHMFATAL("Failed to initialize logging subsytem!");
 			return false;
-		}
-
-		{
-			String test1 = "test1";
-			String test2 = test1;
-			String test3 = mid(test2, 3);
 		}
 
 		if (!Input::system_init(allocate_subsystem_callback, app_state->input_system_state))
@@ -223,38 +221,48 @@ namespace Application
 		{
 			SHMFATAL("ERROR: Failed to initialize geometry system. Application shutting down..");
 			return false;
-		}	
+		}
 
 		// TODO: temporary
 		app_state->meshes.init(1, AllocationTag::MAIN);
 
-		Mesh cube_mesh = {};
-		cube_mesh.geometries.init(1, AllocationTag::MAIN);
-		GeometrySystem::GeometryConfig g_config = GeometrySystem::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material");
-		Renderer::geometry_generate_tangents(g_config.vertex_count, (Renderer::Vertex3D*)g_config.vertices, g_config.index_count, g_config.indices);
-		cube_mesh.geometries.push(GeometrySystem::acquire_from_config(g_config, true));
-		cube_mesh.model = MAT4_IDENTITY;
-		app_state->meshes.push(cube_mesh);
+		Mesh* cube_mesh = app_state->meshes.push({});
+		cube_mesh->geometries.init(1, AllocationTag::MAIN);
+		GeometrySystem::GeometryConfig g_config = {};
+		GeometrySystem::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
+		Renderer::geometry_generate_tangents(g_config.vertex_count, (Renderer::Vertex3D*)g_config.vertices.data, g_config.indices.count, g_config.indices.data);
+		cube_mesh->geometries.push(GeometrySystem::acquire_from_config(g_config, true));
+		cube_mesh->transform = Math::transform_create();
 
-		Mesh cube_mesh2 = {};
-		cube_mesh2.geometries.init(1, AllocationTag::MAIN);
-		GeometrySystem::GeometryConfig g_config2 = GeometrySystem::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material");
-		Renderer::geometry_generate_tangents(g_config2.vertex_count, (Renderer::Vertex3D*)g_config2.vertices, g_config2.index_count, g_config2.indices);
-		cube_mesh2.geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
-		cube_mesh2.model = MAT4_IDENTITY;
-		app_state->meshes.push(cube_mesh2);
+		Mesh* cube_mesh2 = app_state->meshes.push({});
+		cube_mesh2->geometries.init(1, AllocationTag::MAIN);
+		GeometrySystem::GeometryConfig g_config2 = {};
+		GeometrySystem::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
+		Renderer::geometry_generate_tangents(g_config2.vertex_count, (Renderer::Vertex3D*)g_config2.vertices.data, g_config2.indices.count, g_config2.indices.data);
+		cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
+		cube_mesh2->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
+
+		Mesh* cube_mesh3 = app_state->meshes.push({});
+		cube_mesh3->geometries.init(1, AllocationTag::MAIN);
+		GeometrySystem::GeometryConfig g_config3 = {};
+		GeometrySystem::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);
+		Renderer::geometry_generate_tangents(g_config3.vertex_count, (Renderer::Vertex3D*)g_config3.vertices.data, g_config3.indices.count, g_config3.indices.data);
+		cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(g_config3, true));
+		cube_mesh3->transform = Math::transform_from_position({ 5.0f, 0.0f, 1.0f });
+
+		app_state->meshes[1].transform.parent = &app_state->meshes[0].transform;
+		app_state->meshes[2].transform.parent = &app_state->meshes[1].transform;
 
 		// Load up some test UI geometry.
-		GeometrySystem::GeometryConfig ui_config;
+		GeometrySystem::GeometryConfig ui_config = {};
 		ui_config.vertex_size = sizeof(Renderer::Vertex2D);
-		ui_config.vertex_count = 4;
-		ui_config.index_count = 6;
 		CString::copy(Material::max_name_length, ui_config.material_name, "test_ui_material");
 		CString::copy(Geometry::max_name_length, ui_config.name, "test_ui_geometry");
 
-		ui_config.vertices = Memory::allocate(ui_config.vertex_size * ui_config.vertex_count, true, AllocationTag::MAIN);
-		ui_config.indices = (uint32*)Memory::allocate(sizeof(uint32) * ui_config.index_count, true, AllocationTag::MAIN);
-		Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)ui_config.vertices;
+		ui_config.vertex_count = 4;
+		ui_config.vertices.init(ui_config.vertex_size * ui_config.vertex_count, AllocationTag::MAIN);
+		ui_config.indices.init(6, AllocationTag::MAIN);
+		Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)&ui_config.vertices[0];
 
 		const float32 w = 1077.0f * 0.25f;
 		const float32 h = 1278.0f * 0.25f;
@@ -354,19 +362,27 @@ namespace Application
 				{
 					
 					Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * delta_time, true);
-					Math::Mat4 rotation_matrix = Math::quat_to_mat(rotation);
-					app_state->meshes[0].model = Math::mat_mul(app_state->meshes[0].model, rotation_matrix);
+					Math::transform_rotate(app_state->meshes[0].transform, rotation);
 
 					if (app_state->meshes.count > 1)
-						app_state->meshes[1].model = Math::mat_mul(Math::mat_translation({ 10.0f, 0.0f, 1.0f }), app_state->meshes[0].model);
+					{
+						Math::transform_rotate(app_state->meshes[1].transform, rotation);
+					}				
+
+					if (app_state->meshes.count > 2)
+					{
+						Math::transform_rotate(app_state->meshes[2].transform, rotation);
+					}
+						
 
 					for (uint32 i = 0; i < app_state->meshes.count; i++)
 					{
-						for (uint32 j = 0; j < app_state->meshes[i].geometries.count; j++)
+						Mesh& m = app_state->meshes[i];
+						for (uint32 j = 0; j < m.geometries.count; j++)
 						{
 							Renderer::GeometryRenderData test_render = {};
-							test_render.geometry = app_state->meshes[i].geometries[j];
-							test_render.model = app_state->meshes[i].model;
+							test_render.geometry = m.geometries[j];
+							test_render.model = Math::transform_get_world(m.transform);
 							r_data.world_geometries.push(test_render);
 						}
 					}
@@ -377,8 +393,6 @@ namespace Application
 				test_ui_render.geometry = app_state->test_ui_geometry;
 				test_ui_render.model = Math::mat_translation({ 0.0f, 0.0f, 0.0f });
 				r_data.ui_geometries.push(test_ui_render);
-				/*r_data.ui_geometry_count = 0;
-				r_data.ui_geometries = 0;*/
 				// end
 
 				Renderer::draw_frame(&r_data);

@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 
+#include "MathTypes.hpp"
 #include "math/Common.hpp"
 
 #include "math/Vec2.hpp"

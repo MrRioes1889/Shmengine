@@ -18,7 +18,7 @@ void vulkan_renderpass_create(
 	VulkanContext* context,
 	VulkanRenderpass* out_renderpass,
 	Math::Vec2i offset,
-	Math::Vec2ui dim,
+	Math::Vec2u dim,
 	Math::Vec4f clear_color,
 	float32 depth,
 	uint32 stencil,

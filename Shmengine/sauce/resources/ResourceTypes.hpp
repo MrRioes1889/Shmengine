@@ -3,7 +3,7 @@
 #include "containers/Buffer.hpp"
 
 #include "containers/Hashtable.hpp"
-#include "utility/Math.hpp"
+#include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
 #include "utility/Utility.hpp"
 
@@ -270,6 +270,6 @@ struct Geometry
 struct Mesh
 {
 	Darray<Geometry*> geometries;
-	Math::Mat4 model;
+	Math::Transform transform;
 };
 

@@ -7,24 +7,6 @@
 namespace Math
 {
 
-#pragma pack(push, 1)
-
-	struct Rect2D
-	{
-		Vec2f pos;
-		uint32 width, height;
-	};
-
-	struct Circle2D
-	{
-		Vec2f pos;
-		float radius;
-	};
-
-#pragma pack(pop)
-
-	typedef Vec4f Quat;
-
 	//------- Quat functions
 
 	SHMINLINE float32 quat_inner(Quat q1, Quat q2)
@@ -40,6 +22,9 @@ namespace Math
 	SHMINLINE Quat quat_normalize(Quat q)
 	{
 		float32 normal = quat_normal(q);
+		if (!normal)
+			return q;
+
 		return { q.x / normal, q.y / normal, q.z / normal, q.w / normal };
 	}
 
@@ -64,22 +49,22 @@ namespace Math
 			q1.w * q2.x;
 
 		res.y =
-			-q1.x * q2.w +
-			q1.y * q2.z +
-			q1.z * q2.y +
-			q1.w * q2.x;
+			-q1.x * q2.z +
+			q1.y * q2.w +
+			q1.z * q2.x +
+			q1.w * q2.y;
 
 		res.z =
-			q1.x * q2.w -
-			q1.y * q2.z +
-			q1.z * q2.y +
-			q1.w * q2.x;
+			q1.x * q2.y -
+			q1.y * q2.x +
+			q1.z * q2.w +
+			q1.w * q2.z;
 
 		res.w =
-			-q1.x * q2.w -
-			q1.y * q2.z -
-			q1.z * q2.y +
-			q1.w * q2.x;
+			-q1.x * q2.x -
+			q1.y * q2.y -
+			q1.z * q2.z +
+			q1.w * q2.w;
 
 		return res;
 	}

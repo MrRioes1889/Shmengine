@@ -1,67 +1,11 @@
 #pragma once
 
 #include "Defines.hpp"
-
-#define VEC3_ZERO {0, 0, 0}
-#define VEC3_ONE {1, 1, 1}
-#define VEC3F_ONE {1.0f, 1.0f, 1.0f}
-		   
-#define VEC3F_DOWN {0.0f, -1.0f, 0.0f}
-#define VEC3F_UP {0.0f, 1.0f, 0.0f}
-#define VEC3F_RIGHT {1.0f, 0.0f, 0.0f}
-#define VEC3F_LEFT {-1.0f, 0.0f, 0.0f}
-#define VEC3F_FRONT {0.0f, 0.0f, -1.0f}
-#define VEC3F_BACK {0.0f, 0.0f, 1.0f}
+#include "../MathTypes.hpp"
+#include "Common.hpp"
 
 namespace Math
 {
-
-//#pragma pack(push, 1)
-
-	struct Vec3f
-	{
-		union
-		{
-			struct {
-				float32 x;
-				float32 y;
-				float32 z;
-			};
-			struct {
-				float32 r;
-				float32 g;
-				float32 b;
-			};
-			struct {
-				float32 pitch;
-				float32 yaw;
-				float32 roll;
-			};
-			float32 e[3];
-		};
-
-	};
-
-	struct Vec3i
-	{
-		union
-		{
-			struct {
-				int32 x;
-				int32 y;
-				int32 z;
-			};
-			struct {
-				int32 r;
-				int32 g;
-				int32 b;
-			};
-			int32 e[3];
-		};
-
-	};
-
-//#pragma pack(pop)
 
 	//------- Vec3f functions
 
@@ -185,6 +129,11 @@ namespace Math
 		return length(dist);
 	}
 
+	SHMINLINE Vec3f vec_mul(Vec3f v1, Vec3f v2)
+	{
+		Vec3f r = { v2.x * v1.x, v2.y * v1.y, v2.z * v1.z };
+		return r;
+	}
 	//------- Vec3i functions
 
 	SHMINLINE Vec3i operator+(Vec3i a, Vec3i b)
@@ -262,6 +211,12 @@ namespace Math
 	{
 		int32 res = inner_product(a, a);
 		return res;
+	}
+
+	SHMINLINE Vec3i vec_mul(Vec3i v1, Vec3i v2)
+	{
+		Vec3i r = { v2.x * v1.x, v2.y * v1.y, v2.z * v1.z };
+		return r;
 	}
 
 }

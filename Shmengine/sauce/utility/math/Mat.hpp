@@ -1,38 +1,11 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "Vec3.hpp"
+#include "../MathTypes.hpp"	
 #include "Geometry.hpp"
-
-#define MAT4_IDENTITY \
-{1.0f, 0.0f, 0.0f, 0.0f,\
- 0.0f, 1.0f, 0.0f, 0.0f,\
- 0.0f, 0.0f, 1.0f, 0.0f,\
- 0.0f, 0.0f, 0.0f, 1.0f}					
 
 namespace Math
 {
-
-    SHMAPI float32 sin(float32 x);
-    SHMAPI float32 cos(float32 x);
-    SHMAPI float32 tan(float32 x);
-    SHMAPI float32 acos(float32 x);
-    SHMAPI float32 abs(float32 x);
-    SHMAPI float32 sqrt(float32 a);
-
-//#pragma pack(push, 1)
-
-	struct Mat4//alignas(16) Mat4
-	{
-		union
-		{
-		float32 data[16];
-
-		Vec4f rows[4];
-		};	
-	};
-
-//#pragma pack(pop)
 
 	SHMINLINE Mat4 mat_mul(Mat4 m1, Mat4 m2)
 	{

@@ -28,7 +28,7 @@ namespace GeometrySystem
 
 	static SystemState* system_state = 0;
 
-	bool32 create_geometry(GeometryConfig config, Geometry* g);
+	bool32 create_geometry(const GeometryConfig& config, Geometry* g);
 	void destroy_geometry(Geometry* g);
 	bool32 create_default_geometries();
 	
@@ -147,10 +147,10 @@ namespace GeometrySystem
 		return &system_state->default_geometry_2d;
 	}
 
-	bool32 create_geometry(GeometryConfig config, Geometry* g)
+	bool32 create_geometry(const GeometryConfig& config, Geometry* g)
 	{
 
-		if (!Renderer::create_geometry(g, config.vertex_size, config.vertex_count, config.vertices, config.index_count, config.indices))
+		if (!Renderer::create_geometry(g, config.vertex_size, config.vertex_count, config.vertices.data, config.indices.count, config.indices.data))
 		{
 			system_state->registered_geometries[g->id].reference_count = 0;
 			system_state->registered_geometries[g->id].auto_release = false;
@@ -269,7 +269,7 @@ namespace GeometrySystem
 
 	}
 
-	GeometryConfig generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, const char* material_name)
+	void generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, const char* material_name, GeometryConfig& out_config)
 	{
 
 		if (width == 0) {
@@ -298,12 +298,11 @@ namespace GeometrySystem
 			tile_y = 1.0f;
 		}
 
-		GeometryConfig config;
-		config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
-		config.vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
-		config.vertices = (Renderer::Vertex3D*)Memory::allocate(config.vertex_size * config.vertex_count, true, AllocationTag::MAIN);
-		config.index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
-		config.indices = (uint32*)Memory::allocate(sizeof(uint32) * config.index_count, true, AllocationTag::MAIN);
+		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
+		out_config.vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
+		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, AllocationTag::MAIN);
+		uint32 index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
+		out_config.indices.init(index_count, AllocationTag::MAIN);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 seg_width = width / x_segment_count;
@@ -323,10 +322,10 @@ namespace GeometrySystem
 				float32 max_uvy = ((y + 1) / (float32)y_segment_count) * tile_y;
 
 				uint32 v_offset = ((y * x_segment_count) + x) * 4;
-				Renderer::Vertex3D* v0 = &((Renderer::Vertex3D*)config.vertices)[v_offset + 0];
-				Renderer::Vertex3D* v1 = &((Renderer::Vertex3D*)config.vertices)[v_offset + 1];
-				Renderer::Vertex3D* v2 = &((Renderer::Vertex3D*)config.vertices)[v_offset + 2];
-				Renderer::Vertex3D* v3 = &((Renderer::Vertex3D*)config.vertices)[v_offset + 3];
+				Renderer::Vertex3D* v0 = &((Renderer::Vertex3D*)&out_config.vertices[0])[v_offset + 0];
+				Renderer::Vertex3D* v1 = &((Renderer::Vertex3D*)&out_config.vertices[0])[v_offset + 1];
+				Renderer::Vertex3D* v2 = &((Renderer::Vertex3D*)&out_config.vertices[0])[v_offset + 2];
+				Renderer::Vertex3D* v3 = &((Renderer::Vertex3D*)&out_config.vertices[0])[v_offset + 3];
 
 				v0->position.x = min_x;
 				v0->position.y = min_y;
@@ -350,34 +349,32 @@ namespace GeometrySystem
 
 				// Generate indices
 				uint32 i_offset = ((y * x_segment_count) + x) * 6;
-				config.indices[i_offset + 0] = v_offset + 0;
-				config.indices[i_offset + 1] = v_offset + 1;
-				config.indices[i_offset + 2] = v_offset + 2;
-				config.indices[i_offset + 3] = v_offset + 0;
-				config.indices[i_offset + 4] = v_offset + 3;
-				config.indices[i_offset + 5] = v_offset + 1;
+				out_config.indices[i_offset + 0] = v_offset + 0;
+				out_config.indices[i_offset + 1] = v_offset + 1;
+				out_config.indices[i_offset + 2] = v_offset + 2;
+				out_config.indices[i_offset + 3] = v_offset + 0;
+				out_config.indices[i_offset + 4] = v_offset + 3;
+				out_config.indices[i_offset + 5] = v_offset + 1;
 			}
 		}
 
 		if (name && CString::length(name) > 0) {
-			CString::copy(Geometry::max_name_length, config.name, name);
+			CString::copy(Geometry::max_name_length, out_config.name, name);
 		}
 		else {
-			CString::copy(Geometry::max_name_length, config.name, Config::default_name);
+			CString::copy(Geometry::max_name_length, out_config.name, Config::default_name);
 		}
 
 		if (material_name && CString::length(material_name) > 0) {
-			CString::copy(Material::max_name_length, config.material_name, material_name);
+			CString::copy(Material::max_name_length, out_config.material_name, material_name);
 		}
 		else {
-			CString::copy(Material::max_name_length, config.material_name, MaterialSystem::Config::default_name);
+			CString::copy(Material::max_name_length, out_config.material_name, MaterialSystem::Config::default_name);
 		}
-
-		return config;
 
 	}
 
-	GeometryConfig generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, const char* material_name)
+	void generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, const char* material_name, GeometryConfig& out_config)
 	{
 
 		if (width == 0) {
@@ -402,12 +399,11 @@ namespace GeometrySystem
 			tile_y = 1.0f;
 		}
 
-		GeometryConfig config;
-		config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
-		config.vertex_count = 4 * 6;  // 4 verts per segment
-		config.vertices = (Renderer::Vertex3D*)Memory::allocate(config.vertex_size * config.vertex_count, true, AllocationTag::MAIN);
-		config.index_count = 6 * 6;  // 6 indices per segment
-		config.indices = (uint32*)Memory::allocate(sizeof(uint32) * config.index_count, true, AllocationTag::MAIN);
+		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
+		out_config.vertex_count = 4 * 6;  // 4 verts per segment
+		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, AllocationTag::MAIN);
+		uint32 index_count = 6 * 6;  // 6 indices per segment
+		out_config.indices.init(index_count, AllocationTag::MAIN);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 half_width = width * 0.5f;
@@ -425,7 +421,7 @@ namespace GeometrySystem
 		float32 max_uvx = tile_x;
 		float32 max_uvy = tile_y;
 
-		Renderer::Vertex3D* verts = (Renderer::Vertex3D*)config.vertices;
+		Renderer::Vertex3D* verts = (Renderer::Vertex3D*)out_config.vertices.data;
 
 		// Front
 		verts[(0 * 4) + 0].position = { min_x, min_y, max_z };
@@ -514,29 +510,27 @@ namespace GeometrySystem
 		for (uint32 i = 0; i < 6; ++i) {
 			uint32 v_offset = i * 4;
 			uint32 i_offset = i * 6;
-			((uint32*)config.indices)[i_offset + 0] = v_offset + 0;
-			((uint32*)config.indices)[i_offset + 1] = v_offset + 1;
-			((uint32*)config.indices)[i_offset + 2] = v_offset + 2;
-			((uint32*)config.indices)[i_offset + 3] = v_offset + 0;
-			((uint32*)config.indices)[i_offset + 4] = v_offset + 3;
-			((uint32*)config.indices)[i_offset + 5] = v_offset + 1;
+			out_config.indices[i_offset + 0] = v_offset + 0;
+			out_config.indices[i_offset + 1] = v_offset + 1;
+			out_config.indices[i_offset + 2] = v_offset + 2;
+			out_config.indices[i_offset + 3] = v_offset + 0;
+			out_config.indices[i_offset + 4] = v_offset + 3;
+			out_config.indices[i_offset + 5] = v_offset + 1;
 		}
 
 		if (name && CString::length(name) > 0) {
-			CString::copy(Geometry::max_name_length, config.name, name);
+			CString::copy(Geometry::max_name_length, out_config.name, name);
 		}
 		else {
-			CString::copy(Geometry::max_name_length, config.name, Config::default_name);
+			CString::copy(Geometry::max_name_length, out_config.name, Config::default_name);
 		}
 
 		if (material_name && CString::length(material_name) > 0) {
-			CString::copy(Material::max_name_length, config.material_name, material_name);
+			CString::copy(Material::max_name_length, out_config.material_name, material_name);
 		}
 		else {
-			CString::copy(Material::max_name_length, config.material_name, MaterialSystem::Config::default_name);
+			CString::copy(Material::max_name_length, out_config.material_name, MaterialSystem::Config::default_name);
 		}
-
-		return config;
 
 	}
 }

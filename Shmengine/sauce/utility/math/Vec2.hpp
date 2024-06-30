@@ -1,76 +1,11 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "../MathTypes.hpp"
 #include "Common.hpp"
-
-#define VEC2F_ADD(a, b) (a##.x + b##.x, a##.y + b##.y)
-#define VEC2F_SUB(a, b) (a##.x - b##.x, a##.y - b##.y)
-#define VEC2F_SCALE(a, b) (a##.x * b, a##.y * b)
-#define VEC2F_DIV(a, b) (a##.x / b, a##.y / b)
-
-#define VEC2_ZERO {0, 0}
-#define VEC2_ONE {1, 1}
-#define VEC2F_ONE {1.0f, 1.0f}
-
-#define VEC2F_DOWN {0.0f, -1.0f}
-#define VEC2F_UP {0.0f, 1.0f}
-#define VEC2F_RIGHT {1.0f, 0.0f}
-#define VEC2F_LEFT {-1.0f, 0.0f}
 
 namespace Math
 {
-
-//#pragma pack(push, 1)
-
-	struct Vec2f
-	{
-		union
-		{
-			struct {
-				float32 x;
-				float32 y;
-			};
-			struct {
-				float32 width;
-				float32 height;
-			};
-			float32 e[2];
-		};
-	};
-
-	struct Vec2i
-	{
-		union
-		{
-			struct {
-				int32 x;
-				int32 y;
-			};
-			struct {
-				int32 width;
-				int32 height;
-			};
-			int32 e[2];
-		};
-	};
-
-	struct Vec2ui
-	{
-		union
-		{
-			struct {
-				uint32 x;
-				uint32 y;
-			};
-			struct {
-				uint32 width;
-				uint32 height;
-			};
-			uint32 e[2];
-		};
-	};
-
-//#pragma pack(pop)
 
 	//------- Vec2f functions
 
@@ -176,6 +111,12 @@ namespace Math
 		return length(dist);
 	}
 
+	SHMINLINE Vec2f vec_mul(Vec2f v1, Vec2f v2)
+	{
+		Vec2f r = { v2.x * v1.x, v2.y * v1.y};
+		return r;
+	}
+
 	//------- Vec2i functions
 
 	SHMINLINE Vec2i operator+(Vec2i a, Vec2i b)
@@ -248,76 +189,88 @@ namespace Math
 		return res;
 	}
 
+	SHMINLINE Vec2i vec_mul(Vec2i v1, Vec2i v2)
+	{
+		Vec2i r = { v2.x * v1.x, v2.y * v1.y };
+		return r;
+	}
+
 	//------- Vec2ui functions
 
-	SHMINLINE Vec2ui operator+(Vec2ui a, Vec2ui b)
+	SHMINLINE Vec2u operator+(Vec2u a, Vec2u b)
 	{
 		return { a.x + b.x , a.y + b.y };
 	}
 
-	SHMINLINE Vec2ui operator-(Vec2ui a, Vec2ui b)
+	SHMINLINE Vec2u operator-(Vec2u a, Vec2u b)
 	{
 		return { a.x - b.x , a.y - b.y };
 	}
 
-	SHMINLINE Vec2ui operator*(Vec2ui a, uint32 scalar)
+	SHMINLINE Vec2u operator*(Vec2u a, uint32 scalar)
 	{
-		Vec2ui result;
+		Vec2u result;
 		result.x = a.x * scalar;
 		result.y = a.y * scalar;
 		return result;
 	}
 
-	SHMINLINE Vec2ui operator*(uint32 scalar, Vec2ui a)
+	SHMINLINE Vec2u operator*(uint32 scalar, Vec2u a)
 	{
-		Vec2ui result;
+		Vec2u result;
 		result.x = a.x * scalar;
 		result.y = a.y * scalar;
 		return result;
 	}
 
-	SHMINLINE Vec2ui operator/(Vec2ui a, const uint32& divisor)
+	SHMINLINE Vec2u operator/(Vec2u a, const uint32& divisor)
 	{
-		Vec2ui result;
+		Vec2u result;
 		result.x = a.x / divisor;
 		result.y = a.y / divisor;
 		return result;
 	}
 
-	SHMINLINE void operator*=(Vec2ui& a, const uint32& scalar)
+	SHMINLINE void operator*=(Vec2u& a, const uint32& scalar)
 	{
 		a.x *= scalar;
 		a.y *= scalar;
 	}
 
-	SHMINLINE void operator/=(Vec2ui& a, const uint32& divisor)
+	SHMINLINE void operator/=(Vec2u& a, const uint32& divisor)
 	{
 		a.x /= divisor;
 		a.y /= divisor;
 	}
 
-	SHMINLINE void operator+=(Vec2ui& a, const Vec2ui& other)
+	SHMINLINE void operator+=(Vec2u& a, const Vec2u& other)
 	{
 		a.x += other.x;
 		a.y += other.y;
 	}
 
-	SHMINLINE void operator-=(Vec2ui& a, const Vec2ui& other)
+	SHMINLINE void operator-=(Vec2u& a, const Vec2u& other)
 	{
 		a.x -= other.x;
 		a.y -= other.y;
 	}
 
-	SHMINLINE uint32 inner_product(Vec2ui a, Vec2ui b)
+	SHMINLINE uint32 inner_product(Vec2u a, Vec2u b)
 	{
 		uint32 res = a.x * b.x + a.y * b.y;
 		return res;
 	}
 
-	SHMINLINE int32 length_squared(Vec2ui a)
+	SHMINLINE int32 length_squared(Vec2u a)
 	{
 		uint32 res = inner_product(a, a);
 		return res;
+	}
+
+	SHMINLINE Vec2u vec_mul(Vec2u v1, Vec2u v2)
+	{
+		Vec2u r = { v2.x * v1.x, v2.y * v1.y};
+		return r;
 	}
 
 }

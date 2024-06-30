@@ -107,7 +107,7 @@ struct VulkanRenderpass
 	float32 depth;
 	uint32 stencil;
 	Math::Vec2i offset;
-	Math::Vec2ui dim;
+	Math::Vec2u dim;
 	Math::Vec4f clear_color;
 	VulkanRenderpassState state;
 	uint32 clear_flags;

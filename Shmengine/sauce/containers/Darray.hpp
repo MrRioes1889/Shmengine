@@ -29,10 +29,10 @@ struct Darray
 	SHMINLINE void resize();
 	SHMINLINE void resize(uint32 requested_size);
 
-	SHMINLINE void push(const T& obj);
+	SHMINLINE T* push(const T& obj);
 	SHMINLINE void pop();
 
-	SHMINLINE void insert_at(const T& obj, uint32 index);
+	SHMINLINE T* insert_at(const T& obj, uint32 index);
 	SHMINLINE void remove_at(uint32 index);
 	
 	SHMINLINE T& operator[](uint32 index)
@@ -70,7 +70,7 @@ SHMINLINE Darray<T>::~Darray()
 template<typename T>
 SHMINLINE Darray<T>::Darray(const Darray& other)
 {
-	init(other.count, other.allocation_tag);
+	init(other.count, (AllocationTag)other.allocation_tag);
 	for (uint32 i = 0; i < other.count; i++)
 		push(other[i]);
 }
@@ -173,7 +173,7 @@ inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 }
 
 template<typename T>
-inline SHMINLINE void Darray<T>::push(const T& obj)
+inline SHMINLINE T* Darray<T>::push(const T& obj)
 {
 
 	if (count + 1 > size)
@@ -183,6 +183,7 @@ inline SHMINLINE void Darray<T>::push(const T& obj)
 
 	data[count] = obj;
 	count++;
+	return &data[count - 1];
 
 }
 
@@ -201,7 +202,7 @@ inline SHMINLINE void Darray<T>::pop()
 }
 
 template<typename T>
-inline SHMINLINE void Darray<T>::insert_at(const T& obj, uint32 index)
+inline SHMINLINE T* Darray<T>::insert_at(const T& obj, uint32 index)
 {
 
 	SHMASSERT_MSG(index <= count, "ERROR: Index is out of darray's scope!");
@@ -216,8 +217,9 @@ inline SHMINLINE void Darray<T>::insert_at(const T& obj, uint32 index)
 	T* copy_source = insert_ptr;
 	T* copy_dest = insert_ptr + 1;
 	Memory::copy_memory(copy_source, copy_dest, copy_block_size);
-	Memory::copy_memory(&obj, copy_source, sizeof(T));
+	*copy_source = obj;
 	count++;
+	return copy_source;
 
 }
 

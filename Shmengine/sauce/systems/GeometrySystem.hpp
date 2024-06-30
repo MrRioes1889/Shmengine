@@ -16,9 +16,8 @@ namespace GeometrySystem
 	{
 		uint32 vertex_size;
 		uint32 vertex_count;
-		void* vertices;
-		uint32 index_count;
-		uint32* indices;
+		Sarray<byte> vertices;	
+		Sarray<uint32> indices;
 		char name[Geometry::max_name_length];
 		char material_name[Material::max_name_length];
 	};
@@ -33,7 +32,7 @@ namespace GeometrySystem
 	Geometry* get_default_geometry();
 	Geometry* get_default_geometry_2d();
 
-	GeometryConfig generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, const char* material_name);
-	GeometryConfig generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, const char* material_name);
+	void generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, const char* material_name, GeometryConfig& out_config);
+	void generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, const char* material_name, GeometryConfig& out_config);
 
 }

@@ -1,43 +1,10 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "Vec3.hpp"
-
-#include <xmmintrin.h>
-
-#define VEC4_ZERO {0, 0, 0, 0}
-#define VEC4_ONE {1, 1, 1, 1}
-#define VEC4F_ONE {1.0f, 1.0f, 1.0f, 1.0f}
-
-#define QUAT_IDENTITY {0.0f, 0.0f, 0.0f, 1.0f}
+#include "../MathTypes.hpp"
 
 namespace Math
 {
-//#pragma pack(push, 1)
-
-	struct Vec4f //alignas(16) Vec4f
-	{
-		union
-		{
-			//__m128 data;
-			struct {
-				float x;
-				float y;
-				float z;
-				float w;
-			};
-			struct {
-				float r;
-				float g;
-				float b;
-				float a;
-			};
-			float e[4];
-		};
-
-	};
-
-//#pragma pack(pop)
 
 	//------- Vec4f functions
 
@@ -167,6 +134,12 @@ namespace Math
 	{
 		Vec4f dist = { v2.x - v1.x, v2.y - v1.y, v2.z - v1.z, v2.w - v1.w };
 		return length(dist);
+	}
+
+	SHMINLINE Vec4f vec_mul(Vec4f v1, Vec4f v2)
+	{
+		Vec4f r = { v2.x * v1.x, v2.y * v1.y, v2.z * v1.z, v2.w * v1.w };
+		return r;
 	}
 
 	SHMINLINE Vec3f to_vec3(Vec4f v)
