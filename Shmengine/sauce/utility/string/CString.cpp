@@ -320,6 +320,58 @@ namespace CString
 
 	}
 
+	bool32 nequal(const char* a, const char* b, uint32 length)
+	{
+		uint32 i = 0;
+		while (*a != 0 && i < length)
+		{
+			if (*a != *b)
+				return false;
+			a++;
+			b++;
+			i++;
+		}
+
+		if (*b == 0 || i >= length)
+			return true;
+		else
+			return false;
+	}
+
+	bool32 nequal_i(const char* a, const char* b, uint32 length)
+	{
+
+		uint32 i = 0;
+		int32 upper_lower_offset = 'a' - 'A';
+
+		while (*a != 0 && i < length)
+		{
+
+			if (*a != *b)
+			{
+				bool32 lower_case_a = (*a >= 'a' && *a <= 'z');
+				bool32 upper_case_a = (*a >= 'A' && *a <= 'Z');
+
+				if (!lower_case_a && !upper_case_a)
+					return false;
+				else if (lower_case_a && (*b != (*a) - upper_lower_offset))
+					return false;
+				else if (upper_case_a && (*b != (*a) + upper_lower_offset))
+					return false;
+			}
+
+			a++;
+			b++;
+			i++;
+		}
+
+		if (*b == 0 || i >= length)
+			return true;
+		else
+			return false;
+
+	}
+
 	uint32 trim(char* string)
 	{
 		uint32 l = length(string);
@@ -363,7 +415,7 @@ namespace CString
 	{
 
 		uint32 s_length = length(buffer);
-		SHMASSERT(start < s_length);
+		SHMASSERT(start <= s_length);
 		s_length -= start;
 
 		if (start)

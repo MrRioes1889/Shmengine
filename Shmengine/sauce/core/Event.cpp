@@ -53,7 +53,7 @@ namespace Event
 			return false;
 
 		if (system_state->registered[code].listeners.data == 0)
-			system_state->registered[code].listeners.init(1, AllocationTag::MAIN);
+			system_state->registered[code].listeners.init(1, 0, AllocationTag::MAIN);
 
 		Darray<Listener>& e_listeners = system_state->registered[code].listeners;
 

@@ -462,7 +462,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 shader_apply_instance(Shader* s)
+	bool32 shader_apply_instance(Shader* s, bool32 needs_update)
 	{
 
 		if (!s->use_instances)
@@ -479,79 +479,83 @@ namespace Renderer::Vulkan
 		VkDescriptorSet object_descriptor_set = object_state->descriptor_set_state.descriptor_sets[image_index];
 
 		// TODO: if needs update
-		VkWriteDescriptorSet descriptor_writes[2] = {};  // Always a max of 2 descriptor sets.
-		uint32 descriptor_count = 0;
-		uint32 descriptor_index = 0;
-
-		// Descriptor 0 - Uniform buffer
-		// Only do this if the descriptor has not yet been updated.
-		uint8* instance_ubo_generation = &(object_state->descriptor_set_state.descriptor_states[descriptor_index].generations[image_index]);
-
-		VkDescriptorBufferInfo buffer_info;
-		buffer_info.buffer = v_shader->uniform_buffer.handle;
-		buffer_info.offset = object_state->offset;
-		buffer_info.range = s->ubo_stride;
-
-		VkWriteDescriptorSet ubo_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		ubo_descriptor.dstSet = object_descriptor_set;
-		ubo_descriptor.dstBinding = descriptor_index;
-		ubo_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		ubo_descriptor.descriptorCount = 1;
-		ubo_descriptor.pBufferInfo = &buffer_info;
-
-		// TODO: determine if update is required.
-		if (*instance_ubo_generation == INVALID_ID8 /*|| *global_ubo_generation != material->generation*/)
-		{					
-			descriptor_writes[descriptor_count] = ubo_descriptor;
-			descriptor_count++;
-
-			// Update the frame generation. In this case it is only needed once since this is a buffer.
-			*instance_ubo_generation = 1;  // material->generation; TODO: some generation from... somewhere
-		}
-		descriptor_index++;
-
-		// Samplers will always be in the binding. If the binding count is less than 2, there are no samplers.
-		VkDescriptorImageInfo image_infos[VulkanConfig::shader_max_instance_textures];
-		if (v_shader->config.descriptor_sets[desc_set_index_instance].binding_count > 1)
+		if (needs_update)
 		{
-			// Iterate samplers.
-			uint32 total_sampler_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[binding_index_sampler].descriptorCount;
-			uint32 update_sampler_count = 0;		
-			for (uint32 i = 0; i < total_sampler_count; ++i)
+			VkWriteDescriptorSet descriptor_writes[2] = {};  // Always a max of 2 descriptor sets.
+			uint32 descriptor_count = 0;
+			uint32 descriptor_index = 0;
+
+			// Descriptor 0 - Uniform buffer
+			// Only do this if the descriptor has not yet been updated.
+			uint8* instance_ubo_generation = &(object_state->descriptor_set_state.descriptor_states[descriptor_index].generations[image_index]);
+
+			VkDescriptorBufferInfo buffer_info;
+			buffer_info.buffer = v_shader->uniform_buffer.handle;
+			buffer_info.offset = object_state->offset;
+			buffer_info.range = s->ubo_stride;
+
+			VkWriteDescriptorSet ubo_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			ubo_descriptor.dstSet = object_descriptor_set;
+			ubo_descriptor.dstBinding = descriptor_index;
+			ubo_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			ubo_descriptor.descriptorCount = 1;
+			ubo_descriptor.pBufferInfo = &buffer_info;
+
+			// TODO: determine if update is required.
+			if (*instance_ubo_generation == INVALID_ID8 /*|| *global_ubo_generation != material->generation*/)
 			{
-				// TODO: only update in the list if actually needing an update.
-				Texture* t = v_shader->instance_states[s->bound_instance_id].instance_textures[i];
+				descriptor_writes[descriptor_count] = ubo_descriptor;
+				descriptor_count++;
 
-				VulkanTextureData* internal_data = (VulkanTextureData*)t->internal_data.data;
-				image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				image_infos[i].imageView = internal_data->image.view;
-				image_infos[i].sampler = internal_data->sampler;
+				// Update the frame generation. In this case it is only needed once since this is a buffer.
+				*instance_ubo_generation = 1;  // material->generation; TODO: some generation from... somewhere
+			}
+			descriptor_index++;
 
-				// TODO: change up descriptor state to handle this properly.
-				// Sync frame generation if not using a default texture.
-				// if (t->generation != INVALID_ID) {
-				//     *descriptor_generation = t->generation;
-				//     *descriptor_id = t->id;
-				// }		
-				// 	
+			// Samplers will always be in the binding. If the binding count is less than 2, there are no samplers.
+			VkDescriptorImageInfo image_infos[VulkanConfig::shader_max_instance_textures];
+			if (v_shader->config.descriptor_sets[desc_set_index_instance].binding_count > 1)
+			{
+				// Iterate samplers.
+				uint32 total_sampler_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[binding_index_sampler].descriptorCount;
+				uint32 update_sampler_count = 0;
+				for (uint32 i = 0; i < total_sampler_count; ++i)
+				{
+					// TODO: only update in the list if actually needing an update.
+					Texture* t = v_shader->instance_states[s->bound_instance_id].instance_textures[i];
 
-				update_sampler_count++;
+					VulkanTextureData* internal_data = (VulkanTextureData*)t->internal_data.data;
+					image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					image_infos[i].imageView = internal_data->image.view;
+					image_infos[i].sampler = internal_data->sampler;
+
+					// TODO: change up descriptor state to handle this properly.
+					// Sync frame generation if not using a default texture.
+					// if (t->generation != INVALID_ID) {
+					//     *descriptor_generation = t->generation;
+					//     *descriptor_id = t->id;
+					// }		
+					// 	
+
+					update_sampler_count++;
+				}
+
+				VkWriteDescriptorSet sampler_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+				sampler_descriptor.dstSet = object_descriptor_set;
+				sampler_descriptor.dstBinding = descriptor_index;
+				sampler_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				sampler_descriptor.descriptorCount = update_sampler_count;
+				sampler_descriptor.pImageInfo = image_infos;
+
+				descriptor_writes[descriptor_count] = sampler_descriptor;
+				descriptor_count++;
 			}
 
-			VkWriteDescriptorSet sampler_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-			sampler_descriptor.dstSet = object_descriptor_set;
-			sampler_descriptor.dstBinding = descriptor_index;
-			sampler_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			sampler_descriptor.descriptorCount = update_sampler_count;
-			sampler_descriptor.pImageInfo = image_infos;
+			if (descriptor_count > 0)
+			{
+				vkUpdateDescriptorSets(context->device.logical_device, descriptor_count, descriptor_writes, 0, 0);
+			}
 
-			descriptor_writes[descriptor_count] = sampler_descriptor;
-			descriptor_count++;
-		}
-
-		if (descriptor_count > 0)
-		{
-			vkUpdateDescriptorSets(context->device.logical_device, descriptor_count, descriptor_writes, 0, 0);
 		}
 
 		// Bind the descriptor set to be updated, or in case the shader changed.

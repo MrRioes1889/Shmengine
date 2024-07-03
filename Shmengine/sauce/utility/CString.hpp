@@ -17,6 +17,24 @@ namespace CString
 	char* to_string(float32 val, int32 decimals = 2);
 	char* to_string(float64 val, int32 decimals = 2);
 
+	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, char appendage);
+	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source);
+
+	SHMAPI void concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b);
+
+	SHMAPI void copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length = 0);
+
+	// Case insensitive version: equal_i()
+	SHMAPI bool32 equal(const char* a, const char* b);
+	SHMAPI bool32 equal_i(const char* a, const char* b);
+
+	SHMAPI bool32 nequal(const char* a, const char* b, uint32 length);
+	SHMAPI bool32 nequal_i(const char* a, const char* b, uint32 length);
+
+	SHMAPI uint32 trim(char* string);
+
+	SHMAPI uint32 mid(char* buffer, uint32 start, int32 length = -1);
+
 	SHMINLINE uint32 length(const char* buffer)
 	{
 		uint32 ret = 0;
@@ -39,6 +57,19 @@ namespace CString
 			return ret;
 	}
 
+	SHMINLINE int32 index_of_last(const char* buffer, char c)
+	{
+		int32 ret = -1;
+		int32 i = 0;
+		while (buffer[i])
+		{
+			if (buffer[i] == c)
+				ret = i;
+			i++;
+		}
+		return ret;
+	}
+
 	SHMINLINE bool32 is_whitespace(char c)
 	{
 		return index_of(" \f\n\r\t\v", c) != -1;
@@ -55,34 +86,20 @@ namespace CString
 		}	
 	}
 
-	SHMINLINE void left_of_last(uint32 length, char* buffer_output, char split_c, bool32 exclude_last = false)
+	SHMINLINE uint32 left_of_last(char* buffer_output, char split_c)
 	{
-		for (int32 i = (int32)length - 1; i >= 0; i--)
-		{
-			if (buffer_output[i] == split_c && (i != (int32)length - 1 || !exclude_last))
-			{
-				buffer_output[i] = 0;
-				return;
-			}
-
-			buffer_output[i] = 0;
-		}
+		int32 i = index_of_last(buffer_output, split_c);
+		if (i > 0)
+			return mid(buffer_output, 0, i);
+		else
+			return length(buffer_output);
 	}
 
-	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, char appendage);
-	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source);
-
-	SHMAPI void concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b);
-
-	SHMAPI void copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length = 0);
-
-	// Case insensitive version: equal_i()
-	SHMAPI bool32 equal(const char* a, const char* b);
-	SHMAPI bool32 equal_i(const char* a, const char* b);
-
-	SHMAPI uint32 trim(char* string);
-
-	SHMAPI uint32 mid(char* buffer, uint32 start, int32 length = -1);
+	SHMINLINE uint32 right_of_last(char* buffer_output, char split_c)
+	{
+		int32 i = index_of_last(buffer_output, split_c);
+		return mid(buffer_output, i + 1);
+	}
 
 	SHMAPI bool32 parse_f32(const char* s, float32& out);
 	SHMAPI bool32 parse_f64(const char* s, float64& out);
@@ -136,13 +153,13 @@ namespace CString
 	
 	};
 
-	SHMAPI bool32 _print_s_base(char* target_buffer, uint32 buffer_limit, const char* format, const Arg* args, uint64 arg_count);
+	SHMAPI int32 _print_s_base(char* target_buffer, uint32 buffer_limit, const char* format, const Arg* args, uint64 arg_count);
 
-	bool32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, va_list arg_ptr);
-	SHMAPI bool32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, ...);
+	int32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, va_list arg_ptr);
+	SHMAPI int32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, ...);
 
 	template<typename... Args>
-	SHMINLINE bool32 safe_print_s(char* target_buffer, uint32 buffer_limit, const char* format, const Args&... args)
+	SHMINLINE int32 safe_print_s(char* target_buffer, uint32 buffer_limit, const char* format, const Args&... args)
 	{
 		Arg arg_array[] = { args... };
 		return _print_s_base(target_buffer, buffer_limit, format, arg_array, sizeof...(Args));
@@ -163,4 +180,16 @@ namespace CString
 	{
 		return safe_scan<float32*, float32*, float32*, float32*>(s, "%f %f %f %f", &out_f.e[0], &out_f.e[1], &out_f.e[2], &out_f.e[3]);
 	}
+
+	SHMINLINE bool32 parse(const char* s, Math::Vec3f& out_f)
+	{
+		return safe_scan<float32*, float32*, float32*>(s, "%f %f %f", &out_f.e[0], &out_f.e[1], &out_f.e[2]);
+	}
+
+	SHMINLINE bool32 parse(const char* s, Math::Vec2f& out_f)
+	{
+		return safe_scan<float32*, float32*>(s, "%f %f", &out_f.e[0], &out_f.e[1]);
+	}
+
+	
 }

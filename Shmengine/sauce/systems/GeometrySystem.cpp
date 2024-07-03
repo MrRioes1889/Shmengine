@@ -300,9 +300,9 @@ namespace GeometrySystem
 
 		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
 		out_config.vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
-		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, AllocationTag::MAIN);
+		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0, AllocationTag::MAIN);
 		uint32 index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
-		out_config.indices.init(index_count, AllocationTag::MAIN);
+		out_config.indices.init(index_count, 0, AllocationTag::MAIN);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 seg_width = width / x_segment_count;
@@ -401,9 +401,9 @@ namespace GeometrySystem
 
 		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
 		out_config.vertex_count = 4 * 6;  // 4 verts per segment
-		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, AllocationTag::MAIN);
+		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0, AllocationTag::MAIN);
 		uint32 index_count = 6 * 6;  // 6 indices per segment
-		out_config.indices.init(index_count, AllocationTag::MAIN);
+		out_config.indices.init(index_count, 0, AllocationTag::MAIN);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 half_width = width * 0.5f;

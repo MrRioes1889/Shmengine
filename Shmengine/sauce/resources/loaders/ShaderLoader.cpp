@@ -34,15 +34,16 @@ namespace ResourceSystem
             return false;
         }
 
-        ShaderConfig* r_data = (ShaderConfig*)Memory::allocate(sizeof(ShaderConfig), true, AllocationTag::MAIN);
+        out_resource->allocation_tag = AllocationTag::MAIN;
+        ShaderConfig* r_data = (ShaderConfig*)Memory::allocate(sizeof(ShaderConfig), true, out_resource->allocation_tag);
 
-        r_data->attributes.init(1, AllocationTag::MAIN);
-        r_data->uniforms.init(1, AllocationTag::MAIN);
-        r_data->stages.init(1, AllocationTag::MAIN);
+        r_data->attributes.init(1, 0, AllocationTag::MAIN);
+        r_data->uniforms.init(1, 0, AllocationTag::MAIN);
+        r_data->stages.init(1, 0, AllocationTag::MAIN);
         r_data->use_instances = false;
         r_data->use_local = false;
-        r_data->stage_names.init(1, AllocationTag::MAIN);
-        r_data->stage_filenames.init(1, AllocationTag::MAIN);
+        r_data->stage_names.init(1, 0, AllocationTag::MAIN);
+        r_data->stage_filenames.init(1, 0, AllocationTag::MAIN);
 
         String var_name(32);
         String value(32);
@@ -292,7 +293,7 @@ namespace ResourceSystem
             (*data).~ShaderConfig();
         }
 
-        resource_unload(self, resource, AllocationTag::MAIN);
+        resource_unload(self, resource);
 
     }
 

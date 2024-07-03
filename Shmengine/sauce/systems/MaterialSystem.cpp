@@ -100,7 +100,7 @@ namespace MaterialSystem
 
         uint64 hashtable_data_size = sizeof(MaterialReference) * config.max_material_count;
         void* hashtable_data = allocator_callback(hashtable_data_size);
-        system_state->registered_material_table.init(config.max_material_count, AllocationTag::UNKNOWN, hashtable_data);
+        system_state->registered_material_table.init(config.max_material_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
         // Fill the hashtable with invalid references to use as a default.
         MaterialReference invalid_ref;
@@ -306,27 +306,30 @@ namespace MaterialSystem
         return true;
     }
 
-    bool32 apply_instance(Material* m)
+    bool32 apply_instance(Material* m, bool32 needs_update)
     {
         MATERIAL_APPLY_OR_FAIL(ShaderSystem::bind_instance(m->internal_id));
-        if (m->shader_id == system_state->material_shader_id) {
-            // Material shader
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_color, &m->diffuse_color));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_texture, m->diffuse_map.texture));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.specular_texture, m->specular_map.texture));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.normal_texture, m->normal_map.texture));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.shininess, &m->shininess));
-        }
-        else if (m->shader_id == system_state->ui_shader_id) {
-            // UI shader
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.diffuse_color, &m->diffuse_color));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.diffuse_texture, m->diffuse_map.texture));
-        }
-        else {
-            SHMERRORV("material_system_apply_instance - Unrecognized shader id '%i' on shader '%s'.", m->shader_id, m->name);
-            return false;
-        }
-        MATERIAL_APPLY_OR_FAIL(ShaderSystem::apply_instance());
+        if (needs_update)
+        {
+            if (m->shader_id == system_state->material_shader_id) {
+                // Material shader
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_color, &m->diffuse_color));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_texture, m->diffuse_map.texture));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.specular_texture, m->specular_map.texture));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.normal_texture, m->normal_map.texture));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.shininess, &m->shininess));
+            }
+            else if (m->shader_id == system_state->ui_shader_id) {
+                // UI shader
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.diffuse_color, &m->diffuse_color));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.diffuse_texture, m->diffuse_map.texture));
+            }
+            else {
+                SHMERRORV("material_system_apply_instance - Unrecognized shader id '%i' on shader '%s'.", m->shader_id, m->name);
+                return false;
+            }
+        }     
+        MATERIAL_APPLY_OR_FAIL(ShaderSystem::apply_instance(needs_update));
 
         return true;
     }
@@ -355,7 +358,7 @@ namespace MaterialSystem
         m->diffuse_color = config.diffuse_color;
         m->shininess = config.shininess;
 
-        auto init_texture_map = [](const char* map_name, const char* material_name, TextureUse use, TextureMap& out_map)
+        auto init_texture_map = [](const char* map_name, const char* material_name, TextureUse use, TextureMap& out_map, Texture* default_texture = 0)
         {
                 if (CString::length(map_name) > 0) {
                     out_map.use = use;
@@ -368,13 +371,13 @@ namespace MaterialSystem
                 else {
                     // NOTE: Only set for clarity, as call to kzero_memory above does this already.
                     out_map.use = use;
-                    out_map.texture = use == TextureUse::MAP_NORMAL ? TextureSystem::get_default_normal_texture() : 0;
+                    out_map.texture = default_texture;
                 }
         };
 
-        init_texture_map(config.diffuse_map_name, m->name, TextureUse::MAP_DIFFUSE, m->diffuse_map);
-        init_texture_map(config.specular_map_name, m->name, TextureUse::MAP_SPECULAR, m->specular_map);
-        init_texture_map(config.normal_map_name, m->name, TextureUse::MAP_NORMAL, m->normal_map);
+        init_texture_map(config.diffuse_map_name, m->name, TextureUse::MAP_DIFFUSE, m->diffuse_map, TextureSystem::get_default_diffuse_texture());
+        init_texture_map(config.specular_map_name, m->name, TextureUse::MAP_SPECULAR, m->specular_map, TextureSystem::get_default_specular_texture());
+        init_texture_map(config.normal_map_name, m->name, TextureUse::MAP_NORMAL, m->normal_map, TextureSystem::get_default_normal_texture());
 
         // Send it off to the renderer to acquire resources.
         Shader* s = ShaderSystem::get_shader(config.shader_name.c_str());

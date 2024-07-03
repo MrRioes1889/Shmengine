@@ -1,27 +1,29 @@
 #include "Buffer.hpp"
 #include "core/Assert.hpp"
 
-Buffer::Buffer(uint32 reserve_size, AllocationTag tag, void* memory)
+Buffer::Buffer(uint32 reserve_size, uint32 creation_flags, AllocationTag tag, void* memory)
 {
 	data = 0;
-	init(size, tag, memory);
+	init(reserve_size, creation_flags, tag, memory);
 }
 
 Buffer::~Buffer()
 {
-	if (owns_memory && data)
+	if (data && !(flags & BufferFlag::EXTERNAL_MEMORY))
 		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
 }
 
-void Buffer::init(uint64 reserve_size, AllocationTag tag, void* memory)
+void Buffer::init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag, void* memory)
 {
 	SHMASSERT(!data);
 
-	owns_memory = (memory == 0);
+	flags = (uint16)creation_flags;
 	allocation_tag = (uint16)tag;
 	size = reserve_size;
-	if (owns_memory)
+	if (!memory)
+	{
 		data = Memory::allocate(size, true, (AllocationTag)allocation_tag);
+	}
 	else
 	{
 		data = memory;
@@ -31,7 +33,7 @@ void Buffer::init(uint64 reserve_size, AllocationTag tag, void* memory)
 
 void Buffer::free_data()
 {
-	if (owns_memory && data)
+	if (data && !(flags & BufferFlag::EXTERNAL_MEMORY))
 		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
 
 	data = 0;
@@ -40,7 +42,7 @@ void Buffer::free_data()
 
 void Buffer::resize(uint64 new_size, void* memory)
 {
-	if (owns_memory && data)
+	if (data && !(flags & BufferFlag::EXTERNAL_MEMORY))
 		data = Memory::reallocate(new_size, memory, true, (AllocationTag)allocation_tag);
 	else
 		data = memory;

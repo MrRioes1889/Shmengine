@@ -7,6 +7,14 @@
 #include "core/Assert.hpp"
 #include "core/Logging.hpp"
 
+namespace HashtableFlag
+{
+	enum Value
+	{
+		EXTERNAL_MEMORY = 1 << 0
+	};
+}
+
 template <typename T>
 struct Hashtable
 {
@@ -14,9 +22,9 @@ struct Hashtable
 	Hashtable(Hashtable&& other) = delete;
 	Hashtable() : element_count(0) {};
 
-	SHMINLINE Hashtable(uint32 count, AllocationTag tag);
-	SHMINLINE Hashtable(uint32 count, void* memory);
-	SHMINLINE void init(uint32 count, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
+	SHMINLINE Hashtable(uint32 count, uint32 creation_flags, AllocationTag tag);
+	SHMINLINE Hashtable(uint32 count, uint32 creation_flags, void* memory);
+	SHMINLINE void init(uint32 count, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
 
 	SHMINLINE void free_data();
 	SHMINLINE ~Hashtable();
@@ -28,6 +36,7 @@ struct Hashtable
 	SHMINLINE bool32 floodfill(const T& value);
 
 	uint32 element_count;
+	uint16 flags;
 	Sarray<T> buffer = {};
 
 private:
@@ -54,24 +63,30 @@ SHMINLINE uint32 Hashtable<T>::hash_name(const char* name)
 }
 
 template <typename T>
-SHMINLINE Hashtable<T>::Hashtable(uint32 count, AllocationTag tag)
+SHMINLINE Hashtable<T>::Hashtable(uint32 count, uint32 creation_flags, AllocationTag tag)
 {
-	init(count, tag);
+	init(count, creation_flags, tag);
 }
 
 template <typename T>
-SHMINLINE Hashtable<T>::Hashtable(uint32 count, void* memory)
+SHMINLINE Hashtable<T>::Hashtable(uint32 count, uint32 creation_flags, void* memory)
 {
-	init(count, AllocationTag::UNKNOWN, memory);
+	init(count, creation_flags, AllocationTag::UNKNOWN, memory);
 }
 
 template<typename T>
-SHMINLINE void Hashtable<T>::init(uint32 count, AllocationTag tag, void* memory)
+SHMINLINE void Hashtable<T>::init(uint32 count, uint32 creation_flags, AllocationTag tag, void* memory)
 {
 	SHMASSERT_MSG(count, "Element count cannot be null!");
 
 	element_count = count;
-	buffer.init(sizeof(T) * element_count, tag, memory);
+	flags = (uint16)creation_flags;
+
+	uint32 buffer_flags = 0;
+	if (flags & HashtableFlag::EXTERNAL_MEMORY)
+		buffer_flags |= SarrayFlag::EXTERNAL_MEMORY;
+
+	buffer.init(sizeof(T) * element_count, buffer_flags, tag, memory);
 }
 
 template<typename T>

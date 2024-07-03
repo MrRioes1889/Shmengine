@@ -22,6 +22,7 @@ namespace TextureSystem
 	struct SystemState
 	{
 		Config config;
+		Texture default_texture;
 		Texture default_diffuse;
 		Texture default_specular;
 		Texture default_normal;
@@ -51,7 +52,7 @@ namespace TextureSystem
 
 		uint64 hashtable_data_size = sizeof(TextureReference) * config.max_texture_count;
 		void* hashtable_data = allocator_callback(hashtable_data_size);
-		system_state->registered_texture_table.init(config.max_texture_count, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->registered_texture_table.init(config.max_texture_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
 		TextureReference invalid_ref;
 		invalid_ref.auto_release = false;
@@ -177,6 +178,11 @@ namespace TextureSystem
 
 	Texture* get_default_texture()
 	{
+		return &system_state->default_texture;
+	}
+
+	Texture* get_default_diffuse_texture()
+	{
 		return &system_state->default_diffuse;
 	}
 
@@ -277,17 +283,30 @@ namespace TextureSystem
 			}
 		}
 
+		CString::copy(Texture::max_name_length, system_state->default_texture.name, Config::default_name);
+		system_state->default_texture.width = tex_dim;
+		system_state->default_texture.height = tex_dim;
+		system_state->default_texture.channel_count = 4;
+		system_state->default_texture.id = INVALID_ID;
+		system_state->default_texture.generation = INVALID_ID;
+		system_state->default_texture.has_transparency = false;
+
+		Renderer::create_texture(pixels, &system_state->default_texture);
+		system_state->default_texture.generation = INVALID_ID;
+
+		// Diffuse texture.
+		SHMTRACE("Creating default diffuse texture...");
+		uint8 diff_pixels[16 * 16 * 4];
+		Memory::set_memory(diff_pixels, 0xFF, sizeof(diff_pixels));
 		CString::copy(Texture::max_name_length, system_state->default_diffuse.name, Config::default_diffuse_name);
-		system_state->default_diffuse.width = tex_dim;
-		system_state->default_diffuse.height = tex_dim;
+		system_state->default_diffuse.width = 16;
+		system_state->default_diffuse.height = 16;
 		system_state->default_diffuse.channel_count = 4;
-		system_state->default_diffuse.id = INVALID_ID;
 		system_state->default_diffuse.generation = INVALID_ID;
 		system_state->default_diffuse.has_transparency = false;
-
-		Renderer::create_texture(pixels, &system_state->default_diffuse);
+		Renderer::create_texture(diff_pixels, &system_state->default_diffuse);
+		// Manually set the texture generation to invalid since this is a default texture.
 		system_state->default_diffuse.generation = INVALID_ID;
-
 
 		// Specular texture.
 		SHMTRACE("Creating default specular texture...");
@@ -338,6 +357,7 @@ namespace TextureSystem
 	{
 		if (system_state)
 		{
+			destroy_texture(&system_state->default_texture);
 			destroy_texture(&system_state->default_diffuse);
 			destroy_texture(&system_state->default_specular);
 			destroy_texture(&system_state->default_normal);

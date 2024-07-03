@@ -133,7 +133,8 @@ namespace ResourceSystem
 
 		out_resource->full_path = full_filepath;
 
-		MaterialConfig* resource_data = (MaterialConfig*)Memory::allocate(sizeof(MaterialConfig), true, AllocationTag::MAIN);
+        out_resource->allocation_tag = AllocationTag::MAIN;
+		MaterialConfig* resource_data = (MaterialConfig*)Memory::allocate(sizeof(MaterialConfig), true, out_resource->allocation_tag);
         *resource_data = tmp_res_data;
 
 		out_resource->data = resource_data;
@@ -152,7 +153,7 @@ namespace ResourceSystem
             (*data).~MaterialConfig();
         }
 
-        resource_unload(loader, resource, AllocationTag::MAIN);
+        resource_unload(loader, resource);
 	}
 
 	ResourceLoader material_resource_loader_create()

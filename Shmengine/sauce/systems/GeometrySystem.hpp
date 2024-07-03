@@ -20,6 +20,10 @@ namespace GeometrySystem
 		Sarray<uint32> indices;
 		char name[Geometry::max_name_length];
 		char material_name[Material::max_name_length];
+
+		Math::Vec3f center;
+		Math::Vec3f min_extents;
+		Math::Vec3f max_extents;
 	};
 
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config);

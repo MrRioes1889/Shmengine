@@ -28,7 +28,7 @@ namespace Renderer::Vulkan
 		if (out_buffer->has_freelist)
 		{
 			uint64 freelist_nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(10000, AllocatorPageSize::SMALL);
-			out_buffer->freelist_data.init(freelist_nodes_size, AllocationTag::MAIN);
+			out_buffer->freelist_data.init(freelist_nodes_size, 0, AllocationTag::MAIN);
 			out_buffer->freelist.init(size, freelist_nodes_size, out_buffer->freelist_data.data, AllocatorPageSize::SMALL, 10000);
 		}
 		

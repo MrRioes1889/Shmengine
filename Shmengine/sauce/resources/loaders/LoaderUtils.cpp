@@ -6,7 +6,7 @@
 namespace ResourceSystem
 {
 
-    bool32 resource_unload(ResourceLoader* loader, Resource* resource, AllocationTag tag)
+    bool32 resource_unload(ResourceLoader* loader, Resource* resource)
     {
         if (resource->loader_id != loader->id)
         {
@@ -15,7 +15,7 @@ namespace ResourceSystem
         }
 
         if (resource->data)
-            Memory::free_memory(resource->data, true, AllocationTag::MAIN);
+            Memory::free_memory(resource->data, true, resource->allocation_tag);
 
             
         resource->full_path.free_data();

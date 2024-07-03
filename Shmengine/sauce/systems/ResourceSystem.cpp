@@ -7,6 +7,7 @@
 #include "resources/loaders/ImageLoader.hpp"
 #include "resources/loaders/MaterialLoader.hpp"
 #include "resources/loaders/ShaderLoader.hpp"
+#include "resources/loaders/MeshLoader.hpp"
 
 
 namespace ResourceSystem
@@ -41,6 +42,7 @@ namespace ResourceSystem
         register_loader(image_resource_loader_create());
         register_loader(material_resource_loader_create());     
         register_loader(shader_resource_loader_create());     
+        register_loader(mesh_resource_loader_create());     
 
         SHMINFOV("Resource system initialized with base path: %s", config.asset_base_path);
 

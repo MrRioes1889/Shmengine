@@ -8,5 +8,5 @@ namespace ResourceSystem
 {
 	struct ResourceLoader;
 
-	bool32 resource_unload(ResourceLoader* loader, Resource* resource, AllocationTag tag);
+	bool32 resource_unload(ResourceLoader* loader, Resource* resource);
 }

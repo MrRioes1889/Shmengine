@@ -9,7 +9,8 @@ namespace TextureSystem
 	{
 		uint32 max_texture_count;
 
-		inline static const char* default_diffuse_name = "default_diffuse";
+		inline static const char* default_name = "default";
+		inline static const char* default_diffuse_name = "default_DIFF";
 		inline static const char* default_specular_name = "default_SPEC";
 		inline static const char* default_normal_name = "default_NORM";
 	};
@@ -21,6 +22,7 @@ namespace TextureSystem
 	void release(const char* name);
 
 	Texture* get_default_texture();
+	Texture* get_default_diffuse_texture();
 	Texture* get_default_specular_texture();
 	Texture* get_default_normal_texture();
 }

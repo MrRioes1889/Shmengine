@@ -3,7 +3,7 @@
 
 String::String()
 {
-	arr.init(String::min_reserve_size, AllocationTag::STRING);
+	arr.init(String::min_reserve_size, 0, AllocationTag::STRING);
 }
 
 String::String(uint32 reserve_size)
@@ -12,7 +12,7 @@ String::String(uint32 reserve_size)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, AllocationTag::STRING);
+	arr.init(reserve_size, 0, AllocationTag::STRING);
 }
 
 String::String(const char* s, uint32 length)
@@ -25,7 +25,7 @@ String::String(const char* s, uint32 length)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, AllocationTag::STRING);
+	arr.init(reserve_size, 0, AllocationTag::STRING);
 	CString::copy(arr.size, arr.data, s, length);
 	arr.count = length;
 }
@@ -37,7 +37,7 @@ String::String(const char* s)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, AllocationTag::STRING);
+	arr.init(reserve_size, 0, AllocationTag::STRING);
 	CString::copy(arr.size, arr.data, s);
 	arr.count = s_length;
 }
@@ -53,7 +53,7 @@ String::String(const String& other)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, AllocationTag::STRING);
+	arr.init(reserve_size, 0, AllocationTag::STRING);
 	CString::copy(arr.size, arr.data, other.c_str());
 	arr.count = other.len();
 }
@@ -66,7 +66,7 @@ String& String::operator=(const String& other)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, AllocationTag::STRING);
+	arr.init(reserve_size, 0, AllocationTag::STRING);
 
 	CString::copy(arr.size, arr.data, other.c_str());
 	arr.count = other.len();
@@ -88,7 +88,7 @@ String::String(String&& other) noexcept
 
 String& String::operator=(String&& other) noexcept
 {
-	free_data();
+    free_data();
 	arr.data = other.arr.data;
 	arr.size = other.arr.size;
 	arr.count = other.arr.count;
@@ -109,7 +109,7 @@ String& String::operator=(const char* s)
 
 	if (!arr.data)
 	{
-		arr.init(reserve_size, AllocationTag::STRING);
+		arr.init(reserve_size, 0, AllocationTag::STRING);
 	}
 	else if (arr.size < reserve_size)
 	{				
@@ -153,7 +153,7 @@ namespace CString
 {
 	Darray<String> split(const char* s, char delimiter)
 	{
-		Darray<String> arr(1);
+		Darray<String> arr(1, 0, AllocationTag::MAIN);
 		const char* ptr = s;
 
 		while (*ptr)
@@ -186,9 +186,37 @@ String mid(const String& source, uint32 start, int32 length)
 	return s;
 }
 
+String left_of_last(const String& source, char c)
+{
+	String s = source;
+	s.arr.count = CString::left_of_last(s.arr.data, c);
+	return s;
+}
+
+String right_of_last(const String& source, char c)
+{
+	String s = source;
+	s.arr.count = CString::right_of_last(s.arr.data, c);
+	return s;
+}
+
 String trim(const String& other)
 {
 	String s = other;
 	s.arr.count = CString::trim(s.arr.data);
 	return s;
+}
+
+int32 print_s(String& out_s, const char* format, ...)
+{
+	va_list arg_ptr;
+	va_start(arg_ptr, format);
+
+	int32 res = CString::print_s(out_s.arr.data, out_s.arr.size, format, arg_ptr);
+	if (res >= 0)
+		out_s.arr.count = (uint32)res;
+
+	va_end(arg_ptr);
+
+	return res;
 }

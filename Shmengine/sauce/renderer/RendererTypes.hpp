@@ -97,7 +97,7 @@ namespace Renderer
 		bool32(*shader_bind_globals)(Shader* shader);
 		bool32(*shader_bind_instance)(Shader* shader, uint32 instance_id);
 		bool32(*shader_apply_globals)(Shader* shader);
-		bool32(*shader_apply_instance)(Shader* shader);
+		bool32(*shader_apply_instance)(Shader* shader, bool32 needs_update);
 		bool32(*shader_acquire_instance_resources)(Shader* shader, uint32* out_instance_id);
 		bool32(*shader_release_instance_resources)(Shader* shader, uint32 instance_id);
 		bool32(*shader_set_uniform)(Shader* shader, ShaderUniform* uniform, const void* value);

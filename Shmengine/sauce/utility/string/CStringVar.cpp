@@ -6,7 +6,7 @@
 namespace CString
 {
 
-	bool32 _print_s_base(char* target_buffer, uint32 buffer_limit, const char* format, const Arg* args, uint64 arg_count)
+	int32 _print_s_base(char* target_buffer, uint32 buffer_limit, const char* format, const Arg* args, uint64 arg_count)
 	{
 
 		for (uint32 i = 0; i < buffer_limit; i++)
@@ -23,7 +23,7 @@ namespace CString
 				if (target_i >= buffer_limit - 1)
 				{
 					SHMERROR("print_s: Buffer ran out of space!");
-					return false;
+					return -1;
 				}
 				c++;
 			}
@@ -51,7 +51,7 @@ namespace CString
 				if (!(args[arg_i].type == Arg::Type::INT32 || (args[arg_i].type == Arg::Type::INT64 && ll_value)))
 				{
 					SHMERROR("print_s: Provided arguments do not match format!");
-					return false;
+					return -1;
 				}
 
 				if (args[arg_i].type == Arg::Type::INT32)
@@ -71,7 +71,7 @@ namespace CString
 				if (!(args[arg_i].type == Arg::Type::UINT32 || (args[arg_i].type == Arg::Type::UINT64 && ll_value)))
 				{
 					SHMERROR("print_s: Provided arguments do not match format!");
-					return false;
+					return -1;
 				}
 
 				if (args[arg_i].type == Arg::Type::UINT32)
@@ -88,20 +88,28 @@ namespace CString
 			}
 			case('s'):
 			{
-				if (args[arg_i].type == Arg::Type::CHAR_PTR)
+				if (args[arg_i].type != Arg::Type::CHAR_PTR)
 				{
-					const char* v = args[arg_i++].char_ptr;         //Fetch String argument
-					target_i += append(buffer_limit, target_buffer, v);
+					SHMERROR("print_s: Provided arguments do not match format!");
+					return -1;
 				}
+
+				const char* v = args[arg_i++].char_ptr;         //Fetch String argument
+				target_i += append(buffer_limit, target_buffer, v);
+
 				break;
 			}
 			case('c'):
 			{
-				if (args[arg_i].type == Arg::Type::CHAR)
+				if (args[arg_i].type != Arg::Type::CHAR)
 				{
-					char v = args[arg_i++].char_value[0];         //Fetch Character argument
-					target_i += append(buffer_limit, target_buffer, v);
+					SHMERROR("print_s: Provided arguments do not match format!");
+					return -1;
 				}
+
+				char v = args[arg_i++].char_value[0];         //Fetch Character argument
+				target_i += append(buffer_limit, target_buffer, v);
+
 				break;
 			}
 			case('f'):
@@ -116,7 +124,7 @@ namespace CString
 				if (!(args[arg_i].type == Arg::Type::FLOAT32 || (args[arg_i].type == Arg::Type::FLOAT64 && ll_value)))
 				{
 					SHMERROR("print_s: Provided arguments do not match format!");
-					return false;
+					return -1;
 				}
 
 				if (args[arg_i].type == Arg::Type::FLOAT32)
@@ -134,11 +142,11 @@ namespace CString
 			}
 		}
 
-		return true;
+		return (int32)target_i;
 
 	}	
 
-	bool32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, va_list arg_ptr)
+	int32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, va_list arg_ptr)
 	{
 
 		uint32 arg_count = 0;
@@ -232,13 +240,13 @@ namespace CString
 
 	}
 
-	bool32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, ...)
+	int32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, ...)
 	{
 
 		va_list arg_ptr;
 		va_start(arg_ptr, format);
 
-		bool32 res = print_s(target_buffer, buffer_limit, format, arg_ptr);
+		int32 res = print_s(target_buffer, buffer_limit, format, arg_ptr);
 
 		va_end(arg_ptr);
 

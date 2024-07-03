@@ -3,6 +3,7 @@
 #include "LoaderUtils.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
+#include "platform/FileSystem.hpp"
 #include "utility/CString.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -14,13 +15,35 @@ namespace ResourceSystem
 	static bool32 image_loader_load(ResourceLoader* loader, const char* name, Resource* out_resource)
 	{
 
-		const char* format = "%s%s%s%s";
+		const char* format = "%s%s%s";
 		const int32 required_channel_count = 4;
 		stbi_set_flip_vertically_on_load(true);
 		char full_filepath[MAX_FILEPATH_LENGTH];
 
-		CString::safe_print_s<const char*, const char*, const char*, const char*>
-			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader->type_path, name, ".png");
+		CString::safe_print_s<const char*, const char*, const char*>
+			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader->type_path, name);
+
+		const uint32 valid_extension_count = 4;
+		bool32 found = false;
+		const char* extensions[valid_extension_count] = { ".tga", ".png", ".jpg", ".bmp" };
+		char full_filepath_tmp[MAX_FILEPATH_LENGTH] = {};
+		for (uint32 i = 0; i < valid_extension_count; i++)
+		{			
+			CString::copy(MAX_FILEPATH_LENGTH, full_filepath_tmp, full_filepath);
+			CString::append(MAX_FILEPATH_LENGTH, full_filepath_tmp, extensions[i]);
+			if (FileSystem::file_exists(full_filepath_tmp))
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			SHMERRORV("Image resource loader failed to find file '%s' with any valid extensions.", full_filepath_tmp);
+			return false;
+		}
+
+		CString::copy(MAX_FILEPATH_LENGTH, full_filepath, full_filepath_tmp);
 
 		int32 width;
 		int32 height;
@@ -28,7 +51,7 @@ namespace ResourceSystem
 
 		uint8* data = stbi_load(full_filepath, &width, &height, &channel_count, required_channel_count);
 
-		const char* err_msg = stbi_failure_reason();
+		/*const char* err_msg = stbi_failure_reason();
 		if (err_msg)
 		{
 			SHMERRORV("image_loader_load - Failed to load file '%s' : %s", full_filepath, err_msg);
@@ -36,7 +59,7 @@ namespace ResourceSystem
 			if (data)
 				stbi_image_free(data);
 			return false;
-		}
+		}*/
 
 		if (!data)
 		{
@@ -45,8 +68,9 @@ namespace ResourceSystem
 		}
 
 		out_resource->full_path = full_filepath;
+		out_resource->allocation_tag = AllocationTag::MAIN;
 
-		ImageConfig* resource_data = (ImageConfig*)Memory::allocate(sizeof(ImageConfig), true, AllocationTag::MAIN);
+		ImageConfig* resource_data = (ImageConfig*)Memory::allocate(sizeof(ImageConfig), true, out_resource->allocation_tag);
 		resource_data->pixels = data;
 		resource_data->width = width;
 		resource_data->height = height;
@@ -68,7 +92,7 @@ namespace ResourceSystem
 			(*data).~ImageConfig();
 		}	
 
-		resource_unload(loader, resource, AllocationTag::MAIN);
+		resource_unload(loader, resource);
 	}
 
 	ResourceLoader image_resource_loader_create()

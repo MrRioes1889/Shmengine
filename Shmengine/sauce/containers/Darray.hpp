@@ -7,12 +7,20 @@
 #define DARRAY_DEFAULT_SIZE 1
 #define DARRAY_RESIZE_FACTOR 2
 
+namespace DarrayFlag
+{
+	enum Value
+	{
+		NON_RESIZABLE = 1 << 0
+	};
+}
+
 template <typename T>
-struct Darray
+struct SHMAPI Darray
 {
 
-	SHMINLINE Darray() : count(0), data(0), allocation_tag((uint16)AllocationTag::UNKNOWN) {};
-	SHMINLINE Darray(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
+	SHMINLINE Darray() : count(0), data(0), flags(0), allocation_tag((uint16)AllocationTag::UNKNOWN) {};
+	SHMINLINE Darray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN);
 	SHMINLINE ~Darray();
 
 	SHMINLINE Darray(const Darray& other);
@@ -21,7 +29,7 @@ struct Darray
 	SHMINLINE Darray& operator=(Darray&& other);
 
 	// NOTE: Call for already instantiated arrays
-	SHMINLINE void init(uint32 reserve_count, AllocationTag tag = AllocationTag::UNKNOWN);
+	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN);
 	SHMINLINE void free_data();
 
 	SHMINLINE void clear();
@@ -34,31 +42,50 @@ struct Darray
 
 	SHMINLINE T* insert_at(const T& obj, uint32 index);
 	SHMINLINE void remove_at(uint32 index);
+
+	SHMINLINE T* transfer_data();
 	
 	SHMINLINE T& operator[](uint32 index)
 	{
-		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
+		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Darray.");
 		return data[index];
 	}
 
 	SHMINLINE const T& operator[](uint32 index) const
 	{
-		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
+		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Darray.");
 		return data[index];
+	}
+
+	template<typename SubT>
+	SHMINLINE SubT& get_as(uint32 index)
+	{
+		uint32 sub_t_max_count = (sizeof(T) * count) / sizeof(SubT);
+		SHMASSERT_MSG(index + 1 <= sub_t_max_count, "Index does not lie within bounds of Darray.");
+		return ((SubT*)data)[index];
+	}
+
+	template<typename SubT>
+	SHMINLINE const SubT& get_as(uint32 index) const
+	{
+		uint32 sub_t_max_count = (sizeof(T) * count) / sizeof(SubT);
+		SHMASSERT_MSG(index + 1 <= sub_t_max_count, "Index does not lie within bounds of Darray.");
+		return ((SubT*)data)[index];
 	}
 
 	T* data = 0;
 	uint32 size = 0; // Max Capacity of contained objects
 	uint32 count = 0; // Count of contained objects
 
+	uint16 flags;
 	uint16 allocation_tag;
 };
 
 template<typename T>
-SHMINLINE Darray<T>::Darray(uint32 reserve_count, AllocationTag tag)
+SHMINLINE Darray<T>::Darray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag)
 {
 	data = 0;
-	init(reserve_count, tag);
+	init(reserve_count, creation_flags, tag);
 }
 
 template<typename T>
@@ -70,7 +97,7 @@ SHMINLINE Darray<T>::~Darray()
 template<typename T>
 SHMINLINE Darray<T>::Darray(const Darray& other)
 {
-	init(other.count, (AllocationTag)other.allocation_tag);
+	init(other.count, other.flags, (AllocationTag)other.allocation_tag);
 	for (uint32 i = 0; i < other.count; i++)
 		push(other[i]);
 }
@@ -79,7 +106,7 @@ template<typename T>
 SHMINLINE Darray<T>& Darray<T>::operator=(const Darray& other)
 {
 	free_data();
-	init(other.count, (AllocationTag)other.allocation_tag);
+	init(other.count, other.flags, (AllocationTag)other.allocation_tag);
 	for (uint32 i = 0; i < other.count; i++)
 		push(other[i]);
 	return *this;
@@ -92,6 +119,7 @@ SHMINLINE Darray<T>::Darray(Darray&& other) noexcept
 	data = other.data;
 	size = other.size;
 	count = other.count;
+	flags = other.flags;
 	allocation_tag = other.allocation_tag;
 
 	other.data = 0;
@@ -105,6 +133,7 @@ SHMINLINE Darray<T>& Darray<T>::operator=(Darray&& other)
 	data = other.data;
 	size = other.size;
 	count = other.count;
+	flags = other.flags;
 	allocation_tag = other.allocation_tag;
 
 	other.data = 0;
@@ -114,13 +143,14 @@ SHMINLINE Darray<T>& Darray<T>::operator=(Darray&& other)
 }
 
 template<typename T>
-SHMINLINE void Darray<T>::init(uint32 reserve_count, AllocationTag tag)
+SHMINLINE void Darray<T>::init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag)
 {
 	SHMASSERT_MSG(!data, "Cannot initialize Darray with existing data!");
 
 	allocation_tag = (uint16)tag;
 	size = reserve_count;
 	count = 0;
+	flags = (uint16)creation_flags;
 	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true, (AllocationTag)allocation_tag);
 	clear();
 }
@@ -139,7 +169,8 @@ SHMINLINE void Darray<T>::free_data()
 
 	size = 0;
 	data = 0;
-	count = 0;
+	count = 0;	
+
 }
 
 template<typename T>
@@ -163,6 +194,7 @@ inline SHMINLINE void Darray<T>::resize()
 template<typename T>
 inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 {
+	SHMASSERT_MSG(!(flags & DarrayFlag::NON_RESIZABLE), "Darray push exceeded size, but array has been flagged as non-resizable!");
 	uint32 old_size = size;
 	while (size < requested_size)
 		size *= DARRAY_RESIZE_FACTOR;
@@ -243,3 +275,14 @@ inline SHMINLINE void Darray<T>::remove_at(uint32 index)
 
 }
 
+template<typename T>
+inline SHMINLINE T* Darray<T>::transfer_data()
+{
+	T* ret = data;
+
+	data = 0;
+	size = 0;
+	count = 0;
+
+	return ret;
+}

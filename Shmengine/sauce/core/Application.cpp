@@ -224,34 +224,34 @@ namespace Application
 		}
 
 		// TODO: temporary
-		app_state->meshes.init(1, AllocationTag::MAIN);
+		app_state->meshes.init(3, DarrayFlag::NON_RESIZABLE, AllocationTag::MAIN);
 
 		Mesh* cube_mesh = app_state->meshes.push({});
-		cube_mesh->geometries.init(1, AllocationTag::MAIN);
+		cube_mesh->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config = {};
 		GeometrySystem::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
-		Renderer::geometry_generate_tangents(g_config.vertex_count, (Renderer::Vertex3D*)g_config.vertices.data, g_config.indices.count, g_config.indices.data);
+		Renderer::geometry_generate_tangents(g_config);
 		cube_mesh->geometries.push(GeometrySystem::acquire_from_config(g_config, true));
 		cube_mesh->transform = Math::transform_create();
 
 		Mesh* cube_mesh2 = app_state->meshes.push({});
-		cube_mesh2->geometries.init(1, AllocationTag::MAIN);
+		cube_mesh2->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config2 = {};
 		GeometrySystem::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
-		Renderer::geometry_generate_tangents(g_config2.vertex_count, (Renderer::Vertex3D*)g_config2.vertices.data, g_config2.indices.count, g_config2.indices.data);
+		Renderer::geometry_generate_tangents(g_config2);
 		cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
 		cube_mesh2->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
 
 		Mesh* cube_mesh3 = app_state->meshes.push({});
-		cube_mesh3->geometries.init(1, AllocationTag::MAIN);
+		cube_mesh3->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config3 = {};
 		GeometrySystem::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);
-		Renderer::geometry_generate_tangents(g_config3.vertex_count, (Renderer::Vertex3D*)g_config3.vertices.data, g_config3.indices.count, g_config3.indices.data);
+		Renderer::geometry_generate_tangents(g_config3);
 		cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(g_config3, true));
-		cube_mesh3->transform = Math::transform_from_position({ 5.0f, 0.0f, 1.0f });
+		cube_mesh3->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
 
 		app_state->meshes[1].transform.parent = &app_state->meshes[0].transform;
-		app_state->meshes[2].transform.parent = &app_state->meshes[1].transform;
+		app_state->meshes[2].transform.parent = &app_state->meshes[0].transform;
 
 		// Load up some test UI geometry.
 		GeometrySystem::GeometryConfig ui_config = {};
@@ -260,8 +260,8 @@ namespace Application
 		CString::copy(Geometry::max_name_length, ui_config.name, "test_ui_geometry");
 
 		ui_config.vertex_count = 4;
-		ui_config.vertices.init(ui_config.vertex_size * ui_config.vertex_count, AllocationTag::MAIN);
-		ui_config.indices.init(6, AllocationTag::MAIN);
+		ui_config.vertices.init(ui_config.vertex_size * ui_config.vertex_count, 0, AllocationTag::MAIN);
+		ui_config.indices.init(6, 0, AllocationTag::MAIN);
 		Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)&ui_config.vertices[0];
 
 		const float32 w = 1077.0f * 0.25f;
@@ -353,8 +353,8 @@ namespace Application
 				}
 
 				Renderer::RenderData r_data = {};
-				r_data.world_geometries.init(1, AllocationTag::MAIN);
-				r_data.ui_geometries.init(1, AllocationTag::MAIN);
+				r_data.world_geometries.init(1, 0, AllocationTag::MAIN);
+				r_data.ui_geometries.init(1, 0, AllocationTag::MAIN);
 				r_data.delta_time = delta_time;
 
 				// TODO: temporary

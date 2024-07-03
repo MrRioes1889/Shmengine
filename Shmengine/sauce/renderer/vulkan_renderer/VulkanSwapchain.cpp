@@ -93,11 +93,11 @@ static void create(VulkanContext* context, uint32 width, uint32 height, VulkanSw
 	image_count = 0;
 	VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, out_swapchain->handle, &image_count, 0));
 	if (!out_swapchain->images.data)
-		out_swapchain->images.init(image_count);
+		out_swapchain->images.init(image_count, 0, AllocationTag::MAIN);
 	VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, out_swapchain->handle, &image_count, out_swapchain->images.data));
 
 	if (!out_swapchain->views.data)
-		out_swapchain->views.init(image_count);
+		out_swapchain->views.init(image_count, 0, AllocationTag::MAIN);
 	for (uint32 i = 0; i < image_count; i++)
 	{
 		VkImageViewCreateInfo view_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };

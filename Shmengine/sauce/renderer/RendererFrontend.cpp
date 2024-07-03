@@ -213,18 +213,14 @@ namespace Renderer
 			}
 
 			// Apply the material
-			if (m->render_frame_number != system_state->backend.frame_count)
+			bool32 needs_update = (m->render_frame_number != system_state->backend.frame_count);
+			if (!MaterialSystem::apply_instance(m, needs_update)) 
 			{
-				if (!MaterialSystem::apply_instance(m)) 
-				{
-					SHMWARNV("Failed to apply material '%s'. Skipping draw.", m->name);
-					continue;
-				}
-				else
-				{
-					m->render_frame_number = (uint32)system_state->backend.frame_count;
-				}
-			}		
+				SHMWARNV("Failed to apply material '%s'. Skipping draw.", m->name);
+				continue;
+			}
+
+			m->render_frame_number = (uint32)system_state->backend.frame_count;
 
 			// Apply the locals
 			MaterialSystem::apply_local(m, geometries[i].model);
@@ -335,9 +331,9 @@ namespace Renderer
 		return system_state->backend.shader_apply_globals(s);
 	}
 
-	bool32 shader_apply_instance(Shader* s) 
+	bool32 shader_apply_instance(Shader* s, bool32 needs_update) 
 	{
-		return system_state->backend.shader_apply_instance(s);
+		return system_state->backend.shader_apply_instance(s, needs_update);
 	}
 
 	bool32 shader_acquire_instance_resources(Shader* s, uint32* out_instance_id) 

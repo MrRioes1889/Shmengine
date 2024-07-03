@@ -50,7 +50,7 @@ bool32 vulkan_device_create(VulkanContext* context)
 	if (!transfer_shares_graphics_queue)
 		index_count++;
 
-	Sarray<uint32> indices(index_count, AllocationTag::TRANSIENT);
+	Sarray<uint32> indices(index_count, 0, AllocationTag::TRANSIENT);
 	uint32 index = 0;
 	indices[index++] = context->device.graphics_queue_index;
 	if (!present_shares_graphics_queue)
@@ -60,7 +60,7 @@ bool32 vulkan_device_create(VulkanContext* context)
 	
 	// TODO: Figure out what queue priority is used for. Declaring static queue priority for now, since pointers to it are needed.  
 	static float32 queue_priority = 1.0f;
-	Sarray<VkDeviceQueueCreateInfo> queue_create_infos(index_count, AllocationTag::TRANSIENT);
+	Sarray<VkDeviceQueueCreateInfo> queue_create_infos(index_count, 0, AllocationTag::TRANSIENT);
 	for (uint32 i = 0; i < index_count; i++)
 	{
 		queue_create_infos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -216,7 +216,7 @@ static bool32 select_physical_device(VulkanContext* context)
 		return true;
 	}
 
-	VulkanPhysicalDeviceRequirements requirements = {.device_extension_names = Sarray<const char*>(1)};
+	VulkanPhysicalDeviceRequirements requirements = {.device_extension_names = Sarray<const char*>(1, 0)};
 	requirements.graphics = true;
 	requirements.present = true;
 	requirements.transfer = true;
@@ -230,7 +230,7 @@ static bool32 select_physical_device(VulkanContext* context)
 	/*const char* swapchain_extension_name = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 	darray_push(requirements.device_extension_names, swapchain_extension_name);*/
 
-	Sarray<VkPhysicalDevice> physical_devices(physical_device_count, AllocationTag::TRANSIENT);
+	Sarray<VkPhysicalDevice> physical_devices(physical_device_count, 0, AllocationTag::TRANSIENT);
 	VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, physical_devices.data));
 	for (uint32 i = 0; i < physical_device_count; i++)
 	{
@@ -354,7 +354,7 @@ static bool32 physical_device_meets_requirements(
 
 	uint32 queue_family_count = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, 0);
-	Sarray<VkQueueFamilyProperties> queue_families(queue_family_count, AllocationTag::TRANSIENT);
+	Sarray<VkQueueFamilyProperties> queue_families(queue_family_count, 0, AllocationTag::TRANSIENT);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data);
 
 	SHMINFO("Graphics | Present | Compute | Transfer | Name");

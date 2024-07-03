@@ -46,13 +46,13 @@ namespace ShaderSystem
 
 		uint64 hashtable_data_size = sizeof(uint32) * config.max_shader_count;
 		void* hashtable_data = allocator_callback(hashtable_data_size);
-		system_state->lookup.init(config.max_shader_count, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->lookup.init(config.max_shader_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
 		system_state->lookup.floodfill(INVALID_ID);
 
 		uint64 shader_array_size = sizeof(Shader) * config.max_shader_count;
 		void* shader_array = allocator_callback(shader_array_size);
-		system_state->shaders.init(config.max_shader_count, AllocationTag::UNKNOWN, shader_array);
+		system_state->shaders.init(config.max_shader_count, SarrayFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, shader_array);
 
 		for (uint32 i = 0; i < system_state->shaders.count; i++)
 		{
@@ -97,11 +97,11 @@ namespace ShaderSystem
 		shader->use_locals = config.use_local;
 		shader->bound_instance_id = INVALID_ID;
 		
-		shader->global_textures.init(1, AllocationTag::MAIN);
-		shader->uniforms.init(1, AllocationTag::MAIN);
-		shader->attributes.init(1, AllocationTag::MAIN);
+		shader->global_textures.init(1, 0, AllocationTag::MAIN);
+		shader->uniforms.init(1, 0, AllocationTag::MAIN);
+		shader->attributes.init(1, 0, AllocationTag::MAIN);
 
-		shader->uniform_lookup.init(1024, AllocationTag::MAIN);
+		shader->uniform_lookup.init(1024, 0, AllocationTag::MAIN);
 		shader->uniform_lookup.floodfill(INVALID_ID16);
 
 		shader->global_ubo_size = 0;
@@ -293,9 +293,9 @@ namespace ShaderSystem
 		return Renderer::shader_apply_globals(&system_state->shaders[system_state->bound_shader_id]);
 	}
 
-	bool32 apply_instance()
+	bool32 apply_instance(bool32 needs_update)
 	{
-		return Renderer::shader_apply_instance(&system_state->shaders[system_state->bound_shader_id]);
+		return Renderer::shader_apply_instance(&system_state->shaders[system_state->bound_shader_id], needs_update);
 	}
 
 	bool32 bind_instance(uint32 instance_id)

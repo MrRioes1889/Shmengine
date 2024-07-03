@@ -41,7 +41,7 @@ namespace Memory
         else
             nodes_size = Freelist::get_required_nodes_array_memory_size_by_data_size(size, page_size);
 
-        buffer->init(size + nodes_size, tag);
+        buffer->init(size + nodes_size, 0, tag);
         void* main_nodes = (((uint8*)buffer->data) + size);
         allocator->init(size, buffer->data, nodes_size, main_nodes, page_size, node_count_limit);
     }

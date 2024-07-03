@@ -52,7 +52,6 @@ bool32 game_init(Game* game_inst)
     state->view = Math::mat_translation(state->camera_position);
     state->view = Math::mat_inverse(state->view);
 
-
     return true;
 }
 

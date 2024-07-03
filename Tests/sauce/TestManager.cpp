@@ -13,7 +13,7 @@ typedef struct TestEntry {
 static Darray<TestEntry> tests = {};
 
 void test_manager_init() {
-    tests.init(1, AllocationTag::PLAT);
+    tests.init(1, 0, AllocationTag::PLAT);
 }
 
 void test_manager_register_test(uint8(*PFN_test)(), const char* desc) {

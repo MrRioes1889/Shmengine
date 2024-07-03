@@ -35,7 +35,7 @@ namespace ShaderSystem
 	SHMAPI bool32 set_sampler(uint16 index, const void* value);
 
 	SHMAPI bool32 apply_global();
-	SHMAPI bool32 apply_instance();
+	SHMAPI bool32 apply_instance(bool32 needs_update);
 
 	SHMAPI bool32 bind_instance(uint32 instance_id);
 
