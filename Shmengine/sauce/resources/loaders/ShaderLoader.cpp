@@ -45,13 +45,13 @@ namespace ResourceSystem
         r_data->stage_names.init(1, 0, AllocationTag::MAIN);
         r_data->stage_filenames.init(1, 0, AllocationTag::MAIN);
 
-        String var_name(32);
-        String value(32);
+        String var_name(512);
+        String value(512);
         String line(512);
         uint32 line_number = 1;
 
         const char* continue_ptr = 0;
-        while (FileSystem::read_line(file_content, line, &continue_ptr)) 
+        while (FileSystem::read_line(file_content.c_str(), line, &continue_ptr))
         {
 
             line.trim();
@@ -68,10 +68,10 @@ namespace ResourceSystem
                 continue;
             }
 
-            var_name = mid(line, 0, equal_index);
+            mid(var_name, line.c_str(), 0, equal_index);
             var_name.trim();
 
-            value = mid(line, equal_index + 1);
+            mid(value, line.c_str(), equal_index + 1);
             value.trim();
 
             if (var_name.equal_i("version")) {
@@ -84,7 +84,7 @@ namespace ResourceSystem
                 r_data->renderpass_name = value;
             }
             else if (var_name.equal_i("stages")) {
-                r_data->stage_names = value.split(',');
+                value.split(r_data->stage_names, ',');
                 for (uint32 i = 0; i < r_data->stage_names.count; i++)
                 {
                     r_data->stage_names[i].trim();
@@ -101,7 +101,7 @@ namespace ResourceSystem
                 }
             }
             else if (var_name.equal_i("stagefiles")) {
-                r_data->stage_filenames = value.split(',');
+                value.split(r_data->stage_filenames, ',');
                 for (uint32 i = 0; i < r_data->stage_filenames.count; i++)
                     r_data->stage_filenames[i].trim();
             }
@@ -112,7 +112,8 @@ namespace ResourceSystem
                 CString::parse_b32(value.c_str(), r_data->use_local);
             }
             else if (var_name.equal_i("attributes") || var_name.equal_i("attribute")) {
-                Darray<String> tmp = value.split(',');               
+                Darray<String> tmp(2, 0, AllocationTag::MAIN);
+                value.split(tmp, ',');
                 if (tmp.count != 2)
                     SHMERROR("shader_loader_load - Invalid file layout. Attribute fields must be 'type,name'. Skipping.");
                 else
@@ -170,13 +171,14 @@ namespace ResourceSystem
                     {
                         attribute.name = tmp[1];
 
-                        r_data->attributes.push(attribute);
+                        r_data->attributes.push_steal(attribute);
                     }
                 }
             }
             else if (var_name.equal_i("uniforms") || var_name.equal_i("uniform")) 
             {
-                Darray<String> tmp = value.split(',');
+                Darray<String> tmp(3, 0, AllocationTag::MAIN);
+                value.split(tmp, ',');
                 if (tmp.count != 3)
                     SHMERROR("shader_loader_load - Invalid file layout. Attribute fields must be 'type,name'. Skipping.");
                 else
@@ -265,7 +267,7 @@ namespace ResourceSystem
                             uniform.size = 0;
                         uniform.name = tmp[2];
 
-                        r_data->uniforms.push(uniform);
+                        r_data->uniforms.push_steal(uniform);
                     }
                 }
             }

@@ -61,12 +61,15 @@ String::String(const String& other)
 String& String::operator=(const String& other)
 {
 
-	free_data();
+	//free_data();
 	uint32 reserve_size = other.len() + 1;
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, 0, AllocationTag::STRING);
+	if (!arr.data)
+		arr.init(reserve_size, 0, AllocationTag::STRING);
+	else if (arr.size < reserve_size)
+		arr.resize(reserve_size);
 
 	CString::copy(arr.size, arr.data, other.c_str());
 	arr.count = other.len();
@@ -116,11 +119,27 @@ String& String::operator=(const char* s)
 		arr.resize(reserve_size);		
 	}
 
-	CString::copy(arr.size, arr.data, s);
-	arr.count = s_length;
-	arr.push(0);
+	arr.count = CString::copy(arr.size, arr.data, s);
 	return *this;
 
+}
+
+void String::copy_n(const char* s, uint32 length)
+{
+	uint32 reserve_size = length;
+	if (reserve_size < String::min_reserve_size)
+		reserve_size = String::min_reserve_size;
+
+	if (!arr.data)
+	{
+		arr.init(reserve_size, 0, AllocationTag::STRING);
+	}
+	else if (arr.size < reserve_size)
+	{
+		arr.resize(reserve_size);
+	}
+
+	arr.count = CString::copy(arr.size, arr.data, s, (int32)length);
 }
 
 void String::free_data()
@@ -134,26 +153,30 @@ void String::append(char appendage)
 	if (total_length + 1 > arr.size)
 		arr.resize(total_length + 1);
 	CString::append(arr.size, arr.data, appendage);
+	arr.count = total_length;
 }
 
-void String::append(const char* appendage)
+void String::append(const char* appendage, int32 length)
 {
-	uint32 total_length = CString::length(appendage) + arr.count;
+	uint32 append_length = length < 0 ? CString::length(appendage) : (uint32)length;
+	uint32 total_length = append_length + arr.count;
 	if (total_length + 1 > arr.size)
 		arr.resize(total_length + 1);
-	CString::append(arr.size, arr.data, appendage);
+	CString::append(arr.size, arr.data, appendage, length);
+	arr.count = total_length;
 }
 
-void String::append(const String& appendage)
+void String::append(const String& appendage, int32 length)
 {
-	append(appendage.c_str());
+	int32 append_length = length < 0 ? (int32)appendage.len() : (uint32)length;
+	append(appendage.c_str(), append_length);
 }
 
 namespace CString
 {
-	Darray<String> split(const char* s, char delimiter)
+	void split(const char* s, Darray<String>& out_arr, char delimiter)
 	{
-		Darray<String> arr(1, 0, AllocationTag::MAIN);
+		out_arr.clear();
 		const char* ptr = s;
 
 		while (*ptr)
@@ -164,7 +187,7 @@ namespace CString
 			else if (del_index > 0)
 			{
 				String tmp(ptr, del_index);
-				arr.push(tmp);
+				out_arr.push_steal(tmp);	
 			}		
 			ptr += del_index + 1;
 		}
@@ -172,39 +195,55 @@ namespace CString
 		if (*ptr)
 		{
 			String tmp(ptr);
-			arr.push(tmp);
+			out_arr.push_steal(tmp);
 		}
-
-		return arr;
 	}
 }
 
-String mid(const String& source, uint32 start, int32 length)
+// TODO: Figure out whether it's possible to write (initialized)s = mid(s1,0) without extra allocation and free of tpm string
+//String mid(const String& source, uint32 start, int32 length)
+//{
+//	String s = source;
+//	s.arr.count = CString::mid(s.arr.data, start, length);
+//	return s;
+//}
+//
+//String left_of_last(const String& source, char c)
+//{
+//	String s = source;
+//	s.arr.count = CString::left_of_last(s.arr.data, c);
+//	return s;
+//}
+//
+//String right_of_last(const String& source, char c)
+//{
+//	String s = source;
+//	s.arr.count = CString::right_of_last(s.arr.data, c);
+//	return s;
+//}
+
+void mid(String& out_s, const char* source, uint32 start, int32 length)
 {
-	String s = source;
-	s.arr.count = CString::mid(s.arr.data, start, length);
-	return s;
+	out_s = source;
+	out_s.arr.count = CString::mid(out_s.arr.data, out_s.arr.count, start, length);
 }
 
-String left_of_last(const String& source, char c)
+void left_of_last(String& out_s, const char* source, char c)
 {
-	String s = source;
-	s.arr.count = CString::left_of_last(s.arr.data, c);
-	return s;
+	out_s = source;
+	out_s.arr.count = CString::left_of_last(out_s.arr.data, out_s.arr.count, c);
 }
 
-String right_of_last(const String& source, char c)
+void right_of_last(String& out_s, const char* source, char c)
 {
-	String s = source;
-	s.arr.count = CString::right_of_last(s.arr.data, c);
-	return s;
+	out_s = source;
+	out_s.arr.count = CString::right_of_last(out_s.arr.data, out_s.arr.count, c);
 }
 
-String trim(const String& other)
+void trim(String& out_s, const char* other)
 {
-	String s = other;
-	s.arr.count = CString::trim(s.arr.data);
-	return s;
+	out_s = other;
+	out_s.arr.count = CString::trim(out_s.arr.data);
 }
 
 int32 print_s(String& out_s, const char* format, ...)

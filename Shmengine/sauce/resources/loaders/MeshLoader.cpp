@@ -85,7 +85,7 @@ namespace ResourceSystem
             return false;
         }
 
-        Darray<GeometrySystem::GeometryConfig> resource_data;
+        Darray<GeometrySystem::GeometryConfig> resource_data(1, 0, AllocationTag::MAIN);
 
         bool32 res = false;
         switch (file_type)
@@ -127,8 +127,11 @@ namespace ResourceSystem
     {
         if (resource->data)
         {
-            GeometrySystem::GeometryConfig* data = (GeometrySystem::GeometryConfig*)resource->data;
-            (*data).~GeometryConfig();
+            for (uint32 i = 0; i < resource->data_size; i++)
+            {
+                GeometrySystem::GeometryConfig& data = ((GeometrySystem::GeometryConfig*)resource->data)[i];
+                data.~GeometryConfig();
+            }       
         }
 
         resource_unload(loader, resource);
@@ -166,7 +169,7 @@ namespace ResourceSystem
         String values;
 
         const char* continue_ptr = 0;
-        while (FileSystem::read_line(file_content, line, &continue_ptr))
+        while (FileSystem::read_line(file_content.c_str(), line, &continue_ptr))
         {
 
             if (line.len() < 1 || line[0] == '#') {
@@ -177,8 +180,8 @@ namespace ResourceSystem
             if (first_space_i == -1)
                 continue;
             
-            identifier = mid(line, 0, first_space_i);
-            values = mid(line, first_space_i + 1);
+            mid(identifier, line.c_str(), 0, first_space_i);
+            mid(values, line.c_str(), first_space_i + 1);
             identifier.trim();
             values.trim();
 
@@ -289,19 +292,21 @@ namespace ResourceSystem
 
         if (material_file_name.len() > 0)
         {
-            String directory = mid(out_ksm_filename, 0, CString::index_of_last(out_ksm_filename, '/') + 1);
+            String directory;
+            mid(directory, out_ksm_filename, 0, CString::index_of_last(out_ksm_filename, '/') + 1);
             directory.append(material_file_name);
-            if (!import_obj_material_library_file(material_file_name.c_str()))
+            if (!import_obj_material_library_file(directory.c_str()))
                 SHMERRORV("Error reading obj mtl file '%s'.", material_file_name.c_str());
         }
 
         // De-duplicate geometry
 
         for (uint32 i = 0; i < out_geometries_darray.count; ++i) {
-            GeometrySystem::GeometryConfig* g = out_geometries_darray.data;
-            SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
+            GeometrySystem::GeometryConfig& g = out_geometries_darray[i];
+            SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g.name);
 
-            Renderer::geometry_deduplicate_vertices(*g);
+            Renderer::geometry_deduplicate_vertices(g);
+            Renderer::geometry_generate_tangents(g);
 
             // TODO: Maybe shrink down vertex array to count after deduplication!
         }
@@ -320,8 +325,8 @@ namespace ResourceSystem
         out_data->min_extents = {};
         out_data->max_extents = {};
 
-        Darray<Renderer::Vertex3D> vertices(64, 0, AllocationTag::MAIN);
-        Darray<uint32> indices(64, 0, AllocationTag::MAIN);
+        Darray<Renderer::Vertex3D> vertices(faces.count * 3, 0, AllocationTag::MAIN);
+        Darray<uint32> indices(faces.count * 3, 0, AllocationTag::MAIN);
 
         bool32 skip_normals = normals.count == 0;
         bool32 skip_tex_coords = tex_coords.count == 0;
@@ -402,10 +407,10 @@ namespace ResourceSystem
         uint32 index_count = indices.count;
 
         out_data->vertex_count = vertex_count;
-        out_data->vertices.init(vertex_count, 0, (AllocationTag)vertices.allocation_tag, vertices.transfer_data());
-        out_data->indices.init(index_count, 0, (AllocationTag)indices.allocation_tag, indices.transfer_data());
-
-        Renderer::geometry_generate_tangents(*out_data);
+        Renderer::Vertex3D* vertices_ptr = vertices.transfer_data();
+        uint32* indices_ptr = indices.transfer_data();
+        out_data->vertices.init(vertex_count * sizeof(Renderer::Vertex3D), 0, (AllocationTag)vertices.allocation_tag, vertices_ptr);
+        out_data->indices.init(index_count, 0, (AllocationTag)indices.allocation_tag, indices_ptr);      
 
     }
 
@@ -436,8 +441,11 @@ namespace ResourceSystem
         String line(512);
         uint32 line_number = 1;
 
+        String identifier;
+        String values;
+
         const char* continue_ptr = 0;
-        while (FileSystem::read_line(file_content, line, &continue_ptr))
+        while (FileSystem::read_line(file_content.c_str(), line, &continue_ptr))
         {
 
             line.trim();
@@ -448,8 +456,8 @@ namespace ResourceSystem
             if (first_space_i == -1)
                 continue;
 
-            String identifier = mid(line, 0, first_space_i);
-            String values = mid(line, first_space_i + 1);
+            mid(identifier, line.c_str(), 0, first_space_i);
+            mid(values, line.c_str(), first_space_i + 1);
             identifier.trim();
             values.trim();
 
@@ -502,8 +510,10 @@ namespace ResourceSystem
 
                 if (hit_name)
                 {
-                    String directory = left_of_last(mtl_file_path, '/');
+                    String directory;
+                    left_of_last(directory, mtl_file_path, '/');
                     directory.left_of_last('\\');
+                    directory.append('/');
                     if (!write_shmt_file(directory.c_str(), &current_config)) {
                         SHMERROR("Unable to write kmt file.");
                         return false;
@@ -526,7 +536,12 @@ namespace ResourceSystem
             if (current_config.shininess == 0.0f)
                 current_config.shininess = 8.0f;
 
-            if (!write_shmt_file(mtl_file_path, &current_config)) {
+            String directory;
+            left_of_last(directory, mtl_file_path, '/');
+            directory.left_of_last('\\');
+            directory.append('/');
+
+            if (!write_shmt_file(directory.c_str(), &current_config)) {
                 SHMERROR("Unable to write kmt file.");
                 return false;
             }
@@ -545,7 +560,7 @@ namespace ResourceSystem
         FileSystem::FileHandle f;
 
         String full_file_path = directory;
-        full_file_path.append("/../materials/");
+        full_file_path.append("../materials/");
         full_file_path.append(config->name);
         full_file_path.append(".shmt");
 
@@ -564,22 +579,22 @@ namespace ResourceSystem
         content += config->name;
         content += "\n";
   
-        CString::print_s(line_buffer, 512, "diffuse_colour=%.6f %.6f %.6f %.6f\n", config->diffuse_color.r, config->diffuse_color.g, config->diffuse_color.b, config->diffuse_color.a);
+        CString::print_s(line_buffer, 512, "diffuse_color=%f6 %f6 %f6 %f6\n", config->diffuse_color.r, config->diffuse_color.g, config->diffuse_color.b, config->diffuse_color.a);
         content += line_buffer;
 
         CString::print_s(line_buffer, 512, "shininess=%f\n", config->shininess);
         content += line_buffer;
 
         if (config->diffuse_map_name[0]) {
-            CString::print_s(line_buffer, 512, "diffuse_map_name=%s\n", config->diffuse_map_name);
+            CString::safe_print_s<const char*>(line_buffer, 512, "diffuse_map_name=%s\n", config->diffuse_map_name);
             content += line_buffer;
         }
         if (config->specular_map_name[0]) {
-            CString::print_s(line_buffer, 512, "specular_map_name=%s\n", config->specular_map_name);
+            CString::safe_print_s<const char*>(line_buffer, 512, "specular_map_name=%s\n", config->specular_map_name);
             content += line_buffer;
         }
         if (config->normal_map_name[0]) {
-            CString::print_s(line_buffer, 512, "normal_map_name=%s\n", config->normal_map_name);
+            CString::safe_print_s<const char*>(line_buffer, 512, "normal_map_name=%s\n", config->normal_map_name);
             content += line_buffer;
         }
 
@@ -587,6 +602,7 @@ namespace ResourceSystem
         content += line_buffer;
 
         uint32 bytes_written = 0;
+        content.update_len();
         FileSystem::write(&f, content.len(), &content[0], &bytes_written);
 
         FileSystem::file_close(&f);

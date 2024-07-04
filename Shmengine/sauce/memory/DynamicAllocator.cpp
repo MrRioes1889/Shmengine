@@ -28,23 +28,23 @@ void DynamicAllocator::init(uint64 buffer_size, void* buffer_ptr, uint64 nodes_s
 	data = buffer_ptr;
 }
 
-void* DynamicAllocator::allocate(uint64 size)
+void* DynamicAllocator::allocate(uint64 size, uint64* bytes_allocated)
 {
 	uint64 data_offset;
-	if (!freelist.allocate(size, &data_offset))
+	if (!freelist.allocate(size, &data_offset, bytes_allocated))
 		return 0;
 
 	return PTR_BYTES_OFFSET(data, data_offset);
 }
 
-bool32 DynamicAllocator::free(void* data_ptr)
+bool32 DynamicAllocator::free(void* data_ptr, uint64* bytes_freed)
 {
 	SHMASSERT(data_ptr >= data);
 	uint64 data_offset = (uint64)data_ptr - (uint64)data;
-	return freelist.free(data_offset);
+	return freelist.free(data_offset, bytes_freed);
 }
 
-void* DynamicAllocator::reallocate(uint64 requested_size, void* data_ptr)
+void* DynamicAllocator::reallocate(uint64 requested_size, void* data_ptr, uint64* bytes_freed, uint64* bytes_allocated)
 {
 	uint64 old_data_offset = (uint64)data_ptr - (uint64)data;
 	uint64 old_size = freelist.get_reserved_size(old_data_offset);
@@ -52,8 +52,8 @@ void* DynamicAllocator::reallocate(uint64 requested_size, void* data_ptr)
 		return data_ptr;
 
 	// NOTE: Freeing data first to allow the same data block to be part of the new allocation. Feels unsafe but should work fine.
-	free(data_ptr);
-	void* new_data = allocate(requested_size);
+	free(data_ptr, bytes_freed);
+	void* new_data = allocate(requested_size, bytes_allocated);
 	Memory::copy_memory(data_ptr, new_data, old_size);
 
 	return new_data;

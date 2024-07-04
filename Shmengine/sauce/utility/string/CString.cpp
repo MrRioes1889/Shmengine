@@ -42,7 +42,7 @@ namespace CString
 		return appendix_length;
 	}
 
-	uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source)
+	uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, int32 length)
 	{
 		uint32 appendix_length = 0;
 		char* write_ptr = buffer_output;
@@ -54,9 +54,10 @@ namespace CString
 			write_output_size--;
 		}
 
+		bool32 use_length = length >= 0;
 		for (uint32 i = 0; i < write_output_size; i++)
 		{
-			if (!*buffer_source)
+			if (!*buffer_source || (appendix_length >= (uint32)length && use_length))
 				break;
 
 			*write_ptr++ = *buffer_source++;
@@ -67,12 +68,13 @@ namespace CString
 		return appendix_length;
 	}
 
-	void copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length)
+	uint32 copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, int32 length)
 	{
 		char* write_ptr = buffer_output;
 		uint32 write_output_size = buffer_output_size - 1;
-		if (length != 0 && length < write_output_size)
-			write_output_size = length;
+		if (length >= 0 && (uint32)length < write_output_size)
+			write_output_size = (uint32)length;
+		uint32 written_count = 0;
 
 		for (uint32 i = 0; i < write_output_size; i++)
 		{
@@ -80,9 +82,11 @@ namespace CString
 				break;
 
 			*write_ptr++ = *buffer_source++;
+			written_count++;
 		}
 
 		*write_ptr = 0;
+		return written_count;
 	}
 
 	char* to_string(uint32 val) {
@@ -411,27 +415,26 @@ namespace CString
 		return l;
 	}
 
-	uint32 mid(char* buffer, uint32 start, int32 len)
+	uint32 mid(char* buffer, uint32 buffer_length, uint32 start, int32 len)
 	{
 
-		uint32 s_length = length(buffer);
-		SHMASSERT(start <= s_length);
-		s_length -= start;
+		SHMASSERT(start <= buffer_length);
+		buffer_length -= start;
 
 		if (start)
-			Memory::copy_memory(&buffer[start], buffer, s_length);
+			Memory::copy_memory(&buffer[start], buffer, buffer_length);
 
 		if (len >= 0)
 		{
 			buffer[len] = 0;
-			s_length = len;
+			buffer_length = (uint32)len;
 		}
 		else
 		{
-			buffer[s_length] = 0;
+			buffer[buffer_length] = 0;
 		}		
 
-		return s_length;
+		return buffer_length;
 
 	}
 

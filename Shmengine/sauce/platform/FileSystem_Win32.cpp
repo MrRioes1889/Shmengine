@@ -170,6 +170,57 @@ namespace FileSystem
 
 	}
 
+	bool32 read_bytes(FileHandle* file, uint32 size, String& out_buffer, uint32* out_bytes_read)
+	{
+		if (!file->handle)
+			return false;
+
+		if (out_buffer.arr.size < size)
+			out_buffer.arr.resize(size);
+
+		if (!ReadFile(file->handle, out_buffer.arr.data, size, (LPDWORD)out_bytes_read, 0))
+		{
+			SHMERROR("Failed to read file.");
+			return false;
+		}
+
+		return true;
+
+	}
+
+	bool32 read_all_bytes(FileHandle* file, String& out_buffer, uint32* out_bytes_read)
+	{
+		uint32 file_size = get_file_size32(file);
+		if (file_size) {
+			read_bytes(file, file_size, out_buffer, out_bytes_read);
+			return file_size == *out_bytes_read;
+		}
+		return false;
+	}
+
+	bool32 read_line(const char* file_buffer, String& line_buffer, const char** out_continue_ptr)
+	{
+
+		const char* source = file_buffer;
+		if (out_continue_ptr && *out_continue_ptr)
+			source = *out_continue_ptr;
+
+		if (!*source)
+			return false;
+
+		int32 read_length = CString::index_of(source, '\n');
+		if (read_length < 0) 
+			read_length = CString::length(source);
+
+		line_buffer.copy_n(source, (uint32)read_length);
+
+		if (out_continue_ptr)
+			*out_continue_ptr = &source[read_length + 1];
+
+		return true;
+
+	}
+
 }
 
 #endif

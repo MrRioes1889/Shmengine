@@ -22,6 +22,7 @@ struct SHMAPI String
 	String& operator=(String&& other) noexcept;
 
 	String& operator=(const char* s);
+	void copy_n(const char* s, uint32 length);
 
 	void free_data();
 
@@ -40,8 +41,8 @@ struct SHMAPI String
 	SHMINLINE bool32 nequal_i(const String& other, uint32 length) { return CString::nequal_i(arr.data, other.c_str(), length); }
 
 	void append(char appendage);
-	void append(const char* appendage);
-	void append(const String& appendage);
+	void append(const char* appendage, int32 length = -1);
+	void append(const String& appendage, int32 length = -1);
 	SHMINLINE void operator+=(char appendage) { append(appendage); }
 	SHMINLINE void operator+=(const char* appendage) { append(appendage); }
 	SHMINLINE void operator+=(const String& appendage) { append(appendage); }
@@ -50,9 +51,9 @@ struct SHMAPI String
 	SHMINLINE String operator+(const String& appendage) { String s = *this; s.append(appendage); return s; }
 
 	SHMINLINE void trim() { arr.count = CString::trim(arr.data); }
-	SHMINLINE void mid(uint32 start, int32 length = -1) { arr.count = CString::mid(arr.data, start, length); }
-	SHMINLINE void left_of_last(char c) { arr.count = CString::left_of_last(arr.data, c); }
-	SHMINLINE void right_of_last(char c) { arr.count = CString::right_of_last(arr.data, c); }
+	SHMINLINE void mid(uint32 start, int32 length = -1) { arr.count = CString::mid(arr.data, arr.count, start, length); }
+	SHMINLINE void left_of_last(char c) { arr.count = CString::left_of_last(arr.data, arr.count, c); }
+	SHMINLINE void right_of_last(char c) { arr.count = CString::right_of_last(arr.data, arr.count, c); }
 
 	SHMINLINE int32 index_of(char c) { return CString::index_of(arr.data, c); }
 	SHMINLINE int32 index_of_last(char c) { return CString::index_of_last(arr.data, c); }
@@ -60,9 +61,10 @@ struct SHMAPI String
 
 	SHMINLINE const char* c_str() const { return arr.data; }
 	//SHMINLINE operator const char* () { return arr.data; }
+	SHMINLINE void update_len() { arr.count = CString::length(arr.data); }
 	SHMINLINE uint32 len() const { return arr.count; }
 
-	SHMINLINE Darray<String> split(char delimiter);
+	SHMINLINE void split(Darray<String>& out_arr, char delimiter);
 
 	Darray<char> arr;
 
@@ -79,13 +81,16 @@ struct SHMAPI String
 
 namespace CString
 {
-	SHMAPI Darray<String> split(const char* s, char delimiter);
+	SHMAPI void split(const char* s, Darray<String>& out_arr, char delimiter);
 }
 
-SHMAPI String mid(const String& source, uint32 start, int32 length = -1);
-SHMAPI String left_of_last(const String& source, char c);
-SHMAPI String right_of_last(const String& source, char c);
-SHMAPI String trim(const String& other);
+//SHMAPI String mid(const String& source, uint32 start, int32 length = -1);
+//SHMAPI String left_of_last(const String& source, char c);
+//SHMAPI String right_of_last(const String& source, char c);
+SHMAPI void mid(String& out_s, const char* source, uint32 start, int32 length = -1);
+SHMAPI void left_of_last(String& out_s, const char* source, char c);
+SHMAPI void right_of_last(String& out_s, const char* source, char c);
+SHMAPI void trim(String& out_s, const char* other);
 
 // TODO: Implement print_s properly for dynamically sized strings!
 // TEMP
@@ -103,9 +108,9 @@ SHMINLINE int32 safe_print_s(String& out_s, const char* format, const Args&... a
 }
 // END
 
-SHMINLINE Darray<String> String::split(char delimiter) 
+SHMINLINE void String::split(Darray<String>& out_arr, char delimiter) 
 { 
-	return CString::split(arr.data, delimiter);
+	return CString::split(arr.data, out_arr, delimiter);
 }
 
 

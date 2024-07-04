@@ -102,6 +102,10 @@ namespace Memory
             }
             case AllocationTag::STRING:
             {
+                /*uint64 bytes_allocated = 0;
+                ret = system_state->string_allocator.allocate(size, &bytes_allocated);
+                uint64 offset = (uint64)ret - (uint64)system_state->string_allocator.data;
+                SHMDEBUGV("string allocated at offset: %lu; bytes allocated: %lu", offset, bytes_allocated);*/
                 ret = system_state->string_allocator.allocate(size);
                 break;
             }
@@ -144,6 +148,12 @@ namespace Memory
         }         
         case AllocationTag::STRING:
         {
+            /*uint64 bytes_freed = 0;
+            uint64 bytes_allocated = 0;
+            ret = system_state->string_allocator.reallocate(size, block, &bytes_freed, &bytes_allocated);
+            uint64 from_offset = (uint64)block - (uint64)system_state->string_allocator.data;
+            uint64 to_offset = (uint64)ret - (uint64)system_state->string_allocator.data;
+            SHMDEBUGV("String reallocated from: %lu, to: %lu; Bytes freed: %lu; Bytes allocated; %lu", from_offset, to_offset, bytes_freed, bytes_allocated);*/
             ret = system_state->string_allocator.reallocate(size, block);
             break;
         }         
@@ -179,6 +189,10 @@ namespace Memory
         }        
         case AllocationTag::STRING:
         {
+            /*uint64 bytes_freed = 0;
+            system_state->string_allocator.free(block, &bytes_freed);
+            uint64 offset = (uint64)block - (uint64)system_state->string_allocator.data;
+            SHMDEBUGV("String freed at offset: %lu; Bytes freed: %lu", offset, bytes_freed);*/
             system_state->string_allocator.free(block);
             return;
         }          

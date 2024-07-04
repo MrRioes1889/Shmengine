@@ -163,7 +163,6 @@ SHMINLINE void Sarray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 	else
 		data = (T*)memory;
 
-	Memory::zero_memory(data, sizeof(T) * count);
 }
 
 template<typename T>

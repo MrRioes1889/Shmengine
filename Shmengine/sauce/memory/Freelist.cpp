@@ -64,7 +64,7 @@ void Freelist::destroy()
 	pages_count = 0;
 }
 
-bool32 Freelist::allocate(uint64 size, uint64* out_offset)
+bool32 Freelist::allocate(uint64 size, uint64* out_offset, uint64* pages_allocated)
 {
 	if (nodes_count >= max_nodes_count)
 		return false;
@@ -80,17 +80,24 @@ bool32 Freelist::allocate(uint64 size, uint64* out_offset)
 	
 	insert_reservation_at(this, (uint64)node_index, pages_needed);
 
+	if (pages_allocated)
+		*pages_allocated = pages_needed * (uint32)page_size;
+
 	*out_offset = (uint64)page_index * (uint32)page_size;
 	return true;
 }
 
-bool32 Freelist::free(uint64 offset)
+bool32 Freelist::free(uint64 offset, uint64* pages_freed)
 {
 	int64 node_index = find_allocated_node(this, offset);
 	if (node_index < 0)
 		return false;
 
+	if (pages_freed)
+		*pages_freed = nodes[node_index].page_count * (uint32)page_size;
+
 	remove_reservation_at(this, (uint64)node_index);
+
 	return true;
 }
 

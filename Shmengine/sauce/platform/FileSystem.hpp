@@ -30,18 +30,9 @@ namespace FileSystem
 
 	SHMAPI bool32 write(FileHandle* file, uint32 size, const void* data, uint32* out_bytes_written);
 
-	SHMINLINE bool32 read_bytes(FileHandle* file, uint32 size, String& out_buffer, uint32* out_bytes_read)
-	{
-		return read_bytes(file, size, out_buffer.arr.data, out_buffer.arr.size, out_bytes_read);
-	}
-	SHMINLINE bool32 read_all_bytes(FileHandle* file, String& out_buffer, uint32* out_bytes_read)
-	{
-		return read_all_bytes(file, out_buffer.arr.data, out_buffer.arr.size, out_bytes_read);
-	}
-	SHMINLINE int32 read_line(const String& file_buffer, String& line_buffer, const char** out_continue_ptr = 0)
-	{
-		return read_line(file_buffer.c_str(), line_buffer.arr.data, line_buffer.arr.size, out_continue_ptr);
-	}
+	SHMAPI bool32 read_bytes(FileHandle* file, uint32 size, String& out_buffer, uint32* out_bytes_read);
+	SHMAPI bool32 read_all_bytes(FileHandle* file, String& out_buffer, uint32* out_bytes_read);
+	SHMAPI int32 read_line(const char* file_buffer, String& line_buffer, const char** out_continue_ptr = 0);
 
 }
 

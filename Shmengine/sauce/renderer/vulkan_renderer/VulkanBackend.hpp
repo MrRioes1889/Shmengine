@@ -24,7 +24,7 @@ namespace Renderer::Vulkan
 	void create_texture(const void* pixels, Texture* texture);
 	void destroy_texture(Texture* texture);
 
-	bool32 create_geometry (Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
+	bool32 create_geometry(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
 	void destroy_geometry(Geometry* geometry);
 
 	bool32 shader_create(Shader* shader, uint8 renderpass_id, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);

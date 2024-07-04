@@ -18,11 +18,11 @@ namespace CString
 	char* to_string(float64 val, int32 decimals = 2);
 
 	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, char appendage);
-	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source);
+	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, int32 length = -1);
 
 	SHMAPI void concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b);
 
-	SHMAPI void copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, uint32 length = 0);
+	SHMAPI uint32 copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, int32 length = -1);
 
 	// Case insensitive version: equal_i()
 	SHMAPI bool32 equal(const char* a, const char* b);
@@ -33,7 +33,7 @@ namespace CString
 
 	SHMAPI uint32 trim(char* string);
 
-	SHMAPI uint32 mid(char* buffer, uint32 start, int32 length = -1);
+	SHMAPI uint32 mid(char* buffer, uint32 buffer_length, uint32 start, int32 length = -1);
 
 	SHMINLINE uint32 length(const char* buffer)
 	{
@@ -86,19 +86,19 @@ namespace CString
 		}	
 	}
 
-	SHMINLINE uint32 left_of_last(char* buffer_output, char split_c)
+	SHMINLINE uint32 left_of_last(char* buffer_output, uint32 buffer_length, char split_c)
 	{
 		int32 i = index_of_last(buffer_output, split_c);
 		if (i > 0)
-			return mid(buffer_output, 0, i);
+			return mid(buffer_output, buffer_length, 0, i);
 		else
-			return length(buffer_output);
+			return buffer_length;
 	}
 
-	SHMINLINE uint32 right_of_last(char* buffer_output, char split_c)
+	SHMINLINE uint32 right_of_last(char* buffer_output, uint32 buffer_length, char split_c)
 	{
 		int32 i = index_of_last(buffer_output, split_c);
-		return mid(buffer_output, i + 1);
+		return mid(buffer_output, buffer_length, i + 1);
 	}
 
 	SHMAPI bool32 parse_f32(const char* s, float32& out);

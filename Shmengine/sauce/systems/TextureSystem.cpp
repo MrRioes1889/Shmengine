@@ -142,7 +142,10 @@ namespace TextureSystem
 	void release(const char* name)
 	{
 
-		if (CString::equal_i(name, Config::default_diffuse_name))
+		if (CString::equal_i(name, Config::default_name) ||
+			CString::equal_i(name, Config::default_diffuse_name) || 
+			CString::equal_i(name, Config::default_specular_name) || 
+			CString::equal_i(name, Config::default_normal_name))
 			return;
 
 		TextureReference ref = system_state->registered_texture_table.get_ref(name);

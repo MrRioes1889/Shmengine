@@ -17,7 +17,7 @@ namespace ResourceSystem
 		char full_filepath[MAX_FILEPATH_LENGTH];
 
 		CString::safe_print_s<const char*, const char*, const char*, const char*>
-			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader->type_path, name, ".mt");
+			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader->type_path, name, ".shmt");
 
 		FileSystem::FileHandle f;
 		if (!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f))
@@ -50,8 +50,11 @@ namespace ResourceSystem
         uint64 line_length = 0;
         uint32 line_number = 1;
 
+        String var_name;
+        String value;
+
         const char* continue_ptr = 0;
-        while (FileSystem::read_line(file_content, line, &continue_ptr)) 
+        while (FileSystem::read_line(file_content.c_str(), line, &continue_ptr))
         {
             // Trim the string.
 
@@ -75,10 +78,10 @@ namespace ResourceSystem
                 continue;
             }
 
-            String var_name = mid(line, 0, equal_index);
+            mid(var_name, line.c_str(), 0, equal_index);
             var_name.trim();
 
-            String value = mid(line, equal_index + 1);
+            mid(value, line.c_str(), equal_index + 1);
             value.trim();
 
             // Process the variable.

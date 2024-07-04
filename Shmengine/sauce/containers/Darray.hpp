@@ -38,6 +38,7 @@ struct SHMAPI Darray
 	SHMINLINE void resize(uint32 requested_size);
 
 	SHMINLINE T* push(const T& obj);
+	SHMINLINE T* push_steal(T& obj);
 	SHMINLINE void pop();
 
 	SHMINLINE T* insert_at(const T& obj, uint32 index);
@@ -152,7 +153,6 @@ SHMINLINE void Darray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 	count = 0;
 	flags = (uint16)creation_flags;
 	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true, (AllocationTag)allocation_tag);
-	clear();
 }
 
 template<typename T>
@@ -214,6 +214,22 @@ inline SHMINLINE T* Darray<T>::push(const T& obj)
 	}
 
 	data[count] = obj;
+	count++;
+	return &data[count - 1];
+
+}
+
+template<typename T>
+inline SHMINLINE T* Darray<T>::push_steal(T& obj)
+{
+
+	if (count + 1 > size)
+	{
+		resize();
+	}
+
+	Memory::copy_memory(&obj, &data[count], sizeof(T));
+	Memory::zero_memory(&obj, sizeof(T));
 	count++;
 	return &data[count - 1];
 

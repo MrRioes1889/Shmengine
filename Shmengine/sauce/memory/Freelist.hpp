@@ -40,8 +40,8 @@ struct Freelist
 	void clear_nodes();
 	void destroy();
 
-	bool32 allocate(uint64 size, uint64* out_offset);
-	bool32 free(uint64 offset);
+	bool32 allocate(uint64 size, uint64* out_offset, uint64* bytes_allocated = 0);
+	bool32 free(uint64 offset, uint64* bytes_freed = 0);
 
 	int64 get_reserved_size(uint64 offset);
 

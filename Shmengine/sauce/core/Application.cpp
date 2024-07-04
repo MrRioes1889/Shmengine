@@ -101,9 +101,6 @@ namespace Application
 	bool32 init_primitive_subsystems(Game* game_inst)
 	{
 
-		float32 test2 = 0.0f;
-		float32 test = 2.0f / test2;
-
 		Memory::SystemConfig mem_config;
 		mem_config.total_allocation_size = Gibibytes(1);
 		if (!Memory::system_init(mem_config))
@@ -127,6 +124,19 @@ namespace Application
 		{
 			SHMFATAL("Failed to initialize logging subsytem!");
 			return false;
+		}
+
+		{
+			String a1;
+			String a2;
+			String a3;
+			String a = "yo cool string bruh";
+			String b = "yoyoyoyoyo cool string brooooo";
+			String c = a;
+			c = b;
+			a1 = a;
+			a2 = a1;
+			a3 = a2;
 		}
 
 		if (!Input::system_init(allocate_subsystem_callback, app_state->input_system_state))
@@ -224,34 +234,57 @@ namespace Application
 		}
 
 		// TODO: temporary
-		app_state->meshes.init(3, DarrayFlag::NON_RESIZABLE, AllocationTag::MAIN);
+		app_state->meshes.init(5, DarrayFlag::NON_RESIZABLE, AllocationTag::MAIN);
 
 		Mesh* cube_mesh = app_state->meshes.push({});
 		cube_mesh->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config = {};
-		GeometrySystem::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
-		Renderer::geometry_generate_tangents(g_config);
+		Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
 		cube_mesh->geometries.push(GeometrySystem::acquire_from_config(g_config, true));
 		cube_mesh->transform = Math::transform_create();
 
 		Mesh* cube_mesh2 = app_state->meshes.push({});
 		cube_mesh2->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config2 = {};
-		GeometrySystem::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
-		Renderer::geometry_generate_tangents(g_config2);
+		Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
 		cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
 		cube_mesh2->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
 
 		Mesh* cube_mesh3 = app_state->meshes.push({});
 		cube_mesh3->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config3 = {};
-		GeometrySystem::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);
-		Renderer::geometry_generate_tangents(g_config3);
+		Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);	
 		cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(g_config3, true));
 		cube_mesh3->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
 
 		app_state->meshes[1].transform.parent = &app_state->meshes[0].transform;
 		app_state->meshes[2].transform.parent = &app_state->meshes[0].transform;
+
+		Mesh* car_mesh = app_state->meshes.push({});
+		Resource car_mesh_res = {};
+		if (!ResourceSystem::load("falcon", ResourceType::MESH, &car_mesh_res))
+			SHMERROR("Failed to load car mesh!");
+		GeometrySystem::GeometryConfig* car_g_configs = (GeometrySystem::GeometryConfig*)car_mesh_res.data;
+		car_mesh->geometries.init(car_mesh_res.data_size, 0, AllocationTag::MAIN);
+		for (uint32 i = 0; i < car_mesh->geometries.size; i++)
+		{
+			car_mesh->geometries.push(GeometrySystem::acquire_from_config(car_g_configs[i], true));
+		}
+		car_mesh->transform = Math::transform_from_position({ 20.0f, 0.0f, 1.0f });
+		ResourceSystem::unload(&car_mesh_res);	
+
+		/*Mesh* sponza_mesh = app_state->meshes.push({});
+		Resource sponza_mesh_res = {};
+		if (!ResourceSystem::load("sponza", ResourceType::MESH, &sponza_mesh_res))
+			SHMERROR("Failed to load sponza mesh!");
+		GeometrySystem::GeometryConfig* sponza_g_configs = (GeometrySystem::GeometryConfig*)sponza_mesh_res.data;
+		sponza_mesh->geometries.init(sponza_mesh_res.data_size, 0, AllocationTag::MAIN);
+		for (uint32 i = 0; i < sponza_mesh->geometries.size; i++)
+		{
+			sponza_mesh->geometries.push(GeometrySystem::acquire_from_config(sponza_g_configs[i], true));
+		}
+		sponza_mesh->transform = Math::transform_from_position_rotation_scale(VEC3_ZERO, QUAT_IDENTITY, {0.05f, 0.05f, 0.05f});
+		ResourceSystem::unload(&sponza_mesh_res);*/
 
 		// Load up some test UI geometry.
 		GeometrySystem::GeometryConfig ui_config = {};
