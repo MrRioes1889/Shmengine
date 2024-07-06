@@ -359,7 +359,7 @@ namespace MaterialSystem
         m->shininess = config.shininess;
 
         auto init_texture_map = [](const char* map_name, const char* material_name, TextureUse use, TextureMap& out_map, Texture* default_texture = 0)
-        {
+            {
                 if (CString::length(map_name) > 0) {
                     out_map.use = use;
                     out_map.texture = TextureSystem::acquire(map_name, true);
@@ -373,7 +373,7 @@ namespace MaterialSystem
                     out_map.use = use;
                     out_map.texture = default_texture;
                 }
-        };
+            };
 
         init_texture_map(config.diffuse_map_name, m->name, TextureUse::MAP_DIFFUSE, m->diffuse_map, TextureSystem::get_default_diffuse_texture());
         init_texture_map(config.specular_map_name, m->name, TextureUse::MAP_SPECULAR, m->specular_map, TextureSystem::get_default_specular_texture());

@@ -10,8 +10,15 @@
 
 enum class MeshFileType {
     NOT_FOUND,
-    KSM,
+    SHMESH,
     OBJ
+};
+
+struct test
+{
+    void* ptr1;
+    uint32 test2;
+    void* ptr2;
 };
 
 struct SupportedMeshFileType {
@@ -34,16 +41,42 @@ struct MeshGroupData {
     Darray<MeshFaceData> faces;
 };
 
+
+struct ShmeshFileHeader
+{
+    uint16 version;
+    uint16 name_length;
+    uint32 name_offset;
+    uint32 geometry_count;
+    uint32 geometries_offset;
+};
+
+struct ShmeshFileGeometryHeader
+{    
+    uint16 name_length;
+    uint16 material_name_length;
+    uint32 name_offset;   
+    uint32 material_name_offset;   
+    Math::Vec3f center;
+    Math::Vec3f min_extents;
+    Math::Vec3f max_extents;
+    uint32 vertices_indices_offset;
+    uint32 vertex_size;
+    uint32 vertex_count;
+    uint32 index_size;
+    uint32 index_count;
+};
+
 namespace ResourceSystem
 {
 
-    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* out_ksm_filename, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray);
+    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray);
     static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometrySystem::GeometryConfig* out_data);
     static bool32 import_obj_material_library_file(const char* mtl_file_path);
     static bool32 write_shmt_file(const char* directory, MaterialConfig* config);
 
-    static bool32 load_ksm_file(FileSystem::FileHandle* ksm_file, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray);
-    static bool32 write_ksm_file(const char* path, const char* name, Darray<GeometrySystem::GeometryConfig>& geometries);
+    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray);
+    static bool32 write_shmesh_file(const char* path, const char* name, Darray<GeometrySystem::GeometryConfig>& geometries);
     
 
     bool32 mesh_loader_load(ResourceLoader* loader, const char* name, Resource* out_resource)
@@ -57,7 +90,7 @@ namespace ResourceSystem
 
         const uint32 supported_file_type_count = 2;
         SupportedMeshFileType supported_file_types[supported_file_type_count] = {};
-        supported_file_types[0] = { ".ksm", MeshFileType::KSM, true };
+        supported_file_types[0] = { ".shmesh", MeshFileType::SHMESH, true };
         supported_file_types[1] = { ".obj", MeshFileType::OBJ, false };
 
         String full_filepath(MAX_FILEPATH_LENGTH);
@@ -86,21 +119,23 @@ namespace ResourceSystem
         }
 
         Darray<GeometrySystem::GeometryConfig> resource_data(1, 0, AllocationTag::MAIN);
+        out_resource->name = name;
 
         bool32 res = false;
         switch (file_type)
         {
         case MeshFileType::OBJ:
         {
-            String ksm_filepath(MAX_FILEPATH_LENGTH);
-            ksm_filepath = full_filepath_wo_extension;
-            ksm_filepath.append(".ksm");
-            res = import_obj_file(&f, full_filepath.c_str(), ksm_filepath.c_str(), resource_data);
+            String shmesh_filepath(MAX_FILEPATH_LENGTH);
+            shmesh_filepath = full_filepath_wo_extension;
+            shmesh_filepath.append(".shmesh");
+            res = import_obj_file(&f, full_filepath.c_str(), out_resource->name, shmesh_filepath.c_str(), resource_data);
+            
             break;
         }
-        case MeshFileType::KSM:
+        case MeshFileType::SHMESH:
         {
-            res = load_ksm_file(&f, resource_data);
+            res = load_shmesh_file(&f, full_filepath.c_str(), resource_data);
             break;
         }
         }
@@ -137,7 +172,7 @@ namespace ResourceSystem
         resource_unload(loader, resource);
     }
 
-    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* out_ksm_filename, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray)
+    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray)
     {
         
         uint32 file_size = FileSystem::get_file_size32(obj_file);
@@ -246,9 +281,13 @@ namespace ResourceSystem
                 for (uint32 i = 0; i < groups.count; i++)
                 {
                     GeometrySystem::GeometryConfig* new_data = out_geometries_darray.push({});
+                    if (!name[0])
+                    {
+                        name = mesh_name;
+                        name += "_geo";
+                    }
                     CString::copy(Geometry::max_name_length, new_data->name, name.c_str());
-                    if (i > 0)
-                        CString::append(Geometry::max_name_length, new_data->name, CString::to_string(i));
+
                     CString::copy(Material::max_name_length, new_data->material_name, material_names[i].c_str());
 
                     process_subobject(positions, normals, tex_coords, groups[i].faces, new_data);
@@ -276,9 +315,20 @@ namespace ResourceSystem
             
             GeometrySystem::GeometryConfig* new_data = out_geometries_darray.push({});
             CString::copy(Geometry::max_name_length, new_data->name, name.c_str());
+            if (!name[0])
+            {
+                name = mesh_name;
+                name += "_geo";
+            }
+            CString::copy(Geometry::max_name_length, new_data->name, name.c_str());
+
             if (i > 0)
                 CString::append(Geometry::max_name_length, new_data->name, CString::to_string(i));
+            
+                
             CString::copy(Material::max_name_length, new_data->material_name, material_names[i].c_str());
+
+
 
             process_subobject(positions, normals, tex_coords, groups[i].faces, new_data);
 
@@ -293,7 +343,7 @@ namespace ResourceSystem
         if (material_file_name.len() > 0)
         {
             String directory;
-            mid(directory, out_ksm_filename, 0, CString::index_of_last(out_ksm_filename, '/') + 1);
+            mid(directory, out_shmesh_filename, 0, CString::index_of_last(out_shmesh_filename, '/') + 1);
             directory.append(material_file_name);
             if (!import_obj_material_library_file(directory.c_str()))
                 SHMERRORV("Error reading obj mtl file '%s'.", material_file_name.c_str());
@@ -311,8 +361,8 @@ namespace ResourceSystem
             // TODO: Maybe shrink down vertex array to count after deduplication!
         }
 
-        // Output a ksm file, which will be loaded in the future.
-        return write_ksm_file(out_ksm_filename, name.c_str(), out_geometries_darray);
+        // Output a shmesh file, which will be loaded in the future.
+        return write_shmesh_file(out_shmesh_filename, mesh_name, out_geometries_darray);
 
     }
 
@@ -611,15 +661,148 @@ namespace ResourceSystem
 
     }
 
-    static bool32 load_ksm_file(FileSystem::FileHandle* ksm_file, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray)
+    static bool32 write_shmesh_file(const char* path, const char* name, Darray<GeometrySystem::GeometryConfig>& geometries)
     {
+
+        FileSystem::FileHandle f;
+
+        if (!FileSystem::file_open(path, FILE_MODE_WRITE, &f)) {
+            SHMERRORV("Error opening material file for writing: '%s'", path);
+            return false;
+        }
+        SHMDEBUGV("Writing .shmesh file '%s'...", path);
+
+        uint64 written_total = 0;
+        uint32 written = 0;
+
+        ShmeshFileHeader file_header = {};
+        file_header.version = 1;
+        file_header.name_length = (uint16)CString::length(name);
+        file_header.geometry_count = geometries.count;
+
+        file_header.name_offset = sizeof(ShmeshFileHeader);
+        file_header.geometries_offset = file_header.name_offset + file_header.name_length;
+
+        FileSystem::write(&f, sizeof(file_header), &file_header, &written);
+        written_total += written;
+
+        FileSystem::write(&f, file_header.name_length, name, &written);
+        written_total += written;
+
+
+        for (uint32 i = 0; i < geometries.count; i++)
+        {
+            GeometrySystem::GeometryConfig& g = geometries[i];
+
+            ShmeshFileGeometryHeader geo_header = {};
+            geo_header.center = g.center;
+            geo_header.min_extents = g.min_extents;
+            geo_header.max_extents = g.max_extents;
+            geo_header.vertex_size = g.vertex_size;
+            geo_header.vertex_count = g.vertex_count;
+            geo_header.index_size = sizeof(uint32);
+            geo_header.index_count = g.indices.count;
+            geo_header.name_length = (uint16)CString::length(g.name);
+            geo_header.material_name_length = (uint16)CString::length(g.material_name);
+
+            geo_header.name_offset = sizeof(geo_header);
+            geo_header.material_name_offset = geo_header.name_offset + geo_header.name_length;
+            geo_header.vertices_indices_offset = geo_header.material_name_offset + geo_header.material_name_length;
+
+            FileSystem::write(&f, sizeof(geo_header), &geo_header, &written);
+            written_total += written;
+
+            FileSystem::write(&f, geo_header.name_length, g.name, &written);
+            written_total += written;
+
+            FileSystem::write(&f, geo_header.material_name_length, g.material_name, &written);
+            written_total += written;
+
+            FileSystem::write(&f, geo_header.vertex_size * geo_header.vertex_count, g.vertices.data, &written);
+            written_total += written;
+
+            FileSystem::write(&f, geo_header.index_size * geo_header.index_count, g.indices.data, &written);
+            written_total += written;
+        }
+
+        FileSystem::file_close(&f);
+
         return true;
+
     }
 
-    static bool32 write_ksm_file(const char* path, const char* name, Darray<GeometrySystem::GeometryConfig>& geometries)
+
+
+    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray)
     {
+
+        uint32 file_size = FileSystem::get_file_size32(shmesh_file);
+        Buffer file_content(file_size, 0, AllocationTag::MAIN);
+        uint32 bytes_read = 0;
+        if (!FileSystem::read_all_bytes(shmesh_file, file_content.data, (uint32)file_content.size, &bytes_read))
+        {
+            SHMERRORV("load_shmesh_file - failed to read from file: '%s'.", shmesh_filepath);
+            return false;
+        }
+
+        SHMTRACEV("Importing shmesh file: '%s'.", shmesh_filepath);
+
+        uint8* read_ptr = (uint8*)file_content.data;
+        uint64 read_bytes = 0;
+
+        auto check_buffer_size = [&read_bytes, &file_content](uint64 requested_size)
+            {
+                SHMASSERT_MSG(read_bytes + requested_size <= file_content.size, "Tried to read outside of buffers memory! File formatting might be corrupted.")
+            };
+
+        check_buffer_size(sizeof(ShmeshFileHeader));
+        ShmeshFileHeader* file_header = (ShmeshFileHeader*)&read_ptr[read_bytes];
+        read_bytes += sizeof(ShmeshFileHeader);
+
+        check_buffer_size(file_header->name_length);
+        String name;
+        name.copy_n((char*)&read_ptr[read_bytes], (uint32)file_header->name_length);
+        read_bytes += file_header->name_length;
+
+        for (uint32 i = 0; i < file_header->geometry_count; i++)
+        {
+            GeometrySystem::GeometryConfig* g = out_geometries_darray.push({});
+
+            check_buffer_size(sizeof(ShmeshFileGeometryHeader));
+            ShmeshFileGeometryHeader* geo_header = (ShmeshFileGeometryHeader*)&read_ptr[read_bytes];
+            read_bytes += sizeof(*geo_header);
+
+            g->center = geo_header->center;
+            g->min_extents = geo_header->min_extents;
+            g->max_extents = geo_header->max_extents;
+            g->vertex_size = geo_header->vertex_size;
+            g->vertex_count = geo_header->vertex_count;
+
+            check_buffer_size(
+                (geo_header->name_length +
+                geo_header->material_name_length +
+                (geo_header->vertex_count * geo_header->vertex_size) +
+                (geo_header->index_count * geo_header->index_size))
+            );
+
+            g->vertices.init(g->vertex_count * g->vertex_size, 0, AllocationTag::MAIN);
+            g->indices.init(geo_header->index_count, 0, AllocationTag::MAIN);
+
+            CString::copy(Geometry::max_name_length, g->name, (char*)&read_ptr[read_bytes], (int32)geo_header->name_length);
+            read_bytes += geo_header->name_length;
+
+            CString::copy(Material::max_name_length, g->material_name, (char*)&read_ptr[read_bytes], (int32)geo_header->material_name_length);
+            read_bytes += geo_header->material_name_length;
+
+            g->vertices.copy_memory(&read_ptr[read_bytes], geo_header->vertex_count * geo_header->vertex_size);
+            read_bytes += geo_header->vertex_count * geo_header->vertex_size;
+
+            g->indices.copy_memory(&read_ptr[read_bytes], geo_header->index_count * geo_header->index_size);
+            read_bytes += geo_header->index_count * geo_header->index_size;
+        }
+
         return true;
-    }
+    }   
 
 	ResourceLoader mesh_resource_loader_create()
 	{

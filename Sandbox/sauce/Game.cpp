@@ -25,7 +25,7 @@ SHMINLINE void camera_pitch(GameState* state, float32 change)
     state->camera_euler.pitch += change;
 
     float32 limit = Math::deg_to_rad(89.0f);
-    change = clamp(change, -limit, limit);
+    state->camera_euler.pitch = clamp(state->camera_euler.pitch, -limit, limit);
     state->camera_view_dirty = true;
 }
 

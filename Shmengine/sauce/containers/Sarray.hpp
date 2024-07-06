@@ -35,6 +35,8 @@ struct Sarray
 
 	SHMINLINE T* transfer_data();
 
+	SHMINLINE void copy_memory(const void* source, uint64 size);
+
 	SHMINLINE void steal(Sarray<T>& other)
 	{
 		data = other.data;
@@ -198,4 +200,11 @@ inline SHMINLINE T* Sarray<T>::transfer_data()
 	count = 0;
 
 	return ret;
+}
+
+template<typename T>
+SHMINLINE void Sarray<T>::copy_memory(const void* source, uint64 size)
+{
+	SHMASSERT_MSG(size <= (sizeof(T) * count), "Sarray does not fit requested size!");
+	Memory::copy_memory(source, data, size);
 }

@@ -157,6 +157,8 @@ namespace Application
 	bool32 create(Game* game_inst)
 	{
 
+		SHMASSERT(false);
+
 		if (initialized)
 			return false;
 
@@ -260,31 +262,37 @@ namespace Application
 		app_state->meshes[1].transform.parent = &app_state->meshes[0].transform;
 		app_state->meshes[2].transform.parent = &app_state->meshes[0].transform;
 
-		Mesh* car_mesh = app_state->meshes.push({});
+		
 		Resource car_mesh_res = {};
 		if (!ResourceSystem::load("falcon", ResourceType::MESH, &car_mesh_res))
 			SHMERROR("Failed to load car mesh!");
-		GeometrySystem::GeometryConfig* car_g_configs = (GeometrySystem::GeometryConfig*)car_mesh_res.data;
-		car_mesh->geometries.init(car_mesh_res.data_size, 0, AllocationTag::MAIN);
-		for (uint32 i = 0; i < car_mesh->geometries.size; i++)
 		{
-			car_mesh->geometries.push(GeometrySystem::acquire_from_config(car_g_configs[i], true));
+			Mesh* car_mesh = app_state->meshes.push({});
+			GeometrySystem::GeometryConfig* car_g_configs = (GeometrySystem::GeometryConfig*)car_mesh_res.data;
+			car_mesh->geometries.init(car_mesh_res.data_size, 0, AllocationTag::MAIN);
+			for (uint32 i = 0; i < car_mesh->geometries.size; i++)
+			{
+				car_mesh->geometries.push(GeometrySystem::acquire_from_config(car_g_configs[i], true));
+			}
+			car_mesh->transform = Math::transform_from_position({ 20.0f, 0.0f, 1.0f });
+			ResourceSystem::unload(&car_mesh_res);
 		}
-		car_mesh->transform = Math::transform_from_position({ 20.0f, 0.0f, 1.0f });
-		ResourceSystem::unload(&car_mesh_res);	
-
-		/*Mesh* sponza_mesh = app_state->meshes.push({});
+			
 		Resource sponza_mesh_res = {};
 		if (!ResourceSystem::load("sponza", ResourceType::MESH, &sponza_mesh_res))
 			SHMERROR("Failed to load sponza mesh!");
-		GeometrySystem::GeometryConfig* sponza_g_configs = (GeometrySystem::GeometryConfig*)sponza_mesh_res.data;
-		sponza_mesh->geometries.init(sponza_mesh_res.data_size, 0, AllocationTag::MAIN);
-		for (uint32 i = 0; i < sponza_mesh->geometries.size; i++)
+		else
 		{
-			sponza_mesh->geometries.push(GeometrySystem::acquire_from_config(sponza_g_configs[i], true));
-		}
-		sponza_mesh->transform = Math::transform_from_position_rotation_scale(VEC3_ZERO, QUAT_IDENTITY, {0.05f, 0.05f, 0.05f});
-		ResourceSystem::unload(&sponza_mesh_res);*/
+			Mesh* sponza_mesh = app_state->meshes.push({});
+			GeometrySystem::GeometryConfig* sponza_g_configs = (GeometrySystem::GeometryConfig*)sponza_mesh_res.data;
+			sponza_mesh->geometries.init(sponza_mesh_res.data_size, 0, AllocationTag::MAIN);
+			for (uint32 i = 0; i < sponza_mesh->geometries.size; i++)
+			{
+				sponza_mesh->geometries.push(GeometrySystem::acquire_from_config(sponza_g_configs[i], true));
+			}
+			sponza_mesh->transform = Math::transform_from_position_rotation_scale(VEC3_ZERO, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
+			ResourceSystem::unload(&sponza_mesh_res);
+		}	
 
 		// Load up some test UI geometry.
 		GeometrySystem::GeometryConfig ui_config = {};
