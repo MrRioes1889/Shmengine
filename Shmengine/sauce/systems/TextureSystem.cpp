@@ -207,18 +207,18 @@ namespace TextureSystem
 			return false;
 		}	
 
-		Texture temp_texture;
+		uint32 current_generation = t->generation;
+		destroy_texture(t);
 
 		ImageConfig* img_resource_data = (ImageConfig*)img_resource.data;
-		temp_texture.channel_count = img_resource_data->channel_count;
-		temp_texture.width = img_resource_data->width;
-		temp_texture.height = img_resource_data->height;
-
-		uint32 current_generation = t->generation;
+		t->channel_count = img_resource_data->channel_count;
+		t->width = img_resource_data->width;
+		t->height = img_resource_data->height;
+		
 		t->generation = INVALID_ID;
 
 		uint8* pixels = img_resource_data->pixels;
-		uint64 size = temp_texture.width * temp_texture.height * temp_texture.channel_count;
+		uint64 size = t->width * t->height * t->channel_count;
 		bool32 has_transparency = false;
 		for (uint64 i = 0; i < size; i += img_resource_data->channel_count)
 		{
@@ -230,14 +230,11 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(Texture::max_name_length, temp_texture.name, texture_name);
-		temp_texture.generation = INVALID_ID;
-		temp_texture.has_transparency = has_transparency;
+		CString::copy(Texture::max_name_length, t->name, texture_name);
+		t->generation = INVALID_ID;
+		t->has_transparency = has_transparency;
 
-		Renderer::create_texture(pixels, &temp_texture);
-
-		destroy_texture(t);
-		(*t).move(temp_texture);
+		Renderer::create_texture(pixels, t);
 
 		if (current_generation == INVALID_ID)
 			t->generation = 0;

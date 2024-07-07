@@ -51,13 +51,6 @@ struct Texture
 	uint32 channel_count;
 	bool32 has_transparency;
 
-	SHMINLINE void move(Texture& other)
-	{
-		Memory::copy_memory(&other, this, sizeof(Texture));
-
-		internal_data.steal(other.internal_data);
-	}
-
 };
 
 enum class TextureUse

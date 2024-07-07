@@ -157,8 +157,6 @@ namespace Application
 	bool32 create(Game* game_inst)
 	{
 
-		SHMASSERT(false);
-
 		if (initialized)
 			return false;
 
