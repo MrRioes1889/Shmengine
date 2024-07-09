@@ -574,30 +574,6 @@ namespace Renderer::Vulkan
 
 		buffer_destroy(&context, &staging);
 
-		VkSamplerCreateInfo sampler_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-		// TODO: These filters should be configurable.
-		sampler_info.magFilter = VK_FILTER_LINEAR;
-		sampler_info.minFilter = VK_FILTER_LINEAR;
-		sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler_info.anisotropyEnable = VK_TRUE;
-		sampler_info.maxAnisotropy = 16;
-		sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		sampler_info.unnormalizedCoordinates = VK_FALSE;
-		sampler_info.compareEnable = VK_FALSE;
-		sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
-		sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler_info.mipLodBias = 0.0f;
-		sampler_info.minLod = 0.0f;
-		sampler_info.maxLod = 0.0f;
-
-		VkResult result = vkCreateSampler(context.device.logical_device, &sampler_info, context.allocator_callbacks, &data->sampler);
-		if (!vulkan_result_is_success(VK_SUCCESS)) {
-			SHMERRORV("Error creating texture sampler: %s", vulkan_result_string(result, true));
-			return;
-		}
-
 		texture->generation++;
 
 	}
@@ -612,8 +588,6 @@ namespace Renderer::Vulkan
 		{
 			vulkan_image_destroy(&context, &data->image);
 			data->image = {};
-			vkDestroySampler(context.device.logical_device, data->sampler, context.allocator_callbacks);
-			data->sampler = 0;
 
 			texture->internal_data.free_data();
 		}

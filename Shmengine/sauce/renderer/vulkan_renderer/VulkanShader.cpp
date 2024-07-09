@@ -522,12 +522,13 @@ namespace Renderer::Vulkan
 				for (uint32 i = 0; i < total_sampler_count; ++i)
 				{
 					// TODO: only update in the list if actually needing an update.
-					Texture* t = v_shader->instance_states[s->bound_instance_id].instance_textures[i];
+					TextureMap* map = v_shader->instance_states[s->bound_instance_id].instance_texture_maps[i];
+					Texture* t = map->texture;
 
 					VulkanTextureData* internal_data = (VulkanTextureData*)t->internal_data.data;
 					image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					image_infos[i].imageView = internal_data->image.view;
-					image_infos[i].sampler = internal_data->sampler;
+					image_infos[i].sampler = (VkSampler)map->internal_data;
 
 					// TODO: change up descriptor state to handle this properly.
 					// Sync frame generation if not using a default texture.
@@ -564,7 +565,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 shader_acquire_instance_resources(Shader* s, uint32* out_instance_id)
+	bool32 shader_acquire_instance_resources(Shader* s, TextureMap** maps, uint32* out_instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -588,12 +589,14 @@ namespace Renderer::Vulkan
 		VulkanShaderInstanceState* instance_state = &v_shader->instance_states[*out_instance_id];
 		uint32 instance_texture_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[binding_index_sampler].descriptorCount;
 		// Wipe out the memory for the entire array, even if it isn't all used.
-		instance_state->instance_textures = (Texture**)Memory::allocate(sizeof(Texture*) * s->instance_texture_count, true, AllocationTag::MAIN);
+		instance_state->instance_texture_maps.init(s->instance_texture_count, true, AllocationTag::MAIN);
 		Texture* default_texture = TextureSystem::get_default_texture();
 		// Set all the texture pointers to default until assigned.
 		for (uint32 i = 0; i < instance_texture_count; ++i)
 		{
-			instance_state->instance_textures[i] = default_texture;
+			instance_state->instance_texture_maps[i] = maps[i];
+			if (!maps[i]->texture)
+				instance_state->instance_texture_maps[i]->texture = default_texture;
 		}
 
 		// Allocate some space in the UBO - by the stride, not the size.
@@ -664,11 +667,7 @@ namespace Renderer::Vulkan
 			SHMERROR("Error freeing object shader descriptor sets!");
 		}
 
-		if (instance_state->instance_textures)
-		{
-			Memory::free_memory(instance_state->instance_textures, true, AllocationTag::MAIN);
-			instance_state->instance_textures = 0;
-		}
+		instance_state->instance_texture_maps.free_data();
 
 		buffer_free(&v_shader->uniform_buffer, instance_state->offset);
 		instance_state->offset = INVALID_ID;
@@ -686,11 +685,11 @@ namespace Renderer::Vulkan
 		{
 			if (uniform->scope == ShaderScope::GLOBAL)
 			{
-				s->global_textures[uniform->location] = (Texture*)value;
+				s->global_texture_maps[uniform->location] = *((TextureMap*)value);
 			}
 			else
 			{
-				v_shader->instance_states[s->bound_instance_id].instance_textures[uniform->location] = (Texture*)value;
+				v_shader->instance_states[s->bound_instance_id].instance_texture_maps[uniform->location] = (TextureMap*)value;
 			}
 		}
 		else
@@ -745,6 +744,74 @@ namespace Renderer::Vulkan
 		shader_stage->shader_stage_create_info.pName = "main";
 
 		return true;
+	}
+
+	static VkSamplerAddressMode convert_repeat_type(TextureRepeat repeat) {
+		switch (repeat) {
+		case TextureRepeat::REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case TextureRepeat::MIRRORED_REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case TextureRepeat::CLAMP_TO_EDGE:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case TextureRepeat::CLAMP_TO_BORDER:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		default:
+			SHMWARNV("convert_repeat_type Type %u not supported, defaulting to repeat.", (uint32)repeat);
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		}
+	}
+
+	static VkFilter convert_filter_type(TextureFilter filter) {
+		switch (filter) {
+		case TextureFilter::NEAREST:
+			return VK_FILTER_NEAREST;
+		case TextureFilter::LINEAR:
+			return VK_FILTER_LINEAR;
+		default:
+			SHMWARNV("convert_filter_type: Unsupported filter type %u, defaulting to linear.", (uint32)filter);
+			return VK_FILTER_LINEAR;
+		}
+	}
+
+	bool32 texture_map_acquire_resources(TextureMap* out_map) 
+	{
+		// Create a sampler for the texture
+		VkSamplerCreateInfo sampler_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+
+		sampler_info.minFilter = convert_filter_type(out_map->filter_minify);
+		sampler_info.magFilter = convert_filter_type(out_map->filter_magnify);
+
+		sampler_info.addressModeU = convert_repeat_type(out_map->repeat_u);
+		sampler_info.addressModeV = convert_repeat_type(out_map->repeat_v);
+		sampler_info.addressModeW = convert_repeat_type(out_map->repeat_w);
+
+		// TODO: Configurable
+		sampler_info.anisotropyEnable = VK_TRUE;
+		sampler_info.maxAnisotropy = 16;
+		sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		sampler_info.unnormalizedCoordinates = VK_FALSE;
+		sampler_info.compareEnable = VK_FALSE;
+		sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+		sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		sampler_info.mipLodBias = 0.0f;
+		sampler_info.minLod = 0.0f;
+		sampler_info.maxLod = 0.0f;
+
+		VkResult result = vkCreateSampler(context->device.logical_device, &sampler_info, context->allocator_callbacks, (VkSampler*)&out_map->internal_data);
+		if (!vulkan_result_is_success(VK_SUCCESS)) {
+			SHMERRORV("Error creating texture sampler: %s", vulkan_result_string(result, true));
+			return false;
+		}
+
+		return true;
+	}
+
+	void texture_map_release_resources(TextureMap* map) {
+		if (map) {
+			vkDestroySampler(context->device.logical_device, (VkSampler)map->internal_data, context->allocator_callbacks);
+			map->internal_data = 0;
+		}
 	}
 
 }

@@ -232,7 +232,8 @@ namespace TextureSystem
 
 		CString::copy(Texture::max_name_length, t->name, texture_name);
 		t->generation = INVALID_ID;
-		t->has_transparency = has_transparency;
+		t->has_transparency = (bool8)has_transparency;
+		t->is_writable = false;
 
 		Renderer::create_texture(pixels, t);
 
@@ -290,6 +291,7 @@ namespace TextureSystem
 		system_state->default_texture.id = INVALID_ID;
 		system_state->default_texture.generation = INVALID_ID;
 		system_state->default_texture.has_transparency = false;
+		system_state->default_texture.is_writable = false;
 
 		Renderer::create_texture(pixels, &system_state->default_texture);
 		system_state->default_texture.generation = INVALID_ID;
@@ -304,6 +306,7 @@ namespace TextureSystem
 		system_state->default_diffuse.channel_count = 4;
 		system_state->default_diffuse.generation = INVALID_ID;
 		system_state->default_diffuse.has_transparency = false;
+		system_state->default_diffuse.is_writable = false;
 		Renderer::create_texture(diff_pixels, &system_state->default_diffuse);
 		// Manually set the texture generation to invalid since this is a default texture.
 		system_state->default_diffuse.generation = INVALID_ID;
@@ -319,6 +322,7 @@ namespace TextureSystem
 		system_state->default_specular.channel_count = 4;
 		system_state->default_specular.generation = INVALID_ID;
 		system_state->default_specular.has_transparency = false;
+		system_state->default_specular.is_writable = false;
 		Renderer::create_texture(spec_pixels, &system_state->default_specular);
 		// Manually set the texture generation to invalid since this is a default texture.
 		system_state->default_specular.generation = INVALID_ID;
@@ -347,6 +351,7 @@ namespace TextureSystem
 		system_state->default_normal.channel_count = 4;
 		system_state->default_normal.generation = INVALID_ID;
 		system_state->default_normal.has_transparency = false;
+		system_state->default_normal.is_writable = false;
 		Renderer::create_texture(normal_pixels, &system_state->default_normal);
 		// Manually set the texture generation to invalid since this is a default texture.
 		system_state->default_normal.generation = INVALID_ID;

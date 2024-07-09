@@ -197,7 +197,7 @@ struct VulkanShaderInstanceState
 	uint64 offset;
 
 	VulkanShaderDescriptorSetState descriptor_set_state;
-	struct Texture** instance_textures;
+	Sarray<TextureMap*> instance_texture_maps;
 
 };
 
@@ -295,5 +295,4 @@ struct VulkanContext
 struct VulkanTextureData
 {
 	VulkanImage image;
-	VkSampler sampler;
 };

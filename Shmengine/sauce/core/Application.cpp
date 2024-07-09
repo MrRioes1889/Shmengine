@@ -203,6 +203,13 @@ namespace Application
 			return false;
 		}
 
+		Shader shader = {};
+		shader.attributes.init(10, 0, AllocationTag::MAIN);
+		shader.uniforms.init(10, 0, AllocationTag::MAIN);
+		shader.name = "yoyoyoyoyo";
+		shader.global_texture_maps.init(10, 0, AllocationTag::MAIN);
+		shader.~Shader();
+
 		if (!Renderer::system_init(allocate_subsystem_callback, app_state->renderer_system_state, game_inst->config.name))
 		{
 			SHMFATAL("ERROR: Failed to initialize renderer. Application shutting down..");
@@ -288,7 +295,9 @@ namespace Application
 			{
 				sponza_mesh->geometries.push(GeometrySystem::acquire_from_config(sponza_g_configs[i], true));
 			}
-			sponza_mesh->transform = Math::transform_from_position_rotation_scale(VEC3_ZERO, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
+			{
+				sponza_mesh->transform = Math::transform_from_position_rotation_scale({15.0f, 0.0f, 1.0f}, QUAT_IDENTITY, {0.1f, 0.1f, 0.1f});
+			}
 			ResourceSystem::unload(&sponza_mesh_res);
 		}	
 

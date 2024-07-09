@@ -37,6 +37,9 @@ namespace Renderer
 			out_backend->shader_acquire_instance_resources = Vulkan::shader_acquire_instance_resources;
 			out_backend->shader_release_instance_resources = Vulkan::shader_release_instance_resources;
 
+			out_backend->texture_map_acquire_resources = Vulkan::texture_map_acquire_resources;
+			out_backend->texture_map_release_resources = Vulkan::texture_map_release_resources;
+
 			return true;
 		}
 

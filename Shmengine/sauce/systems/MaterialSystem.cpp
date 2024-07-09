@@ -314,15 +314,15 @@ namespace MaterialSystem
             if (m->shader_id == system_state->material_shader_id) {
                 // Material shader
                 MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_color, &m->diffuse_color));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_texture, m->diffuse_map.texture));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.specular_texture, m->specular_map.texture));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.normal_texture, m->normal_map.texture));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_texture, &m->diffuse_map));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.specular_texture, &m->specular_map));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.normal_texture, &m->normal_map));
                 MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.shininess, &m->shininess));
             }
             else if (m->shader_id == system_state->ui_shader_id) {
                 // UI shader
                 MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.diffuse_color, &m->diffuse_color));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.diffuse_texture, m->diffuse_map.texture));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.diffuse_texture, &m->diffuse_map));
             }
             else {
                 SHMERRORV("material_system_apply_instance - Unrecognized shader id '%i' on shader '%s'.", m->shader_id, m->name);
@@ -358,26 +358,40 @@ namespace MaterialSystem
         m->diffuse_color = config.diffuse_color;
         m->shininess = config.shininess;
 
-        auto init_texture_map = [](const char* map_name, const char* material_name, TextureUse use, TextureMap& out_map, Texture* default_texture = 0)
+        auto init_texture_map = [](const char* map_name, const char* material_name, TextureUse use, TextureMap& out_map, Texture* default_texture = 0) -> bool32
             {
-                if (CString::length(map_name) > 0) {
-                    out_map.use = use;
+                out_map.use = use;
+                out_map.filter_minify = TextureFilter::LINEAR;
+                out_map.filter_magnify = TextureFilter::LINEAR;
+                out_map.repeat_u = TextureRepeat::REPEAT;
+                out_map.repeat_v = TextureRepeat::REPEAT;
+                out_map.repeat_w = TextureRepeat::REPEAT;
+                out_map.repeat_u = TextureRepeat::REPEAT;
+                if (!Renderer::texture_map_acquire_resources(&out_map))
+                {
+                    SHMERRORV("load_material - Failed to acquire resources for texture map: '%s'.", map_name);
+                    return false;
+                }
+
+                if (map_name[0]) {
                     out_map.texture = TextureSystem::acquire(map_name, true);
                     if (!out_map.texture) {
-                        SHMWARNV("Unable to load texture '%s' for material '%s', using default.", material_name);
+                        SHMWARNV("load_material - Unable to load texture '%s' for material '%s', using default.", material_name);
                         out_map.texture = TextureSystem::get_default_texture();
-                    }
+                    }           
                 }
                 else {
-                    // NOTE: Only set for clarity, as call to kzero_memory above does this already.
-                    out_map.use = use;
                     out_map.texture = default_texture;
                 }
+                return true;
             };
 
-        init_texture_map(config.diffuse_map_name, m->name, TextureUse::MAP_DIFFUSE, m->diffuse_map, TextureSystem::get_default_diffuse_texture());
-        init_texture_map(config.specular_map_name, m->name, TextureUse::MAP_SPECULAR, m->specular_map, TextureSystem::get_default_specular_texture());
-        init_texture_map(config.normal_map_name, m->name, TextureUse::MAP_NORMAL, m->normal_map, TextureSystem::get_default_normal_texture());
+        if (!init_texture_map(config.diffuse_map_name, m->name, TextureUse::MAP_DIFFUSE, m->diffuse_map, TextureSystem::get_default_diffuse_texture()))
+            return false;
+        if (!init_texture_map(config.specular_map_name, m->name, TextureUse::MAP_SPECULAR, m->specular_map, TextureSystem::get_default_specular_texture()))
+            return false;
+        if (!init_texture_map(config.normal_map_name, m->name, TextureUse::MAP_NORMAL, m->normal_map, TextureSystem::get_default_normal_texture()))
+            return false;
 
         // Send it off to the renderer to acquire resources.
         Shader* s = ShaderSystem::get_shader(config.shader_name.c_str());
@@ -386,7 +400,8 @@ namespace MaterialSystem
             return false;
         }
 
-        if (!Renderer::shader_acquire_instance_resources(s, &m->internal_id)) {
+        TextureMap* maps[3] = { &m->diffuse_map, &m->specular_map, &m->normal_map };
+        if (!Renderer::shader_acquire_instance_resources(s, maps, &m->internal_id)) {
             SHMERRORV("Failed to acquire resources for material '%s'.", m->name);
             return false;
         }
@@ -410,6 +425,10 @@ namespace MaterialSystem
         if (m->normal_map.texture) {
             TextureSystem::release(m->normal_map.texture->name);
         }
+
+        Renderer::texture_map_release_resources(&m->diffuse_map);
+        Renderer::texture_map_release_resources(&m->specular_map);
+        Renderer::texture_map_release_resources(&m->normal_map);
 
         // Release renderer resources.
         if (m->shader_id != INVALID_ID && m->internal_id != INVALID_ID)
@@ -443,7 +462,8 @@ namespace MaterialSystem
         system_state->default_material.normal_map.texture = TextureSystem::get_default_normal_texture();
 
         Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material);
-        if (!Renderer::shader_acquire_instance_resources(s, &system_state->default_material.internal_id))
+        TextureMap* maps[3] = { &system_state->default_material.diffuse_map, &system_state->default_material.specular_map, &system_state->default_material.normal_map };
+        if (!Renderer::shader_acquire_instance_resources(s, maps, &system_state->default_material.internal_id))
         {
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;

@@ -97,7 +97,7 @@ namespace ShaderSystem
 		shader->use_locals = config.use_local;
 		shader->bound_instance_id = INVALID_ID;
 		
-		shader->global_textures.init(1, 0, AllocationTag::MAIN);
+		shader->global_texture_maps.init(1, 0, AllocationTag::MAIN);
 		shader->uniforms.init(1, 0, AllocationTag::MAIN);
 		shader->attributes.init(1, 0, AllocationTag::MAIN);
 
@@ -175,14 +175,8 @@ namespace ShaderSystem
 
 		Renderer::shader_destroy(shader);
 
+		(*shader).~Shader();
 		shader->state = ShaderState::NOT_CREATED;
-		shader->name.free_data();
-		for (uint32 i = 0; i < shader->attributes.count; i++)
-			shader->attributes[i].name.free_data();
-		shader->attributes.free_data();
-		shader->uniforms.free_data();
-		shader->uniform_lookup.free_data();
-		shader->global_textures.free_data();
 
 	}
 
@@ -377,12 +371,25 @@ namespace ShaderSystem
 		uint32 location = 0;
 		if (config.scope == ShaderScope::GLOBAL) 
 		{
-			if (shader->global_textures.count + 1 > system_state->config.max_global_textures)
+			if (shader->global_texture_maps.count + 1 > system_state->config.max_global_textures)
 			{
-				SHMERRORV("Shader global texture count %i exceeds max of %i", shader->global_textures.count + 1, system_state->config.max_global_textures);
+				SHMERRORV("Shader global texture count %i exceeds max of %i", shader->global_texture_maps.count + 1, system_state->config.max_global_textures);
 				return false;
 			}
-			shader->global_textures.push(TextureSystem::get_default_texture());
+			location = shader->global_texture_maps.count;
+
+			TextureMap* default_map = shader->global_texture_maps.push({});
+			default_map->filter_magnify = TextureFilter::LINEAR;
+			default_map->filter_minify = TextureFilter::LINEAR;
+			default_map->repeat_u = TextureRepeat::REPEAT;
+			default_map->repeat_v = TextureRepeat::REPEAT;
+			default_map->repeat_w = TextureRepeat::REPEAT;
+			default_map->use = TextureUse::UNKNOWN;
+			if (!Renderer::texture_map_acquire_resources(default_map)) {
+				SHMERROR("Failed to acquire resources for global texture map during shader creation.");
+				shader->global_texture_maps.pop();
+				return false;
+			}
 		}
 		else 
 		{

@@ -49,7 +49,8 @@ struct Texture
 	uint32 height;
 	uint32 generation;
 	uint32 channel_count;
-	bool32 has_transparency;
+	bool8 has_transparency;
+	bool8 is_writable;
 
 };
 
@@ -61,10 +62,34 @@ enum class TextureUse
 	MAP_NORMAL = 3
 };
 
+enum class TextureFilter
+{
+	NEAREST = 0,
+	LINEAR = 1,
+};
+
+enum class TextureRepeat
+{
+	REPEAT = 0,
+	MIRRORED_REPEAT = 1,
+	CLAMP_TO_EDGE = 2,
+	CLAMP_TO_BORDER = 3
+};
+
 struct TextureMap
 {
+	void* internal_data;
 	Texture* texture;
 	TextureUse use;
+
+	TextureFilter filter_minify;
+	TextureFilter filter_magnify;
+
+	TextureRepeat repeat_u;
+	TextureRepeat repeat_v;
+	TextureRepeat repeat_w;
+
+
 };
 
 namespace ShaderStage
@@ -193,7 +218,7 @@ struct Shader
 
 	String name;
 
-	Darray<Texture*> global_textures;
+	Darray<TextureMap*> global_texture_maps;
 
 	ShaderScope bound_scope;
 

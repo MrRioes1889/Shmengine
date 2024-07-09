@@ -336,9 +336,9 @@ namespace Renderer
 		return system_state->backend.shader_apply_instance(s, needs_update);
 	}
 
-	bool32 shader_acquire_instance_resources(Shader* s, uint32* out_instance_id) 
+	bool32 shader_acquire_instance_resources(Shader* s, TextureMap** maps, uint32* out_instance_id)
 	{
-		return system_state->backend.shader_acquire_instance_resources(s, out_instance_id);
+		return system_state->backend.shader_acquire_instance_resources(s, maps, out_instance_id);
 	}
 
 	bool32 shader_release_instance_resources(Shader* s, uint32 instance_id) 
@@ -349,6 +349,16 @@ namespace Renderer
 	bool32 shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value) 
 	{
 		return system_state->backend.shader_set_uniform(s, uniform, value);
+	}
+
+	bool32 texture_map_acquire_resources(TextureMap* out_map)
+	{
+		return system_state->backend.texture_map_acquire_resources(out_map);
+	}
+
+	void texture_map_release_resources(TextureMap* out_map)
+	{
+		return system_state->backend.texture_map_release_resources(out_map);
 	}
 	
 }
