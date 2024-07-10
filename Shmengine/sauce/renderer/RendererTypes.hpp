@@ -19,13 +19,6 @@ namespace Renderer
 		static inline const char* builtin_shader_name_ui = "Shader.Builtin.UI";
 	};
 
-	enum BackendType
-	{
-		VULKAN,
-		OPENGL,
-		DIRECTX,
-	};
-
 	namespace ViewMode
 	{
 		enum Value
@@ -33,23 +26,75 @@ namespace Renderer
 			DEFAULT = 0,
 			LIGHTING = 1,
 			NORMALS = 2,
-		};	
+		};
 	}
+
+	namespace RenderpassClearFlags
+	{
+		enum
+		{
+			NONE = 0,
+			COLOR_BUFFER = 1 << 0,
+			DEPTH_BUFFER = 1 << 1,
+			STENCIL_BUFFER = 1 << 2
+		};
+	}
+
+	struct RenderTarget
+	{
+		Sarray<Texture*> attachments;
+		void* internal_framebuffer;
+
+		bool32 sync_window_to_size;
+	};
+
+	struct RenderpassConfig
+	{
+		const char* name;
+		const char* prev_name;
+		const char* next_name;
+
+		Math::Vec2u dim;
+		Math::Vec2i offset;
+		Math::Vec4f clear_color;
+
+		uint32 clear_flags;
+	};
+
+	struct Renderpass
+	{
+		uint32 id;
+		uint32 clear_flags;
+
+		Math::Vec2u dim;
+		Math::Vec2i offset;
+		Math::Vec4f clear_color;
+
+		Sarray<RenderTarget> render_targets;
+		Buffer internal_data;
+	};
+
+	enum BackendType
+	{
+		VULKAN,
+		OPENGL,
+		DIRECTX,
+	};
+
+	struct BackendConfig
+	{
+		const char* application_name;
+		uint32 pass_config_count;
+		RenderpassConfig* pass_configs;
+
+		void (*on_render_target_refresh_required)();
+	};
 
 	struct GeometryRenderData
 	{
 		Math::Mat4 model;
 		Geometry* geometry;
 	};
-
-	namespace BuiltinRenderpassType
-	{
-		enum Value
-		{
-			WORLD = 1,
-			UI = 2
-		};
-	}
 
 	struct Vertex3D
 	{
@@ -71,7 +116,7 @@ namespace Renderer
 
 		uint64 frame_count;
 
-		bool32(*init)(const char* application_name);
+		bool32(*init)(const BackendConfig& config, uint32* out_window_render_target_count);
 		void (*shutdown)();
 
 		void (*on_resized)(uint32 width, uint32 height);
@@ -79,18 +124,32 @@ namespace Renderer
 		bool32(*begin_frame)(float32 delta_time);
 		bool32(*end_frame)(float32 delta_time);
 
-		bool32 (*begin_renderpass)(uint32 renderpass_id);
-		bool32 (*end_renderpass)(uint32 renderpass_id);
+		void (*render_target_create)(uint32 attachment_count, Texture* const * attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
+		void (*render_target_destroy)(RenderTarget* target, bool32 free_internal_memory);
 
-		void (*draw_geometry)(const GeometryRenderData& data);
+		void (*renderpass_create)(Renderpass* out_renderpass, float32 depth, uint32 stencil, bool32 has_prev_pass, bool32 has_next_pass);
+		void (*renderpass_destroy)(Renderpass* pass);
+		Renderpass* (*renderpass_get)(const char* name);
 
-		void (*create_texture)(const void* pixels, Texture* texture);
-		void (*destroy_texture)(Texture* texture);
+		bool32(*renderpass_begin)(Renderpass* pass, RenderTarget* target);
+		bool32(*renderpass_end)(Renderpass* pass);
 
-		bool32(*create_geometry)(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
-		void (*destroy_geometry)(Geometry* geometry);
+		Texture* (*window_attachment_get)(uint32 index);
+		Texture* (*depth_attachment_get)();
+		uint32 (*window_attachment_index_get)();		
 
-		bool32(*shader_create)(Shader* shader, uint8 renderpass_id, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+		void (*geometry_draw)(const GeometryRenderData& data);
+
+		void (*texture_create)(const void* pixels, Texture* texture);
+		void (*texture_create_writable)(Texture* texture);
+		void (*texture_resize)(Texture* texture, uint32 width, uint32 height);
+		void (*texture_write_data)(Texture* texture, uint32 offset, uint32 size, const uint8* pixels);
+		void (*texture_destroy)(Texture* texture);
+
+		bool32(*geometry_create)(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
+		void (*geometry_destroy)(Geometry* geometry);
+
+		bool32(*shader_create)(Shader* shader, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 		void(*shader_destroy)(Shader* shader);
 		bool32(*shader_init)(Shader* shader);
 		bool32(*shader_use)(Shader* shader);

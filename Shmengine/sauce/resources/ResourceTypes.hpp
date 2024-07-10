@@ -36,6 +36,16 @@ struct ImageConfig
 	uint8* pixels;
 };
 
+namespace TextureFlags
+{
+	enum Value
+	{
+		HAS_TRANSPARENCY,
+		IS_WRITABLE,
+		IS_WRAPPED
+	};
+}
+
 struct Texture
 {
 
@@ -49,8 +59,7 @@ struct Texture
 	uint32 height;
 	uint32 generation;
 	uint32 channel_count;
-	bool8 has_transparency;
-	bool8 is_writable;
+	uint32 flags;
 
 };
 

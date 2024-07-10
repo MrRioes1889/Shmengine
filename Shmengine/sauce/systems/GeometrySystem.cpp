@@ -150,7 +150,7 @@ namespace GeometrySystem
 	bool32 create_geometry(const GeometryConfig& config, Geometry* g)
 	{
 
-		if (!Renderer::create_geometry(g, config.vertex_size, config.vertex_count, config.vertices.data, config.indices.count, config.indices.data))
+		if (!Renderer::geometry_create(g, config.vertex_size, config.vertex_count, config.vertices.data, config.indices.count, config.indices.data))
 		{
 			system_state->registered_geometries[g->id].reference_count = 0;
 			system_state->registered_geometries[g->id].auto_release = false;
@@ -174,7 +174,7 @@ namespace GeometrySystem
 
 	void destroy_geometry(Geometry* g)
 	{
-		Renderer::destroy_geometry(g);
+		Renderer::geometry_destroy(g);
 		g->internal_id = INVALID_ID;
 		g->generation = INVALID_ID;
 		g->id = INVALID_ID;
@@ -221,7 +221,7 @@ namespace GeometrySystem
 		system_state->default_geometry.id = INVALID_ID;
 		system_state->default_geometry.internal_id = INVALID_ID;
 		system_state->default_geometry.generation = INVALID_ID;
-		if (!Renderer::create_geometry(&system_state->default_geometry, sizeof(Renderer::Vertex3D), 4, verts, 6, indices)) {
+		if (!Renderer::geometry_create(&system_state->default_geometry, sizeof(Renderer::Vertex3D), 4, verts, 6, indices)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;
 		}
@@ -256,7 +256,7 @@ namespace GeometrySystem
 		system_state->default_geometry_2d.id = INVALID_ID;
 		system_state->default_geometry_2d.internal_id = INVALID_ID;
 		system_state->default_geometry_2d.generation = INVALID_ID;
-		if (!Renderer::create_geometry(&system_state->default_geometry_2d, sizeof(Renderer::Vertex2D), 4, verts_2d, 6, indices_2d)) {
+		if (!Renderer::geometry_create(&system_state->default_geometry_2d, sizeof(Renderer::Vertex2D), 4, verts_2d, 6, indices_2d)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;
 		}

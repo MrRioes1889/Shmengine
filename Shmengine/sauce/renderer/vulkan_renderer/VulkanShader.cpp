@@ -1,4 +1,4 @@
-#include "VulkanShader.hpp"
+#include "VulkanCommon.hpp"
 #include "VulkanBackend.hpp"
 
 #include "VulkanBuffer.hpp"
@@ -24,12 +24,10 @@ namespace Renderer::Vulkan
 		context = c;
 	}
 
-	bool32 shader_create(Shader* shader, uint8 renderpass_id, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
+	bool32 shader_create(Shader* shader, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
 	{
 
 		shader->internal_data = Memory::allocate(sizeof(VulkanShader), true, AllocationTag::MAIN);
-
-		VulkanRenderpass* renderpass = renderpass_id == 1 ? &context->world_renderpass : &context->ui_renderpass;
 
 		VkShaderStageFlags vk_stages[VulkanConfig::shader_max_stages];
 		for (uint8 i = 0; i < stage_count; ++i) {
@@ -55,7 +53,7 @@ namespace Renderer::Vulkan
 		}
 
 		VulkanShader* out_shader = (VulkanShader*)shader->internal_data;
-		out_shader->renderpass = renderpass;
+		out_shader->renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
 		out_shader->config.max_descriptor_set_count = VulkanConfig::shader_max_instances;
 
 		out_shader->config.stage_count = 0;
@@ -525,9 +523,9 @@ namespace Renderer::Vulkan
 					TextureMap* map = v_shader->instance_states[s->bound_instance_id].instance_texture_maps[i];
 					Texture* t = map->texture;
 
-					VulkanTextureData* internal_data = (VulkanTextureData*)t->internal_data.data;
+					VulkanImage* image = (VulkanImage*)t->internal_data.data;
 					image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					image_infos[i].imageView = internal_data->image.view;
+					image_infos[i].imageView = image->view;
 					image_infos[i].sampler = (VkSampler)map->internal_data;
 
 					// TODO: change up descriptor state to handle this properly.
@@ -685,7 +683,7 @@ namespace Renderer::Vulkan
 		{
 			if (uniform->scope == ShaderScope::GLOBAL)
 			{
-				s->global_texture_maps[uniform->location] = *((TextureMap*)value);
+				s->global_texture_maps[uniform->location] = (TextureMap*)value;
 			}
 			else
 			{
@@ -809,6 +807,7 @@ namespace Renderer::Vulkan
 
 	void texture_map_release_resources(TextureMap* map) {
 		if (map) {
+			vkDeviceWaitIdle(context->device.logical_device);
 			vkDestroySampler(context->device.logical_device, (VkSampler)map->internal_data, context->allocator_callbacks);
 			map->internal_data = 0;
 		}

@@ -169,7 +169,7 @@ namespace MaterialSystem
             return &system_state->default_material;
         }
 
-        MaterialReference ref = system_state->registered_material_table.get_value(config.name);
+        MaterialReference& ref = system_state->registered_material_table.get_ref(config.name);
 
         // This can only be changed the first time a material is loaded.
         if (ref.reference_count == 0) {
@@ -241,8 +241,6 @@ namespace MaterialSystem
             SHMTRACEV("Material '%s' already exists, ref_count increased to %i.", config.name, ref.reference_count);
         }
 
-        // Update the entry.
-       system_state->registered_material_table.set_value(config.name, ref);
        return &system_state->registered_materials[ref.handle];
 
     }
@@ -252,7 +250,7 @@ namespace MaterialSystem
         if (CString::equal_i(name, Config::default_name)) {
             return;
         }
-        MaterialReference ref = system_state->registered_material_table.get_value(name);
+        MaterialReference& ref = system_state->registered_material_table.get_ref(name);
 
         if (ref.reference_count == 0) {
             SHMWARNV("Tried to release non-existent material: '%s'", name);
@@ -273,9 +271,6 @@ namespace MaterialSystem
         else {
             SHMTRACEV("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name, ref.reference_count, ref.auto_release ? "true" : "false");
         }
-
-        // Update the entry.
-        system_state->registered_material_table.set_value(name, ref);
 
     }
 

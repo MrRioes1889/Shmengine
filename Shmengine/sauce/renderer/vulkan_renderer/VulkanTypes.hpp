@@ -32,6 +32,8 @@ struct VulkanConfig
 	inline static const uint32 shader_max_uniforms = 128;
 	inline static const uint32 shader_max_bindings = 2;
 	inline static const uint32 shader_max_push_const_ranges = 32;
+
+	inline static const uint32 renderpass_max_registered = 31;
 };
 
 struct VulkanBuffer
@@ -77,9 +79,10 @@ struct VulkanDevice
 	int32 present_queue_index;
 	int32 transfer_queue_index;
 
-	bool32 supports_device_local_host_visible;
-
 	VkFormat depth_format;
+	uint8 depth_channel_count;
+
+	bool8 supports_device_local_host_visible;
 };
 
 struct VulkanImage
@@ -106,9 +109,6 @@ struct VulkanRenderpass
 	VkRenderPass handle;
 	float32 depth;
 	uint32 stencil;
-	Math::Vec2i offset;
-	Math::Vec2u dim;
-	Math::Vec4f clear_color;
 	VulkanRenderpassState state;
 	uint32 clear_flags;
 	bool32 has_prev_pass;
@@ -117,14 +117,13 @@ struct VulkanRenderpass
 
 struct VulkanSwapchain
 {
-	VulkanImage depth_attachment;
-
-	VkFramebuffer framebuffers[VulkanConfig::frames_count];
+	Renderer::RenderTarget render_targets[VulkanConfig::frames_count];
 
 	VkSurfaceFormatKHR image_format;
 	VkSwapchainKHR handle;
-	Sarray<VkImage> images = {};
-	Sarray<VkImageView> views = {};
+	Sarray<Texture*> render_images = {};
+	Texture* depth_texture;
+
 	uint32 max_frames_in_flight;
 };
 
@@ -250,6 +249,7 @@ struct VulkanGeometryData
 struct VulkanContext
 {
 	int32(*find_memory_index)(uint32 type_filter, uint32 property_flags);
+	void(*on_render_target_refresh_required)();
 
 	VkInstance instance;
 	VkAllocationCallbacks* allocator_callbacks;
@@ -257,13 +257,14 @@ struct VulkanContext
 	VulkanDevice device;
 
 	VulkanSwapchain swapchain;
-	VulkanRenderpass world_renderpass;
-	VulkanRenderpass ui_renderpass;
+
+	Hashtable<uint32> renderpass_table;
+	Renderer::Renderpass registered_renderpasses[VulkanConfig::renderpass_max_registered];
 
 	VulkanBuffer object_vertex_buffer;
 	VulkanBuffer object_index_buffer;
 
-	VkFramebuffer world_framebuffers[VulkanConfig::frames_count];
+	Renderer::RenderTarget world_render_targets[VulkanConfig::frames_count];
 
 	VulkanGeometryData geometries[VulkanConfig::max_geometry_count];
 
@@ -290,9 +291,4 @@ struct VulkanContext
 	uint32 framebuffer_height;
 
 	float32 frame_delta_time;
-};
-
-struct VulkanTextureData
-{
-	VulkanImage image;
 };

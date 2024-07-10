@@ -27,7 +27,6 @@ void Buffer::init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag,
 	else
 	{
 		data = memory;
-		clear();
 	}		
 }
 

@@ -16,6 +16,7 @@ namespace ShaderSystem
 		Hashtable<uint32> lookup;
 		uint32 bound_shader_id;
 		Sarray<Shader> shaders;
+		TextureMap default_texture_map;
 	};
 
 	static SystemState* system_state = 0;
@@ -30,6 +31,7 @@ namespace ShaderSystem
 	static bool32 shader_uniform_add_state_valid(Shader* shader);
 	static void destroy_shader(const char* shader_name);
 	static void destroy_shader(Shader* shader);
+	static bool32 create_default_texture_map();
 
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
 	{
@@ -73,6 +75,9 @@ namespace ShaderSystem
 			if (system_state->shaders[i].id != INVALID_ID)
 				destroy_shader(&system_state->shaders[i]);
 		}
+
+		Renderer::texture_map_release_resources(&system_state->default_texture_map);
+
 		system_state->lookup.free_data();
 
 		system_state = 0;
@@ -110,14 +115,14 @@ namespace ShaderSystem
 		shader->push_constant_stride = 128;
 		shader->push_constant_size = 0;
 
-		uint8 renderpass_id = INVALID_ID8;
-		if (!Renderer::get_renderpass_id(config.renderpass_name.c_str(), &renderpass_id))
+		Renderer::Renderpass* renderpass = Renderer::renderpass_get(config.renderpass_name.c_str());
+		if (!renderpass)
 		{
 			SHMERRORV("shader_create - Unable to find renderpass '%s'", config.renderpass_name.c_str());
 			return false;
 		}
 
-		if (!Renderer::shader_create(shader, renderpass_id, (uint8)config.stages.count, config.stage_filenames, config.stages.data))
+		if (!Renderer::shader_create(shader, renderpass, (uint8)config.stages.count, config.stage_filenames, config.stages.data))
 		{
 			SHMERROR("shader_create - Error creating shader.");
 			return false;
@@ -378,18 +383,10 @@ namespace ShaderSystem
 			}
 			location = shader->global_texture_maps.count;
 
-			TextureMap* default_map = shader->global_texture_maps.push({});
-			default_map->filter_magnify = TextureFilter::LINEAR;
-			default_map->filter_minify = TextureFilter::LINEAR;
-			default_map->repeat_u = TextureRepeat::REPEAT;
-			default_map->repeat_v = TextureRepeat::REPEAT;
-			default_map->repeat_w = TextureRepeat::REPEAT;
-			default_map->use = TextureUse::UNKNOWN;
-			if (!Renderer::texture_map_acquire_resources(default_map)) {
-				SHMERROR("Failed to acquire resources for global texture map during shader creation.");
-				shader->global_texture_maps.pop();
-				return false;
-			}
+			if (!system_state->default_texture_map.internal_data)
+				create_default_texture_map();
+
+			shader->global_texture_maps.push(&system_state->default_texture_map);
 		}
 		else 
 		{
@@ -501,6 +498,22 @@ namespace ShaderSystem
 		if (shader->state != ShaderState::UNINITIALIZED)
 		{
 			SHMERROR("Uniforms may only be added to shaders before initialization.");
+			return false;
+		}
+		return true;
+	}
+
+	static bool32 create_default_texture_map()
+	{
+
+		system_state->default_texture_map.filter_magnify = TextureFilter::LINEAR;
+		system_state->default_texture_map.filter_minify = TextureFilter::LINEAR;
+		system_state->default_texture_map.repeat_u = TextureRepeat::REPEAT;
+		system_state->default_texture_map.repeat_v = TextureRepeat::REPEAT;
+		system_state->default_texture_map.repeat_w = TextureRepeat::REPEAT;
+		system_state->default_texture_map.use = TextureUse::UNKNOWN;
+		if (!Renderer::texture_map_acquire_resources(&system_state->default_texture_map)) {
+			SHMERROR("Failed to acquire resources for default texture map.");
 			return false;
 		}
 		return true;

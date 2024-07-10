@@ -183,10 +183,18 @@ void vulkan_device_query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR
 bool32 vulkan_device_detect_depth_format(VulkanDevice* device)
 {
 	const uint32 candidate_count = 3;
-	VkFormat candidates[candidate_count] = {
+	VkFormat candidates[candidate_count] = 
+	{
 		VK_FORMAT_D32_SFLOAT,
 		VK_FORMAT_D32_SFLOAT_S8_UINT,
 		VK_FORMAT_D24_UNORM_S8_UINT
+	};
+
+	uint8 sizes[candidate_count] =
+	{
+		4,
+		4,
+		3
 	};
 
 	uint32 flags = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -198,6 +206,7 @@ bool32 vulkan_device_detect_depth_format(VulkanDevice* device)
 		if (((properties.linearTilingFeatures & flags) == flags) || ((properties.optimalTilingFeatures & flags) == flags))
 		{
 			device->depth_format = candidates[i];
+			device->depth_channel_count = sizes[i];
 			return true;
 		}
 	}

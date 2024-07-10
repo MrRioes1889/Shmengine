@@ -45,7 +45,7 @@ bool32 game_init(Game* game_inst)
 {
     GameState* state = (GameState*)game_inst->state;
 
-    state->camera_position = { 0.0f, 0.0f, 30.0f };
+    state->camera_position = { 10.5f, 5.0f, 9.5f };
     state->camera_euler = VEC3_ZERO;
     state->camera_view_dirty = true;
 

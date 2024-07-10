@@ -17,15 +17,23 @@ namespace Renderer
 
 	SHMAPI void set_view(const Math::Mat4& view, Math::Vec3f camera_position);
 
-	void create_texture(const void* pixels, Texture* texture);
-	void destroy_texture(Texture* texture);
+	void render_target_create(uint32 attachment_count, Texture* const * attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
+	void render_target_destroy(RenderTarget* target, bool32 free_internal_memory);
 
-	bool32 create_geometry(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
-	void destroy_geometry(Geometry* geometry);
+	void renderpass_create(Renderpass* out_renderpass, float32 depth, uint32 stencil, bool32 has_prev_pass, bool32 has_next_pass);
+	void renderpass_destroy(Renderpass* pass);
+	Renderpass* renderpass_get(const char* name);
 
-	bool32 get_renderpass_id(const char* name, uint8* out_renderpass_id);
+	void texture_create(const void* pixels, Texture* texture);
+	void texture_create_writable(Texture * texture);
+	void texture_resize(Texture* texture, uint32 width, uint32 height);
+	void texture_write_data(Texture* texture, uint32 offset, uint32 size, const uint8* pixels);
+	void texture_destroy(Texture* texture);
 
-	bool32 shader_create(Shader* shader, uint8 renderpass_id, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+	bool32 geometry_create(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
+	void geometry_destroy(Geometry* geometry);
+
+	bool32 shader_create(Shader* shader, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 	void shader_destroy(Shader* shader);
 
 	bool32 shader_init(Shader* shader);

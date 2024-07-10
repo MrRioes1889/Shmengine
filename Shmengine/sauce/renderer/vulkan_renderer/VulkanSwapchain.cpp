@@ -7,7 +7,9 @@
 
 #include "utility/Utility.hpp"
 
-static void create(VulkanContext* context, uint32 width, uint32 height, VulkanSwapchain* out_swapchain)
+#include "systems/TextureSystem.hpp"
+
+static bool32 create(VulkanContext* context, uint32 width, uint32 height, VulkanSwapchain* out_swapchain)
 {
 
 	VkExtent2D swapchain_extent = { width, height };
@@ -92,16 +94,53 @@ static void create(VulkanContext* context, uint32 width, uint32 height, VulkanSw
 	
 	image_count = 0;
 	VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, out_swapchain->handle, &image_count, 0));
-	if (!out_swapchain->images.data)
-		out_swapchain->images.init(image_count, 0, AllocationTag::MAIN);
-	VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, out_swapchain->handle, &image_count, out_swapchain->images.data));
-
-	if (!out_swapchain->views.data)
-		out_swapchain->views.init(image_count, 0, AllocationTag::MAIN);
-	for (uint32 i = 0; i < image_count; i++)
+	if (!out_swapchain->render_images.data)
 	{
+		out_swapchain->render_images.init(image_count, 0, AllocationTag::MAIN);
+
+		for (uint32 i = 0; i < out_swapchain->render_images.count; i++)
+		{
+			uint64 allocation_size = sizeof(VulkanImage);
+			void* internal_data = Memory::allocate(allocation_size, 0, AllocationTag::MAIN);
+
+			char tex_name[] = "__internal_vulkan_swapchain_image_0__";
+			tex_name[34] = (char)('0' + i);
+
+			out_swapchain->render_images[i] =
+				TextureSystem::wrap_internal(tex_name, swapchain_extent.width, swapchain_extent.height, 4, false, true, false, internal_data, allocation_size);
+			if (!out_swapchain->render_images[i])
+			{
+				SHMFATAL("Failed to generate new swapchain image texture!");
+				return false;
+			}
+
+		}
+	}
+	else
+	{
+		for (uint32 i = 0; i < out_swapchain->render_images.count; i++)
+		{
+			TextureSystem::resize(out_swapchain->render_images[i], swapchain_extent.width, swapchain_extent.height, false);
+		}
+	}
+		
+	VkImage swapchain_images[32];
+	VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, out_swapchain->handle, &image_count, swapchain_images));
+	for (uint32 i = 0; i < out_swapchain->render_images.count; i++)
+	{
+		VulkanImage* image = (VulkanImage*)out_swapchain->render_images[i]->internal_data.data;
+		image->handle = swapchain_images[i];
+		image->width = swapchain_extent.width;
+		image->height = swapchain_extent.height;
+	}
+
+
+	for (uint32 i = 0; i < out_swapchain->render_images.count; i++)
+	{
+		VulkanImage* image = (VulkanImage*)out_swapchain->render_images[i]->internal_data.data;
+
 		VkImageViewCreateInfo view_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-		view_info.image = out_swapchain->images[i];
+		view_info.image = image->handle;
 		view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		view_info.format = out_swapchain->image_format.format;
 		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -110,12 +149,13 @@ static void create(VulkanContext* context, uint32 width, uint32 height, VulkanSw
 		view_info.subresourceRange.baseArrayLayer = 0;
 		view_info.subresourceRange.layerCount = 1;
 
-		VK_CHECK(vkCreateImageView(context->device.logical_device, &view_info, context->allocator_callbacks, &out_swapchain->views[i]));
+		VK_CHECK(vkCreateImageView(context->device.logical_device, &view_info, context->allocator_callbacks, &image->view));
 	}
 
 	if (!vulkan_device_detect_depth_format(&context->device))
 		SHMFATAL("Failed to find a supported depth buffer format!");
 
+	VulkanImage* depth_image = (VulkanImage*)Memory::allocate(sizeof(VulkanImage), true, AllocationTag::MAIN);
 	vulkan_image_create(
 		context,
 		VK_IMAGE_TYPE_2D,
@@ -127,9 +167,24 @@ static void create(VulkanContext* context, uint32 width, uint32 height, VulkanSw
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		true,
 		VK_IMAGE_ASPECT_DEPTH_BIT,
-		&out_swapchain->depth_attachment);
+		depth_image);
+
+	context->swapchain.depth_texture =
+		TextureSystem::wrap_internal(
+			"default_depth_texture",
+			swapchain_extent.width,
+			swapchain_extent.height,
+			context->device.depth_channel_count,
+			false,
+			true,
+			false,
+			depth_image,
+			sizeof(VulkanImage)
+		);
 
 	SHMINFO("Swapchain created successfully!");
+
+	return true;
 
 }
 
@@ -137,24 +192,30 @@ static void destroy(VulkanContext* context, VulkanSwapchain* swapchain)
 {
 	vkDeviceWaitIdle(context->device.logical_device);
 
-	vulkan_image_destroy(context, &swapchain->depth_attachment);
+	VulkanImage* depth_image = (VulkanImage*)swapchain->depth_texture->internal_data.data;
+	vulkan_image_destroy(context, depth_image);
+	Memory::free_memory(depth_image, true, AllocationTag::MAIN);
+	Memory::free_memory(swapchain->depth_texture, true, AllocationTag::MAIN);
 
-	for (uint32 i = 0; i < swapchain->images.count; i++)
-		vkDestroyImageView(context->device.logical_device, swapchain->views[i], context->allocator_callbacks);
+	for (uint32 i = 0; i < swapchain->render_images.count; i++)
+	{
+		VulkanImage* image = (VulkanImage*)swapchain->render_images[i]->internal_data.data;
+		vkDestroyImageView(context->device.logical_device, image->view, context->allocator_callbacks);
+	}
 
 	// NOTE: Image data gets destroyed within this call, therefore does not have to be destroyed seperately
 	vkDestroySwapchainKHR(context->device.logical_device, swapchain->handle, context->allocator_callbacks);
 }
 
-void vulkan_swapchain_create(VulkanContext* context, uint32 width, uint32 height, VulkanSwapchain* out_swapchain)
+bool32 vulkan_swapchain_create(VulkanContext* context, uint32 width, uint32 height, VulkanSwapchain* out_swapchain)
 {
-	create(context, width, height, out_swapchain);
+	return create(context, width, height, out_swapchain);
 }
 
-void vulkan_swapchain_recreate(VulkanContext* context, uint32 width, uint32 height, VulkanSwapchain* swapchain)
+bool32 vulkan_swapchain_recreate(VulkanContext* context, uint32 width, uint32 height, VulkanSwapchain* swapchain)
 {
 	destroy(context, swapchain);
-	create(context, width, height, swapchain);
+	return create(context, width, height, swapchain);
 }
 
 void vulkan_swapchain_destroy(VulkanContext* context, VulkanSwapchain* swapchain)

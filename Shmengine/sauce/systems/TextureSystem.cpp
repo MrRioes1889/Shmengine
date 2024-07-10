@@ -39,6 +39,9 @@ namespace TextureSystem
 	static void create_default_textures();
 	static void destroy_default_textures();
 
+	static bool32 add_texture_reference(const char* name, bool32 auto_release, bool32 skip_load, uint32* out_texture_id);
+	static bool32 remove_texture_reference(const char* name, uint32* out_texture_id);
+
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
 	{
 
@@ -79,7 +82,7 @@ namespace TextureSystem
 			for (uint32 i = 0; i < system_state->config.max_texture_count; i++)
 			{
 				if (system_state->registered_textures[i].generation != INVALID_ID)
-					Renderer::destroy_texture(&system_state->registered_textures[i]);
+					Renderer::texture_destroy(&system_state->registered_textures[i]);
 			}
 
 			destroy_default_textures();
@@ -99,43 +102,108 @@ namespace TextureSystem
 			return &system_state->default_diffuse;
 		}
 
-		TextureReference ref = system_state->registered_texture_table.get_value(name);
-		ref.auto_release = auto_release;
-		ref.reference_count++;
-		if (ref.handle == INVALID_ID)
+		uint32 id = INVALID_ID;
+		if (!add_texture_reference(name, auto_release, false, &id))
 		{
-			for (uint32 i = 0; i < system_state->config.max_texture_count; i++)
-			{
-				if (system_state->registered_textures[i].id == INVALID_ID)
-				{
-					ref.handle = i;
-					break;
-				}
-			}
+			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
+			return 0;
+		}
 
-			if (ref.handle == INVALID_ID)
+		return &system_state->registered_textures[id];
+
+	}
+
+	Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency)
+	{
+
+		uint32 id = INVALID_ID;
+		if (!add_texture_reference(name, false, true, &id))
+		{
+			SHMERRORV("acquire_writable - failed to obtain new id for texture: '%s'.", name);
+			return 0;
+		}
+
+		Texture* t = &system_state->registered_textures[id];
+		t->id = id;
+		CString::copy(Texture::max_name_length, t->name, name);
+		t->width = width;
+		t->height = height;
+		t->channel_count = channel_count;
+		t->generation = INVALID_ID;
+		t->flags = 0;
+		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
+		t->flags |= TextureFlags::IS_WRITABLE;
+		Renderer::texture_create_writable(t);
+
+		return t;
+
+	}
+
+	Texture* wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size)
+	{
+
+		uint32 id = INVALID_ID;
+		Texture* t = 0;
+
+		if (register_texture)
+		{
+
+			if (!add_texture_reference(name, false, true, &id))
 			{
-				SHMFATAL("Could not acquire new texture to texture system since no free slots are left!");
+				SHMERRORV("wrap_internal - failed to obtain new id for texture: '%s'.", name);
 				return 0;
 			}
 
-			Texture* t = &system_state->registered_textures[ref.handle];
-			if (!load_texture(name, t))
-			{
-				SHMERRORV("Failed to load texture: '%s'", name);
-				return 0;
-			}
-
-			t->id = ref.handle;
-			SHMTRACEV("Texture '%s' did not exist yet. Created and ref count is now %i.", name, ref.reference_count);
+			t = &system_state->registered_textures[id];
 		}
 		else
 		{
-			SHMTRACEV("Texture '%s' already existed. ref count is now %i.", name, ref.reference_count);		
+			// TODO: Think about whether this is necessary
+			t = (Texture*)Memory::allocate(sizeof(Texture), true, AllocationTag::MAIN);
+			SHMTRACEV("wrap_internal created texture '%s', but not registering, resulting in an allocation. It is up to the caller to free this memory.", name);
 		}
 
-		system_state->registered_texture_table.set_value(name, ref);
-		return &system_state->registered_textures[ref.handle];
+		t->id = id;
+		CString::copy(Texture::max_name_length, t->name, name);
+		t->width = width;
+		t->height = height;
+		t->channel_count = channel_count;
+		t->generation = INVALID_ID;
+		t->flags = 0;
+		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
+		t->flags |= TextureFlags::IS_WRITABLE;
+		t->flags |= TextureFlags::IS_WRAPPED;
+		t->internal_data.init(internal_data_size, 0, AllocationTag::MAIN, internal_data);
+		return t;
+
+	}
+
+	bool32 set_internal(Texture* t, void* internal_data, uint64 internal_data_size)
+	{	
+		t->internal_data.init(internal_data_size, 0, AllocationTag::MAIN, internal_data);
+		t->generation++;
+		return true;
+	}
+
+	bool32 resize(Texture* t, uint32 width, uint32 height, bool32 regenerate_internal_data)
+	{
+
+		if (!(t->flags & TextureFlags::IS_WRITABLE))
+		{
+			SHMWARNV("resize - Non-writable texture '%s' cannot be resized!", t->name);
+			return false;
+		}
+
+		t->width = width;
+		t->height = height;
+
+		if (!(t->flags & TextureFlags::IS_WRAPPED) && regenerate_internal_data)
+		{
+			Renderer::texture_resize(t, width, height);
+			return false;
+		}
+		t->generation++;
+		return true;
 
 	}
 
@@ -148,34 +216,13 @@ namespace TextureSystem
 			CString::equal_i(name, Config::default_normal_name))
 			return;
 
-		TextureReference ref = system_state->registered_texture_table.get_ref(name);
-		if (ref.reference_count == 0)
+
+		uint32 id = INVALID_ID;
+		if (!remove_texture_reference(name, &id))
 		{
-			SHMWARNV("Tried to release no existent texture: %s", name);
+			SHMERRORV("release - failed to release texture : '%s'.", name);
 			return;
 		}
-
-		char name_copy[Texture::max_name_length] = {};
-		CString::copy(Texture::max_name_length, name_copy, name);
-
-		ref.reference_count--;
-		if (ref.reference_count == 0 && ref.auto_release)
-		{
-			Texture* t = &system_state->registered_textures[ref.handle];	
-
-			destroy_texture(t);
-
-			ref.handle = INVALID_ID;
-			ref.auto_release = false;
-
-			SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count == 0 and auto_release enabled.", name_copy, ref.reference_count);
-		}
-		else
-		{
-			SHMTRACEV("Released Texture '%s'. ref count is now %i.", name_copy, ref.reference_count);
-		}
-
-		system_state->registered_texture_table.set_value(name_copy, ref);
 
 	}
 
@@ -232,10 +279,11 @@ namespace TextureSystem
 
 		CString::copy(Texture::max_name_length, t->name, texture_name);
 		t->generation = INVALID_ID;
-		t->has_transparency = (bool8)has_transparency;
-		t->is_writable = false;
+		t->flags = 0;
+		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
+		
 
-		Renderer::create_texture(pixels, t);
+		Renderer::texture_create(pixels, t);
 
 		if (current_generation == INVALID_ID)
 			t->generation = 0;
@@ -290,10 +338,9 @@ namespace TextureSystem
 		system_state->default_texture.channel_count = 4;
 		system_state->default_texture.id = INVALID_ID;
 		system_state->default_texture.generation = INVALID_ID;
-		system_state->default_texture.has_transparency = false;
-		system_state->default_texture.is_writable = false;
+		system_state->default_texture.flags = 0;
 
-		Renderer::create_texture(pixels, &system_state->default_texture);
+		Renderer::texture_create(pixels, &system_state->default_texture);
 		system_state->default_texture.generation = INVALID_ID;
 
 		// Diffuse texture.
@@ -305,9 +352,8 @@ namespace TextureSystem
 		system_state->default_diffuse.height = 16;
 		system_state->default_diffuse.channel_count = 4;
 		system_state->default_diffuse.generation = INVALID_ID;
-		system_state->default_diffuse.has_transparency = false;
-		system_state->default_diffuse.is_writable = false;
-		Renderer::create_texture(diff_pixels, &system_state->default_diffuse);
+		system_state->default_diffuse.flags = 0;
+		Renderer::texture_create(diff_pixels, &system_state->default_diffuse);
 		// Manually set the texture generation to invalid since this is a default texture.
 		system_state->default_diffuse.generation = INVALID_ID;
 
@@ -321,9 +367,8 @@ namespace TextureSystem
 		system_state->default_specular.height = 16;
 		system_state->default_specular.channel_count = 4;
 		system_state->default_specular.generation = INVALID_ID;
-		system_state->default_specular.has_transparency = false;
-		system_state->default_specular.is_writable = false;
-		Renderer::create_texture(spec_pixels, &system_state->default_specular);
+		system_state->default_specular.flags = 0;
+		Renderer::texture_create(spec_pixels, &system_state->default_specular);
 		// Manually set the texture generation to invalid since this is a default texture.
 		system_state->default_specular.generation = INVALID_ID;
 
@@ -350,9 +395,8 @@ namespace TextureSystem
 		system_state->default_normal.height = 16;
 		system_state->default_normal.channel_count = 4;
 		system_state->default_normal.generation = INVALID_ID;
-		system_state->default_normal.has_transparency = false;
-		system_state->default_normal.is_writable = false;
-		Renderer::create_texture(normal_pixels, &system_state->default_normal);
+		system_state->default_normal.flags = 0;
+		Renderer::texture_create(normal_pixels, &system_state->default_normal);
 		// Manually set the texture generation to invalid since this is a default texture.
 		system_state->default_normal.generation = INVALID_ID;
 
@@ -371,10 +415,104 @@ namespace TextureSystem
 
 	static void destroy_texture(Texture* t)
 	{
-		Renderer::destroy_texture(t);
+		Renderer::texture_destroy(t);
 
 		Memory::zero_memory(t, sizeof(t));
 		t->id = INVALID_ID;
 		t->generation = INVALID_ID;
+	}
+
+	static bool32 add_texture_reference(const char* name, bool32 auto_release, bool32 skip_load, uint32* out_texture_id)
+	{
+
+		*out_texture_id = INVALID_ID;
+		TextureReference& ref = system_state->registered_texture_table.get_ref(name);
+		if (ref.reference_count == 0)
+				ref.auto_release = auto_release;
+		ref.reference_count++;
+
+		if (ref.handle == INVALID_ID)
+		{
+			for (uint32 i = 0; i < system_state->config.max_texture_count; i++)
+			{
+				if (system_state->registered_textures[i].id == INVALID_ID)
+				{
+					ref.handle = i;
+					*out_texture_id = ref.handle;
+					break;
+				}
+			}
+
+			if (ref.handle == INVALID_ID)
+			{
+				SHMFATAL("Could not acquire new texture to texture system since no free slots are left!");
+				return false;
+			}
+
+			Texture* t = &system_state->registered_textures[ref.handle];
+
+			if (!skip_load)
+			{
+				if (!load_texture(name, t))
+				{
+					*out_texture_id = INVALID_ID;
+					SHMERRORV("Failed to load texture: '%s'", name);
+					return 0;
+				}
+				t->id = ref.handle;
+			}		
+
+			t->id = ref.handle;
+			SHMTRACEV("Texture '%s' did not exist yet. Created and ref count is now %i.", name, ref.reference_count);
+		}
+		else
+		{
+			*out_texture_id = ref.handle;
+			SHMTRACEV("Texture '%s' already existed. ref count is now %i.", name, ref.reference_count);
+		}
+
+		return true;
+
+	}
+
+	static bool32 remove_texture_reference(const char* name, uint32* out_texture_id)
+	{
+
+		*out_texture_id = INVALID_ID;
+		TextureReference& ref = system_state->registered_texture_table.get_ref(name);
+		if (ref.reference_count == 0)
+		{
+			if (ref.auto_release)
+			{
+				SHMWARNV("Tried to release non-existent texture: '%s'", name);
+				return false;
+			}
+			else
+			{
+				SHMWARN("Tried to release a texture where autorelease=false, but references was already 0.");
+				return true;
+			}		
+		}
+
+		ref.reference_count--;
+
+		if (ref.reference_count == 0 && ref.auto_release)
+		{
+			Texture* t = &system_state->registered_textures[ref.handle];
+
+			destroy_texture(t);
+
+			ref.handle = INVALID_ID;
+			ref.auto_release = false;
+
+			SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count == 0 and auto_release enabled.", name, ref.reference_count);
+		}
+		else
+		{
+			SHMTRACEV("Released Texture '%s'. ref count is now %i.", name, ref.reference_count);
+		}
+
+		return true;
+
 	}
 }

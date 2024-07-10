@@ -15,14 +15,20 @@ namespace Renderer
 			out_backend->shutdown = Vulkan::shutdown;
 			out_backend->begin_frame = Vulkan::begin_frame;
 			out_backend->end_frame = Vulkan::end_frame;
-			out_backend->begin_renderpass = Vulkan::begin_renderpass;
-			out_backend->end_renderpass = Vulkan::end_renderpass;
+			out_backend->renderpass_begin = Vulkan::renderpass_begin;
+			out_backend->renderpass_end = Vulkan::renderpass_end;
+			out_backend->renderpass_get = Vulkan::renderpass_get;
+			out_backend->render_target_create = Vulkan::render_target_create;
+			out_backend->render_target_destroy = Vulkan::render_target_destroy;
 			out_backend->on_resized = Vulkan::on_resized;
-			out_backend->draw_geometry = Vulkan::draw_geometry;
-			out_backend->create_texture = Vulkan::create_texture;
-			out_backend->destroy_texture = Vulkan::destroy_texture;
-			out_backend->create_geometry = Vulkan::create_geometry;
-			out_backend->destroy_geometry = Vulkan::destroy_geometry;
+			out_backend->geometry_draw = Vulkan::geometry_draw;
+			out_backend->texture_create = Vulkan::texture_create;
+			out_backend->texture_create_writable = Vulkan::texture_create_writable;
+			out_backend->texture_resize = Vulkan::texture_resize;
+			out_backend->texture_write_data = Vulkan::texture_write_data;
+			out_backend->texture_destroy = Vulkan::texture_destroy;
+			out_backend->geometry_create = Vulkan::geometry_create;
+			out_backend->geometry_destroy = Vulkan::geometry_destroy;
 
 			out_backend->shader_create = Vulkan::shader_create;
 			out_backend->shader_destroy = Vulkan::shader_destroy;
@@ -39,6 +45,10 @@ namespace Renderer
 
 			out_backend->texture_map_acquire_resources = Vulkan::texture_map_acquire_resources;
 			out_backend->texture_map_release_resources = Vulkan::texture_map_release_resources;
+
+			out_backend->window_attachment_get = Vulkan::window_attachment_get;
+			out_backend->depth_attachment_get = Vulkan::depth_attachment_get;
+			out_backend->window_attachment_index_get = Vulkan::window_attachment_index_get;
 
 			return true;
 		}
