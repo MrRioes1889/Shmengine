@@ -7,50 +7,14 @@
 #include <core/Event.hpp>
 #include <utility/Utility.hpp>
 #include <utility/String.hpp>
-#include <renderer/RendererFrontend.hpp>
-
-static void recalculate_view_matrix(GameState* state)
-{
-
-    Math::Mat4 rotation = Math::mat_euler_xyz(state->camera_euler.x, state->camera_euler.y, state->camera_euler.z);
-    Math::Mat4 translation = Math::mat_translation(state->camera_position);
-
-    state->view = Math::mat_inverse(Math::mat_mul(rotation, translation));
-    state->camera_view_dirty = false;
-
-}
-
-SHMINLINE void camera_pitch(GameState* state, float32 change)
-{
-    state->camera_euler.pitch += change;
-
-    float32 limit = Math::deg_to_rad(89.0f);
-    state->camera_euler.pitch = clamp(state->camera_euler.pitch, -limit, limit);
-    state->camera_view_dirty = true;
-}
-
-SHMINLINE void camera_yaw(GameState* state, float32 change)
-{
-    state->camera_euler.yaw += change;
-    state->camera_view_dirty = true;
-}
-
-SHMINLINE void camera_roll(GameState* state, float32 change)
-{
-    state->camera_euler.roll += change;
-    state->camera_view_dirty = true;
-}
+#include <renderer/RendererTypes.hpp>
 
 bool32 game_init(Game* game_inst) 
 {
     GameState* state = (GameState*)game_inst->state;
 
-    state->camera_position = { 10.5f, 5.0f, 9.5f };
-    state->camera_euler = VEC3_ZERO;
-    state->camera_view_dirty = true;
-
-    state->view = Math::mat_translation(state->camera_position);
-    state->view = Math::mat_inverse(state->view);
+    state->world_camera = CameraSystem::get_default_camera();
+    state->world_camera->set_position({ 10.5f, 5.0f, 9.5f });
 
     return true;
 }
@@ -93,77 +57,56 @@ bool32 game_update(Game* game_inst, float32 delta_time)
     {
         if (Input::is_key_down(Keys::KEY_LEFT))
         {
-            camera_yaw(state, 1.0f * delta_time);
+            state->world_camera->yaw(1.0f * delta_time);
         }
         if (Input::is_key_down(Keys::KEY_RIGHT))
         {
-            camera_yaw(state, -1.0f * delta_time);
+            state->world_camera->yaw(-1.0f * delta_time);
         }
         if (Input::is_key_down(Keys::KEY_UP))
         {
-            camera_pitch(state, 1.0f * delta_time);
+            state->world_camera->pitch(1.0f * delta_time);
         }
         if (Input::is_key_down(Keys::KEY_DOWN))
         {
-            camera_pitch(state, -1.0f * delta_time);
+            state->world_camera->pitch(-1.0f * delta_time);
         }
     }
     else
     {
         Math::Vec2i mouse_offset = Input::get_internal_mouse_offset();
         float32 mouse_sensitivity = 3.0f;
-        camera_yaw(state, -mouse_offset.x * delta_time * mouse_sensitivity);
-        camera_pitch(state, -mouse_offset.y * delta_time * mouse_sensitivity);
+        state->world_camera->yaw(-mouse_offset.x * delta_time * mouse_sensitivity);
+        state->world_camera->pitch(-mouse_offset.y * delta_time * mouse_sensitivity);
     }
     
-
     float32 temp_move_speed = 50.0f;
-    Math::Vec3f velocity = VEC3_ZERO;
-    Math::Vec3f forward = Math::mat_forward(state->view);
-    Math::Vec3f right = Math::mat_right(state->view);
-    Math::Vec3f up = Math::mat_up(state->view);
 
     if (Input::is_key_down(Keys::KEY_W))
     {
-        velocity.z = temp_move_speed * delta_time;
+        state->world_camera->move_forward(temp_move_speed * delta_time);
     }
     if (Input::is_key_down(Keys::KEY_S))
     {
-        velocity.z = -temp_move_speed * delta_time;
+        state->world_camera->move_backward(temp_move_speed * delta_time);
     }
-
     if (Input::is_key_down(Keys::KEY_D))
     {
-        velocity.x = temp_move_speed * delta_time;
+        state->world_camera->move_right(temp_move_speed * delta_time);
     }
     if (Input::is_key_down(Keys::KEY_A))
     {
-        velocity.x = -temp_move_speed * delta_time;
+        state->world_camera->move_left(temp_move_speed * delta_time);
     }
-
     if (Input::is_key_down(Keys::KEY_SPACE))
     {
-        velocity.y = temp_move_speed * delta_time;
+        state->world_camera->move_up(temp_move_speed * delta_time);
     }
     if (Input::is_key_down(Keys::KEY_SHIFT))
     {
-        velocity.y = -temp_move_speed * delta_time;
+        state->world_camera->move_down(temp_move_speed * delta_time);
     }
 
-    if (velocity.x || velocity.y || velocity.z)
-    {
-        forward = forward * velocity.z;
-        right = right * velocity.x;
-        up = up * velocity.y;
-        state->camera_position = state->camera_position + forward + right + up;
-        state->camera_view_dirty = true;
-    }
-    
-
-    if (state->camera_view_dirty)
-        recalculate_view_matrix(state);
-
-    Renderer::set_view(state->view, state->camera_position);
     return true;
 }
 

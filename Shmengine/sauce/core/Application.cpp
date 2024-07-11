@@ -16,6 +16,7 @@
 #include "systems/GeometrySystem.hpp"
 #include "systems/ResourceSystem.hpp"
 #include "systems/ShaderSystem.hpp"
+#include "systems/CameraSystem.hpp"
 
 // TODO: temp
 #include "utility/Math.hpp"
@@ -50,6 +51,7 @@ namespace Application
 		void* texture_system_state;
 		void* material_system_state;
 		void* geometry_system_state;
+		void* camera_system_state;
 
 		Darray<Mesh> meshes;
 		Geometry* test_ui_geometry;
@@ -124,19 +126,6 @@ namespace Application
 		{
 			SHMFATAL("Failed to initialize logging subsytem!");
 			return false;
-		}
-
-		{
-			String a1;
-			String a2;
-			String a3;
-			String a = "yo cool string bruh";
-			String b = "yoyoyoyoyo cool string brooooo";
-			String c = a;
-			c = b;
-			a1 = a;
-			a2 = a1;
-			a3 = a2;
 		}
 
 		if (!Input::system_init(allocate_subsystem_callback, app_state->input_system_state))
@@ -237,6 +226,14 @@ namespace Application
 		if (!GeometrySystem::system_init(allocate_subsystem_callback, app_state->geometry_system_state, geometry_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize geometry system. Application shutting down..");
+			return false;
+		}
+
+		CameraSystem::Config camera_sys_config;
+		camera_sys_config.max_camera_count = 61;
+		if (!CameraSystem::system_init(allocate_subsystem_callback, app_state->camera_system_state, camera_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize camera system. Application shutting down..");
 			return false;
 		}
 
@@ -466,6 +463,7 @@ namespace Application
 
 		app_state->is_running = false;
 	
+		CameraSystem::system_shutdown();
 		GeometrySystem::system_shutdown();
 		MaterialSystem::system_shutdown();
 		TextureSystem::system_shutdown();

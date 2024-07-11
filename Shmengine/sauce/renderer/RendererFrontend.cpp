@@ -8,6 +8,7 @@
 #include "systems/TextureSystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/ShaderSystem.hpp"
+#include "systems/CameraSystem.hpp"
 
 // TODO: temporary
 #include "utility/CString.hpp"
@@ -20,10 +21,9 @@ namespace Renderer
 	{
 		Renderer::Backend backend;
 
+		Camera* world_camera;
 		Math::Mat4 world_projection;
-		Math::Mat4 world_view;
-		Math::Vec4f world_ambient_color;
-		Math::Vec3f world_camera_position;
+		Math::Vec4f world_ambient_color;	
 
 		Math::Mat4 ui_projection;
 		Math::Mat4 ui_view;
@@ -165,7 +165,6 @@ namespace Renderer
 		system_state->near_clip = 0.1f;
 		system_state->far_clip = 1000.0f;
 		system_state->world_projection = Math::mat_perspective(Math::deg_to_rad(45.0f), 1280 / 720.0f, system_state->near_clip, system_state->far_clip);
-		system_state->world_view = Math::mat_translation({0.0f, 0.0f, -30.0f});
 		system_state->world_ambient_color = { 0.25f, 0.25f, 0.25f, 1.0f };
 
 		system_state->ui_projection = Math::mat_orthographic(0.0f, 1280.0f, 720.0f, 0.0f, -100.0f, 100.0f);
@@ -221,6 +220,12 @@ namespace Renderer
 		system_state->world_renderpass->dim = { system_state->framebuffer_width, system_state->framebuffer_height };
 		system_state->ui_renderpass->dim = system_state->world_renderpass->dim;
 
+		if (!system_state->world_camera)
+			system_state->world_camera = CameraSystem::get_default_camera();
+
+		Math::Mat4 world_view = system_state->world_camera->get_view();
+		Math::Vec3f world_cam_position = system_state->world_camera->get_position();
+
 		if (!backend.begin_frame(data->delta_time))
 		{
 			SHMERROR("draw_frame - Failed to begin frame;");
@@ -234,9 +239,9 @@ namespace Renderer
 			system_state->world_renderpass,
 			render_target_index,
 			&system_state->world_projection,
-			&system_state->world_view,
+			&world_view,
 			&system_state->world_ambient_color,
-			&system_state->world_camera_position,
+			&world_cam_position,
 			data->world_geometries.count,
 			data->world_geometries.data))
 		{
@@ -340,12 +345,6 @@ namespace Renderer
 		system_state->framebuffer_height = height;
 		system_state->backend.on_resized(width, height);
 		
-	}
-
-	void set_view(const Math::Mat4& view, Math::Vec3f camera_position)
-	{
-		system_state->world_view = view;
-		system_state->world_camera_position = camera_position;
 	}
 
 	void render_target_create(uint32 attachment_count, Texture* const* attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target)

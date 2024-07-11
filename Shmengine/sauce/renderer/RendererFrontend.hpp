@@ -15,8 +15,6 @@ namespace Renderer
 
 	bool32 draw_frame(RenderData* data);
 
-	SHMAPI void set_view(const Math::Mat4& view, Math::Vec3f camera_position);
-
 	void render_target_create(uint32 attachment_count, Texture* const * attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
 	void render_target_destroy(RenderTarget* target, bool32 free_internal_memory);
 
