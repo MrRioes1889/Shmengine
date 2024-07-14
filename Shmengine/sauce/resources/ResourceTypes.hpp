@@ -40,9 +40,9 @@ namespace TextureFlags
 {
 	enum Value
 	{
-		HAS_TRANSPARENCY,
-		IS_WRITABLE,
-		IS_WRAPPED
+		HAS_TRANSPARENCY = 1 << 0,
+		IS_WRITABLE = 1 << 1,
+		IS_WRAPPED = 1 << 2
 	};
 }
 
@@ -245,6 +245,8 @@ struct Shader
 	uint32 push_constant_range_count;
 	Range push_constant_ranges[32];
 
+	uint64 renderer_frame_number;
+
 	void* internal_data;
 
 };
@@ -291,6 +293,8 @@ struct Geometry
 	uint32 id;
 	uint32 generation;
 	uint32 internal_id;
+	Math::Vec3f center;
+	Math::Extents3D extents;
 	char name[max_name_length];
 	Material* material;
 

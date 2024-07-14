@@ -13,7 +13,7 @@ namespace Renderer
 
 	void on_resized(uint32 width, uint32 height);
 
-	bool32 draw_frame(RenderData* data);
+	bool32 draw_frame(RenderPacket* data);
 
 	void render_target_create(uint32 attachment_count, Texture* const * attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
 	void render_target_destroy(RenderTarget* target, bool32 free_internal_memory);
@@ -21,6 +21,9 @@ namespace Renderer
 	void renderpass_create(Renderpass* out_renderpass, float32 depth, uint32 stencil, bool32 has_prev_pass, bool32 has_next_pass);
 	void renderpass_destroy(Renderpass* pass);
 	Renderpass* renderpass_get(const char* name);
+
+	bool32 renderpass_begin(Renderpass* pass, RenderTarget* target);
+	bool32 renderpass_end(Renderpass* pass);
 
 	void texture_create(const void* pixels, Texture* texture);
 	void texture_create_writable(Texture * texture);
@@ -30,6 +33,8 @@ namespace Renderer
 
 	bool32 geometry_create(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
 	void geometry_destroy(Geometry* geometry);
+
+	void geometry_draw(const GeometryRenderData& data);
 
 	bool32 shader_create(Shader* shader, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 	void shader_destroy(Shader* shader);

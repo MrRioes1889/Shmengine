@@ -8,6 +8,7 @@
 #include <utility/Utility.hpp>
 #include <utility/String.hpp>
 #include <renderer/RendererTypes.hpp>
+#include <utility/Sort.hpp>
 
 bool32 game_init(Game* game_inst) 
 {

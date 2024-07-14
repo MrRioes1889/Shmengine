@@ -15,7 +15,7 @@ namespace Renderer
 
 	struct RendererConfig
 	{
-		static inline const char* builtin_shader_name_material = "Shader.Builtin.Material";
+		static inline const char* builtin_shader_name_world = "Shader.Builtin.Material";
 		static inline const char* builtin_shader_name_ui = "Shader.Builtin.UI";
 	};
 
@@ -164,11 +164,87 @@ namespace Renderer
 		void(*texture_map_release_resources)(TextureMap* out_map);
 	};
 
-	struct RenderData
+	enum class RenderViewType
+	{
+		WORLD = 1,
+		UI = 2
+	};
+
+	enum class RenderViewViewMatrixSource
+	{
+		SCENE_CAMERA = 1,
+		UI_CAMERA = 2,
+		LIGHT_CAMERA = 3
+	};
+
+	enum class RenderViewProjMatrixSource
+	{
+		DEFAULT_PERSPECTIVE = 1,
+		DEFAULT_ORTHOGRAPHIC = 2
+	};
+
+	struct RenderViewPassConfig
+	{
+		const char* name;
+	};
+
+	struct RenderViewConfig
+	{
+		const char* name;
+		const char* custom_shader_name;
+
+		uint16 width;
+		uint16 height;
+		RenderViewType type;
+		RenderViewViewMatrixSource view_matrix_source;
+		RenderViewProjMatrixSource proj_matrix_source;
+		Sarray<RenderViewPassConfig> pass_configs;
+	};
+
+	struct RenderViewPacket;
+
+	struct RenderView
+	{
+		const char* name;
+		uint32 id;
+		uint16 width;
+		uint16 height;
+		RenderViewType type;
+
+		Sarray<Renderpass*> renderpasses;
+
+		const char* custom_shader_name;
+		Buffer internal_data;
+
+		bool32 (*on_create)(RenderView* self);
+		void (*on_destroy)(RenderView* self);
+		void (*on_resize)(RenderView* self, uint32 width, uint32 height);
+		bool32 (*on_build_packet)(const RenderView* self, void* data,RenderViewPacket* out_packet);
+		bool32 (*on_render)(const RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
+	};
+
+	struct RenderViewPacket
+	{
+		const RenderView* view;
+		Math::Mat4 view_matrix;
+		Math::Mat4 projection_matrix;
+		Math::Vec3f view_position;
+		Math::Vec4f ambient_color;
+		Darray<GeometryRenderData> geometries;
+		const char* custom_shader_name;
+		Buffer extended_data;
+	};
+
+	struct MeshPacketData
+	{
+		uint32 mesh_count;
+		Mesh* meshes;
+	};
+
+	struct RenderPacket
 	{
 		float32 delta_time;
 
-		Darray<GeometryRenderData> world_geometries;
-		Darray<GeometryRenderData> ui_geometries;
+		Sarray<RenderViewPacket> views;
 	};
 }

@@ -30,8 +30,6 @@ namespace Renderer::Vulkan
 	Texture* depth_attachment_get();
 	uint32 window_attachment_index_get();
 
-	void geometry_draw(const GeometryRenderData& data);
-
 	void texture_create(const void* pixels, Texture* texture);
 	void texture_create_writable(Texture* texture);
 	void texture_resize(Texture* texture, uint32 width, uint32 height);
@@ -40,6 +38,8 @@ namespace Renderer::Vulkan
 
 	bool32 geometry_create(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
 	void geometry_destroy(Geometry* geometry);
+
+	void geometry_draw(const GeometryRenderData& data);
 
 	bool32 shader_create(Shader* shader, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 	void shader_destroy(Shader* shader);

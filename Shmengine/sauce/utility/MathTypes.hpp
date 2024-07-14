@@ -190,4 +190,16 @@ namespace Math
 		bool32 is_dirty;
 	};
 
+	struct Extents2D
+	{
+		Vec2f min;
+		Vec2f max;
+	};
+
+	struct Extents3D
+	{
+		Vec3f min;
+		Vec3f max;
+	};
+
 }

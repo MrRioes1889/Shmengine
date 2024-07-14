@@ -21,7 +21,7 @@ namespace MaterialSystem
 
 	Material* get_default_material();
 
-	bool32 apply_globals(uint32 shader_id, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode);
+	bool32 apply_globals(uint32 shader_id, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode);
 	bool32 apply_instance(Material* m, bool32 needs_update);
 	bool32 apply_local(Material* m, const Math::Mat4& model);
 

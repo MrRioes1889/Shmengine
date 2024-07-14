@@ -101,6 +101,7 @@ namespace ShaderSystem
 		shader->use_instances = config.use_instances;
 		shader->use_locals = config.use_local;
 		shader->bound_instance_id = INVALID_ID;
+		shader->renderer_frame_number = INVALID_ID64;
 		
 		shader->global_texture_maps.init(1, 0, AllocationTag::MAIN);
 		shader->uniforms.init(1, 0, AllocationTag::MAIN);

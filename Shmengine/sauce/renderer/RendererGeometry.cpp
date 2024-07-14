@@ -158,6 +158,15 @@ namespace Renderer
 		float32 max_uvx = tile_x;
 		float32 max_uvy = tile_y;
 
+		out_config.min_extents.x = min_x;
+		out_config.min_extents.y = min_y;
+		out_config.min_extents.z = min_z;
+		out_config.max_extents.x = max_x;
+		out_config.max_extents.y = max_y;
+		out_config.max_extents.z = max_z;
+
+		out_config.center = VEC3_ZERO;
+
 		Renderer::Vertex3D* verts = (Renderer::Vertex3D*)out_config.vertices.data;
 
 		// Front

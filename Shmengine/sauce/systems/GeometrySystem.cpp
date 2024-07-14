@@ -161,6 +161,10 @@ namespace GeometrySystem
 			return false;
 		}
 
+		g->center = config.center;
+		g->extents.min = config.min_extents;
+		g->extents.max = config.max_extents;
+
 		if (*config.material_name)
 		{
 			g->material = MaterialSystem::acquire(config.material_name);

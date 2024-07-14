@@ -60,13 +60,13 @@ struct Sarray
 		other.count = 0;
 	}
 
-	SHMINLINE T& operator[](uint32 index)
+	SHMINLINE T& operator[](uint64 index)
 	{
 		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
 		return data[index];
 	}
 
-	SHMINLINE const T& operator[](uint32 index) const
+	SHMINLINE const T& operator[](uint64 index) const
 	{
 		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
 		return data[index];

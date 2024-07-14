@@ -47,6 +47,7 @@ typedef void* (*PFN_allocator_allocate_callback)(uint64 size);
 
 #define MAX_FILEPATH_LENGTH 512
 
+#define INVALID_ID64 0xFFFFFFFFFFFFFFFFU
 #define INVALID_ID 0xFFFFFFFFU
 #define INVALID_ID16 0xFFFFU
 #define INVALID_ID8 0xFFU

@@ -4,11 +4,6 @@
 #include "utility/CString.hpp"
 #include "containers/Hashtable.hpp"
 #include "utility/Math.hpp"
-#include "renderer/RendererFrontend.hpp"
-#include "systems/TextureSystem.hpp"
-#include "systems/ResourceSystem.hpp"
-#include "systems/ShaderSystem.hpp"
-#include "containers/Sarray.hpp"
 
 namespace CameraSystem
 {

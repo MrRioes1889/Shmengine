@@ -17,6 +17,7 @@
 #include "systems/ResourceSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "systems/CameraSystem.hpp"
+#include "systems/RenderViewSystem.hpp"
 
 // TODO: temp
 #include "utility/Math.hpp"
@@ -48,13 +49,14 @@ namespace Application
 		void* resource_system_state;
 		void* shader_system_state;
 		void* renderer_system_state;
+		void* render_view_system_state;
 		void* texture_system_state;
 		void* material_system_state;
 		void* geometry_system_state;
 		void* camera_system_state;
 
-		Darray<Mesh> meshes;
-		Geometry* test_ui_geometry;
+		Darray<Mesh> world_meshes;
+		Darray<Mesh> ui_meshes;
 	};
 
 	static bool32 initialized = false;
@@ -77,7 +79,7 @@ namespace Application
 		choice++;
 		choice %= 3;
 
-		Geometry* g = app_state->meshes[0].geometries[0];
+		Geometry* g = app_state->world_meshes[0].geometries[0];
 		if (g)
 		{
 			g->material = MaterialSystem::acquire(names[choice]);
@@ -192,16 +194,17 @@ namespace Application
 			return false;
 		}
 
-		Shader shader = {};
-		shader.attributes.init(10, 0, AllocationTag::MAIN);
-		shader.uniforms.init(10, 0, AllocationTag::MAIN);
-		shader.name = "yoyoyoyoyo";
-		shader.global_texture_maps.init(10, 0, AllocationTag::MAIN);
-		shader.~Shader();
-
 		if (!Renderer::system_init(allocate_subsystem_callback, app_state->renderer_system_state, game_inst->config.name))
 		{
 			SHMFATAL("ERROR: Failed to initialize renderer. Application shutting down..");
+			return false;
+		}
+
+		RenderViewSystem::Config render_view_sys_config;
+		render_view_sys_config.max_view_count = 251;
+		if (!RenderViewSystem::system_init(allocate_subsystem_callback, app_state->texture_system_state, render_view_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize render view system. Application shutting down..");
 			return false;
 		}
 
@@ -237,39 +240,67 @@ namespace Application
 			return false;
 		}
 
-		// TODO: temporary
-		app_state->meshes.init(5, DarrayFlag::NON_RESIZABLE, AllocationTag::MAIN);
+		Renderer::RenderViewConfig opaque_view_config = {};
+		opaque_view_config.type = Renderer::RenderViewType::WORLD;
+		opaque_view_config.width = 0;
+		opaque_view_config.height = 0;
+		opaque_view_config.name = "world_opaque";
+		opaque_view_config.pass_configs.init(1, 0, AllocationTag::MAIN);
+		opaque_view_config.pass_configs[0].name = "Renderpass.Builtin.World";
+		opaque_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+		if (!RenderViewSystem::create(opaque_view_config))
+		{
+			SHMFATAL("Failed to create render view!");
+			return false;
+		}
 
-		Mesh* cube_mesh = app_state->meshes.push({});
+		Renderer::RenderViewConfig ui_view_config = {};
+		ui_view_config.type = Renderer::RenderViewType::UI;
+		ui_view_config.width = 0;
+		ui_view_config.height = 0;
+		ui_view_config.name = "ui";
+		ui_view_config.pass_configs.init(1, 0, AllocationTag::MAIN);
+		ui_view_config.pass_configs[0].name = "Renderpass.Builtin.UI";
+		ui_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+		if (!RenderViewSystem::create(ui_view_config))
+		{
+			SHMFATAL("Failed to create render view!");
+			return false;
+		}
+
+		// TODO: temporary
+		app_state->world_meshes.init(5, DarrayFlag::NON_RESIZABLE, AllocationTag::MAIN);
+
+		Mesh* cube_mesh = app_state->world_meshes.push({});
 		cube_mesh->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config = {};
 		Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
 		cube_mesh->geometries.push(GeometrySystem::acquire_from_config(g_config, true));
 		cube_mesh->transform = Math::transform_create();
 
-		Mesh* cube_mesh2 = app_state->meshes.push({});
+		Mesh* cube_mesh2 = app_state->world_meshes.push({});
 		cube_mesh2->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config2 = {};
 		Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
 		cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
 		cube_mesh2->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
 
-		Mesh* cube_mesh3 = app_state->meshes.push({});
+		Mesh* cube_mesh3 = app_state->world_meshes.push({});
 		cube_mesh3->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config3 = {};
 		Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);	
 		cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(g_config3, true));
 		cube_mesh3->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
 
-		app_state->meshes[1].transform.parent = &app_state->meshes[0].transform;
-		app_state->meshes[2].transform.parent = &app_state->meshes[0].transform;
+		app_state->world_meshes[1].transform.parent = &app_state->world_meshes[0].transform;
+		app_state->world_meshes[2].transform.parent = &app_state->world_meshes[0].transform;
 
 		
 		Resource car_mesh_res = {};
 		if (!ResourceSystem::load("falcon", ResourceType::MESH, &car_mesh_res))
 			SHMERROR("Failed to load car mesh!");
 		{
-			Mesh* car_mesh = app_state->meshes.push({});
+			Mesh* car_mesh = app_state->world_meshes.push({});
 			GeometrySystem::GeometryConfig* car_g_configs = (GeometrySystem::GeometryConfig*)car_mesh_res.data;
 			car_mesh->geometries.init(car_mesh_res.data_size, 0, AllocationTag::MAIN);
 			for (uint32 i = 0; i < car_mesh->geometries.size; i++)
@@ -285,7 +316,7 @@ namespace Application
 			SHMERROR("Failed to load sponza mesh!");
 		else
 		{
-			Mesh* sponza_mesh = app_state->meshes.push({});
+			Mesh* sponza_mesh = app_state->world_meshes.push({});
 			GeometrySystem::GeometryConfig* sponza_g_configs = (GeometrySystem::GeometryConfig*)sponza_mesh_res.data;
 			sponza_mesh->geometries.init(sponza_mesh_res.data_size, 0, AllocationTag::MAIN);
 			for (uint32 i = 0; i < sponza_mesh->geometries.size; i++)
@@ -340,7 +371,12 @@ namespace Application
 		ui_config.indices[5] = 1;
 
 		// Get UI geometry from config.
-		app_state->test_ui_geometry = GeometrySystem::acquire_from_config(ui_config, true);
+		app_state->ui_meshes.init(1, 0, AllocationTag::MAIN);
+		Mesh* ui_mesh = app_state->ui_meshes.push({});
+		ui_mesh->geometries.init(1, 0, AllocationTag::MAIN);
+		ui_mesh->geometries.push(0);
+		ui_mesh->geometries[0] = GeometrySystem::acquire_from_config(ui_config, true);
+		ui_mesh->transform = Math::transform_create();
 		// end
 
 		if (!game_inst->init(game_inst))
@@ -366,6 +402,9 @@ namespace Application
 		float32 running_time = 0;
 		uint32 frame_count = 0;
 		float32 target_frame_seconds = 1.0f / 120.0f;
+
+		Renderer::RenderPacket render_packet = {};
+		render_packet.views.init(2, 0, AllocationTag::MAIN);
 
 		while (app_state->is_running)
 		{
@@ -397,50 +436,51 @@ namespace Application
 					break;
 				}
 
-				Renderer::RenderData r_data = {};
-				r_data.world_geometries.init(1, 0, AllocationTag::MAIN);
-				r_data.ui_geometries.init(1, 0, AllocationTag::MAIN);
-				r_data.delta_time = delta_time;
+				render_packet.delta_time = delta_time;
 
 				// TODO: temporary
-				if (app_state->meshes.count > 0)
+				if (app_state->world_meshes.count > 0)
 				{
 					
 					Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * delta_time, true);
-					Math::transform_rotate(app_state->meshes[0].transform, rotation);
+					Math::transform_rotate(app_state->world_meshes[0].transform, rotation);
 
-					if (app_state->meshes.count > 1)
+					if (app_state->world_meshes.count > 1)
 					{
-						Math::transform_rotate(app_state->meshes[1].transform, rotation);
+						Math::transform_rotate(app_state->world_meshes[1].transform, rotation);
 					}				
 
-					if (app_state->meshes.count > 2)
+					if (app_state->world_meshes.count > 2)
 					{
-						Math::transform_rotate(app_state->meshes[2].transform, rotation);
-					}
-						
-
-					for (uint32 i = 0; i < app_state->meshes.count; i++)
+						Math::transform_rotate(app_state->world_meshes[2].transform, rotation);
+					}			
+					
+					Renderer::MeshPacketData world_mesh_data = {};
+					world_mesh_data.mesh_count = app_state->world_meshes.count;
+					world_mesh_data.meshes = app_state->world_meshes.data;
+					if (!RenderViewSystem::build_packet(RenderViewSystem::get("world_opaque"), &world_mesh_data, &render_packet.views[0]))
 					{
-						Mesh& m = app_state->meshes[i];
-						for (uint32 j = 0; j < m.geometries.count; j++)
-						{
-							Renderer::GeometryRenderData test_render = {};
-							test_render.geometry = m.geometries[j];
-							test_render.model = Math::transform_get_world(m.transform);
-							r_data.world_geometries.push(test_render);
-						}
+						SHMERROR("Failed to build packet for view 'world_opaque'.");
+						return false;
 					}
-
+					
 				}
 
-				Renderer::GeometryRenderData test_ui_render = {};
-				test_ui_render.geometry = app_state->test_ui_geometry;
-				test_ui_render.model = Math::mat_translation({ 0.0f, 0.0f, 0.0f });
-				r_data.ui_geometries.push(test_ui_render);
-				// end
+				Renderer::MeshPacketData ui_mesh_data = {};
+				ui_mesh_data.mesh_count = app_state->ui_meshes.count;
+				ui_mesh_data.meshes = app_state->ui_meshes.data;
+				if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &ui_mesh_data, &render_packet.views[1]))
+				{
+					SHMERROR("Failed to build packet for view 'ui'.");
+					return false;
+				}
 
-				Renderer::draw_frame(&r_data);
+				Renderer::draw_frame(&render_packet);
+
+				for (uint32 i = 0; i < render_packet.views.count; i++)
+				{
+					render_packet.views[i].geometries.free_data();
+				}
 			}
 
 			float64 frame_end_time = Platform::get_absolute_time();

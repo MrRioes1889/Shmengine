@@ -115,6 +115,15 @@ namespace Math
 		return a;
 	}
 
+	SHMINLINE Vec3f vec_transform(Vec3f v, const Mat4& m)
+	{
+		Vec3f r;
+		r.x = v.x * m.data[0 + 0] + v.y * m.data[4 + 0] + v.z * m.data[8 + 0] + 1.0f * m.data[12 + 0];
+		r.y = v.x * m.data[0 + 1] + v.y * m.data[4 + 1] + v.z * m.data[8 + 1] + 1.0f * m.data[12 + 1];
+		r.z = v.x * m.data[0 + 2] + v.y * m.data[4 + 2] + v.z * m.data[8 + 2] + 1.0f * m.data[12 + 2];
+		return r;
+	}
+
 	SHMINLINE bool32 vec_compare(Vec3f v1, Vec3f v2, float32 tolerance = FLOAT_EPSILON)
 	{
 		return (
