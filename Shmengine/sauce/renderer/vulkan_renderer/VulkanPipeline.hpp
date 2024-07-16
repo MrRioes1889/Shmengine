@@ -18,6 +18,7 @@ namespace Renderer::Vulkan
 		VkPipelineShaderStageCreateInfo* stages,
 		VkViewport viewport,
 		VkRect2D scissor,
+		ShaderFaceCullMode cull_mode,
 		bool32 is_wireframe,
 		bool32 depth_test_enabled,
 		uint32 push_constant_range_count,

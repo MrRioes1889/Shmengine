@@ -152,7 +152,8 @@ struct VulkanShaderStageConfig
 
 struct VulkanDescriptorSetConfig
 {
-	uint32 binding_count;
+	uint8 sampler_binding_index;
+	uint8 binding_count;
 	VkDescriptorSetLayoutBinding bindings[VulkanConfig::shader_max_bindings];
 };
 
@@ -176,6 +177,8 @@ struct VulkanShaderConfig
 	VulkanDescriptorSetConfig descriptor_sets[2];
 
 	VkVertexInputAttributeDescription attributes[VulkanConfig::shader_max_attributes];
+
+	ShaderFaceCullMode cull_mode;
 };
 
 struct VulkanDescriptorState
@@ -210,6 +213,13 @@ struct VulkanShader
 {
 
 	uint32 id;
+	uint32 instance_count;
+
+	uint8 global_uniform_count;
+	uint8 global_uniform_sampler_count;
+	uint8 instance_uniform_count;
+	uint8 instance_uniform_sampler_count;
+	uint8 local_uniform_count;
 
 	VulkanShaderConfig config;
 
@@ -227,9 +237,7 @@ struct VulkanShader
 	VulkanBuffer uniform_buffer;
 
 	VulkanPipeline pipeline;
-
-	// TODO: Make dynamic array
-	uint32 instance_count;
+	
 	VulkanShaderInstanceState instance_states[VulkanConfig::shader_max_instances];
 
 };

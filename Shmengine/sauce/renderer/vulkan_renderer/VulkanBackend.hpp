@@ -41,7 +41,7 @@ namespace Renderer::Vulkan
 
 	void geometry_draw(const GeometryRenderData& data);
 
-	bool32 shader_create(Shader* shader, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+	bool32 shader_create(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 	void shader_destroy(Shader* shader);
 
 	bool32 shader_init(Shader* shader);

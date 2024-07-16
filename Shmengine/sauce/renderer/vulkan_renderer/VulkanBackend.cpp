@@ -296,12 +296,12 @@ namespace Renderer::Vulkan
 		context.image_available_semaphores.free_data();
 		context.queue_complete_semaphores.free_data();
 
-		SHMDEBUG("Destroying vulkan framebuffers...");
+		/*SHMDEBUG("Destroying vulkan framebuffers...");
 		for (uint32 i = 0; i < VulkanConfig::frames_count; i++)
 		{
 			render_target_destroy(&context.world_render_targets[i], true);
 			render_target_destroy(&context.swapchain.render_targets[i], true);
-		}			
+		}	*/		
 
 		SHMDEBUG("Destroying vulkan renderpass...");
 		for (uint32 i = 0; i < VulkanConfig::renderpass_max_registered; i++)
@@ -479,7 +479,7 @@ namespace Renderer::Vulkan
 
 		vulkan_image_create(
 			&context,
-			VK_IMAGE_TYPE_2D,
+			texture->type,
 			texture->width,
 			texture->height,
 			image_format,
@@ -547,7 +547,7 @@ namespace Renderer::Vulkan
 	{
 
 		VulkanImage* image = (VulkanImage*)t->internal_data.data;
-		VkDeviceSize image_size = t->width * t->height * t->channel_count;
+		VkDeviceSize image_size = t->width * t->height * t->channel_count * (t->type == TextureType::TYPE_CUBE ? 6 : 1);
 
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 
@@ -564,9 +564,9 @@ namespace Renderer::Vulkan
 		VkQueue queue = context.device.graphics_queue;
 
 		vulkan_command_buffer_reserve_and_begin_single_use(&context, pool, &temp_buffer);
-		vulkan_image_transition_layout(&context, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		vulkan_image_copy_from_buffer(&context, image, staging.handle, &temp_buffer);
-		vulkan_image_transition_layout(&context, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		vulkan_image_copy_from_buffer(&context, t->type, image, staging.handle, &temp_buffer);
+		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		vulkan_command_buffer_end_single_use(&context, pool, &temp_buffer, queue);
 
 		buffer_destroy(&context, &staging);

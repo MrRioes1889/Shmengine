@@ -19,7 +19,7 @@ bool32 create_shader_module(
 	CString::print_s(file_name, MAX_FILEPATH_LENGTH, (char*)"shaders/%s.%s.spv", name, type_str);
 
 	Resource res;
-	if (!ResourceSystem::load(file_name, ResourceType::GENERIC, &res))
+	if (!ResourceSystem::load(file_name, ResourceType::GENERIC, 0, &res))
 	{
 		SHMERRORV("Unable to load resources for shader module: %s.", file_name);
 		return false;

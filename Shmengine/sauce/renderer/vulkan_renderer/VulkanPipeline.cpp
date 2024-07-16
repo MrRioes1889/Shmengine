@@ -20,6 +20,7 @@ namespace Renderer::Vulkan
         VkPipelineShaderStageCreateInfo* stages,
         VkViewport viewport,
         VkRect2D scissor,
+        ShaderFaceCullMode cull_mode,
         bool32 is_wireframe,
         bool32 depth_test_enabled,
         uint32 push_constant_range_count,
@@ -40,7 +41,29 @@ namespace Renderer::Vulkan
         rasterizer_create_info.rasterizerDiscardEnable = VK_FALSE;
         rasterizer_create_info.polygonMode = is_wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
         rasterizer_create_info.lineWidth = 1.0f;
-        rasterizer_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
+        switch (cull_mode)
+        {
+        case ShaderFaceCullMode::NONE:
+        {
+            rasterizer_create_info.cullMode = VK_CULL_MODE_NONE;
+            break;
+        }
+        case ShaderFaceCullMode::FRONT:
+        {
+            rasterizer_create_info.cullMode = VK_CULL_MODE_FRONT_BIT;
+            break;
+        }
+        case ShaderFaceCullMode::BACK:
+        {
+            rasterizer_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
+            break;
+        }
+        case ShaderFaceCullMode::BOTH:
+        {
+            rasterizer_create_info.cullMode = VK_CULL_MODE_FRONT_AND_BACK;
+            break;
+        }
+        }
         rasterizer_create_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer_create_info.depthBiasEnable = VK_FALSE;
         rasterizer_create_info.depthBiasConstantFactor = 0.0f;

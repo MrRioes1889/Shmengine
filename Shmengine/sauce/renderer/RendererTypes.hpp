@@ -17,6 +17,7 @@ namespace Renderer
 	{
 		static inline const char* builtin_shader_name_world = "Shader.Builtin.Material";
 		static inline const char* builtin_shader_name_ui = "Shader.Builtin.UI";
+		static inline const char* builtin_shader_name_skybox = "Shader.Builtin.Skybox";
 	};
 
 	namespace ViewMode
@@ -149,7 +150,7 @@ namespace Renderer
 		bool32(*geometry_create)(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
 		void (*geometry_destroy)(Geometry* geometry);
 
-		bool32(*shader_create)(Shader* shader, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+		bool32(*shader_create)(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 		void(*shader_destroy)(Shader* shader);
 		bool32(*shader_init)(Shader* shader);
 		bool32(*shader_use)(Shader* shader);
@@ -167,7 +168,8 @@ namespace Renderer
 	enum class RenderViewType
 	{
 		WORLD = 1,
-		UI = 2
+		UI = 2,
+		SKYBOX = 3
 	};
 
 	enum class RenderViewViewMatrixSource
@@ -232,13 +234,18 @@ namespace Renderer
 		Math::Vec4f ambient_color;
 		Darray<GeometryRenderData> geometries;
 		const char* custom_shader_name;
-		Buffer extended_data;
+		void* extended_data;
 	};
 
 	struct MeshPacketData
 	{
 		uint32 mesh_count;
 		Mesh* meshes;
+	};
+
+	struct SkyboxPacketData
+	{
+		Skybox* skybox;
 	};
 
 	struct RenderPacket

@@ -407,10 +407,9 @@ namespace CString
 		}			
 		
 		if (shorten)
-		{
-			l -= shorten;
-			string[l] = 0;
-		}
+			l -= shorten;	
+
+		string[l] = 0;
 
 		return l;
 	}

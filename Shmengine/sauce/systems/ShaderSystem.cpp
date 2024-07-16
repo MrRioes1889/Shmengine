@@ -98,8 +98,6 @@ namespace ShaderSystem
 		shader->id = id;
 		shader->state = ShaderState::NOT_CREATED;
 		shader->name = config.name;
-		shader->use_instances = config.use_instances;
-		shader->use_locals = config.use_local;
 		shader->bound_instance_id = INVALID_ID;
 		shader->renderer_frame_number = INVALID_ID64;
 		
@@ -123,7 +121,7 @@ namespace ShaderSystem
 			return false;
 		}
 
-		if (!Renderer::shader_create(shader, renderpass, (uint8)config.stages.count, config.stage_filenames, config.stages.data))
+		if (!Renderer::shader_create(shader, config, renderpass, (uint8)config.stages.count, config.stage_filenames, config.stages.data))
 		{
 			SHMERROR("shader_create - Error creating shader.");
 			return false;
@@ -359,12 +357,6 @@ namespace ShaderSystem
 	static bool32 add_sampler(Shader* shader, const ShaderUniformConfig& config)
 	{
 
-		if (config.scope == ShaderScope::INSTANCE && !shader->use_instances) 
-		{
-			SHMERROR("add_sampler cannot add an instance sampler for a shader that does not use instances.");
-			return false;
-		}
-
 		if (config.scope == ShaderScope::LOCAL) 
 		{
 			SHMERROR("add_sampler cannot add a sampler at local scope.");
@@ -458,11 +450,6 @@ namespace ShaderSystem
 		}
 		else
 		{
-			if (!shader->use_locals) {
-				SHMERROR("Cannot add a locally-scoped uniform for a shader that does not support locals.");
-				return false;
-			}
-
 			entry.set_index = INVALID_ID8;
 			Range r = get_aligned_range(shader->push_constant_size, size, 4);
 

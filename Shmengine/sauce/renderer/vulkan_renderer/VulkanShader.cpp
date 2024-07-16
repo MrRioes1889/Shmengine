@@ -16,15 +16,13 @@ namespace Renderer::Vulkan
 
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
-	static const uint32 binding_index_ubo = 0;
-	static const uint32 binding_index_sampler = 1;
 
 	void shaders_init_context(VulkanContext* c)
 	{
 		context = c;
 	}
 
-	bool32 shader_create(Shader* shader, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
+	bool32 shader_create(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
 	{
 
 		shader->internal_data = Memory::allocate(sizeof(VulkanShader), true, AllocationTag::MAIN);
@@ -87,30 +85,97 @@ namespace Renderer::Vulkan
 		out_shader->config.pool_sizes[0] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 };
 		out_shader->config.pool_sizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096 };
 
-		VulkanDescriptorSetConfig global_descriptor_set_config = {};
+		out_shader->config.descriptor_sets[0].sampler_binding_index = INVALID_ID8;
+		out_shader->config.descriptor_sets[1].sampler_binding_index = INVALID_ID8;
 
-		global_descriptor_set_config.bindings[binding_index_ubo].binding = binding_index_ubo;
-		global_descriptor_set_config.bindings[binding_index_ubo].descriptorCount = 1;
-		global_descriptor_set_config.bindings[binding_index_ubo].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		global_descriptor_set_config.bindings[binding_index_ubo].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-		global_descriptor_set_config.binding_count++;
+		out_shader->config.cull_mode = config.cull_mode;
 
-		out_shader->config.descriptor_sets[desc_set_index_global] = global_descriptor_set_config;
-		out_shader->config.descriptor_set_count++;
+		out_shader->global_uniform_count = 0;
+		out_shader->global_uniform_sampler_count = 0;
+		out_shader->instance_uniform_sampler_count = 0;
+		out_shader->instance_uniform_sampler_count = 0;
+		out_shader->local_uniform_count = 0;
+		for (uint32 i = 0; i < config.uniforms.count; i++)
+		{
+			switch (config.uniforms[i].scope)
+			{
+			case ShaderScope::GLOBAL:
+			{
+				if (config.uniforms[i].type == ShaderUniformType::SAMPLER)
+					out_shader->global_uniform_sampler_count++;
+				else
+					out_shader->global_uniform_count++;
+				break;
+			}
+			case ShaderScope::INSTANCE:
+			{
+				if (config.uniforms[i].type == ShaderUniformType::SAMPLER)
+					out_shader->instance_uniform_sampler_count++;
+				else
+					out_shader->instance_uniform_count++;
+				break;
+			}
+			case ShaderScope::LOCAL:
+			{
+				out_shader->local_uniform_count++;
+				break;
+			}
+			}
+		}
 
-		if (shader->use_instances) {
-			// If using instances, add a second descriptor set.
-			VulkanDescriptorSetConfig instance_descriptor_set_config = {};
+		if (out_shader->global_uniform_count > 0 || out_shader->global_uniform_sampler_count > 0)
+		{
+			VulkanDescriptorSetConfig& set_config = out_shader->config.descriptor_sets[out_shader->config.descriptor_set_count];
 
-			// Add a UBO to it, as instances should always have one available.
-			// NOTE: Might be a good idea to only add this if it is going to be used...
-			instance_descriptor_set_config.bindings[binding_index_ubo].binding = binding_index_ubo;
-			instance_descriptor_set_config.bindings[binding_index_ubo].descriptorCount = 1;
-			instance_descriptor_set_config.bindings[binding_index_ubo].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			instance_descriptor_set_config.bindings[binding_index_ubo].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-			instance_descriptor_set_config.binding_count++;
+			if (out_shader->global_uniform_count > 0)
+			{
+				uint8 binding_index = set_config.binding_count;
+				set_config.bindings[binding_index].binding = binding_index;
+				set_config.bindings[binding_index].descriptorCount = 1;
+				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+				set_config.binding_count++;
+			}
 
-			out_shader->config.descriptor_sets[desc_set_index_instance] = instance_descriptor_set_config;
+			if (out_shader->global_uniform_sampler_count > 0)
+			{
+				uint8 binding_index = set_config.binding_count;
+				set_config.bindings[binding_index].binding = binding_index;
+				set_config.bindings[binding_index].descriptorCount = out_shader->global_uniform_sampler_count;
+				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+				set_config.sampler_binding_index = binding_index;
+				set_config.binding_count++;
+			}
+
+			out_shader->config.descriptor_set_count++;
+		}
+
+		if (out_shader->instance_uniform_count > 0 || out_shader->instance_uniform_sampler_count > 0)
+		{
+			VulkanDescriptorSetConfig& set_config = out_shader->config.descriptor_sets[out_shader->config.descriptor_set_count];
+
+			if (out_shader->instance_uniform_count > 0)
+			{
+				uint8 binding_index = set_config.binding_count;
+				set_config.bindings[binding_index].binding = binding_index;
+				set_config.bindings[binding_index].descriptorCount = 1;
+				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+				set_config.binding_count++;
+			}
+
+			if (out_shader->instance_uniform_sampler_count > 0)
+			{
+				uint8 binding_index = set_config.binding_count;
+				set_config.bindings[binding_index].binding = binding_index;
+				set_config.bindings[binding_index].descriptorCount = out_shader->instance_uniform_sampler_count;
+				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+				set_config.sampler_binding_index = binding_index;
+				set_config.binding_count++;
+			}
+
 			out_shader->config.descriptor_set_count++;
 		}
 
@@ -223,33 +288,6 @@ namespace Renderer::Vulkan
 			offset += shader->attributes[i].size;
 		}
 
-		// Process uniforms.
-		for (uint32 i = 0; i < shader->uniforms.count; ++i)
-		{
-			// For samplers, the descriptor bindings need to be updated. Other types of uniforms don't need anything to be done here.
-			if (shader->uniforms[i].type == ShaderUniformType::SAMPLER)
-			{
-				const uint32 set_index = (shader->uniforms[i].scope == ShaderScope::GLOBAL ? desc_set_index_global : desc_set_index_instance);
-				VulkanDescriptorSetConfig* set_config = &s->config.descriptor_sets[set_index];
-				if (set_config->binding_count < 2)
-				{
-					// There isn't a binding yet, meaning this is the first sampler to be added.
-					// Create the binding with a single descriptor for this sampler.
-					set_config->bindings[binding_index_sampler].binding = binding_index_sampler;  // Always going to be the second one.
-					set_config->bindings[binding_index_sampler].descriptorCount = 1;              // Default to 1, will increase with each sampler added to the appropriate level.
-					set_config->bindings[binding_index_sampler].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-					set_config->bindings[binding_index_sampler].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-					set_config->binding_count++;
-				}
-				else
-				{
-					// There is already a binding for samplers, so just add a descriptor to it.
-					// Take the current descriptor count as the location and increment the number of descriptors.
-					set_config->bindings[binding_index_sampler].descriptorCount++;
-				}
-			}
-		}
-
 		// Descriptor pool.
 		VkDescriptorPoolCreateInfo pool_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 		pool_info.poolSizeCount = 2;
@@ -315,6 +353,7 @@ namespace Renderer::Vulkan
 			stage_create_infos,
 			viewport,
 			scissor,
+			s->config.cull_mode,
 			false,
 			true,
 			shader->push_constant_range_count,
@@ -462,13 +501,13 @@ namespace Renderer::Vulkan
 
 	bool32 shader_apply_instance(Shader* s, bool32 needs_update)
 	{
-
-		if (!s->use_instances)
+		
+		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
+		if (v_shader->instance_uniform_count < 1 && v_shader->instance_uniform_sampler_count < 1)
 		{
 			SHMERROR("This shader does not use instances.");
 			return false;
 		}
-		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		uint32 image_index = context->image_index;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
 
@@ -500,22 +539,25 @@ namespace Renderer::Vulkan
 			ubo_descriptor.pBufferInfo = &buffer_info;
 
 			// TODO: determine if update is required.
-			if (*instance_ubo_generation == INVALID_ID8 /*|| *global_ubo_generation != material->generation*/)
-			{
-				descriptor_writes[descriptor_count] = ubo_descriptor;
-				descriptor_count++;
+			if (v_shader->instance_uniform_count)
+			{	
+				if (*instance_ubo_generation == INVALID_ID8 /*|| *global_ubo_generation != material->generation*/)
+				{
+					descriptor_writes[descriptor_count] = ubo_descriptor;
+					descriptor_count++;
 
-				// Update the frame generation. In this case it is only needed once since this is a buffer.
-				*instance_ubo_generation = 1;  // material->generation; TODO: some generation from... somewhere
+					// Update the frame generation. In this case it is only needed once since this is a buffer.
+					*instance_ubo_generation = 1;  // material->generation; TODO: some generation from... somewhere
+				}
+				descriptor_index++;
 			}
-			descriptor_index++;
 
 			// Samplers will always be in the binding. If the binding count is less than 2, there are no samplers.
 			VkDescriptorImageInfo image_infos[VulkanConfig::shader_max_instance_textures];
-			if (v_shader->config.descriptor_sets[desc_set_index_instance].binding_count > 1)
+			if (v_shader->instance_uniform_sampler_count)
 			{
-				// Iterate samplers.
-				uint32 total_sampler_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[binding_index_sampler].descriptorCount;
+				uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
+				uint32 total_sampler_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[sampler_binding_index].descriptorCount;
 				uint32 update_sampler_count = 0;
 				for (uint32 i = 0; i < total_sampler_count; ++i)
 				{
@@ -585,7 +627,8 @@ namespace Renderer::Vulkan
 		}
 
 		VulkanShaderInstanceState* instance_state = &v_shader->instance_states[*out_instance_id];
-		uint32 instance_texture_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[binding_index_sampler].descriptorCount;
+		uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
+		uint32 instance_texture_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[sampler_binding_index].descriptorCount;
 		// Wipe out the memory for the entire array, even if it isn't all used.
 		instance_state->instance_texture_maps.init(s->instance_texture_count, true, AllocationTag::MAIN);
 		Texture* default_texture = TextureSystem::get_default_texture();
@@ -599,12 +642,15 @@ namespace Renderer::Vulkan
 
 		// Allocate some space in the UBO - by the stride, not the size.
 		uint64 size = s->ubo_stride;
-		if (!buffer_allocate(&v_shader->uniform_buffer, size, &instance_state->offset))
+		if (size > 0)
 		{
-			SHMERROR("vulkan_material_shader_acquire_resources failed to acquire ubo space");
-			return false;
+			if (!buffer_allocate(&v_shader->uniform_buffer, size, &instance_state->offset))
+			{
+				SHMERROR("vulkan_material_shader_acquire_resources failed to acquire ubo space");
+				return false;
+			}
 		}
-
+		
 		VulkanShaderDescriptorSetState* set_state = &instance_state->descriptor_set_state;
 
 		// Each descriptor binding in the set
@@ -713,7 +759,7 @@ namespace Renderer::Vulkan
 	{
 		// Read the resource.
 		Resource resource;
-		if (!ResourceSystem::load(config.filename, ResourceType::GENERIC, &resource))
+		if (!ResourceSystem::load(config.filename, ResourceType::GENERIC, 0, &resource))
 		{
 			SHMERRORV("Unable to read shader module: %s.", config.filename);
 			return false;

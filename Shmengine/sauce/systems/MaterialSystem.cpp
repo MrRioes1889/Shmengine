@@ -150,7 +150,7 @@ namespace MaterialSystem
         MaterialConfig config;
 
         Resource mt_resource;
-        if (!ResourceSystem::load(name, ResourceType::MATERIAL, &mt_resource))
+        if (!ResourceSystem::load(name, ResourceType::MATERIAL, 0, &mt_resource))
         {
             SHMERRORV("load_mt_file - Failed to load material resources for material '%s'", name);
             return 0;

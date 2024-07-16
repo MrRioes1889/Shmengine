@@ -39,7 +39,7 @@ namespace TextureSystem
 	static void create_default_textures();
 	static void destroy_default_textures();
 
-	static bool32 add_texture_reference(const char* name, bool32 auto_release, bool32 skip_load, uint32* out_texture_id);
+	static bool32 add_texture_reference(const char* name, TextureType type, bool32 auto_release, bool32 skip_load, uint32* out_texture_id);
 	static bool32 remove_texture_reference(const char* name, uint32* out_texture_id);
 
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
@@ -92,18 +92,35 @@ namespace TextureSystem
 
 	Texture* acquire(const char* name, bool32 auto_release)
 	{
-
-		if (!system_state)
-			return 0;
 		
 		if (CString::equal_i(name, Config::default_diffuse_name))
 		{
-			SHMWARN("using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
+			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
 			return &system_state->default_diffuse;
 		}
 
 		uint32 id = INVALID_ID;
-		if (!add_texture_reference(name, auto_release, false, &id))
+		if (!add_texture_reference(name, TextureType::TYPE_2D, auto_release, false, &id))
+		{
+			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
+			return 0;
+		}
+
+		return &system_state->registered_textures[id];
+
+	}
+
+	Texture* acquire_cube(const char* name, bool32 auto_release)
+	{
+
+		if (CString::equal_i(name, Config::default_diffuse_name))
+		{
+			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
+			return &system_state->default_diffuse;
+		}
+
+		uint32 id = INVALID_ID;
+		if (!add_texture_reference(name, TextureType::TYPE_CUBE, auto_release, false, &id))
 		{
 			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
 			return 0;
@@ -117,7 +134,7 @@ namespace TextureSystem
 	{
 
 		uint32 id = INVALID_ID;
-		if (!add_texture_reference(name, false, true, &id))
+		if (!add_texture_reference(name, TextureType::TYPE_2D, false, true, &id))
 		{
 			SHMERRORV("acquire_writable - failed to obtain new id for texture: '%s'.", name);
 			return 0;
@@ -130,6 +147,7 @@ namespace TextureSystem
 		t->height = height;
 		t->channel_count = channel_count;
 		t->generation = INVALID_ID;
+		t->type = TextureType::TYPE_2D;
 		t->flags = 0;
 		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
 		t->flags |= TextureFlags::IS_WRITABLE;
@@ -148,7 +166,7 @@ namespace TextureSystem
 		if (register_texture)
 		{
 
-			if (!add_texture_reference(name, false, true, &id))
+			if (!add_texture_reference(name, TextureType::TYPE_2D, false, true, &id))
 			{
 				SHMERRORV("wrap_internal - failed to obtain new id for texture: '%s'.", name);
 				return 0;
@@ -169,6 +187,7 @@ namespace TextureSystem
 		t->height = height;
 		t->channel_count = channel_count;
 		t->generation = INVALID_ID;
+		t->type = TextureType::TYPE_2D;
 		t->flags = 0;
 		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
 		t->flags |= TextureFlags::IS_WRITABLE;
@@ -247,8 +266,11 @@ namespace TextureSystem
 	static bool32 load_texture(const char* texture_name, Texture* t)
 	{
 
+		ImageResourceParams params;
+		params.flip_y = true;
+
 		Resource img_resource;
-		if (!ResourceSystem::load(texture_name, ResourceType::IMAGE, &img_resource))
+		if (!ResourceSystem::load(texture_name, ResourceType::IMAGE, &params, &img_resource))
 		{
 			SHMERRORV("load_texture - Failed to load image resources for texture '%s'", texture_name);
 			return false;
@@ -280,8 +302,7 @@ namespace TextureSystem
 		CString::copy(Texture::max_name_length, t->name, texture_name);
 		t->generation = INVALID_ID;
 		t->flags = 0;
-		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
-		
+		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;		
 
 		Renderer::texture_create(pixels, t);
 
@@ -292,6 +313,61 @@ namespace TextureSystem
 
 		ResourceSystem::unload(&img_resource);
 
+		return true;
+
+	}
+
+	static bool32 load_cube_textures(const char* name, const char texture_names[6][Texture::max_name_length], Texture* t)
+	{
+
+		Buffer pixels = {};
+		uint64 image_size = 0;
+
+		for (uint32 i = 0; i < 6; i++)
+		{
+
+			ImageResourceParams params;
+			params.flip_y = false;
+
+			Resource img_resource;
+			if (!ResourceSystem::load(texture_names[i], ResourceType::IMAGE, &params, &img_resource))
+			{
+				SHMERRORV("load_texture - Failed to load image resources for texture '%s'", texture_names[i]);
+				return false;
+			}			
+
+			ImageConfig* img_resource_data = (ImageConfig*)img_resource.data;
+			if (!pixels.data)
+			{
+				t->channel_count = img_resource_data->channel_count;
+				t->width = img_resource_data->width;
+				t->height = img_resource_data->height;
+
+				t->generation = INVALID_ID;
+				t->flags = 0;
+				CString::copy(Texture::max_name_length, t->name, texture_names[i]);
+
+				image_size = t->width * t->height * t->channel_count;
+				pixels.init(image_size * 6, 0, AllocationTag::MAIN);			
+			}
+			else
+			{
+				if (t->width != img_resource_data->width || t->height != img_resource_data->height || t->channel_count != img_resource_data->channel_count)
+				{
+					SHMERROR("load_cube_textures - Cannot load cube textures since dimensions vary between textures!");
+					pixels.free_data();
+					return false;
+				}
+			}
+
+			pixels.copy_memory(img_resource_data->pixels, image_size, image_size * i);
+
+			ResourceSystem::unload(&img_resource);
+
+		}
+
+		Renderer::texture_create(pixels.data, t);
+		pixels.free_data();
 		return true;
 
 	}
@@ -338,6 +414,7 @@ namespace TextureSystem
 		system_state->default_texture.channel_count = 4;
 		system_state->default_texture.id = INVALID_ID;
 		system_state->default_texture.generation = INVALID_ID;
+		system_state->default_texture.type = TextureType::TYPE_2D;
 		system_state->default_texture.flags = 0;
 
 		Renderer::texture_create(pixels, &system_state->default_texture);
@@ -352,6 +429,7 @@ namespace TextureSystem
 		system_state->default_diffuse.height = 16;
 		system_state->default_diffuse.channel_count = 4;
 		system_state->default_diffuse.generation = INVALID_ID;
+		system_state->default_diffuse.type = TextureType::TYPE_2D;
 		system_state->default_diffuse.flags = 0;
 		Renderer::texture_create(diff_pixels, &system_state->default_diffuse);
 		// Manually set the texture generation to invalid since this is a default texture.
@@ -367,6 +445,7 @@ namespace TextureSystem
 		system_state->default_specular.height = 16;
 		system_state->default_specular.channel_count = 4;
 		system_state->default_specular.generation = INVALID_ID;
+		system_state->default_specular.type = TextureType::TYPE_2D;
 		system_state->default_specular.flags = 0;
 		Renderer::texture_create(spec_pixels, &system_state->default_specular);
 		// Manually set the texture generation to invalid since this is a default texture.
@@ -395,6 +474,7 @@ namespace TextureSystem
 		system_state->default_normal.height = 16;
 		system_state->default_normal.channel_count = 4;
 		system_state->default_normal.generation = INVALID_ID;
+		system_state->default_normal.type = TextureType::TYPE_2D;
 		system_state->default_normal.flags = 0;
 		Renderer::texture_create(normal_pixels, &system_state->default_normal);
 		// Manually set the texture generation to invalid since this is a default texture.
@@ -422,7 +502,7 @@ namespace TextureSystem
 		t->generation = INVALID_ID;
 	}
 
-	static bool32 add_texture_reference(const char* name, bool32 auto_release, bool32 skip_load, uint32* out_texture_id)
+	static bool32 add_texture_reference(const char* name, TextureType type, bool32 auto_release, bool32 skip_load, uint32* out_texture_id)
 	{
 
 		*out_texture_id = INVALID_ID;
@@ -450,15 +530,38 @@ namespace TextureSystem
 			}
 
 			Texture* t = &system_state->registered_textures[ref.handle];
+			t->type = type;
 
 			if (!skip_load)
 			{
-				if (!load_texture(name, t))
+				if (type == TextureType::TYPE_CUBE)
 				{
-					*out_texture_id = INVALID_ID;
-					SHMERRORV("Failed to load texture: '%s'", name);
-					return 0;
+					char texture_names[6][Texture::max_name_length];
+
+					CString::safe_print_s<const char*>(texture_names[0], Texture::max_name_length, "%s_r", name);
+					CString::safe_print_s<const char*>(texture_names[1], Texture::max_name_length, "%s_l", name);
+					CString::safe_print_s<const char*>(texture_names[2], Texture::max_name_length, "%s_u", name);
+					CString::safe_print_s<const char*>(texture_names[3], Texture::max_name_length, "%s_d", name);
+					CString::safe_print_s<const char*>(texture_names[4], Texture::max_name_length, "%s_f", name);
+					CString::safe_print_s<const char*>(texture_names[5], Texture::max_name_length, "%s_b", name);
+
+					if (!load_cube_textures(name, texture_names, t))
+					{
+						*out_texture_id = INVALID_ID;
+						SHMERRORV("Failed to load texture: '%s'", name);
+						return 0;
+					}
 				}
+				else
+				{
+					if (!load_texture(name, t))
+					{
+						*out_texture_id = INVALID_ID;
+						SHMERRORV("Failed to load texture: '%s'", name);
+						return 0;
+					}		
+				}	
+
 				t->id = ref.handle;
 			}		
 

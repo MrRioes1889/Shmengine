@@ -55,6 +55,8 @@ namespace Application
 		void* geometry_system_state;
 		void* camera_system_state;
 
+		Skybox skybox;
+
 		Darray<Mesh> world_meshes;
 		Darray<Mesh> ui_meshes;
 	};
@@ -240,6 +242,20 @@ namespace Application
 			return false;
 		}
 
+		Renderer::RenderViewConfig skybox_view_config = {};
+		skybox_view_config.type = Renderer::RenderViewType::SKYBOX;
+		skybox_view_config.width = 0;
+		skybox_view_config.height = 0;
+		skybox_view_config.name = "skybox";
+		skybox_view_config.pass_configs.init(1, 0, AllocationTag::MAIN);
+		skybox_view_config.pass_configs[0].name = "Renderpass.Builtin.Skybox";
+		skybox_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+		if (!RenderViewSystem::create(skybox_view_config))
+		{
+			SHMFATAL("Failed to create render view!");
+			return false;
+		}
+
 		Renderer::RenderViewConfig opaque_view_config = {};
 		opaque_view_config.type = Renderer::RenderViewType::WORLD;
 		opaque_view_config.width = 0;
@@ -269,6 +285,34 @@ namespace Application
 		}
 
 		// TODO: temporary
+
+		// Skybox
+		TextureMap& cube_map = app_state->skybox.cubemap;
+		cube_map.filter_minify = TextureFilter::LINEAR;
+		cube_map.filter_magnify = TextureFilter::LINEAR;
+		cube_map.repeat_u = cube_map.repeat_v = cube_map.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
+		cube_map.use = TextureUse::MAP_CUBEMAP;
+		if (!Renderer::texture_map_acquire_resources(&cube_map))
+		{
+			SHMFATAL("Failed to acquire renderer resources for skybox cube map!");
+			return false;
+		}
+		cube_map.texture = TextureSystem::acquire_cube("skybox", true);
+		
+		GeometrySystem::GeometryConfig skybox_cube_config = {};
+		Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "skybox_cube", 0, skybox_cube_config);
+		skybox_cube_config.material_name[0] = 0;
+		app_state->skybox.g = GeometrySystem::acquire_from_config(skybox_cube_config, true);
+		app_state->skybox.renderer_frame_number = INVALID_ID64;
+		Shader* skybox_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_skybox);
+		TextureMap* maps[1] = { &app_state->skybox.cubemap };
+		if (!Renderer::shader_acquire_instance_resources(skybox_shader, maps, &app_state->skybox.instance_id))
+		{
+			SHMFATAL("Failed to acquire shader instance resources for skybox cube map!");
+			return false;
+		}
+
+		// Meshes
 		app_state->world_meshes.init(5, DarrayFlag::NON_RESIZABLE, AllocationTag::MAIN);
 
 		Mesh* cube_mesh = app_state->world_meshes.push({});
@@ -297,7 +341,7 @@ namespace Application
 
 		
 		Resource car_mesh_res = {};
-		if (!ResourceSystem::load("falcon", ResourceType::MESH, &car_mesh_res))
+		if (!ResourceSystem::load("falcon", ResourceType::MESH, 0, &car_mesh_res))
 			SHMERROR("Failed to load car mesh!");
 		{
 			Mesh* car_mesh = app_state->world_meshes.push({});
@@ -312,7 +356,7 @@ namespace Application
 		}
 			
 		Resource sponza_mesh_res = {};
-		if (!ResourceSystem::load("sponza", ResourceType::MESH, &sponza_mesh_res))
+		if (!ResourceSystem::load("sponza", ResourceType::MESH, 0, &sponza_mesh_res))
 			SHMERROR("Failed to load sponza mesh!");
 		else
 		{
@@ -404,7 +448,7 @@ namespace Application
 		float32 target_frame_seconds = 1.0f / 120.0f;
 
 		Renderer::RenderPacket render_packet = {};
-		render_packet.views.init(2, 0, AllocationTag::MAIN);
+		render_packet.views.init(3, 0, AllocationTag::MAIN);
 
 		while (app_state->is_running)
 		{
@@ -439,6 +483,15 @@ namespace Application
 				render_packet.delta_time = delta_time;
 
 				// TODO: temporary
+
+				Renderer::SkyboxPacketData skybox_data = {};
+				skybox_data.skybox = &app_state->skybox;
+				if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), &skybox_data, &render_packet.views[0]))
+				{
+					SHMERROR("Failed to build packet for view 'skybox'.");
+					return false;
+				}
+
 				if (app_state->world_meshes.count > 0)
 				{
 					
@@ -453,23 +506,23 @@ namespace Application
 					if (app_state->world_meshes.count > 2)
 					{
 						Math::transform_rotate(app_state->world_meshes[2].transform, rotation);
-					}			
+					}						
 					
-					Renderer::MeshPacketData world_mesh_data = {};
-					world_mesh_data.mesh_count = app_state->world_meshes.count;
-					world_mesh_data.meshes = app_state->world_meshes.data;
-					if (!RenderViewSystem::build_packet(RenderViewSystem::get("world_opaque"), &world_mesh_data, &render_packet.views[0]))
-					{
-						SHMERROR("Failed to build packet for view 'world_opaque'.");
-						return false;
-					}
-					
+				}
+
+				Renderer::MeshPacketData world_mesh_data = {};
+				world_mesh_data.mesh_count = app_state->world_meshes.count;
+				world_mesh_data.meshes = app_state->world_meshes.data;
+				if (!RenderViewSystem::build_packet(RenderViewSystem::get("world_opaque"), &world_mesh_data, &render_packet.views[1]))
+				{
+					SHMERROR("Failed to build packet for view 'world_opaque'.");
+					return false;
 				}
 
 				Renderer::MeshPacketData ui_mesh_data = {};
 				ui_mesh_data.mesh_count = app_state->ui_meshes.count;
 				ui_mesh_data.meshes = app_state->ui_meshes.data;
-				if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &ui_mesh_data, &render_packet.views[1]))
+				if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &ui_mesh_data, &render_packet.views[2]))
 				{
 					SHMERROR("Failed to build packet for view 'ui'.");
 					return false;
@@ -502,6 +555,10 @@ namespace Application
 		}
 
 		app_state->is_running = false;
+
+		// temp
+		Renderer::texture_map_release_resources(&app_state->skybox.cubemap);
+		// end
 	
 		CameraSystem::system_shutdown();
 		GeometrySystem::system_shutdown();

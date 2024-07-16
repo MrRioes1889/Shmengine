@@ -21,7 +21,7 @@ namespace ResourceSystem
 
 	static SystemState* system_state = 0;
 
-	static bool32 load(const char* name, ResourceLoader* loader, Resource* out_resource);
+	static bool32 load(const char* name, ResourceLoader* loader, void* params, Resource* out_resource);
 
     bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
     {
@@ -92,7 +92,7 @@ namespace ResourceSystem
 
     }
 
-    bool32 load(const char* name, ResourceType type, Resource* out_resource)
+    bool32 load(const char* name, ResourceType type, void* params, Resource* out_resource)
     {
         if (type == ResourceType::CUSTOM)
         {
@@ -105,7 +105,7 @@ namespace ResourceSystem
             ResourceLoader& reg_loader = system_state->registered_loaders[i];
             if (reg_loader.id != INVALID_ID && reg_loader.type == type)
             {
-                return load(name, &reg_loader, out_resource);
+                return load(name, &reg_loader, params, out_resource);
             }
         }
 
@@ -113,14 +113,14 @@ namespace ResourceSystem
         return false;
     }
 
-    bool32 load_custom(const char* name, const char* custom_type, Resource* out_resource)
+    bool32 load_custom(const char* name, const char* custom_type, void* params, Resource* out_resource)
     {
         for (uint32 i = 0; i < system_state->config.max_loader_count; i++)
         {
             ResourceLoader& reg_loader = system_state->registered_loaders[i];
             if (reg_loader.id != INVALID_ID && reg_loader.type == ResourceType::CUSTOM && CString::equal_i(custom_type, reg_loader.custom_type))
             {
-                return load(name, &reg_loader, out_resource);
+                return load(name, &reg_loader, params, out_resource);
             }
         }
 
@@ -143,10 +143,10 @@ namespace ResourceSystem
         return system_state->config.asset_base_path;
     }
 
-    static bool32 load(const char* name, ResourceLoader* loader, Resource* out_resource)
+    static bool32 load(const char* name, ResourceLoader* loader, void* params, Resource* out_resource)
     {
         out_resource->loader_id = loader->id;
-        return loader->load(loader, name, out_resource);
+        return loader->load(loader, name, params, out_resource);
     }
 
 }

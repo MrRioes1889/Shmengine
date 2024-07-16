@@ -36,15 +36,26 @@ struct ImageConfig
 	uint8* pixels;
 };
 
+struct ImageResourceParams {
+	bool8 flip_y;
+};
+
 namespace TextureFlags
 {
 	enum Value
 	{
 		HAS_TRANSPARENCY = 1 << 0,
 		IS_WRITABLE = 1 << 1,
-		IS_WRAPPED = 1 << 2
+		IS_WRAPPED = 1 << 2,
+		FLIP_Y = 1 << 3
 	};
 }
+
+enum class TextureType
+{
+	TYPE_2D,
+	TYPE_CUBE
+};
 
 struct Texture
 {
@@ -55,6 +66,7 @@ struct Texture
 
 	char name[max_name_length];
 	uint32 id;
+	TextureType type;
 	uint32 width;
 	uint32 height;
 	uint32 generation;
@@ -68,7 +80,8 @@ enum class TextureUse
 	UNKNOWN = 0,
 	MAP_DIFFUSE = 1,
 	MAP_SPECULAR = 2,
-	MAP_NORMAL = 3
+	MAP_NORMAL = 3,
+	MAP_CUBEMAP = 3,
 };
 
 enum class TextureFilter
@@ -111,6 +124,14 @@ namespace ShaderStage
 		COMPUTE = 1 << 3,
 	};
 }
+
+enum class ShaderFaceCullMode
+{
+	NONE = 0,
+	FRONT = 1,
+	BACK = 2,
+	BOTH = 3
+};
 
 enum class ShaderAttributeType
 {
@@ -178,8 +199,7 @@ struct ShaderConfig
 	Darray<String> stage_names;
 	Darray<String> stage_filenames;
 
-	bool32 use_instances;
-	bool32 use_local;
+	ShaderFaceCullMode cull_mode;
 };
 
 enum class ShaderState
@@ -211,8 +231,6 @@ struct ShaderAttribute
 struct Shader
 {
 	uint32 id;
-	bool32 use_instances;
-	bool32 use_locals;	
 	uint64 required_ubo_alignment;
 
 	uint32 global_ubo_size;
@@ -304,5 +322,13 @@ struct Mesh
 {
 	Darray<Geometry*> geometries;
 	Math::Transform transform;
+};
+
+struct Skybox
+{
+	TextureMap cubemap;
+	Geometry* g;
+	uint64 renderer_frame_number;
+	uint32 instance_id;	
 };
 

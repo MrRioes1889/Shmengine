@@ -57,7 +57,10 @@ namespace Renderer::Vulkan
 		{		
 			depth_att.format = context->device.depth_format; // TODO: Make configurable
 			depth_att.samples = VK_SAMPLE_COUNT_1_BIT;
-			depth_att.loadOp = do_clear_depth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+			if (has_prev_pass)
+				depth_att.loadOp = do_clear_depth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+			else 
+				depth_att.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			depth_att.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			depth_att.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			depth_att.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -162,9 +165,9 @@ namespace Renderer::Vulkan
 			clear_values[begin_info.clearValueCount].color.float32[0] = renderpass->clear_color.r;
 			clear_values[begin_info.clearValueCount].color.float32[1] = renderpass->clear_color.g;
 			clear_values[begin_info.clearValueCount].color.float32[2] = renderpass->clear_color.b;
-			clear_values[begin_info.clearValueCount].color.float32[3] = renderpass->clear_color.a;
-			begin_info.clearValueCount++;
+			clear_values[begin_info.clearValueCount].color.float32[3] = renderpass->clear_color.a;			
 		}
+		begin_info.clearValueCount++;
 
 		if (renderpass->clear_flags & RenderpassClearFlags::DEPTH_BUFFER)
 		{

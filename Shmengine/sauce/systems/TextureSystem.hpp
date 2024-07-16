@@ -19,6 +19,7 @@ namespace TextureSystem
 	void system_shutdown();
 
 	Texture* acquire(const char* name, bool32 auto_release);
+	Texture* acquire_cube(const char* name, bool32 auto_release);
 	Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency);
 
 	Texture* wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size);

@@ -12,12 +12,14 @@
 namespace ResourceSystem
 {
 
-	static bool32 image_loader_load(ResourceLoader* loader, const char* name, Resource* out_resource)
+	static bool32 image_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
 	{
+
+		ImageResourceParams* load_params = (ImageResourceParams*)params;
 
 		const char* format = "%s%s%s";
 		const int32 required_channel_count = 4;
-		stbi_set_flip_vertically_on_load(true);
+		stbi_set_flip_vertically_on_load(load_params->flip_y);
 		char full_filepath[MAX_FILEPATH_LENGTH];
 
 		CString::safe_print_s<const char*, const char*, const char*>
@@ -51,16 +53,6 @@ namespace ResourceSystem
 
 		uint8* data = stbi_load(full_filepath, &width, &height, &channel_count, required_channel_count);
 
-		/*const char* err_msg = stbi_failure_reason();
-		if (err_msg)
-		{
-			SHMERRORV("image_loader_load - Failed to load file '%s' : %s", full_filepath, err_msg);
-			stbi__err(0, 0);
-			if (data)
-				stbi_image_free(data);
-			return false;
-		}*/
-
 		if (!data)
 		{
 			SHMERRORV("image_loader_load - Failed to load file '%s' - no stbi error thrown!", full_filepath);
@@ -86,6 +78,9 @@ namespace ResourceSystem
 
 	static void image_loader_unload(ResourceLoader* loader, Resource* resource)
 	{
+		uint8* pixels = ((ImageConfig*)resource->data)->pixels;
+		if (pixels)
+			stbi_image_free(pixels);
 		if (resource->data)
 		{
 			ImageConfig* data = (ImageConfig*)resource->data;

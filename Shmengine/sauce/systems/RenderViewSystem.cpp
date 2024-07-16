@@ -6,6 +6,7 @@
 #include "renderer/RendererFrontend.hpp"
 #include "renderer/views/RenderViewWORLD.hpp"
 #include "renderer/views/RenderViewUI.hpp"
+#include "renderer/views/RenderViewSkybox.hpp"
 
 namespace RenderViewSystem
 {
@@ -95,19 +96,29 @@ namespace RenderViewSystem
 			}
 		}
 
-		if (config.type == Renderer::RenderViewType::WORLD) {		
+		if (config.type == Renderer::RenderViewType::WORLD) 
+		{		
 			view.on_build_packet = Renderer::render_view_world_on_build_packet;  // For building the packet
 			view.on_render = Renderer::render_view_world_on_render;              // For rendering the packet
 			view.on_create = Renderer::render_view_world_on_create;
 			view.on_destroy = Renderer::render_view_world_on_destroy;
 			view.on_resize = Renderer::render_view_world_on_resize;
 		}
-		else if (config.type == Renderer::RenderViewType::UI) {
+		else if (config.type == Renderer::RenderViewType::UI) 
+		{
 			view.on_build_packet = Renderer::render_view_ui_on_build_packet;  // For building the packet
 			view.on_render = Renderer::render_view_ui_on_render;              // For rendering the packet
 			view.on_create = Renderer::render_view_ui_on_create;
 			view.on_destroy = Renderer::render_view_ui_on_destroy;
 			view.on_resize = Renderer::render_view_ui_on_resize;
+		}
+		else if (config.type == Renderer::RenderViewType::SKYBOX) 
+		{
+			view.on_build_packet = Renderer::render_view_skybox_on_build_packet;  // For building the packet
+			view.on_render = Renderer::render_view_skybox_on_render;              // For rendering the packet
+			view.on_create = Renderer::render_view_skybox_on_create;
+			view.on_destroy = Renderer::render_view_skybox_on_destroy;
+			view.on_resize = Renderer::render_view_skybox_on_resize;
 		}
 
 		if (!view.on_create(&view))

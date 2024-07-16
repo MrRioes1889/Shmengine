@@ -158,7 +158,7 @@ static bool32 create(VulkanContext* context, uint32 width, uint32 height, Vulkan
 	VulkanImage* depth_image = (VulkanImage*)Memory::allocate(sizeof(VulkanImage), true, AllocationTag::MAIN);
 	vulkan_image_create(
 		context,
-		VK_IMAGE_TYPE_2D,
+		TextureType::TYPE_2D,
 		swapchain_extent.width,
 		swapchain_extent.height,
 		context->device.depth_format,

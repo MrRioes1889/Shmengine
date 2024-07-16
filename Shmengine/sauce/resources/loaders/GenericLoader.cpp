@@ -9,7 +9,7 @@
 namespace ResourceSystem
 {
 
-    static bool32 generic_loader_load(ResourceLoader* loader, const char* name, Resource* out_resource)
+    static bool32 generic_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
     {
 
         const char* format = "%s%s%s%s";

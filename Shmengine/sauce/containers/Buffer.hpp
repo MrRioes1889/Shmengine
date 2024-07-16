@@ -66,6 +66,8 @@ struct SHMAPI Buffer
 	void resize(uint64 new_size, void* memory = 0);
 	void clear();
 
+	SHMINLINE void copy_memory(const void* source, uint64 size, uint64 offset = 0);
+
 	void* data;
 	uint64 size;
 	uint16 allocation_tag;
@@ -85,4 +87,11 @@ SHMINLINE Buffer& Buffer::operator=(const Buffer& other)
 	init(other.size, other.flags, (AllocationTag)other.allocation_tag);
 	Memory::copy_memory(other.data, data, size);
 	return *this;
+}
+
+SHMINLINE void Buffer::copy_memory(const void* source, uint64 copy_size, uint64 offset)
+{
+	SHMASSERT_MSG((copy_size + offset) <= size, "Buffer does not fit requested size!");
+	uint8* dest = ((uint8*)data) + offset;
+	Memory::copy_memory(source, dest, copy_size);
 }

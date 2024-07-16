@@ -9,7 +9,7 @@
 
 namespace ResourceSystem
 {
-	static bool32 shader_loader_load(ResourceLoader* loader, const char* name, Resource* out_resource)
+	static bool32 shader_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
 	{
 
         const char* format = "%s%s%s%s";
@@ -37,11 +37,10 @@ namespace ResourceSystem
         out_resource->allocation_tag = AllocationTag::MAIN;
         ShaderConfig* r_data = (ShaderConfig*)Memory::allocate(sizeof(ShaderConfig), true, out_resource->allocation_tag);
 
+        r_data->cull_mode = ShaderFaceCullMode::BACK;
         r_data->attributes.init(1, 0, AllocationTag::MAIN);
         r_data->uniforms.init(1, 0, AllocationTag::MAIN);
         r_data->stages.init(1, 0, AllocationTag::MAIN);
-        r_data->use_instances = false;
-        r_data->use_local = false;
         r_data->stage_names.init(1, 0, AllocationTag::MAIN);
         r_data->stage_filenames.init(1, 0, AllocationTag::MAIN);
 
@@ -105,11 +104,13 @@ namespace ResourceSystem
                 for (uint32 i = 0; i < r_data->stage_filenames.count; i++)
                     r_data->stage_filenames[i].trim();
             }
-            else if (var_name.equal_i("use_instance")) {
-                CString::parse_b32(value.c_str(), r_data->use_instances);
-            }
-            else if (var_name.equal_i("use_local") || var_name.equal_i("use_locals")) {
-                CString::parse_b32(value.c_str(), r_data->use_local);
+            else if (var_name.equal_i("cull_mode")) {
+                if (value.equal_i("front"))
+                    r_data->cull_mode = ShaderFaceCullMode::FRONT;
+                else if (value.equal_i("back"))
+                    r_data->cull_mode = ShaderFaceCullMode::BACK;
+                else if (value.equal_i("both"))
+                    r_data->cull_mode = ShaderFaceCullMode::BOTH;
             }
             else if (var_name.equal_i("attributes") || var_name.equal_i("attribute")) {
                 Darray<String> tmp(2, 0, AllocationTag::MAIN);
