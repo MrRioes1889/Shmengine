@@ -75,7 +75,7 @@ struct SHMAPI Darray
 	}
 
 	T* data = 0;
-	uint32 size = 0; // Max Capacity of contained objects
+	uint32 capacity = 0; // Max Capacity of contained objects
 	uint32 count = 0; // Count of contained objects
 
 	uint16 flags;
@@ -118,13 +118,13 @@ SHMINLINE Darray<T>::Darray(Darray&& other) noexcept
 {
 	free_data();
 	data = other.data;
-	size = other.size;
+	capacity = other.capacity;
 	count = other.count;
 	flags = other.flags;
 	allocation_tag = other.allocation_tag;
 
 	other.data = 0;
-	other.size = 0;
+	other.capacity = 0;
 	other.count = 0;
 }
 
@@ -132,13 +132,13 @@ template<typename T>
 SHMINLINE Darray<T>& Darray<T>::operator=(Darray&& other)
 {
 	data = other.data;
-	size = other.size;
+	capacity = other.capacity;
 	count = other.count;
 	flags = other.flags;
 	allocation_tag = other.allocation_tag;
 
 	other.data = 0;
-	other.size = 0;
+	other.capacity = 0;
 	other.count = 0;
 	return *this;
 }
@@ -149,7 +149,7 @@ SHMINLINE void Darray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 	SHMASSERT_MSG(!data, "Cannot initialize Darray with existing data!");
 
 	allocation_tag = (uint16)tag;
-	size = reserve_count;
+	capacity = reserve_count;
 	count = 0;
 	flags = (uint16)creation_flags;
 	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true, (AllocationTag)allocation_tag);
@@ -167,7 +167,7 @@ SHMINLINE void Darray<T>::free_data()
 		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
 	}
 
-	size = 0;
+	capacity = 0;
 	data = 0;
 	count = 0;	
 
@@ -180,7 +180,7 @@ SHMINLINE void Darray<T>::clear()
 	for (uint32 i = 0; i < count; i++)
 		data[i].~T();
 
-	Memory::zero_memory(data, sizeof(T) * size);
+	Memory::zero_memory(data, sizeof(T) * capacity);
 	count = 0;
 
 }
@@ -188,27 +188,27 @@ SHMINLINE void Darray<T>::clear()
 template<typename T>
 inline SHMINLINE void Darray<T>::resize()
 {
-	resize(size * DARRAY_RESIZE_FACTOR);
+	resize(capacity * DARRAY_RESIZE_FACTOR);
 }
 
 template<typename T>
 inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 {
 	SHMASSERT_MSG(!(flags & DarrayFlag::NON_RESIZABLE), "Darray push exceeded size, but array has been flagged as non-resizable!");
-	uint32 old_size = size;
-	while (size < requested_size)
-		size *= DARRAY_RESIZE_FACTOR;
-	uint64 allocation_size = size * sizeof(T);
+	uint32 old_size = capacity;
+	while (capacity < requested_size)
+		capacity *= DARRAY_RESIZE_FACTOR;
+	uint64 allocation_size = capacity * sizeof(T);
 	data = (T*)Memory::reallocate(allocation_size, data, true, (AllocationTag)allocation_tag);
 	// TODO: Remove this and put zeroin out in reallocation function instead
-	Memory::zero_memory((data + old_size), (size - old_size) * sizeof(T));
+	Memory::zero_memory((data + old_size), (capacity - old_size) * sizeof(T));
 }
 
 template<typename T>
 inline SHMINLINE T* Darray<T>::push(const T& obj)
 {
 
-	if (count + 1 > size)
+	if (count + 1 > capacity)
 	{
 		resize();
 	}
@@ -223,7 +223,7 @@ template<typename T>
 inline SHMINLINE T* Darray<T>::push_steal(T& obj)
 {
 
-	if (count + 1 > size)
+	if (count + 1 > capacity)
 	{
 		resize();
 	}
@@ -297,7 +297,7 @@ inline SHMINLINE T* Darray<T>::transfer_data()
 	T* ret = data;
 
 	data = 0;
-	size = 0;
+	capacity = 0;
 	count = 0;
 
 	return ret;

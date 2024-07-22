@@ -18,7 +18,7 @@ template<typename T>
 struct Sarray
 {
 
-	Sarray() : count(0), data(0), allocation_tag((uint16)AllocationTag::UNKNOWN), flags(0) {};
+	Sarray() : capacity(0), data(0), allocation_tag((uint16)AllocationTag::UNKNOWN), flags(0) {};
 	SHMINLINE Sarray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
 	SHMINLINE ~Sarray();
 
@@ -40,42 +40,42 @@ struct Sarray
 	SHMINLINE void steal(Sarray<T>& other)
 	{
 		data = other.data;
-		count = other.count;
+		capacity = other.capacity;
 		flags = other.flags;
 		allocation_tag = other.allocation_tag;
 
 		other.data = 0;
-		other.count = 0;
+		other.capacity = 0;
 	}
 
 	SHMINLINE void steal(Darray<T>& other)
 	{
 		data = other.data;
-		count = other.size;
+		capacity = other.capacity;
 		flags = 0;
 		allocation_tag = other.allocation_tag;
 
 		other.data = 0;
-		other.size = 0;
+		other.capacity = 0;
 		other.count = 0;
 	}
 
 	SHMINLINE T& operator[](uint64 index)
 	{
-		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
+		SHMASSERT_MSG(index + 1 <= capacity, "Index does not lie within bounds of Sarray.");
 		return data[index];
 	}
 
 	SHMINLINE const T& operator[](uint64 index) const
 	{
-		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Sarray.");
+		SHMASSERT_MSG(index + 1 <= capacity, "Index does not lie within bounds of Sarray.");
 		return data[index];
 	}
 
 	template<typename SubT>
 	SHMINLINE SubT& get_as(uint32 index)
 	{
-		uint32 sub_t_max_count = (sizeof(T) * count) / sizeof(SubT);
+		uint32 sub_t_max_count = (sizeof(T) * capacity) / sizeof(SubT);
 		SHMASSERT_MSG(index + 1 <= sub_t_max_count, "Index does not lie within bounds of Sarray.");
 		return ((SubT*)data)[index];
 	}
@@ -83,13 +83,13 @@ struct Sarray
 	template<typename SubT>
 	SHMINLINE const SubT& get_as(uint32 index) const
 	{
-		uint32 sub_t_max_count = (sizeof(T) * count) / sizeof(SubT);
+		uint32 sub_t_max_count = (sizeof(T) * capacity) / sizeof(SubT);
 		SHMASSERT_MSG(index + 1 <= sub_t_max_count, "Index does not lie within bounds of Sarray.");
 		return ((SubT*)data)[index];
 	}
 	
 	T* data = 0;
-	uint32 count = 0;
+	uint32 capacity = 0;
 	uint16 allocation_tag;
 	uint16 flags;
 
@@ -112,8 +112,8 @@ SHMINLINE Sarray<T>::~Sarray()
 template<typename T>
 SHMINLINE Sarray<T>::Sarray(const Sarray& other)
 {
-	init(other.count, other.flags, (AllocationTag)other.allocation_tag);
-	for (uint32 i = 0; i < other.count; i++)
+	init(other.capacity, other.flags, (AllocationTag)other.allocation_tag);
+	for (uint32 i = 0; i < other.capacity; i++)
 		data[i] = other[i];
 }
 
@@ -121,8 +121,8 @@ template<typename T>
 SHMINLINE Sarray<T>& Sarray<T>::operator=(const Sarray& other)
 {
 	free_data();
-	init(other.count, other.flags, (AllocationTag)other.allocation_tag);
-	for (uint32 i = 0; i < other.count; i++)
+	init(other.capacity, other.flags, (AllocationTag)other.allocation_tag);
+	for (uint32 i = 0; i < other.capacity; i++)
 		data[i] = other[i];
 	return *this;
 }
@@ -130,25 +130,25 @@ SHMINLINE Sarray<T>& Sarray<T>::operator=(const Sarray& other)
 
 template<typename T>
 SHMINLINE Sarray<T>::Sarray(Sarray&& other) noexcept
-{
-	free_data();
+{	
 	data = other.data;
-	count = other.count;
+	capacity = other.capacity;
 	allocation_tag = other.allocation_tag;
 
 	other.data = 0;
-	other.count = 0;
+	other.capacity = 0;
 }
 
 template<typename T>
 SHMINLINE Sarray<T>& Sarray<T>::operator=(Sarray&& other)
 {
+	free_data();
 	data = other.data;
-	count = other.count;
+	capacity = other.capacity;
 	allocation_tag = other.allocation_tag;
 
 	other.data = 0;
-	other.count = 0;
+	other.capacity = 0;
 	return *this;
 }
 
@@ -158,7 +158,7 @@ SHMINLINE void Sarray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 	SHMASSERT_MSG(!data, "Cannot init non empty sarray!");
 
 	allocation_tag = (uint16)tag;
-	count = reserve_count;
+	capacity = reserve_count;
 	flags = (uint16)creation_flags;
 	if (!memory)
 		data = (T*)Memory::allocate(sizeof(T) * reserve_count, true, (AllocationTag)allocation_tag);
@@ -172,23 +172,23 @@ SHMINLINE void Sarray<T>::free_data()
 {
 	if (data && !(flags & SarrayFlag::EXTERNAL_MEMORY))
 	{
-		for (uint32 i = 0; i < count; i++)
+		for (uint32 i = 0; i < capacity; i++)
 			data[i].~T();
 
 		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
 	}
 		
 	data = 0;
-	count = 0;
+	capacity = 0;
 }
 
 template<typename T>
 SHMINLINE void Sarray<T>::clear()
 {
-	for (uint32 i = 0; i < count; i++)
+	for (uint32 i = 0; i < capacity; i++)
 		data[i].~T();
 
-	Memory::zero_memory(data, sizeof(T) * count);
+	Memory::zero_memory(data, sizeof(T) * capacity);
 }
 
 template<typename T>
@@ -197,7 +197,7 @@ inline SHMINLINE T* Sarray<T>::transfer_data()
 	T* ret = data;
 
 	data = 0;
-	count = 0;
+	capacity = 0;
 
 	return ret;
 }
@@ -205,7 +205,7 @@ inline SHMINLINE T* Sarray<T>::transfer_data()
 template<typename T>
 SHMINLINE void Sarray<T>::copy_memory(const void* source, uint64 size, uint64 offset)
 {
-	SHMASSERT_MSG((size + offset) <= (sizeof(T) * count), "Sarray does not fit requested size!");
+	SHMASSERT_MSG((size + offset) <= (sizeof(T) * capacity), "Sarray does not fit requested size!");
 	uint8* dest = ((uint8*)data) + offset;
 	Memory::copy_memory(source, dest, size);
 }

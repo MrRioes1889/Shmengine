@@ -67,6 +67,8 @@ namespace Renderer::Vulkan
 
 		context.find_memory_index = find_memory_index;
 
+		context.is_multithreaded = false;
+
 		//TODO: Replace with own memory allocation callbacks!
 		context.allocator_callbacks = 0;
 
@@ -196,7 +198,7 @@ namespace Renderer::Vulkan
 
 		vulkan_swapchain_create(&context, context.framebuffer_width, context.framebuffer_height, &context.swapchain);
 
-		*out_window_render_target_count = context.swapchain.render_images.count;
+		*out_window_render_target_count = context.swapchain.render_images.capacity;
 
 		for (uint32 i = 0; i < VulkanConfig::renderpass_max_registered; i++)
 			context.registered_renderpasses[i].id = INVALID_ID;
@@ -718,8 +720,8 @@ namespace Renderer::Vulkan
 
 	Texture* window_attachment_get(uint32 index)
 	{
-		if (index >= context.swapchain.render_images.count) {
-			SHMFATALV("Attempting to get attachment index out of range: %u. Attachment count: %u", index, context.swapchain.render_images.count);
+		if (index >= context.swapchain.render_images.capacity) {
+			SHMFATALV("Attempting to get attachment index out of range: %u. Attachment count: %u", index, context.swapchain.render_images.capacity);
 			return 0;
 		}
 
@@ -734,6 +736,11 @@ namespace Renderer::Vulkan
 	uint32 window_attachment_index_get()
 	{
 		return context.image_index;
+	}
+
+	bool8 is_multithreaded()
+	{
+		return context.is_multithreaded;
 	}
 
 	static int32 find_memory_index(uint32 type_filter, uint32 property_flags)
@@ -755,12 +762,12 @@ namespace Renderer::Vulkan
 	{
 		if (!context.graphics_command_buffers.data)
 		{
-			context.graphics_command_buffers.init(context.swapchain.render_images.count, 0, AllocationTag::MAIN);
-			for (uint32 i = 0; i < context.graphics_command_buffers.count; i++)
+			context.graphics_command_buffers.init(context.swapchain.render_images.capacity, 0, AllocationTag::MAIN);
+			for (uint32 i = 0; i < context.graphics_command_buffers.capacity; i++)
 				context.graphics_command_buffers[i] = {};
 		}
 
-		for (uint32 i = 0; i < context.graphics_command_buffers.count; i++)
+		for (uint32 i = 0; i < context.graphics_command_buffers.capacity; i++)
 		{
 			if (context.graphics_command_buffers[i].handle)
 				vulkan_command_buffer_free(&context, context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
@@ -789,7 +796,7 @@ namespace Renderer::Vulkan
 		context.recreating_swapchain = true;
 		vkDeviceWaitIdle(context.device.logical_device);
 
-		for (uint32 i = 0; i < context.swapchain.render_images.count; i++)
+		for (uint32 i = 0; i < context.swapchain.render_images.capacity; i++)
 			context.images_in_flight[i] = 0;
 
 		vulkan_device_query_swapchain_support(context.device.physical_device, context.surface, &context.device.swapchain_support);
@@ -799,7 +806,7 @@ namespace Renderer::Vulkan
 
 		context.framebuffer_size_last_generation = context.framebuffer_size_generation;
 
-		for (uint32 i = 0; i < context.swapchain.render_images.count; i++)
+		for (uint32 i = 0; i < context.swapchain.render_images.capacity; i++)
 			vulkan_command_buffer_free(&context, context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
 
 		if (context.on_render_target_refresh_required)

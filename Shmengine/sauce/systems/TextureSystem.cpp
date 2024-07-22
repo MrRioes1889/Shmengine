@@ -8,9 +8,19 @@
 #include "renderer/RendererFrontend.hpp"
 
 #include "systems/ResourceSystem.hpp"
+#include "systems/JobSystem.hpp"
 
 namespace TextureSystem
 {
+
+	struct TextureLoadParams
+	{
+		char* resource_name;
+		Texture* out_texture;
+		Texture temp_texture;
+		uint32 current_generation;
+		Resource image_resource;
+	};
 
 	struct TextureReference
 	{
@@ -263,31 +273,66 @@ namespace TextureSystem
 		return &system_state->default_normal;
 	}
 
-	static bool32 load_texture(const char* texture_name, Texture* t)
+	static void texture_load_on_success(void* params)
+	{
+		TextureLoadParams* texture_params = (TextureLoadParams*)params;
+
+		Texture old;
+		Memory::copy_memory(texture_params->out_texture, &old, sizeof(old));
+		
+		ImageConfig* resource_data = (ImageConfig*)texture_params->image_resource.data;
+		Renderer::texture_create(resource_data->pixels, &texture_params->temp_texture);
+
+		Memory::copy_memory(&texture_params->temp_texture, texture_params->out_texture, sizeof(*texture_params->out_texture));
+
+		Renderer::texture_destroy(&old);
+
+		if (texture_params->current_generation == INVALID_ID)
+			texture_params->out_texture->generation = 0;
+		else
+			texture_params->out_texture->generation = texture_params->current_generation + 1;
+
+		SHMTRACEV("Successfully loaded texture '%s'.", texture_params->resource_name);
+
+		ResourceSystem::unload(&texture_params->image_resource);
+		Memory::free_memory(texture_params->resource_name, true, AllocationTag::MAIN);
+	}
+
+	static void texture_load_on_failure(void* params)
+	{
+		TextureLoadParams* texture_params = (TextureLoadParams*)params;
+
+		SHMTRACEV("Failed to load texture '%s'.", texture_params->resource_name);
+
+		ResourceSystem::unload(&texture_params->image_resource);
+		if (texture_params->resource_name)
+			Memory::free_memory(texture_params->resource_name, true, AllocationTag::MAIN);
+	}
+
+	static bool32 texture_load_job_start(void* params, void* results)
 	{
 
-		ImageResourceParams params;
-		params.flip_y = true;
+		TextureLoadParams* load_params = (TextureLoadParams*)params;
 
-		Resource img_resource;
-		if (!ResourceSystem::load(texture_name, ResourceType::IMAGE, &params, &img_resource))
+		ImageResourceParams resource_params;
+		resource_params.flip_y = true;
+
+		if (!ResourceSystem::load(load_params->resource_name, ResourceType::IMAGE, &params, &load_params->image_resource))
 		{
-			SHMERRORV("load_texture - Failed to load image resources for texture '%s'", texture_name);
+			SHMERRORV("load_texture - Failed to load image resources for texture '%s'", load_params->resource_name);
 			return false;
-		}	
+		}
 
-		uint32 current_generation = t->generation;
-		destroy_texture(t);
+		ImageConfig* img_resource_data = (ImageConfig*)load_params->image_resource.data;
+		load_params->temp_texture.channel_count = img_resource_data->channel_count;
+		load_params->temp_texture.width = img_resource_data->width;
+		load_params->temp_texture.height = img_resource_data->height;
 
-		ImageConfig* img_resource_data = (ImageConfig*)img_resource.data;
-		t->channel_count = img_resource_data->channel_count;
-		t->width = img_resource_data->width;
-		t->height = img_resource_data->height;
-		
-		t->generation = INVALID_ID;
+		load_params->current_generation = load_params->out_texture->generation;
+		load_params->out_texture->generation = INVALID_ID;
 
 		uint8* pixels = img_resource_data->pixels;
-		uint64 size = t->width * t->height * t->channel_count;
+		uint64 size = load_params->temp_texture.width * load_params->temp_texture.height * load_params->temp_texture.channel_count;
 		bool32 has_transparency = false;
 		for (uint64 i = 0; i < size; i += img_resource_data->channel_count)
 		{
@@ -299,22 +344,30 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(Texture::max_name_length, t->name, texture_name);
-		t->generation = INVALID_ID;
-		t->flags = 0;
-		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;		
+		CString::copy(Texture::max_name_length, load_params->temp_texture.name, load_params->resource_name);
+		load_params->temp_texture.generation = INVALID_ID;
+		load_params->temp_texture.flags = 0;
+		load_params->temp_texture.flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
 
-		Renderer::texture_create(pixels, t);
-
-		if (current_generation == INVALID_ID)
-			t->generation = 0;
-		else
-			t->generation = current_generation + 1;
-
-		ResourceSystem::unload(&img_resource);
+		Memory::copy_memory(load_params, results, sizeof(TextureLoadParams));
 
 		return true;
 
+	}
+
+	static bool32 load_texture(const char* texture_name, Texture* t)
+	{
+		TextureLoadParams params;
+		uint32 name_length = CString::length(texture_name);
+		params.resource_name = (char*)Memory::allocate(name_length + 1, true, AllocationTag::MAIN);
+		CString::copy(name_length + 1, params.resource_name, texture_name);
+		params.out_texture = t;
+		params.image_resource = {};
+		params.current_generation = t->generation;
+		
+		JobSystem::JobInfo job = JobSystem::job_create(texture_load_job_start, texture_load_on_success, texture_load_on_failure, &params, sizeof(TextureLoadParams), sizeof(TextureLoadParams));
+		JobSystem::submit(job);
+		return true;
 	}
 
 	static bool32 load_cube_textures(const char* name, const char texture_names[6][Texture::max_name_length], Texture* t)

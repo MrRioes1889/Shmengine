@@ -100,7 +100,7 @@ template<typename... Args>
 SHMINLINE int32 safe_print_s(String& out_s, const char* format, const Args&... args)
 {
 	CString::Arg arg_array[] = { args... };
-	int32 res = CString::_print_s_base(out_s.arr.data, out_s.arr.size, format, arg_array, sizeof...(Args));
+	int32 res = CString::_print_s_base(out_s.arr.data, out_s.arr.capacity, format, arg_array, sizeof...(Args));
 	if (res >= 0)
 		out_s.arr.count = (uint32)res;
 	

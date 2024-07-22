@@ -52,7 +52,7 @@ namespace Renderer
 		self->height = (uint16)height;
 		data->projection_matrix = Math::mat_orthographic(0.0f, (float32)self->width, (float32)self->height, 0.0f, data->near_clip, data->far_clip);
 
-		for (uint32 i = 0; i < self->renderpasses.count; i++)
+		for (uint32 i = 0; i < self->renderpasses.capacity; i++)
 		{
 			self->renderpasses[i]->dim.width = width;
 			self->renderpasses[i]->dim.height = height;
@@ -67,7 +67,7 @@ namespace Renderer
 
 		uint32 total_geometry_count = 0;
 		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
-			total_geometry_count += mesh_data->meshes[i].geometries.count;
+			total_geometry_count += mesh_data->meshes[i]->geometries.count;
 
 		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::MAIN);
 		out_packet->view = self;
@@ -78,12 +78,12 @@ namespace Renderer
 
 		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
 		{
-			Mesh& m = mesh_data->meshes[i];
-			for (uint32 g = 0; g < m.geometries.count; g++)
+			Mesh* m = mesh_data->meshes[i];
+			for (uint32 g = 0; g < m->geometries.count; g++)
 			{
 				GeometryRenderData* render_data = out_packet->geometries.push({});
-				render_data->geometry = m.geometries[g];
-				render_data->model = Math::transform_get_world(m.transform);
+				render_data->geometry = m->geometries[g];
+				render_data->model = Math::transform_get_world(m->transform);
 			}
 		}
 
@@ -96,7 +96,7 @@ namespace Renderer
 
 		RenderViewUIInternalData* data = (RenderViewUIInternalData*)self->internal_data.data;
 
-		for (uint32 rp = 0; rp < self->renderpasses.count; rp++)
+		for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
 		{
 
 			Renderpass* renderpass = self->renderpasses[rp];

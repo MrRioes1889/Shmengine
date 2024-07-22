@@ -18,6 +18,7 @@
 #include "systems/ShaderSystem.hpp"
 #include "systems/CameraSystem.hpp"
 #include "systems/RenderViewSystem.hpp"
+#include "systems/JobSystem.hpp"
 
 // TODO: temp
 #include "utility/Math.hpp"
@@ -25,6 +26,7 @@
 #include "utility/String.hpp"
 
 #include "renderer/RendererGeometry.hpp"
+#include "resources/Mesh.hpp"
 // end
 
 namespace Application
@@ -54,11 +56,15 @@ namespace Application
 		void* material_system_state;
 		void* geometry_system_state;
 		void* camera_system_state;
+		void* job_system_state;
 
 		Skybox skybox;
 
 		Darray<Mesh> world_meshes;
 		Darray<Mesh> ui_meshes;
+		Mesh* car_mesh;
+		Mesh* sponza_mesh;
+		bool32 models_loaded;
 	};
 
 	static bool32 initialized = false;
@@ -70,29 +76,43 @@ namespace Application
 
 	bool32 event_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
-		const char* names[3] = {
+		if (code == SystemEventCode::DEBUG0)
+		{
+			const char* names[3] = {
 			"cobblestone",
 			"paving",
 			"paving2"
-		};
+			};
 
-		static int32 choice = 2;
-		const char* old_name = names[choice];
-		choice++;
-		choice %= 3;
+			static int32 choice = 2;
+			const char* old_name = names[choice];
+			choice++;
+			choice %= 3;
 
-		Geometry* g = app_state->world_meshes[0].geometries[0];
-		if (g)
-		{
-			g->material = MaterialSystem::acquire(names[choice]);
-			if (!g->material)
+			Geometry* g = app_state->world_meshes[0].geometries[0];
+			if (g)
 			{
-				SHMWARNV("event_on_debug_event - Failed to acquire material '%s'! Using default.", names[choice]);
-				g->material = MaterialSystem::get_default_material();
-			}
+				g->material = MaterialSystem::acquire(names[choice]);
+				if (!g->material)
+				{
+					SHMWARNV("event_on_debug_event - Failed to acquire material '%s'! Using default.", names[choice]);
+					g->material = MaterialSystem::get_default_material();
+				}
 
-			MaterialSystem::release(old_name);
+				MaterialSystem::release(old_name);
+			}
 		}
+		else if (code == SystemEventCode::DEBUG1)
+		{
+			if (!app_state->models_loaded)
+			{
+				SHMDEBUG("Loading models...");
+				if (!mesh_load_from_resource("falcon", app_state->car_mesh))
+					SHMERROR("Failed to load car mesh!");
+				if (!mesh_load_from_resource("sponza", app_state->sponza_mesh))
+					SHMERROR("Failed to load sponza mesh!");
+			}
+		}	
 		
 		return true;
 	}
@@ -122,6 +142,7 @@ namespace Application
 		app_state->game_inst = game_inst;
 		app_state->is_running = true;
 		app_state->is_suspended = false;
+		app_state->models_loaded = false;
 		Memory::linear_allocator_create(Mebibytes(64), &app_state->systems_allocator);
 
 		Platform::init_console();
@@ -161,6 +182,7 @@ namespace Application
 		Event::event_register(SystemEventCode::WINDOW_RESIZED, 0, on_resized);
 		// TODO: temporary
 		Event::event_register(SystemEventCode::DEBUG0, 0, event_on_debug_event);
+		Event::event_register(SystemEventCode::DEBUG1, 0, event_on_debug_event);
 		// end
 
 		if (!Platform::system_init(
@@ -207,6 +229,37 @@ namespace Application
 		if (!RenderViewSystem::system_init(allocate_subsystem_callback, app_state->texture_system_state, render_view_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize render view system. Application shutting down..");
+			return false;
+		}
+
+		const int32 max_thread_count = 15;
+		int32 thread_count = Platform::get_processor_count() - 1;
+		if (thread_count < 1)
+		{
+			SHMFATAL("Platform reported no additional free threads other than the main one. At least 2 threads needed for job system!");
+			return false;
+		}
+		thread_count = clamp(thread_count, 1, max_thread_count);
+
+		uint32 job_thread_types[max_thread_count];
+		for (uint32 i = 0; i < max_thread_count; i++)
+			job_thread_types[i] = JobSystem::JobType::GENERAL;
+
+		if (thread_count == 1 || !Renderer::is_multithreaded())
+		{
+			job_thread_types[0] |= (JobSystem::JobType::GPU_RESOURCE | JobSystem::JobType::RESOURCE_LOAD);
+		}
+		else
+		{
+			job_thread_types[0] |= JobSystem::JobType::GPU_RESOURCE;
+			job_thread_types[1] |= JobSystem::JobType::RESOURCE_LOAD;
+		}
+
+		JobSystem::Config job_system_config;
+		job_system_config.job_thread_count = thread_count;
+		if (!JobSystem::system_init(allocate_subsystem_callback, app_state->job_system_state, job_system_config, job_thread_types))
+		{
+			SHMFATAL("ERROR: Failed to initialize job system. Application shutting down..");
 			return false;
 		}
 
@@ -315,12 +368,14 @@ namespace Application
 		// Meshes
 		app_state->world_meshes.init(5, DarrayFlag::NON_RESIZABLE, AllocationTag::MAIN);
 
+
 		Mesh* cube_mesh = app_state->world_meshes.push({});
 		cube_mesh->geometries.init(1, 0, AllocationTag::MAIN);
 		GeometrySystem::GeometryConfig g_config = {};
 		Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
 		cube_mesh->geometries.push(GeometrySystem::acquire_from_config(g_config, true));
 		cube_mesh->transform = Math::transform_create();
+		cube_mesh->generation = 0;
 
 		Mesh* cube_mesh2 = app_state->world_meshes.push({});
 		cube_mesh2->geometries.init(1, 0, AllocationTag::MAIN);
@@ -328,6 +383,7 @@ namespace Application
 		Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
 		cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
 		cube_mesh2->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
+		cube_mesh2->generation = 0;
 
 		Mesh* cube_mesh3 = app_state->world_meshes.push({});
 		cube_mesh3->geometries.init(1, 0, AllocationTag::MAIN);
@@ -335,43 +391,18 @@ namespace Application
 		Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);	
 		cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(g_config3, true));
 		cube_mesh3->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
+		cube_mesh3->generation = 0;
 
 		app_state->world_meshes[1].transform.parent = &app_state->world_meshes[0].transform;
 		app_state->world_meshes[2].transform.parent = &app_state->world_meshes[0].transform;
+	
+		app_state->car_mesh = app_state->world_meshes.push({});
+		app_state->car_mesh->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
+		app_state->car_mesh->generation = INVALID_ID8;
 
-		
-		Resource car_mesh_res = {};
-		if (!ResourceSystem::load("falcon", ResourceType::MESH, 0, &car_mesh_res))
-			SHMERROR("Failed to load car mesh!");
-		{
-			Mesh* car_mesh = app_state->world_meshes.push({});
-			GeometrySystem::GeometryConfig* car_g_configs = (GeometrySystem::GeometryConfig*)car_mesh_res.data;
-			car_mesh->geometries.init(car_mesh_res.data_size, 0, AllocationTag::MAIN);
-			for (uint32 i = 0; i < car_mesh->geometries.size; i++)
-			{
-				car_mesh->geometries.push(GeometrySystem::acquire_from_config(car_g_configs[i], true));
-			}
-			car_mesh->transform = Math::transform_from_position({ 20.0f, 0.0f, 1.0f });
-			ResourceSystem::unload(&car_mesh_res);
-		}
-			
-		Resource sponza_mesh_res = {};
-		if (!ResourceSystem::load("sponza", ResourceType::MESH, 0, &sponza_mesh_res))
-			SHMERROR("Failed to load sponza mesh!");
-		else
-		{
-			Mesh* sponza_mesh = app_state->world_meshes.push({});
-			GeometrySystem::GeometryConfig* sponza_g_configs = (GeometrySystem::GeometryConfig*)sponza_mesh_res.data;
-			sponza_mesh->geometries.init(sponza_mesh_res.data_size, 0, AllocationTag::MAIN);
-			for (uint32 i = 0; i < sponza_mesh->geometries.size; i++)
-			{
-				sponza_mesh->geometries.push(GeometrySystem::acquire_from_config(sponza_g_configs[i], true));
-			}
-			{
-				sponza_mesh->transform = Math::transform_from_position_rotation_scale({15.0f, 0.0f, 1.0f}, QUAT_IDENTITY, {0.1f, 0.1f, 0.1f});
-			}
-			ResourceSystem::unload(&sponza_mesh_res);
-		}	
+		app_state->sponza_mesh = app_state->world_meshes.push({});
+		app_state->sponza_mesh->transform = Math::transform_from_position_rotation_scale({ 15.0f, 0.0f, 1.0f }, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
+		app_state->sponza_mesh->generation = INVALID_ID8;
 
 		// Load up some test UI geometry.
 		GeometrySystem::GeometryConfig ui_config = {};
@@ -421,6 +452,7 @@ namespace Application
 		ui_mesh->geometries.push(0);
 		ui_mesh->geometries[0] = GeometrySystem::acquire_from_config(ui_config, true);
 		ui_mesh->transform = Math::transform_create();
+		ui_mesh->generation = 0;
 		// end
 
 		if (!game_inst->init(game_inst))
@@ -429,6 +461,7 @@ namespace Application
 			return false;
 		}
 
+		Renderer::on_resized(app_state->width, app_state->height);
 		game_inst->on_resize(app_state->game_inst, app_state->width, app_state->height);
 
 		initialized = true;
@@ -450,6 +483,9 @@ namespace Application
 		Renderer::RenderPacket render_packet = {};
 		render_packet.views.init(3, 0, AllocationTag::MAIN);
 
+		Sarray<Mesh*> world_meshes(app_state->world_meshes.count, 0, AllocationTag::MAIN);
+		Sarray<Mesh*> ui_meshes(app_state->world_meshes.count, 0, AllocationTag::MAIN);
+
 		while (app_state->is_running)
 		{
 
@@ -458,6 +494,8 @@ namespace Application
 			float32 delta_time = current_time - app_state->last_time;
 			float64 frame_start_time = Platform::get_absolute_time();
 			app_state->last_time = current_time;
+
+			JobSystem::update();
 
 			if (!Platform::pump_messages())
 			{
@@ -491,28 +529,24 @@ namespace Application
 					SHMERROR("Failed to build packet for view 'skybox'.");
 					return false;
 				}
-
-				if (app_state->world_meshes.count > 0)
-				{
-					
-					Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * delta_time, true);
-					Math::transform_rotate(app_state->world_meshes[0].transform, rotation);
-
-					if (app_state->world_meshes.count > 1)
-					{
-						Math::transform_rotate(app_state->world_meshes[1].transform, rotation);
-					}				
-
-					if (app_state->world_meshes.count > 2)
-					{
-						Math::transform_rotate(app_state->world_meshes[2].transform, rotation);
-					}						
-					
-				}
+			
+				Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * delta_time, true);
+				Math::transform_rotate(app_state->world_meshes[0].transform, rotation);
+				Math::transform_rotate(app_state->world_meshes[1].transform, rotation);
+				Math::transform_rotate(app_state->world_meshes[2].transform, rotation);						
 
 				Renderer::MeshPacketData world_mesh_data = {};
-				world_mesh_data.mesh_count = app_state->world_meshes.count;
-				world_mesh_data.meshes = app_state->world_meshes.data;
+				world_mesh_data.mesh_count = 0;
+				for (uint32 i = 0; i < app_state->world_meshes.count; i++)
+				{
+					if (app_state->world_meshes[i].generation != INVALID_ID8)
+					{
+						world_meshes[world_mesh_data.mesh_count] = &app_state->world_meshes[i];
+						world_mesh_data.mesh_count++;
+					}
+				}
+				world_mesh_data.meshes = world_meshes.data;
+
 				if (!RenderViewSystem::build_packet(RenderViewSystem::get("world_opaque"), &world_mesh_data, &render_packet.views[1]))
 				{
 					SHMERROR("Failed to build packet for view 'world_opaque'.");
@@ -520,8 +554,17 @@ namespace Application
 				}
 
 				Renderer::MeshPacketData ui_mesh_data = {};
-				ui_mesh_data.mesh_count = app_state->ui_meshes.count;
-				ui_mesh_data.meshes = app_state->ui_meshes.data;
+				ui_mesh_data.mesh_count = 0;		
+				for (uint32 i = 0; i < app_state->ui_meshes.count; i++)
+				{
+					if (app_state->ui_meshes[i].generation != INVALID_ID8)
+					{
+						ui_meshes[ui_mesh_data.mesh_count] = &app_state->ui_meshes[i];
+						ui_mesh_data.mesh_count++;
+					}
+				}
+				ui_mesh_data.meshes = ui_meshes.data;
+
 				if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &ui_mesh_data, &render_packet.views[2]))
 				{
 					SHMERROR("Failed to build packet for view 'ui'.");
@@ -530,7 +573,7 @@ namespace Application
 
 				Renderer::draw_frame(&render_packet);
 
-				for (uint32 i = 0; i < render_packet.views.count; i++)
+				for (uint32 i = 0; i < render_packet.views.capacity; i++)
 				{
 					render_packet.views[i].geometries.free_data();
 				}
@@ -564,6 +607,7 @@ namespace Application
 		GeometrySystem::system_shutdown();
 		MaterialSystem::system_shutdown();
 		TextureSystem::system_shutdown();
+		JobSystem::system_shutdown();
 		ShaderSystem::system_shutdown();
 		Renderer::system_shutdown();	
 		ResourceSystem::system_shutdown();

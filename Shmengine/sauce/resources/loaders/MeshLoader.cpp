@@ -701,7 +701,7 @@ namespace ResourceSystem
             geo_header.vertex_size = g.vertex_size;
             geo_header.vertex_count = g.vertex_count;
             geo_header.index_size = sizeof(uint32);
-            geo_header.index_count = g.indices.count;
+            geo_header.index_count = g.indices.capacity;
             geo_header.name_length = (uint16)CString::length(g.name);
             geo_header.material_name_length = (uint16)CString::length(g.material_name);
 

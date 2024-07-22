@@ -150,7 +150,7 @@ namespace GeometrySystem
 	bool32 create_geometry(const GeometryConfig& config, Geometry* g)
 	{
 
-		if (!Renderer::geometry_create(g, config.vertex_size, config.vertex_count, config.vertices.data, config.indices.count, config.indices.data))
+		if (!Renderer::geometry_create(g, config.vertex_size, config.vertex_count, config.vertices.data, config.indices.capacity, config.indices.data))
 		{
 			system_state->registered_geometries[g->id].reference_count = 0;
 			system_state->registered_geometries[g->id].auto_release = false;

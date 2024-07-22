@@ -67,7 +67,7 @@ namespace Renderer
 		float32 aspect = (float32)width / (float32)height;
 		data->projection_matrix = Math::mat_perspective(data->fov, aspect, data->near_clip, data->far_clip);
 
-		for (uint32 i = 0; i < self->renderpasses.count; i++)
+		for (uint32 i = 0; i < self->renderpasses.capacity; i++)
 		{
 			self->renderpasses[i]->dim.width = width;
 			self->renderpasses[i]->dim.height = height;
@@ -102,7 +102,7 @@ namespace Renderer
 		view_matrix.data[13] = 0.0f;
 		view_matrix.data[14] = 0.0f;
 
-		for (uint32 rp = 0; rp < self->renderpasses.count; rp++)
+		for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
 		{
 
 			Renderpass* renderpass = self->renderpasses[rp];

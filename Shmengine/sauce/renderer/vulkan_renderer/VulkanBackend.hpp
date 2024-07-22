@@ -60,4 +60,6 @@ namespace Renderer::Vulkan
 
 	bool32 texture_map_acquire_resources(TextureMap* out_map);
 	void texture_map_release_resources(TextureMap* map);
+
+	bool8 is_multithreaded();
 }

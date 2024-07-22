@@ -26,7 +26,7 @@ String::String(const char* s, uint32 length)
 		reserve_size = String::min_reserve_size;
 
 	arr.init(reserve_size, 0, AllocationTag::STRING);
-	CString::copy(arr.size, arr.data, s, length);
+	CString::copy(arr.capacity, arr.data, s, length);
 	arr.count = length;
 }
 
@@ -38,7 +38,7 @@ String::String(const char* s)
 		reserve_size = String::min_reserve_size;
 
 	arr.init(reserve_size, 0, AllocationTag::STRING);
-	CString::copy(arr.size, arr.data, s);
+	CString::copy(arr.capacity, arr.data, s);
 	arr.count = s_length;
 }
 
@@ -54,7 +54,7 @@ String::String(const String& other)
 		reserve_size = String::min_reserve_size;
 
 	arr.init(reserve_size, 0, AllocationTag::STRING);
-	CString::copy(arr.size, arr.data, other.c_str());
+	CString::copy(arr.capacity, arr.data, other.c_str());
 	arr.count = other.len();
 }
 
@@ -68,10 +68,10 @@ String& String::operator=(const String& other)
 
 	if (!arr.data)
 		arr.init(reserve_size, 0, AllocationTag::STRING);
-	else if (arr.size < reserve_size)
+	else if (arr.capacity < reserve_size)
 		arr.resize(reserve_size);
 
-	CString::copy(arr.size, arr.data, other.c_str());
+	CString::copy(arr.capacity, arr.data, other.c_str());
 	arr.count = other.len();
 	arr.push(0);
 	return *this;
@@ -81,11 +81,11 @@ String& String::operator=(const String& other)
 String::String(String&& other) noexcept
 {
 	arr.data = other.arr.data;
-	arr.size = other.arr.size;
+	arr.capacity = other.arr.capacity;
 	arr.count = other.arr.count;
 
 	other.arr.data = 0;
-	other.arr.size = 0;
+	other.arr.capacity = 0;
 	other.arr.count = 0;
 }
 
@@ -93,11 +93,11 @@ String& String::operator=(String&& other) noexcept
 {
     free_data();
 	arr.data = other.arr.data;
-	arr.size = other.arr.size;
+	arr.capacity = other.arr.capacity;
 	arr.count = other.arr.count;
 
 	other.arr.data = 0;
-	other.arr.size = 0;
+	other.arr.capacity = 0;
 	other.arr.count = 0;
 	return *this;
 }
@@ -114,12 +114,12 @@ String& String::operator=(const char* s)
 	{
 		arr.init(reserve_size, 0, AllocationTag::STRING);
 	}
-	else if (arr.size < reserve_size)
+	else if (arr.capacity < reserve_size)
 	{				
 		arr.resize(reserve_size);		
 	}
 
-	arr.count = CString::copy(arr.size, arr.data, s);
+	arr.count = CString::copy(arr.capacity, arr.data, s);
 	return *this;
 
 }
@@ -134,12 +134,12 @@ void String::copy_n(const char* s, uint32 length)
 	{
 		arr.init(reserve_size, 0, AllocationTag::STRING);
 	}
-	else if (arr.size < reserve_size)
+	else if (arr.capacity < reserve_size)
 	{
 		arr.resize(reserve_size);
 	}
 
-	arr.count = CString::copy(arr.size, arr.data, s, (int32)length);
+	arr.count = CString::copy(arr.capacity, arr.data, s, (int32)length);
 }
 
 void String::free_data()
@@ -150,9 +150,9 @@ void String::free_data()
 void String::append(char appendage)
 {
 	uint32 total_length = 1 + arr.count;
-	if (total_length + 1 > arr.size)
+	if (total_length + 1 > arr.capacity)
 		arr.resize(total_length + 1);
-	CString::append(arr.size, arr.data, appendage);
+	CString::append(arr.capacity, arr.data, appendage);
 	arr.count = total_length;
 }
 
@@ -160,9 +160,9 @@ void String::append(const char* appendage, int32 length)
 {
 	uint32 append_length = length < 0 ? CString::length(appendage) : (uint32)length;
 	uint32 total_length = append_length + arr.count;
-	if (total_length + 1 > arr.size)
+	if (total_length + 1 > arr.capacity)
 		arr.resize(total_length + 1);
-	CString::append(arr.size, arr.data, appendage, length);
+	CString::append(arr.capacity, arr.data, appendage, length);
 	arr.count = total_length;
 }
 
@@ -251,7 +251,7 @@ int32 print_s(String& out_s, const char* format, ...)
 	va_list arg_ptr;
 	va_start(arg_ptr, format);
 
-	int32 res = CString::print_s(out_s.arr.data, out_s.arr.size, format, arg_ptr);
+	int32 res = CString::print_s(out_s.arr.data, out_s.arr.capacity, format, arg_ptr);
 	if (res >= 0)
 		out_s.arr.count = (uint32)res;
 

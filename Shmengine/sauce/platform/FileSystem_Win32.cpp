@@ -175,7 +175,7 @@ namespace FileSystem
 		if (!file->handle)
 			return false;
 
-		if (out_buffer.arr.size < size)
+		if (out_buffer.arr.capacity < size)
 			out_buffer.arr.resize(size);
 
 		if (!ReadFile(file->handle, out_buffer.arr.data, size, (LPDWORD)out_bytes_read, 0))

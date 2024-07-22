@@ -166,6 +166,8 @@ namespace Renderer
 	{
 		Backend& backend = system_state->backend;
 		backend.frame_count++;
+		bool32 did_resize = false;
+
 
 		if (system_state->resizing) {
 			system_state->frames_since_resize++;
@@ -175,10 +177,11 @@ namespace Renderer
 				uint32 width = system_state->framebuffer_width;
 				uint32 height = system_state->framebuffer_height;
 				RenderViewSystem::on_window_resize(width, height);
-				system_state->backend.on_resized(width, height);
+				system_state->backend.on_resized(width, height);			
 
 				system_state->frames_since_resize = 0;
 				system_state->resizing = false;
+				did_resize = true;
 			}
 			else {
 				// Skip rendering the frame and try again next time.
@@ -188,13 +191,14 @@ namespace Renderer
 
 		if (!backend.begin_frame(data->delta_time))
 		{
-			SHMERROR("draw_frame - Failed to begin frame;");
+			if (!did_resize)
+				SHMERROR("draw_frame - Failed to begin frame;");
 			return false;
 		}
 
 		uint32 render_target_index = system_state->backend.window_attachment_index_get();
 
-		for (uint32 i = 0; i < data->views.count; i++)
+		for (uint32 i = 0; i < data->views.capacity; i++)
 		{
 			if (!RenderViewSystem::on_render(data->views[i].view, data->views[i], system_state->backend.frame_count, render_target_index))
 			{
@@ -205,7 +209,7 @@ namespace Renderer
 
 		if (!backend.end_frame(data->delta_time))
 		{
-			SHMERROR("draw_frame - Failed to begin frame;");
+			SHMERROR("draw_frame - Failed to end frame;");
 			return false;
 		}
 
@@ -365,6 +369,11 @@ namespace Renderer
 	void texture_map_release_resources(TextureMap* out_map)
 	{
 		return system_state->backend.texture_map_release_resources(out_map);
+	}
+
+	bool8 is_multithreaded()
+	{
+		return system_state->backend.is_multithreaded();
 	}
 
 	static void regenerate_render_targets()

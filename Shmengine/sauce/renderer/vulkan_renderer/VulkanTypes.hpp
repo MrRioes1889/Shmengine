@@ -299,4 +299,6 @@ struct VulkanContext
 	uint32 framebuffer_height;
 
 	float32 frame_delta_time;
+
+	bool8 is_multithreaded;
 };

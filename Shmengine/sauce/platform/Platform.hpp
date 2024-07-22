@@ -31,6 +31,8 @@ namespace Platform
 
 	void sleep(uint32 ms);
 
+	int32 get_processor_count();
+
 	Math::Vec2i get_cursor_pos();
 	void set_cursor_pos(int32 x, int32 y);
 	bool32 clip_cursor(bool32 clip);

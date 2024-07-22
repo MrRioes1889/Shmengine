@@ -565,6 +565,24 @@ namespace Renderer::Vulkan
 					TextureMap* map = v_shader->instance_states[s->bound_instance_id].instance_texture_maps[i];
 					Texture* t = map->texture;
 
+					if (t->generation == INVALID_ID) {
+						switch (map->use) {
+						case TextureUse::MAP_DIFFUSE:
+							t = TextureSystem::get_default_diffuse_texture();
+							break;
+						case TextureUse::MAP_SPECULAR:
+							t = TextureSystem::get_default_specular_texture();
+							break;
+						case TextureUse::MAP_NORMAL:
+							t = TextureSystem::get_default_normal_texture();
+							break;
+						default:
+							SHMWARNV("Undefined texture use %u", (uint32)map->use);
+							t = TextureSystem::get_default_texture();
+							break;
+						}
+					}
+
 					VulkanImage* image = (VulkanImage*)t->internal_data.data;
 					image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					image_infos[i].imageView = image->view;

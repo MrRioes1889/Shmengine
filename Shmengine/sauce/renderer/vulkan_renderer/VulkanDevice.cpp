@@ -452,7 +452,7 @@ static bool32 physical_device_meets_requirements(
 		
 		if (requirements->device_extension_names.data)
 		{
-			uint32 required_extension_count = requirements->device_extension_names.count;
+			uint32 required_extension_count = requirements->device_extension_names.capacity;
 			uint32 available_extension_count = 0;
 			VkExtensionProperties* available_extensions = 0;
 			VK_CHECK(vkEnumerateDeviceExtensionProperties(device, 0, &available_extension_count, 0));

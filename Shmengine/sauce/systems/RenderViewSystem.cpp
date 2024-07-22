@@ -53,7 +53,7 @@ namespace RenderViewSystem
 	bool32 create(const Renderer::RenderViewConfig& config)
 	{
 
-		if (!config.pass_configs.count) {
+		if (!config.pass_configs.capacity) {
 			SHMERROR("RenderViewSystem::create - Config must have at least one renderpass.");
 			return false;
 		}
@@ -81,9 +81,9 @@ namespace RenderViewSystem
 		view.type = config.type;
 		view.name = config.name;
 		view.custom_shader_name = config.custom_shader_name;
-		view.renderpasses.init(config.pass_configs.count, 0, AllocationTag::MAIN);
+		view.renderpasses.init(config.pass_configs.capacity, 0, AllocationTag::MAIN);
 
-		for (uint32 i = 0; i < view.renderpasses.count; i++)
+		for (uint32 i = 0; i < view.renderpasses.capacity; i++)
 		{
 			view.renderpasses[i] = Renderer::renderpass_get(config.pass_configs[i].name);
 			if (!view.renderpasses[i])

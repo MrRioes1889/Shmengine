@@ -212,7 +212,7 @@ namespace Renderer::Vulkan
 		{
 			out_target->attachments.init(attachment_count, 0, AllocationTag::MAIN);
 		}		
-		else if (out_target->attachments.count < attachment_count)
+		else if (out_target->attachments.capacity < attachment_count)
 		{
 			out_target->attachments.free_data();
 			out_target->attachments.init(attachment_count, 0, AllocationTag::MAIN);

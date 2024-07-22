@@ -68,6 +68,11 @@ SHMINLINE SHMAPI uint32 clamp(uint32 x, uint32 min, uint32 max)
 	return (x < min ? min : (x > max ? max : x));
 }
 
+SHMINLINE SHMAPI int32 clamp(int32 x, int32 min, int32 max)
+{
+	return (x < min ? min : (x > max ? max : x));
+}
+
 SHMINLINE uint64 get_aligned(uint64 operand, uint64 granularity)
 {
 	return ((operand + (granularity - 1)) & ~(granularity - 1));

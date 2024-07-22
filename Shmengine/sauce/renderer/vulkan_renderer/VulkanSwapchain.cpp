@@ -98,7 +98,7 @@ static bool32 create(VulkanContext* context, uint32 width, uint32 height, Vulkan
 	{
 		out_swapchain->render_images.init(image_count, 0, AllocationTag::MAIN);
 
-		for (uint32 i = 0; i < out_swapchain->render_images.count; i++)
+		for (uint32 i = 0; i < out_swapchain->render_images.capacity; i++)
 		{
 			uint64 allocation_size = sizeof(VulkanImage);
 			void* internal_data = Memory::allocate(allocation_size, 0, AllocationTag::MAIN);
@@ -118,7 +118,7 @@ static bool32 create(VulkanContext* context, uint32 width, uint32 height, Vulkan
 	}
 	else
 	{
-		for (uint32 i = 0; i < out_swapchain->render_images.count; i++)
+		for (uint32 i = 0; i < out_swapchain->render_images.capacity; i++)
 		{
 			TextureSystem::resize(out_swapchain->render_images[i], swapchain_extent.width, swapchain_extent.height, false);
 		}
@@ -126,7 +126,7 @@ static bool32 create(VulkanContext* context, uint32 width, uint32 height, Vulkan
 		
 	VkImage swapchain_images[32];
 	VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, out_swapchain->handle, &image_count, swapchain_images));
-	for (uint32 i = 0; i < out_swapchain->render_images.count; i++)
+	for (uint32 i = 0; i < out_swapchain->render_images.capacity; i++)
 	{
 		VulkanImage* image = (VulkanImage*)out_swapchain->render_images[i]->internal_data.data;
 		image->handle = swapchain_images[i];
@@ -135,7 +135,7 @@ static bool32 create(VulkanContext* context, uint32 width, uint32 height, Vulkan
 	}
 
 
-	for (uint32 i = 0; i < out_swapchain->render_images.count; i++)
+	for (uint32 i = 0; i < out_swapchain->render_images.capacity; i++)
 	{
 		VulkanImage* image = (VulkanImage*)out_swapchain->render_images[i]->internal_data.data;
 
@@ -197,7 +197,7 @@ static void destroy(VulkanContext* context, VulkanSwapchain* swapchain)
 	Memory::free_memory(depth_image, true, AllocationTag::MAIN);
 	Memory::free_memory(swapchain->depth_texture, true, AllocationTag::MAIN);
 
-	for (uint32 i = 0; i < swapchain->render_images.count; i++)
+	for (uint32 i = 0; i < swapchain->render_images.capacity; i++)
 	{
 		VulkanImage* image = (VulkanImage*)swapchain->render_images[i]->internal_data.data;
 		vkDestroyImageView(context->device.logical_device, image->view, context->allocator_callbacks);

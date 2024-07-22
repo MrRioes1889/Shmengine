@@ -3,7 +3,8 @@
 #include "containers/Buffer.hpp"
 #include "memory/DynamicAllocator.hpp"
 #include "memory/LinearAllocator.hpp"
-#include "Logging.hpp"
+#include "core/Logging.hpp"
+#include "core/Mutex.hpp"
 
 namespace Memory
 {
@@ -23,6 +24,8 @@ namespace Memory
 
         Buffer string_memory;
         DynamicAllocator string_allocator;
+
+        Threading::Mutex allocation_mutex;
         
     };
     
@@ -60,6 +63,12 @@ namespace Memory
 
         system_state->allocated_size = 0;
 
+        if (!Threading::mutex_create(&system_state->allocation_mutex))
+        {
+            SHMFATAL("Failed creating general allocation mutex!");
+            return false;
+        }
+
         system_initialized = true;
         return system_initialized;
 
@@ -68,7 +77,8 @@ namespace Memory
     void system_shutdown()
     {
         system_state->transient_memory.free_data();
-        system_state->main_memory.free_data();      
+        system_state->main_memory.free_data();
+        Threading::mutex_destroy(&system_state->allocation_mutex); 
         system_state = 0;
     }
 
@@ -84,38 +94,44 @@ namespace Memory
             if (system_initialized)
                 return 0;
             else
-                ret = platform_allocate(size, aligned);
+                return platform_allocate(size, aligned);
         }
-        else
+
+        if (!Threading::mutex_lock(&system_state->allocation_mutex))
         {
-            switch (tag)
-            {
-            case AllocationTag::PLAT:
-            {
-                ret = platform_allocate(size, aligned);
-                break;
-            }
-            case AllocationTag::TRANSIENT:
-            {
-                ret = system_state->transient_allocator.allocate(size);
-                break;
-            }
-            case AllocationTag::STRING:
-            {
-                /*uint64 bytes_allocated = 0;
-                ret = system_state->string_allocator.allocate(size, &bytes_allocated);
-                uint64 offset = (uint64)ret - (uint64)system_state->string_allocator.data;
-                SHMDEBUGV("string allocated at offset: %lu; bytes allocated: %lu", offset, bytes_allocated);*/
-                ret = system_state->string_allocator.allocate(size);
-                break;
-            }
-            default:
-            {
-                ret = system_state->main_allocator.allocate(size);
-                break;
-            }
-            }
-        }   
+            SHMFATAL("Failed obtaining lock for general allocation mutex!");
+            return 0;
+        }
+
+        switch (tag)
+        {
+        case AllocationTag::PLAT:
+        {
+            ret = platform_allocate(size, aligned);
+            break;
+        }
+        case AllocationTag::TRANSIENT:
+        {
+            ret = system_state->transient_allocator.allocate(size);
+            break;
+        }
+        case AllocationTag::STRING:
+        {
+            /*uint64 bytes_allocated = 0;
+            ret = system_state->string_allocator.allocate(size, &bytes_allocated);
+            uint64 offset = (uint64)ret - (uint64)system_state->string_allocator.data;
+            SHMDEBUGV("string allocated at offset: %lu; bytes allocated: %lu", offset, bytes_allocated);*/
+            ret = system_state->string_allocator.allocate(size);
+            break;
+        }
+        default:
+        {
+            ret = system_state->main_allocator.allocate(size);
+            break;
+        }
+        }
+
+        Threading::mutex_unlock(&system_state->allocation_mutex);       
 
         zero_memory(ret, size);
         return ret;
@@ -133,6 +149,12 @@ namespace Memory
         }
 
         void* ret = 0;
+
+        if (!Threading::mutex_lock(&system_state->allocation_mutex))
+        {
+            SHMFATAL("Failed obtaining lock for general allocation mutex!");
+            return 0;
+        }
 
         switch (tag)
         {
@@ -164,12 +186,15 @@ namespace Memory
         }          
         }
 
+        Threading::mutex_unlock(&system_state->allocation_mutex);
+
         return ret;
    
     }
 
     void free_memory(void* block, bool32 aligned, AllocationTag tag)
-    {
+    {       
+
         if (!system_state)
         {
             if (system_initialized)
@@ -178,14 +203,23 @@ namespace Memory
                 return platform_free(block, aligned);
         }
 
+        if (!Threading::mutex_lock(&system_state->allocation_mutex))
+        {
+            SHMFATAL("Failed obtaining lock for general allocation mutex!");
+            return;
+        }
+
         switch (tag)
         {
         case AllocationTag::PLAT:
-            return platform_free(block, aligned);
+        {
+            platform_free(block, aligned);
+            break;
+        }         
         case AllocationTag::TRANSIENT:
         {
             system_state->transient_allocator.free(block);
-            return;
+            break;
         }        
         case AllocationTag::STRING:
         {
@@ -194,14 +228,16 @@ namespace Memory
             uint64 offset = (uint64)block - (uint64)system_state->string_allocator.data;
             SHMDEBUGV("String freed at offset: %lu; Bytes freed: %lu", offset, bytes_freed);*/
             system_state->string_allocator.free(block);
-            return;
+            break;
         }          
         default:
         {
             system_state->main_allocator.free(block);
-            return;
+            break;
         }          
         }
+
+        Threading::mutex_unlock(&system_state->allocation_mutex);
         
     }
 

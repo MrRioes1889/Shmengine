@@ -163,6 +163,8 @@ namespace Renderer
 		bool32(*shader_set_uniform)(Shader* shader, ShaderUniform* uniform, const void* value);
 		bool32(*texture_map_acquire_resources)(TextureMap* out_map);
 		void(*texture_map_release_resources)(TextureMap* out_map);
+
+		bool8 (*is_multithreaded)();
 	};
 
 	enum class RenderViewType
@@ -240,7 +242,7 @@ namespace Renderer
 	struct MeshPacketData
 	{
 		uint32 mesh_count;
-		Mesh* meshes;
+		Mesh** meshes;
 	};
 
 	struct SkyboxPacketData

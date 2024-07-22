@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Defines.hpp"
-#pragma once
 #include "renderer/Camera.hpp"
 
 namespace CameraSystem

@@ -50,6 +50,8 @@ namespace Renderer
 			out_backend->depth_attachment_get = Vulkan::depth_attachment_get;
 			out_backend->window_attachment_index_get = Vulkan::window_attachment_index_get;
 
+			out_backend->is_multithreaded = Vulkan::is_multithreaded;
+
 			return true;
 		}
 

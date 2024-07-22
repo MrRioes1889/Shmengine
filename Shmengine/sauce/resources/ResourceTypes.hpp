@@ -320,6 +320,7 @@ struct Geometry
 
 struct Mesh
 {
+	uint8 generation;
 	Darray<Geometry*> geometries;
 	Math::Transform transform;
 };

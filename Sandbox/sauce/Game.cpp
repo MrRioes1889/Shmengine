@@ -36,6 +36,11 @@ bool32 game_update(Game* game_inst, float32 delta_time)
         Event::event_fire(SystemEventCode::DEBUG0, 0, {});
     }    
 
+    if (Input::key_pressed(Keys::KEY_L))
+    {
+        Event::event_fire(SystemEventCode::DEBUG1, 0, {});
+    }
+
     if (Input::key_pressed(Keys::KEY_1)) {
         EventData data = {};
         data.i32[0] = Renderer::ViewMode::DEFAULT;

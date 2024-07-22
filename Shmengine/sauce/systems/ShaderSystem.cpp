@@ -56,7 +56,7 @@ namespace ShaderSystem
 		void* shader_array = allocator_callback(shader_array_size);
 		system_state->shaders.init(config.max_shader_count, SarrayFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, shader_array);
 
-		for (uint32 i = 0; i < system_state->shaders.count; i++)
+		for (uint32 i = 0; i < system_state->shaders.capacity; i++)
 		{
 			system_state->shaders[i].id = INVALID_ID;
 		}
@@ -70,7 +70,7 @@ namespace ShaderSystem
 		if (!system_state)
 			return;
 
-		for (uint32 i = 0; i < system_state->shaders.count; i++)
+		for (uint32 i = 0; i < system_state->shaders.capacity; i++)
 		{
 			if (system_state->shaders[i].id != INVALID_ID)
 				destroy_shader(&system_state->shaders[i]);

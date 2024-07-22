@@ -106,7 +106,7 @@ namespace Renderer
 		float32 aspect = (float32)width / (float32)height;
 		data->projection_matrix = Math::mat_perspective(data->fov, aspect, data->near_clip, data->far_clip);
 
-		for (uint32 i = 0; i < self->renderpasses.count; i++)
+		for (uint32 i = 0; i < self->renderpasses.capacity; i++)
 		{
 			self->renderpasses[i]->dim.width = width;
 			self->renderpasses[i]->dim.height = height;
@@ -130,7 +130,7 @@ namespace Renderer
 
 		uint32 total_geometry_count = 0;
 		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
-			total_geometry_count += mesh_data->meshes[i].geometries.count;
+			total_geometry_count += mesh_data->meshes[i]->geometries.count;
 
 		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::MAIN);
 		out_packet->view = self;
@@ -144,26 +144,26 @@ namespace Renderer
 
 		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
 		{
-			Mesh& m = mesh_data->meshes[i];
-			Math::Mat4 model = Math::transform_get_world(m.transform);
-			for (uint32 g = 0; g < m.geometries.count; g++)
+			Mesh* m = mesh_data->meshes[i];
+			Math::Mat4 model = Math::transform_get_world(m->transform);
+			for (uint32 g = 0; g < m->geometries.count; g++)
 			{
 
-				if (!(m.geometries[g]->material->diffuse_map.texture->flags & TextureFlags::HAS_TRANSPARENCY))
+				if (!(m->geometries[g]->material->diffuse_map.texture->flags & TextureFlags::HAS_TRANSPARENCY))
 				{
 					GeometryRenderData* render_data = out_packet->geometries.push({});
-					render_data->geometry = m.geometries[g];
+					render_data->geometry = m->geometries[g];
 					render_data->model = model;
 				}
 				else
 				{
 
-					Math::Vec3f center = Math::vec_transform(m.geometries[g]->center, model);
+					Math::Vec3f center = Math::vec_transform(m->geometries[g]->center, model);
 					float32 distance = Math::vec_distance(center, internal_data->camera->get_position());
 
 					GeometryDistance* transparent_data = transparent_geometries.push({});
 					transparent_data->dist = Math::abs(distance);
-					transparent_data->g.geometry = m.geometries[g];
+					transparent_data->g.geometry = m->geometries[g];
 					transparent_data->g.model = model;
 				}
 			}
@@ -185,7 +185,7 @@ namespace Renderer
 
 		RenderViewWORLDInternalData* data = (RenderViewWORLDInternalData*)self->internal_data.data;
 
-		for (uint32 rp = 0; rp < self->renderpasses.count; rp++)
+		for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
 		{
 
 			Renderpass* renderpass = self->renderpasses[rp];

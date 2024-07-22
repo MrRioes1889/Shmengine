@@ -287,7 +287,7 @@ namespace Renderer
         Vertex3D* vertices = (Renderer::Vertex3D*)g_config.vertices.data;
         uint32* indices = g_config.indices.data;
 
-        for (uint32 i = 0; i < g_config.indices.count; i += 3) {
+        for (uint32 i = 0; i < g_config.indices.capacity; i += 3) {
             uint32 i0 = indices[i + 0];
             uint32 i1 = indices[i + 1];
             uint32 i2 = indices[i + 2];
@@ -309,7 +309,7 @@ namespace Renderer
         Vertex3D* vertices = (Renderer::Vertex3D*)g_config.vertices.data;
         uint32* indices = g_config.indices.data;
 
-        for (uint32 i = 0; i < g_config.indices.count; i += 3) {
+        for (uint32 i = 0; i < g_config.indices.capacity; i += 3) {
             uint32 i0 = indices[i + 0];
             uint32 i1 = indices[i + 1];
             uint32 i2 = indices[i + 2];
@@ -381,7 +381,7 @@ namespace Renderer
             {
                 if (vertex3d_equal(new_vertices[n], old_vertices[o]))
                 {
-                    reassign_index(g_config.indices.count, indices, o - found_count, n);
+                    reassign_index(g_config.indices.capacity, indices, o - found_count, n);
                     found = true;
                     found_count++;
                     break;
