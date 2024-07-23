@@ -45,6 +45,7 @@ struct VulkanBuffer
 	VkBufferUsageFlagBits usage;
 	int32 memory_index;
 	uint32 memory_property_flags;
+	VkMemoryRequirements memory_requirements;
 
 	Buffer freelist_data;
 	Freelist freelist;
@@ -92,6 +93,8 @@ struct VulkanImage
 	VkImageView view;
 	uint32 width;
 	uint32 height;
+	VkMemoryRequirements memory_requirements;
+	VkMemoryPropertyFlags memory_flags;
 };
 
 enum class VulkanRenderpassState

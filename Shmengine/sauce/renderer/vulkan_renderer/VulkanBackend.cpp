@@ -19,6 +19,8 @@
 #include "systems/TextureSystem.hpp"
 #include "systems/ResourceSystem.hpp"
 
+#define VULKAN_USE_CUSTOM_ALLOCATOR 1
+
 VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
 	VkDebugUtilsMessageTypeFlagsEXT message_types,
@@ -33,6 +35,7 @@ namespace Renderer::Vulkan
 	static bool32 recreate_swapchain();
 	static int32 find_memory_index(uint32 type_filter, uint32 property_flags);
 	static bool32 create_buffers();
+	static void create_vulkan_allocator(VkAllocationCallbacks*& callbacks);
 
 	static VulkanContext context = {};
 
@@ -69,8 +72,7 @@ namespace Renderer::Vulkan
 
 		context.is_multithreaded = false;
 
-		//TODO: Replace with own memory allocation callbacks!
-		context.allocator_callbacks = 0;
+		create_vulkan_allocator(context.allocator_callbacks);
 
 		shaders_init_context(&context);
 		renderpass_init_context(&context);
@@ -102,23 +104,56 @@ namespace Renderer::Vulkan
 		extension_count++;
 #endif
 
+#if defined(_DEBUG)
+
+		extension_names[extension_count] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+		SHMDEBUG(extension_names[extension_count]);
+		extension_count++;
+
+#endif
+
 		SHMDEBUG("Required vulkan extensions:");
 
 		for (uint32 i = 0; i < extension_count; i++)
 			SHMDEBUG(extension_names[i]);
 
-#if defined(_DEBUG)
+		uint32 available_extension_count = 0;
+		VK_CHECK(vkEnumerateInstanceExtensionProperties(0, &available_extension_count, 0));
+		Sarray<VkExtensionProperties> available_extensions(available_extension_count, 0);
+		VK_CHECK(vkEnumerateInstanceExtensionProperties(0, &available_extension_count, available_extensions.data));
 
+		for (uint32 i = 0; i < extension_count; i++)
+		{
+			SHMDEBUGV("Searching for extension: %s...", extension_names[i]);
+			bool32 found = false;
+			for (uint32 j = 0; j < available_extension_count; j++)
+			{
+				if (CString::equal((char*)extension_names[i], available_extensions[j].extensionName))
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if (!found)
+			{
+				SHMFATALV("Failed to find required vulkan validation extensions: %s!", extension_names[i]);
+				return false;
+			}
+		}
+
+		SHMDEBUG("All required vulkan validation extension present.");
+
+		inst_create_info.enabledExtensionCount = extension_count;
+		inst_create_info.ppEnabledExtensionNames = extension_names;
+
+#if defined(_DEBUG)
 		const uint32 validation_layer_count = 1;
 		const char* validation_layer_names[validation_layer_count] =
 		{
 			"VK_LAYER_KHRONOS_validation",
 			// "VK_LAYER_LUNARG_api_dump"
-		};
-		
-		extension_names[extension_count] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-		SHMDEBUG(extension_names[extension_count]);
-		extension_count++;
+		};	
 
 		SHMDEBUG("Vulkan Validation layers enabled.");
 
@@ -136,7 +171,6 @@ namespace Renderer::Vulkan
 				if (CString::equal((char*)validation_layer_names[i], available_layers[j].layerName))
 				{
 					found = true;
-					SHMDEBUG("Found.");
 					break;
 				}
 			}
@@ -154,9 +188,6 @@ namespace Renderer::Vulkan
 		inst_create_info.ppEnabledLayerNames = validation_layer_names;
 
 #endif
-
-		inst_create_info.enabledExtensionCount = extension_count;
-		inst_create_info.ppEnabledExtensionNames = extension_names;		
 
 		//NOTE: The second agument for this function is meant to contain callbacks for custom memory allocation.
 		VK_CHECK(vkCreateInstance(&inst_create_info, context.allocator_callbacks, &context.instance));
@@ -337,6 +368,12 @@ namespace Renderer::Vulkan
 
 		SHMDEBUG("Destroying vulkan instance...");
 		vkDestroyInstance(context.instance, context.allocator_callbacks);
+
+		if (context.allocator_callbacks)
+		{
+			Memory::free_memory(context.allocator_callbacks);
+			context.allocator_callbacks = 0;
+		}
 	}
 
 	void on_resized(uint32 width, uint32 height)
@@ -854,6 +891,96 @@ namespace Renderer::Vulkan
 		return true;
 
 	}
+
+#if VULKAN_USE_CUSTOM_ALLOCATOR == 1
+
+#define LOG_TRACE_ALLOC 0
+#if LOG_TRACE_ALLOC == 1
+#define ALLOC_TRACE(x) SHMTRACE(x)
+#define ALLOC_ERROR(x) SHMERROR(x)
+#define ALLOC_TRACEV(x, ...) SHMTRACEV(x, ##__VA_ARGS__)
+#define ALLOC_ERRORV(x, ...) SHMERRORV(x, ##__VA_ARGS__)
+#else
+#define ALLOC_TRACE(x)
+#define ALLOC_ERROR(x)
+#define ALLOC_TRACEV(x, ...)
+#define ALLOC_ERRORV(x, ...)
+#endif
+
+	static void* vkAllocationFunction_callback(void* user_data, size_t size, size_t alignment, VkSystemAllocationScope scope)
+	{
+		if (!size)
+			return 0;
+
+		void* ret = Memory::allocate(size, AllocationTag::VULKAN, (uint16)alignment);
+		if (!ret)
+		{
+			ALLOC_ERROR("VulkanAlloc: Failed to allocate memory block.");
+			return 0;
+		}
+
+		ALLOC_TRACEV("VulkanAlloc: Allocated block. Size=%lu, alignment=%lu.", size, alignment);
+		return ret;
+	}
+
+	static void vkFreeFunction_callback(void* user_data, void* memory)
+	{
+		if (!memory)
+			return;
+
+		Memory::free_memory(memory);
+		ALLOC_TRACE("VulkanAlloc: Freed block.");
+	}
+
+	static void* vkReallocationFunction_callback(void* user_data, void* original, size_t size, size_t alignment, VkSystemAllocationScope scope)
+	{
+		if (!original)
+			return vkAllocationFunction_callback(user_data, size, alignment, scope);
+
+		if (!size)
+		{
+			vkFreeFunction_callback(user_data, original);
+			return 0;
+		}
+
+		void* ret = Memory::reallocate(size, original, (uint16)alignment);
+		if (!ret)
+		{
+			ALLOC_ERRORV("VulkanAlloc: Failed to reallocate memory block.", size, alignment);
+			return 0;
+		}
+
+		ALLOC_TRACEV("VulkanAlloc: Reallocated block. New size=%lu, alignment=%lu.", size, alignment);
+		return ret;
+		
+	}
+
+	static void vkInternalAllocationNotification_callback(void* user_data, size_t size, VkInternalAllocationType type, VkSystemAllocationScope scope)
+	{
+		ALLOC_TRACEV("VulkanAlloc: External allocation: size=%lu.", size);
+		Memory::track_external_allocation(size, AllocationTag::VULKAN_EXT);
+	}
+
+	static void vkInternalFreeNotification_callback(void* user_data, size_t size, VkInternalAllocationType type, VkSystemAllocationScope scope)
+	{
+		ALLOC_TRACEV("VulkanAlloc: External free: size=%lu.", size);
+		Memory::track_external_free(size, AllocationTag::VULKAN_EXT);
+	}
+
+	static void create_vulkan_allocator(VkAllocationCallbacks*& callbacks)
+	{
+		callbacks = (VkAllocationCallbacks*)Memory::allocate(sizeof(VkAllocationCallbacks), AllocationTag::VULKAN);
+		callbacks->pfnAllocation = vkAllocationFunction_callback;
+		callbacks->pfnFree = vkFreeFunction_callback;
+		callbacks->pfnReallocation = vkReallocationFunction_callback;
+		callbacks->pfnInternalAllocation = vkInternalAllocationNotification_callback;
+		callbacks->pfnInternalFree = vkInternalFreeNotification_callback;
+		callbacks->pUserData = &context;
+	}
+
+#else
+	static void create_vulkan_allocator(VkAllocationCallbacks*& callbacks) { callbacks = 0; }
+#endif
 
 	
 

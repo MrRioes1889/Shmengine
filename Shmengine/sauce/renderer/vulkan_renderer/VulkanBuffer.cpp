@@ -39,9 +39,8 @@ namespace Renderer::Vulkan
 
 		VK_CHECK(vkCreateBuffer(context->device.logical_device, &buffer_create_info, context->allocator_callbacks, &out_buffer->handle));
 
-		VkMemoryRequirements requirements;
-		vkGetBufferMemoryRequirements(context->device.logical_device, out_buffer->handle, &requirements);
-		out_buffer->memory_index = context->find_memory_index(requirements.memoryTypeBits, out_buffer->memory_property_flags);
+		vkGetBufferMemoryRequirements(context->device.logical_device, out_buffer->handle, &out_buffer->memory_requirements);
+		out_buffer->memory_index = context->find_memory_index(out_buffer->memory_requirements.memoryTypeBits, out_buffer->memory_property_flags);
 		if (out_buffer->memory_index < 0)
 		{
 			SHMERROR("Unable to create vulkan buffer because the required memory type index was not found");
@@ -51,7 +50,7 @@ namespace Renderer::Vulkan
 		}
 
 		VkMemoryAllocateInfo allocate_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-		allocate_info.allocationSize = requirements.size;
+		allocate_info.allocationSize = out_buffer->memory_requirements.size;
 		allocate_info.memoryTypeIndex = (uint32)out_buffer->memory_index;
 
 		VkResult res = vkAllocateMemory(context->device.logical_device, &allocate_info, context->allocator_callbacks, &out_buffer->memory);
@@ -62,6 +61,9 @@ namespace Renderer::Vulkan
 			out_buffer->freelist_data.free_data();
 			return false;
 		}
+
+		bool32 is_device_memory = (out_buffer->memory_property_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		Memory::track_external_allocation(out_buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_LOCAL : AllocationTag::VULKAN);
 
 		if (bind_on_create)
 			buffer_bind(context, out_buffer, 0);
@@ -84,6 +86,9 @@ namespace Renderer::Vulkan
 			vkDestroyBuffer(context->device.logical_device, buffer->handle, context->allocator_callbacks);
 			buffer->handle = 0;
 		}
+
+		bool32 is_device_memory = (buffer->memory_property_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		Memory::track_external_free(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_LOCAL : AllocationTag::VULKAN);
 
 		if (buffer->has_freelist)
 		{

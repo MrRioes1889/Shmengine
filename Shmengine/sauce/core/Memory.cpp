@@ -15,7 +15,9 @@ namespace Memory
         SystemConfig config;
 
         uint64 allocated_size;
+        uint64 external_allocation_size;
         uint32 allocation_count;
+        uint32 external_allocation_count;
 
         Buffer main_memory;
         DynamicAllocator main_allocator;
@@ -66,6 +68,9 @@ namespace Memory
         system_state->allocated_size = 0;
         system_state->allocation_count = 0;
 
+        system_state->external_allocation_size = 0;
+        system_state->external_allocation_count = 0;
+
         if (!Threading::mutex_create(&system_state->allocation_mutex))
         {
             SHMFATAL("Failed creating general allocation mutex!");
@@ -93,9 +98,9 @@ namespace Memory
     {
         return _reallocate(&system_state->main_allocator, size, block, alignment);
     }
-    void free_memory(void* block, bool32 aligned)
+    void free_memory(void* block)
     {
-        _free_memory(&system_state->main_allocator, block, aligned);
+        _free_memory(&system_state->main_allocator, block, true);
     }
 
     void* allocate_string(uint64 size, AllocationTag tag, uint16 alignment)
@@ -106,9 +111,9 @@ namespace Memory
     {
         return _reallocate(&system_state->string_allocator, size, block, alignment);
     }
-    void free_memory_string(void* block, bool32 aligned)
+    void free_memory_string(void* block)
     {
-        _free_memory(&system_state->string_allocator, block, aligned);
+        _free_memory(&system_state->string_allocator, block, true);
     }
 
     void* allocate_platform(uint64 size, AllocationTag tag, uint16 alignment)
@@ -122,6 +127,24 @@ namespace Memory
     void free_memory_platform(void* block, bool32 aligned)
     {
         _free_memory(0, block, aligned);
+    }
+
+    void track_external_allocation(uint64 size, AllocationTag tag)
+    {
+        Threading::mutex_lock(&system_state->allocation_mutex);
+        system_state->external_allocation_size += size;
+        //system_state->stats.tagged_allocations[tag] += size;
+        system_state->external_allocation_count++;
+        Threading::mutex_unlock(&system_state->allocation_mutex);
+    }
+
+    void track_external_free(uint64 size, AllocationTag tag)
+    {
+        Threading::mutex_lock(&system_state->allocation_mutex);
+        system_state->external_allocation_size -= size;
+        //system_state->stats.tagged_allocations[tag] -= size;
+        system_state->external_allocation_count--;
+        Threading::mutex_unlock(&system_state->allocation_mutex);
     }
 
     void* zero_memory(void* block, uint64 size)

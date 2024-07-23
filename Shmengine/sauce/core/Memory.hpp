@@ -50,15 +50,18 @@ namespace Memory
 
 	SHMAPI void* allocate(uint64 size, AllocationTag tag, uint16 alignment = 1);
 	SHMAPI void* reallocate(uint64 size, void* block, uint16 alignment = 1);
-	SHMAPI void free_memory(void* block, bool32 aligned = true);
+	SHMAPI void free_memory(void* block);
 
 	void* allocate_string(uint64 size, AllocationTag tag, uint16 alignment = 1);
 	void* reallocate_string(uint64 size, void* block, uint16 alignment = 1);
-	void free_memory_string(void* block, bool32 aligned = true);
+	void free_memory_string(void* block);
 
 	void* allocate_platform(uint64 size, AllocationTag tag, uint16 alignment = 1);
 	void* reallocate_platform(uint64 size, void* block, uint16 alignment = 1);
 	void free_memory_platform(void* block, bool32 aligned = true);
+
+	SHMAPI void track_external_allocation(uint64 size, AllocationTag tag);
+	SHMAPI void track_external_free(uint64 size, AllocationTag tag);
 
 	SHMAPI void* zero_memory(void* block, uint64 size);
 	SHMAPI void* copy_memory(const void* source, void* dest, uint64 size);

@@ -10,7 +10,7 @@ Buffer::Buffer(uint32 reserve_size, uint32 creation_flags, AllocationTag tag, vo
 Buffer::~Buffer()
 {
 	if (data && !(flags & BufferFlag::EXTERNAL_MEMORY))
-		Memory::free_memory(data, true);
+		Memory::free_memory(data);
 }
 
 void Buffer::init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag, void* memory)
@@ -33,7 +33,7 @@ void Buffer::init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag,
 void Buffer::free_data()
 {
 	if (data && !(flags & BufferFlag::EXTERNAL_MEMORY))
-		Memory::free_memory(data, true);
+		Memory::free_memory(data);
 
 	data = 0;
 	size = 0;

@@ -21,6 +21,7 @@ void vulkan_image_create(
 
 	out_image->width = width;
 	out_image->height = height;
+	out_image->memory_flags = memory_flags;
 
 	VkImageCreateInfo image_create_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	switch (type)
@@ -49,18 +50,20 @@ void vulkan_image_create(
 
 	VK_CHECK(vkCreateImage(context->device.logical_device, &image_create_info, context->allocator_callbacks, &out_image->handle));
 
-	VkMemoryRequirements memory_requirements;
-	vkGetImageMemoryRequirements(context->device.logical_device, out_image->handle, &memory_requirements);
+	vkGetImageMemoryRequirements(context->device.logical_device, out_image->handle, &out_image->memory_requirements);
 
-	int32 memory_type = context->find_memory_index(memory_requirements.memoryTypeBits, memory_flags);
+	int32 memory_type = context->find_memory_index(out_image->memory_requirements.memoryTypeBits, memory_flags);
 	if (memory_type < 0)
 		SHMERROR("Required memory type not found. Image not valid");
 
 	VkMemoryAllocateInfo memory_allocate_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-	memory_allocate_info.allocationSize = memory_requirements.size;
+	memory_allocate_info.allocationSize = out_image->memory_requirements.size;
 	memory_allocate_info.memoryTypeIndex = memory_type;
 	VK_CHECK(vkAllocateMemory(context->device.logical_device, &memory_allocate_info, context->allocator_callbacks, &out_image->memory));
 	VK_CHECK(vkBindImageMemory(context->device.logical_device, out_image->handle, out_image->memory, 0)); // TODO: Add configurable memory offset
+
+	bool32 is_device_memory = (out_image->memory_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	Memory::track_external_allocation(out_image->memory_requirements.size, is_device_memory ? AllocationTag::GPU_LOCAL : AllocationTag::VULKAN);
 
 	if (create_view)
 	{
@@ -181,6 +184,9 @@ void vulkan_image_destroy(VulkanContext* context, VulkanImage* image)
 
 	if (image->handle)
 		vkDestroyImage(context->device.logical_device, image->handle, context->allocator_callbacks);
+
+	bool32 is_device_memory = (image->memory_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	Memory::track_external_free(image->memory_requirements.size, is_device_memory ? AllocationTag::GPU_LOCAL : AllocationTag::VULKAN);
 
 	image->view = 0;
 	image->memory = 0;
