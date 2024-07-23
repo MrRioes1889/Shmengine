@@ -21,7 +21,7 @@ static void mesh_load_job_success(void* params) {
     // This also handles the GPU upload. Can't be jobified until the renderer is multithreaded.
     GeometrySystem::GeometryConfig* configs = (GeometrySystem::GeometryConfig*)mesh_params->mesh_resource.data;
     uint32 geometry_count = mesh_params->mesh_resource.data_size;
-    mesh_params->out_mesh->geometries.init(geometry_count, 0, AllocationTag::MAIN);
+    mesh_params->out_mesh->geometries.init(geometry_count, 0);
     for (uint32 i = 0; i < geometry_count; ++i) {
         Geometry** g = mesh_params->out_mesh->geometries.push(0);
         *g = GeometrySystem::acquire_from_config(configs[i], true);

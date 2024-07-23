@@ -50,7 +50,7 @@ bool32 vulkan_device_create(VulkanContext* context)
 	if (!transfer_shares_graphics_queue)
 		index_count++;
 
-	Sarray<uint32> indices(index_count, 0, AllocationTag::TRANSIENT);
+	Sarray<uint32> indices(index_count, 0);
 	uint32 index = 0;
 	indices[index++] = context->device.graphics_queue_index;
 	if (!present_shares_graphics_queue)
@@ -60,7 +60,7 @@ bool32 vulkan_device_create(VulkanContext* context)
 	
 	// TODO: Figure out what queue priority is used for. Declaring static queue priority for now, since pointers to it are needed.  
 	static float32 queue_priority = 1.0f;
-	Sarray<VkDeviceQueueCreateInfo> queue_create_infos(index_count, 0, AllocationTag::TRANSIENT);
+	Sarray<VkDeviceQueueCreateInfo> queue_create_infos(index_count, 0);
 	for (uint32 i = 0; i < index_count; i++)
 	{
 		queue_create_infos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -133,14 +133,14 @@ void vulkan_device_destroy(VulkanContext* context)
 
 	if (context->device.swapchain_support.formats)
 	{
-		Memory::free_memory(context->device.swapchain_support.formats, true, AllocationTag::MAIN);
+		Memory::free_memory(context->device.swapchain_support.formats);
 		context->device.swapchain_support.formats = 0;
 		context->device.swapchain_support.format_count = 0;
 	}
 
 	if (context->device.swapchain_support.present_modes)
 	{
-		Memory::free_memory(context->device.swapchain_support.present_modes, true, AllocationTag::MAIN);
+		Memory::free_memory(context->device.swapchain_support.present_modes);
 		context->device.swapchain_support.present_modes = 0;
 		context->device.swapchain_support.present_mode_count = 0;
 	}
@@ -163,7 +163,7 @@ void vulkan_device_query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR
 	{
 		if (!out_support_info->formats)
 			out_support_info->formats = 
-			(VkSurfaceFormatKHR*)Memory::allocate(sizeof(VkSurfaceFormatKHR) * out_support_info->format_count, true, AllocationTag::MAIN);
+			(VkSurfaceFormatKHR*)Memory::allocate(sizeof(VkSurfaceFormatKHR) * out_support_info->format_count, AllocationTag::RENDERER);
 
 		VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &out_support_info->format_count, out_support_info->formats));
 	}
@@ -174,7 +174,7 @@ void vulkan_device_query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR
 	{
 		if (!out_support_info->present_modes)
 			out_support_info->present_modes = 
-			(VkPresentModeKHR*)Memory::allocate(sizeof(VkPresentModeKHR) * out_support_info->present_mode_count, true, AllocationTag::MAIN);
+			(VkPresentModeKHR*)Memory::allocate(sizeof(VkPresentModeKHR) * out_support_info->present_mode_count, AllocationTag::RENDERER);
 
 		VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &out_support_info->present_mode_count, out_support_info->present_modes));
 	}
@@ -222,7 +222,7 @@ static bool32 select_physical_device(VulkanContext* context)
 	if (!physical_device_count)
 	{
 		SHMFATAL("No physical devices which support Vulkan were found.");
-		return true;
+		return false;
 	}
 
 	VulkanPhysicalDeviceRequirements requirements = {.device_extension_names = Sarray<const char*>(1, 0)};
@@ -239,7 +239,7 @@ static bool32 select_physical_device(VulkanContext* context)
 	/*const char* swapchain_extension_name = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 	darray_push(requirements.device_extension_names, swapchain_extension_name);*/
 
-	Sarray<VkPhysicalDevice> physical_devices(physical_device_count, 0, AllocationTag::TRANSIENT);
+	Sarray<VkPhysicalDevice> physical_devices(physical_device_count, 0);
 	VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, physical_devices.data));
 	for (uint32 i = 0; i < physical_device_count; i++)
 	{
@@ -363,7 +363,7 @@ static bool32 physical_device_meets_requirements(
 
 	uint32 queue_family_count = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, 0);
-	Sarray<VkQueueFamilyProperties> queue_families(queue_family_count, 0, AllocationTag::TRANSIENT);
+	Sarray<VkQueueFamilyProperties> queue_families(queue_family_count, 0);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data);
 
 	SHMINFO("Graphics | Present | Compute | Transfer | Name");
@@ -441,10 +441,10 @@ static bool32 physical_device_meets_requirements(
 		if (!out_swapchain_support->format_count || !out_swapchain_support->present_mode_count)
 		{
 			if (out_swapchain_support->formats)
-				Memory::free_memory(out_swapchain_support->formats, true, AllocationTag::MAIN);
+				Memory::free_memory(out_swapchain_support->formats);
 
 			if (out_swapchain_support->present_modes)
-				Memory::free_memory(out_swapchain_support->present_modes, true, AllocationTag::MAIN);
+				Memory::free_memory(out_swapchain_support->present_modes);
 
 			SHMINFO("Required swapchain support not present. Skipping device.");
 			return false;
@@ -462,7 +462,7 @@ static bool32 physical_device_meets_requirements(
 				return false;
 			}
 			available_extensions = 
-				(VkExtensionProperties*)Memory::allocate(sizeof(VkExtensionProperties) * available_extension_count, true, AllocationTag::MAIN);
+				(VkExtensionProperties*)Memory::allocate(sizeof(VkExtensionProperties) * available_extension_count, AllocationTag::RENDERER);
 			VK_CHECK(vkEnumerateDeviceExtensionProperties(device, 0, &available_extension_count, available_extensions));
 				
 			for (uint32 i = 0; i < required_extension_count; i++)
@@ -480,12 +480,12 @@ static bool32 physical_device_meets_requirements(
 				if (!found)
 				{
 					SHMINFOV("Required extension not found: '%s'. Skipping Device.", requirements->device_extension_names[i]);
-					Memory::free_memory(available_extensions, true, AllocationTag::MAIN);
+					Memory::free_memory(available_extensions);
 					return false;
 				}
 			}
 
-			Memory::free_memory(available_extensions, true, AllocationTag::MAIN);
+			Memory::free_memory(available_extensions);
 			
 		}
 

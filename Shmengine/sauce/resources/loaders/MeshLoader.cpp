@@ -118,7 +118,7 @@ namespace ResourceSystem
             return false;
         }
 
-        Darray<GeometrySystem::GeometryConfig> resource_data(1, 0, AllocationTag::MAIN);
+        Darray<GeometrySystem::GeometryConfig> resource_data(1, 0, AllocationTag::RESOURCE);
         out_resource->name = name;
 
         bool32 res = false;
@@ -150,7 +150,6 @@ namespace ResourceSystem
             return res;
         }
 
-        out_resource->allocation_tag = (AllocationTag)resource_data.allocation_tag;
         out_resource->data_size = resource_data.count;
         out_resource->data = resource_data.transfer_data();      
 
@@ -184,17 +183,17 @@ namespace ResourceSystem
             return false;
         }
 
-        Darray<Math::Vec3f> positions(0x4000, 0, AllocationTag::MAIN);
-        Darray<Math::Vec3f> normals(0x4000, 0, AllocationTag::MAIN);
-        Darray<Math::Vec2f> tex_coords(0x4000, 0, AllocationTag::MAIN);
+        Darray<Math::Vec3f> positions(0x4000, 0);
+        Darray<Math::Vec3f> normals(0x4000, 0);
+        Darray<Math::Vec2f> tex_coords(0x4000, 0);
 
-        Darray<MeshGroupData> groups(4, 0, AllocationTag::MAIN);
+        Darray<MeshGroupData> groups(4, 0);
 
         String material_file_name(MAX_FILEPATH_LENGTH);
 
         String name(MAX_FILEPATH_LENGTH);
         uint32 current_mat_name_count = 0;
-        Darray<String> material_names(64, 0, AllocationTag::MAIN);
+        Darray<String> material_names(64, 0);
 
         // Read each line of the file.
         String line(512);
@@ -302,7 +301,7 @@ namespace ResourceSystem
             else if (identifier == "usemtl")
             {
                 MeshGroupData* new_group = groups.push({});
-                new_group->faces.init(0xF000, 0, AllocationTag::MAIN);      
+                new_group->faces.init(0xF000, 0);      
 
                 material_names.push(values);
             }
@@ -375,8 +374,8 @@ namespace ResourceSystem
         out_data->min_extents = {};
         out_data->max_extents = {};
 
-        Darray<Renderer::Vertex3D> vertices(faces.count * 3, 0, AllocationTag::MAIN);
-        Darray<uint32> indices(faces.count * 3, 0, AllocationTag::MAIN);
+        Darray<Renderer::Vertex3D> vertices(faces.count * 3, 0);
+        Darray<uint32> indices(faces.count * 3, 0);
 
         bool32 skip_normals = normals.count == 0;
         bool32 skip_tex_coords = tex_coords.count == 0;
@@ -737,7 +736,7 @@ namespace ResourceSystem
     {
 
         uint32 file_size = FileSystem::get_file_size32(shmesh_file);
-        Buffer file_content(file_size, 0, AllocationTag::MAIN);
+        Buffer file_content(file_size, 0);
         uint32 bytes_read = 0;
         if (!FileSystem::read_all_bytes(shmesh_file, file_content.data, (uint32)file_content.size, &bytes_read))
         {
@@ -785,8 +784,8 @@ namespace ResourceSystem
                 (geo_header->index_count * geo_header->index_size))
             );
 
-            g->vertices.init(g->vertex_count * g->vertex_size, 0, AllocationTag::MAIN);
-            g->indices.init(geo_header->index_count, 0, AllocationTag::MAIN);
+            g->vertices.init(g->vertex_count * g->vertex_size, 0);
+            g->indices.init(geo_header->index_count, 0);
 
             CString::copy(Geometry::max_name_length, g->name, (char*)&read_ptr[read_bytes], (int32)geo_header->name_length);
             read_bytes += geo_header->name_length;

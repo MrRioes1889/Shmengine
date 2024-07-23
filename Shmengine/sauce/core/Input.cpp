@@ -6,12 +6,12 @@
 
 struct KeyboardState
 {
-    bool32 keys[256];
+    bool8 keys[256];
 };
 
 struct MouseButtonsState
 {  
-    bool32 buttons[Mousebuttons::BUTTON_MAX_BUTTONS];
+    bool8 buttons[Mousebuttons::BUTTON_MAX_BUTTONS];
 };
 
 struct InputState
@@ -27,8 +27,8 @@ struct InputState
 
     Math::Vec2i mouse_internal_offset;
 
-    bool32 cursor_clipped;
-    bool32 initialized;
+    bool8 cursor_clipped;
+    bool8 initialized;
 };
 
 static InputState* system_state;
@@ -73,7 +73,7 @@ void Input::frame_end(float64 delta_time)
     system_state->mouse_internal_offset = { 0, 0 };
 }
 
-void Input::process_key(Keys key, bool32 pressed)
+void Input::process_key(Keys key, bool8 pressed)
 {
     if (system_state->keyboard_cur.keys[key] != pressed)
     {
@@ -85,7 +85,7 @@ void Input::process_key(Keys key, bool32 pressed)
     }
 }
 
-void Input::process_mousebutton(Mousebuttons button, bool32 pressed)
+void Input::process_mousebutton(Mousebuttons button, bool8 pressed)
 {
     if (system_state->mouse_cur.buttons[button] != pressed)
     {
@@ -133,7 +133,7 @@ void Input::process_mouse_scroll(int32 delta)
 
 bool32 Input::clip_cursor()
 {
-    system_state->cursor_clipped = !system_state->cursor_clipped;
+    system_state->cursor_clipped = (!system_state->cursor_clipped);
     return Platform::clip_cursor(system_state->cursor_clipped);
 }
 

@@ -8,6 +8,7 @@
 
 typedef struct GameState {
     float32 delta_time;
+    uint32 allocation_count;
     Camera* world_camera;
 } game_state;
 

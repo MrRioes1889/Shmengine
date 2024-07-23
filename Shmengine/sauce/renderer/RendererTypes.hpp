@@ -103,7 +103,7 @@ namespace Renderer
 		Math::Vec3f normal;
 		Math::Vec2f texcoord;
 		Math::Vec4f color;
-		Math::Vec4f tangent;
+		Math::Vec3f tangent;
 	};
 
 	struct Vertex2D
@@ -223,7 +223,8 @@ namespace Renderer
 		bool32 (*on_create)(RenderView* self);
 		void (*on_destroy)(RenderView* self);
 		void (*on_resize)(RenderView* self, uint32 width, uint32 height);
-		bool32 (*on_build_packet)(const RenderView* self, void* data,RenderViewPacket* out_packet);
+		bool32 (*on_build_packet)(const RenderView* self, void* data, RenderViewPacket* out_packet);
+		void (*on_destroy_packet)(const RenderView* self, RenderViewPacket* packet);
 		bool32 (*on_render)(const RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
 	};
 

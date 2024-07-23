@@ -25,7 +25,7 @@ namespace Renderer::Vulkan
 	bool32 shader_create(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
 	{
 
-		shader->internal_data = Memory::allocate(sizeof(VulkanShader), true, AllocationTag::MAIN);
+		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::RENDERER);
 
 		VkShaderStageFlags vk_stages[VulkanConfig::shader_max_stages];
 		for (uint8 i = 0; i < stage_count; ++i) {
@@ -231,7 +231,7 @@ namespace Renderer::Vulkan
 		}
 
 		// Free the internal data memory.
-		Memory::free_memory(shader->internal_data, true, AllocationTag::MAIN);
+		Memory::free_memory(shader->internal_data);
 		shader->internal_data = 0;
 
 	}
@@ -370,8 +370,8 @@ namespace Renderer::Vulkan
 		shader->required_ubo_alignment = context->device.properties.limits.minUniformBufferOffsetAlignment;
 
 		// Make sure the UBO is aligned according to device requirements.
-		shader->global_ubo_stride = (uint32)get_aligned(shader->global_ubo_size, shader->required_ubo_alignment);
-		shader->ubo_stride = (uint32)get_aligned(shader->ubo_size, shader->required_ubo_alignment);
+		shader->global_ubo_stride = (uint32)get_aligned_pow2(shader->global_ubo_size, shader->required_ubo_alignment);
+		shader->ubo_stride = (uint32)get_aligned_pow2(shader->ubo_size, shader->required_ubo_alignment);
 
 		// Uniform  buffer.
 		uint32 device_local_bits = context->device.supports_device_local_host_visible ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
@@ -648,7 +648,7 @@ namespace Renderer::Vulkan
 		uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
 		uint32 instance_texture_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[sampler_binding_index].descriptorCount;
 		// Wipe out the memory for the entire array, even if it isn't all used.
-		instance_state->instance_texture_maps.init(s->instance_texture_count, true, AllocationTag::MAIN);
+		instance_state->instance_texture_maps.init(s->instance_texture_count, true, AllocationTag::RENDERER);
 		Texture* default_texture = TextureSystem::get_default_texture();
 		// Set all the texture pointers to default until assigned.
 		for (uint32 i = 0; i < instance_texture_count; ++i)

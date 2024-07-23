@@ -10,7 +10,7 @@ Buffer::Buffer(uint32 reserve_size, uint32 creation_flags, AllocationTag tag, vo
 Buffer::~Buffer()
 {
 	if (data && !(flags & BufferFlag::EXTERNAL_MEMORY))
-		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
+		Memory::free_memory(data, true);
 }
 
 void Buffer::init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag, void* memory)
@@ -22,7 +22,7 @@ void Buffer::init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag,
 	size = reserve_size;
 	if (!memory)
 	{
-		data = Memory::allocate(size, true, (AllocationTag)allocation_tag);
+		data = Memory::allocate(size, (AllocationTag)allocation_tag);
 	}
 	else
 	{
@@ -33,7 +33,7 @@ void Buffer::init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag,
 void Buffer::free_data()
 {
 	if (data && !(flags & BufferFlag::EXTERNAL_MEMORY))
-		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
+		Memory::free_memory(data, true);
 
 	data = 0;
 	size = 0;
@@ -42,7 +42,7 @@ void Buffer::free_data()
 void Buffer::resize(uint64 new_size, void* memory)
 {
 	if (data && !(flags & BufferFlag::EXTERNAL_MEMORY))
-		data = Memory::reallocate(new_size, memory, true, (AllocationTag)allocation_tag);
+		data = Memory::reallocate(new_size, memory);
 	else
 		data = memory;
 

@@ -22,7 +22,6 @@ struct Resource
 {
 	uint32 loader_id;
 	uint32 data_size;
-	AllocationTag allocation_tag;
 	const char* name;
 	String full_path;	
 	void* data;

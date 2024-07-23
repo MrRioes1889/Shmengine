@@ -34,15 +34,14 @@ namespace ResourceSystem
             return false;
         }
 
-        out_resource->allocation_tag = AllocationTag::MAIN;
-        ShaderConfig* r_data = (ShaderConfig*)Memory::allocate(sizeof(ShaderConfig), true, out_resource->allocation_tag);
+        ShaderConfig* r_data = (ShaderConfig*)Memory::allocate(sizeof(ShaderConfig), AllocationTag::RESOURCE);
 
         r_data->cull_mode = ShaderFaceCullMode::BACK;
-        r_data->attributes.init(1, 0, AllocationTag::MAIN);
-        r_data->uniforms.init(1, 0, AllocationTag::MAIN);
-        r_data->stages.init(1, 0, AllocationTag::MAIN);
-        r_data->stage_names.init(1, 0, AllocationTag::MAIN);
-        r_data->stage_filenames.init(1, 0, AllocationTag::MAIN);
+        r_data->attributes.init(1, 0);
+        r_data->uniforms.init(1, 0);
+        r_data->stages.init(1, 0);
+        r_data->stage_names.init(1, 0);
+        r_data->stage_filenames.init(1, 0);
 
         String var_name(512);
         String value(512);
@@ -113,7 +112,7 @@ namespace ResourceSystem
                     r_data->cull_mode = ShaderFaceCullMode::BOTH;
             }
             else if (var_name.equal_i("attributes") || var_name.equal_i("attribute")) {
-                Darray<String> tmp(2, 0, AllocationTag::MAIN);
+                Darray<String> tmp(2, 0);
                 value.split(tmp, ',');
                 if (tmp.count != 2)
                     SHMERROR("shader_loader_load - Invalid file layout. Attribute fields must be 'type,name'. Skipping.");
@@ -178,7 +177,7 @@ namespace ResourceSystem
             }
             else if (var_name.equal_i("uniforms") || var_name.equal_i("uniform")) 
             {
-                Darray<String> tmp(3, 0, AllocationTag::MAIN);
+                Darray<String> tmp(3, 0);
                 value.split(tmp, ',');
                 if (tmp.count != 3)
                     SHMERROR("shader_loader_load - Invalid file layout. Attribute fields must be 'type,name'. Skipping.");

@@ -154,10 +154,10 @@ namespace Platform
         return TRUE;
     }
 
-    void* allocate(uint64 size, bool32 aligned)
+    void* allocate(uint64 size, uint16 alignment)
     {
-        if (aligned)
-            return _aligned_malloc(size, 0x40);
+        if (alignment > 1)
+            return _aligned_malloc(size, alignment);
         else
             return malloc(size);
     }
@@ -336,7 +336,7 @@ namespace Platform
         case WM_SYSKEYUP: 
         {
             // Key pressed/released
-            bool32 pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
+            bool8 pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
             Keys key = (Keys)w_param;
 
             Input::process_key(key, pressed);
@@ -367,7 +367,7 @@ namespace Platform
         case WM_MBUTTONUP:
         case WM_RBUTTONUP: 
         {
-            bool32 pressed = msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN;
+            bool8 pressed = msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN;
             Mousebuttons button = Mousebuttons::BUTTON_MAX_BUTTONS;
             switch (msg)
             {

@@ -53,14 +53,14 @@ namespace Event
 			return false;
 
 		if (system_state->registered[code].listeners.data == 0)
-			system_state->registered[code].listeners.init(1, 0, AllocationTag::MAIN);
+			system_state->registered[code].listeners.init(1, 0);
 
 		Darray<Listener>& e_listeners = system_state->registered[code].listeners;
 
 		// NOTE: Check if listener is already registered for event
 		for (uint32 i = 0; i < e_listeners.count; i++)
 		{
-			if (e_listeners[i].ptr == listener)
+			if (e_listeners[i].ptr == listener && e_listeners[i].callback == on_event)
 				return false;
 		}
 
@@ -78,10 +78,6 @@ namespace Event
 			return false;
 
 		Darray<Listener>& e_listeners = system_state->registered[code].listeners;
-
-		// TODO: Warning
-		if (e_listeners.data == 0)
-			return false;
 
 		// NOTE: Check if listener is already registered for event
 		for (uint32 i = 0; i < e_listeners.count; i++)
@@ -102,10 +98,6 @@ namespace Event
 			return false;
 
 		Darray<Listener>& e_listeners = system_state->registered[code].listeners;
-
-		// TODO: Warning
-		if (e_listeners.data == 0)
-			return false;
 
 		// NOTE: Check if listener is already registered for event
 		for (uint32 i = 0; i < e_listeners.count; i++)

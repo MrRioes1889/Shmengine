@@ -37,9 +37,9 @@ namespace Renderer
 
 		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
 		out_config.vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
-		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0, AllocationTag::MAIN);
+		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0);
 		uint32 index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
-		out_config.indices.init(index_count, 0, AllocationTag::MAIN);
+		out_config.indices.init(index_count, 0);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 seg_width = width / x_segment_count;
@@ -138,9 +138,9 @@ namespace Renderer
 
 		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
 		out_config.vertex_count = 4 * 6;  // 4 verts per segment
-		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0, AllocationTag::MAIN);
+		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0);
 		uint32 index_count = 6 * 6;  // 6 indices per segment
-		out_config.indices.init(index_count, 0, AllocationTag::MAIN);
+		out_config.indices.init(index_count, 0);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 half_width = width * 0.5f;
@@ -336,7 +336,7 @@ namespace Renderer
             float32 sx = deltaU1, sy = deltaU2;
             float32 tx = deltaV1, ty = deltaV2;
             float32 handedness = ((tx * sy - ty * sx) < 0.0f) ? -1.0f : 1.0f;
-            Math::Vec4f t4 = Math::to_vec4(tangent, handedness);
+            Math::Vec3f t4 = tangent * handedness;
             vertices[i0].tangent = t4;
             vertices[i1].tangent = t4;
             vertices[i2].tangent = t4;
@@ -394,7 +394,7 @@ namespace Renderer
             }
         }
 
-        Memory::free_memory(old_vertices, true, (AllocationTag)g_config.vertices.allocation_tag);
+        Memory::free_memory(old_vertices);
 
         g_config.vertex_count = new_vertices.count;
         Vertex3D* ptr = new_vertices.transfer_data();

@@ -14,7 +14,7 @@ namespace Renderer::Vulkan
 	void renderpass_create(Renderpass* out_renderpass, float32 depth, uint32 stencil, bool32 has_prev_pass, bool32 has_next_pass)
 	{
 
-		out_renderpass->internal_data.init(sizeof(VulkanRenderpass), 0, AllocationTag::MAIN);
+		out_renderpass->internal_data.init(sizeof(VulkanRenderpass), 0, AllocationTag::RENDERER);
 		VulkanRenderpass* v_renderpass = (VulkanRenderpass*)out_renderpass->internal_data.data;
 
 		v_renderpass->depth = depth;
@@ -210,12 +210,12 @@ namespace Renderer::Vulkan
 		// Take a copy of the attachments and count.
 		if (!out_target->attachments.data)
 		{
-			out_target->attachments.init(attachment_count, 0, AllocationTag::MAIN);
+			out_target->attachments.init(attachment_count, 0, AllocationTag::RENDERER);
 		}		
 		else if (out_target->attachments.capacity < attachment_count)
 		{
 			out_target->attachments.free_data();
-			out_target->attachments.init(attachment_count, 0, AllocationTag::MAIN);
+			out_target->attachments.init(attachment_count, 0, AllocationTag::RENDERER);
 		}
 
 		for (uint32 i = 0; i < attachment_count; i++)

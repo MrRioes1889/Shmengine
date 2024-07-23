@@ -17,7 +17,6 @@ bool32 vulkan_swapchain_acquire_next_image_index(
 void vulkan_swapchain_present(
 	VulkanContext* context,
 	VulkanSwapchain* swapchain,
-	VkQueue graphics_queue,
 	VkQueue present_queue,
 	VkSemaphore render_complete_semaphore,
 	uint32 present_image_index);

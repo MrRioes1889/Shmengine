@@ -60,9 +60,9 @@ namespace JobSystem
 		system_state->config = config;
 		system_state->is_running = true;
 
-		system_state->low_prio_queue.init(1024, 0, AllocationTag::MAIN);
-		system_state->normal_prio_queue.init(1024, 0, AllocationTag::MAIN);
-		system_state->high_prio_queue.init(1024, 0, AllocationTag::MAIN);
+		system_state->low_prio_queue.init(1024, 0);
+		system_state->normal_prio_queue.init(1024, 0);
+		system_state->high_prio_queue.init(1024, 0);
 
 		for (uint32 i = 0; i < Config::max_job_results_count; i++)
 			system_state->pending_results[i].id = INVALID_ID;
@@ -140,7 +140,7 @@ namespace JobSystem
 				entry.on_complete(entry.params);
 
 				if (entry.params)
-					Memory::free_memory(entry.params, true, AllocationTag::MAIN);
+					Memory::free_memory(entry.params);
 
 				Threading::mutex_lock(&system_state->results_mutex);
 				system_state->pending_results[i].id = INVALID_ID;
@@ -208,7 +208,7 @@ namespace JobSystem
 		info.params_size = params_size;
 		if (params_size)
 		{
-			info.params = Memory::allocate(params_size, true, AllocationTag::MAIN);
+			info.params = Memory::allocate(params_size, AllocationTag::JOB);
 			Memory::copy_memory(params, info.params, params_size);
 		}		
 		else
@@ -218,7 +218,7 @@ namespace JobSystem
 
 		info.results_size = results_size;
 		if (results_size)
-			info.results = Memory::allocate(results_size, true, AllocationTag::MAIN);
+			info.results = Memory::allocate(results_size, AllocationTag::JOB);
 		else
 			info.results = 0;
 
@@ -236,7 +236,7 @@ namespace JobSystem
 		entry.params = 0;
 		if (entry.params_size)
 		{
-			entry.params = Memory::allocate(entry.params_size, true, AllocationTag::MAIN);
+			entry.params = Memory::allocate(entry.params_size, AllocationTag::JOB);
 			Memory::copy_memory(params, entry.params, entry.params_size);
 		}
 
@@ -288,12 +288,12 @@ namespace JobSystem
 				// Clear the param data and result data.
 				if (info.params)
 				{
-					Memory::free_memory(info.params, true, AllocationTag::MAIN);
+					Memory::free_memory(info.params);
 					info.params = 0;
 				}				
 				if (info.results)
 				{
-					Memory::free_memory(info.results, true, AllocationTag::MAIN);
+					Memory::free_memory(info.results);
 					info.results = 0;
 				}
 					

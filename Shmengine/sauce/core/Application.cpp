@@ -111,6 +111,8 @@ namespace Application
 					SHMERROR("Failed to load car mesh!");
 				if (!mesh_load_from_resource("sponza", app_state->sponza_mesh))
 					SHMERROR("Failed to load sponza mesh!");
+
+				app_state->models_loaded = true;
 			}
 		}	
 		
@@ -136,7 +138,7 @@ namespace Application
 		}
 
 		*game_inst = {};
-		game_inst->app_state = Memory::allocate(sizeof(ApplicationState), true, AllocationTag::MAIN);
+		game_inst->app_state = Memory::allocate(sizeof(ApplicationState), AllocationTag::APPLICATION);
 		app_state = (ApplicationState*)game_inst->app_state;
 
 		app_state->game_inst = game_inst;
@@ -174,7 +176,7 @@ namespace Application
 		if (initialized)
 			return false;
 
-		game_inst->state = Memory::allocate(game_inst->state_size, true, AllocationTag::MAIN);
+		game_inst->state = Memory::allocate(game_inst->state_size, AllocationTag::APPLICATION);
 
 		Event::event_register(SystemEventCode::APPLICATION_QUIT, 0, on_event);
 		Event::event_register(SystemEventCode::KEY_PRESSED, 0, on_key);
@@ -300,7 +302,7 @@ namespace Application
 		skybox_view_config.width = 0;
 		skybox_view_config.height = 0;
 		skybox_view_config.name = "skybox";
-		skybox_view_config.pass_configs.init(1, 0, AllocationTag::MAIN);
+		skybox_view_config.pass_configs.init(1, 0);
 		skybox_view_config.pass_configs[0].name = "Renderpass.Builtin.Skybox";
 		skybox_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
 		if (!RenderViewSystem::create(skybox_view_config))
@@ -314,7 +316,7 @@ namespace Application
 		opaque_view_config.width = 0;
 		opaque_view_config.height = 0;
 		opaque_view_config.name = "world_opaque";
-		opaque_view_config.pass_configs.init(1, 0, AllocationTag::MAIN);
+		opaque_view_config.pass_configs.init(1, 0);
 		opaque_view_config.pass_configs[0].name = "Renderpass.Builtin.World";
 		opaque_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
 		if (!RenderViewSystem::create(opaque_view_config))
@@ -328,7 +330,7 @@ namespace Application
 		ui_view_config.width = 0;
 		ui_view_config.height = 0;
 		ui_view_config.name = "ui";
-		ui_view_config.pass_configs.init(1, 0, AllocationTag::MAIN);
+		ui_view_config.pass_configs.init(1, 0);
 		ui_view_config.pass_configs[0].name = "Renderpass.Builtin.UI";
 		ui_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
 		if (!RenderViewSystem::create(ui_view_config))
@@ -366,11 +368,11 @@ namespace Application
 		}
 
 		// Meshes
-		app_state->world_meshes.init(5, DarrayFlag::NON_RESIZABLE, AllocationTag::MAIN);
+		app_state->world_meshes.init(5, DarrayFlag::NON_RESIZABLE);
 
 
 		Mesh* cube_mesh = app_state->world_meshes.push({});
-		cube_mesh->geometries.init(1, 0, AllocationTag::MAIN);
+		cube_mesh->geometries.init(1, 0);
 		GeometrySystem::GeometryConfig g_config = {};
 		Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
 		cube_mesh->geometries.push(GeometrySystem::acquire_from_config(g_config, true));
@@ -378,7 +380,7 @@ namespace Application
 		cube_mesh->generation = 0;
 
 		Mesh* cube_mesh2 = app_state->world_meshes.push({});
-		cube_mesh2->geometries.init(1, 0, AllocationTag::MAIN);
+		cube_mesh2->geometries.init(1, 0);
 		GeometrySystem::GeometryConfig g_config2 = {};
 		Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
 		cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
@@ -386,7 +388,7 @@ namespace Application
 		cube_mesh2->generation = 0;
 
 		Mesh* cube_mesh3 = app_state->world_meshes.push({});
-		cube_mesh3->geometries.init(1, 0, AllocationTag::MAIN);
+		cube_mesh3->geometries.init(1, 0);
 		GeometrySystem::GeometryConfig g_config3 = {};
 		Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);	
 		cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(g_config3, true));
@@ -411,8 +413,8 @@ namespace Application
 		CString::copy(Geometry::max_name_length, ui_config.name, "test_ui_geometry");
 
 		ui_config.vertex_count = 4;
-		ui_config.vertices.init(ui_config.vertex_size * ui_config.vertex_count, 0, AllocationTag::MAIN);
-		ui_config.indices.init(6, 0, AllocationTag::MAIN);
+		ui_config.vertices.init(ui_config.vertex_size * ui_config.vertex_count, 0);
+		ui_config.indices.init(6, 0);
 		Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)&ui_config.vertices[0];
 
 		const float32 w = 1077.0f * 0.25f;
@@ -446,9 +448,9 @@ namespace Application
 		ui_config.indices[5] = 1;
 
 		// Get UI geometry from config.
-		app_state->ui_meshes.init(1, 0, AllocationTag::MAIN);
+		app_state->ui_meshes.init(1, 0);
 		Mesh* ui_mesh = app_state->ui_meshes.push({});
-		ui_mesh->geometries.init(1, 0, AllocationTag::MAIN);
+		ui_mesh->geometries.init(1, 0);
 		ui_mesh->geometries.push(0);
 		ui_mesh->geometries[0] = GeometrySystem::acquire_from_config(ui_config, true);
 		ui_mesh->transform = Math::transform_create();
@@ -481,10 +483,10 @@ namespace Application
 		float32 target_frame_seconds = 1.0f / 120.0f;
 
 		Renderer::RenderPacket render_packet = {};
-		render_packet.views.init(3, 0, AllocationTag::MAIN);
+		render_packet.views.init(3, 0);
 
-		Sarray<Mesh*> world_meshes(app_state->world_meshes.count, 0, AllocationTag::MAIN);
-		Sarray<Mesh*> ui_meshes(app_state->world_meshes.count, 0, AllocationTag::MAIN);
+		Sarray<Mesh*> world_meshes(app_state->world_meshes.count, 0);
+		Sarray<Mesh*> ui_meshes(app_state->world_meshes.count, 0);
 
 		while (app_state->is_running)
 		{
@@ -575,7 +577,7 @@ namespace Application
 
 				for (uint32 i = 0; i < render_packet.views.capacity; i++)
 				{
-					render_packet.views[i].geometries.free_data();
+					render_packet.views[i].view->on_destroy_packet(render_packet.views[i].view, &render_packet.views[i]);
 				}
 			}
 

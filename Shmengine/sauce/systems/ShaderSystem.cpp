@@ -101,11 +101,11 @@ namespace ShaderSystem
 		shader->bound_instance_id = INVALID_ID;
 		shader->renderer_frame_number = INVALID_ID64;
 		
-		shader->global_texture_maps.init(1, 0, AllocationTag::MAIN);
-		shader->uniforms.init(1, 0, AllocationTag::MAIN);
-		shader->attributes.init(1, 0, AllocationTag::MAIN);
+		shader->global_texture_maps.init(1, 0, AllocationTag::RENDERER);
+		shader->uniforms.init(1, 0, AllocationTag::RENDERER);
+		shader->attributes.init(1, 0, AllocationTag::RENDERER);
 
-		shader->uniform_lookup.init(1024, 0, AllocationTag::MAIN);
+		shader->uniform_lookup.init(1024, 0);
 		shader->uniform_lookup.floodfill(INVALID_ID16);
 
 		shader->global_ubo_size = 0;

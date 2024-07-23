@@ -136,8 +136,7 @@ namespace ResourceSystem
 
 		out_resource->full_path = full_filepath;
 
-        out_resource->allocation_tag = AllocationTag::MAIN;
-		MaterialConfig* resource_data = (MaterialConfig*)Memory::allocate(sizeof(MaterialConfig), true, out_resource->allocation_tag);
+		MaterialConfig* resource_data = (MaterialConfig*)Memory::allocate(sizeof(MaterialConfig), AllocationTag::RESOURCE);
         *resource_data = tmp_res_data;
 
 		out_resource->data = resource_data;

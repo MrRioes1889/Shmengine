@@ -29,7 +29,7 @@ namespace Renderer
 	bool32 render_view_skybox_on_create(RenderView* self)
 	{
 
-		self->internal_data.init(sizeof(RenderViewSkyboxInternalData), 0, AllocationTag::MAIN);
+		self->internal_data.init(sizeof(RenderViewSkyboxInternalData), 0, AllocationTag::RENDERER);
 		RenderViewSkyboxInternalData* data = (RenderViewSkyboxInternalData*)self->internal_data.data;
 
 		data->shader_id = ShaderSystem::get_id(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_skybox);
@@ -88,6 +88,11 @@ namespace Renderer
 
 		out_packet->extended_data = skybox_data;
 		return true;
+
+	}
+
+	void render_view_skybox_on_destroy_packet(const RenderView* self, RenderViewPacket* packet)
+	{
 
 	}
 

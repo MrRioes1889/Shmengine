@@ -27,12 +27,11 @@ namespace ResourceSystem
 
         uint32 file_size = FileSystem::get_file_size32(&f);
         out_resource->data_size = file_size;
-        out_resource->allocation_tag = AllocationTag::MAIN;
-        out_resource->data = Memory::allocate(out_resource->data_size, true, out_resource->allocation_tag);
+        out_resource->data = Memory::allocate(out_resource->data_size, AllocationTag::RESOURCE);
         uint32 bytes_read = 0;
         if (!FileSystem::read_all_bytes(&f, out_resource->data, out_resource->data_size, &bytes_read))
         {
-            Memory::free_memory(out_resource->data, true, out_resource->allocation_tag);
+            Memory::free_memory(out_resource->data);
             out_resource->data = 0;
             out_resource->data_size = 0;
             SHMERRORV("binary_loader_load - failed to read from file: '%s'.", full_filepath);

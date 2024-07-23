@@ -316,8 +316,8 @@ namespace Input
     SHMAPI Math::Vec2i get_previous_mouse_position();
     SHMAPI Math::Vec2i get_internal_mouse_offset();
 
-    void process_key(Keys key, bool32 pressed);
-    void process_mousebutton(Mousebuttons button, bool32 pressed);
+    void process_key(Keys key, bool8 pressed);
+    void process_mousebutton(Mousebuttons button, bool8 pressed);
     void process_mouse_move(int32 x, int32 y);
     void process_mouse_internal_move(int32 x_offset, int32 y_offset);
     void process_mouse_scroll(int32 delta);
@@ -325,7 +325,7 @@ namespace Input
     SHMAPI bool32 clip_cursor();
     SHMAPI bool32 is_cursor_clipped();
 
-    SHMINLINE SHMAPI bool32 key_pressed(Keys key)
+    SHMINLINE SHMAPI bool8 key_pressed(Keys key)
     {
         return (is_key_down(key) && was_key_up(key));
     }

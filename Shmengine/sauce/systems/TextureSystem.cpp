@@ -187,7 +187,7 @@ namespace TextureSystem
 		else
 		{
 			// TODO: Think about whether this is necessary
-			t = (Texture*)Memory::allocate(sizeof(Texture), true, AllocationTag::MAIN);
+			t = (Texture*)Memory::allocate(sizeof(Texture), AllocationTag::TEXTURE);
 			SHMTRACEV("wrap_internal created texture '%s', but not registering, resulting in an allocation. It is up to the caller to free this memory.", name);
 		}
 
@@ -202,14 +202,14 @@ namespace TextureSystem
 		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
 		t->flags |= TextureFlags::IS_WRITABLE;
 		t->flags |= TextureFlags::IS_WRAPPED;
-		t->internal_data.init(internal_data_size, 0, AllocationTag::MAIN, internal_data);
+		t->internal_data.init(internal_data_size, 0, AllocationTag::TEXTURE, internal_data);
 		return t;
 
 	}
 
 	bool32 set_internal(Texture* t, void* internal_data, uint64 internal_data_size)
 	{	
-		t->internal_data.init(internal_data_size, 0, AllocationTag::MAIN, internal_data);
+		t->internal_data.init(internal_data_size, 0, AllocationTag::TEXTURE, internal_data);
 		t->generation++;
 		return true;
 	}
@@ -295,7 +295,7 @@ namespace TextureSystem
 		SHMTRACEV("Successfully loaded texture '%s'.", texture_params->resource_name);
 
 		ResourceSystem::unload(&texture_params->image_resource);
-		Memory::free_memory(texture_params->resource_name, true, AllocationTag::MAIN);
+		Memory::free_memory(texture_params->resource_name);
 	}
 
 	static void texture_load_on_failure(void* params)
@@ -306,7 +306,7 @@ namespace TextureSystem
 
 		ResourceSystem::unload(&texture_params->image_resource);
 		if (texture_params->resource_name)
-			Memory::free_memory(texture_params->resource_name, true, AllocationTag::MAIN);
+			Memory::free_memory(texture_params->resource_name);
 	}
 
 	static bool32 texture_load_job_start(void* params, void* results)
@@ -359,7 +359,7 @@ namespace TextureSystem
 	{
 		TextureLoadParams params;
 		uint32 name_length = CString::length(texture_name);
-		params.resource_name = (char*)Memory::allocate(name_length + 1, true, AllocationTag::MAIN);
+		params.resource_name = (char*)Memory::allocate(name_length + 1, AllocationTag::STRING);
 		CString::copy(name_length + 1, params.resource_name, texture_name);
 		params.out_texture = t;
 		params.image_resource = {};
@@ -401,7 +401,7 @@ namespace TextureSystem
 				CString::copy(Texture::max_name_length, t->name, texture_names[i]);
 
 				image_size = t->width * t->height * t->channel_count;
-				pixels.init(image_size * 6, 0, AllocationTag::MAIN);			
+				pixels.init(image_size * 6, 0, AllocationTag::TEXTURE);			
 			}
 			else
 			{

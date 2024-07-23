@@ -66,7 +66,7 @@ namespace ResourceSystem
 			return false;
 		}
 
-		Buffer raw_data(file_size, 0, AllocationTag::MAIN);
+		Buffer raw_data(file_size, 0, AllocationTag::RESOURCE);
 		uint32 bytes_read = 0;
 		if (!FileSystem::read_all_bytes(&f, raw_data.data, (uint32)raw_data.size, &bytes_read))
 		{
@@ -86,9 +86,8 @@ namespace ResourceSystem
 		}
 
 		out_resource->full_path = full_filepath;
-		out_resource->allocation_tag = AllocationTag::MAIN;
 
-		ImageConfig* resource_data = (ImageConfig*)Memory::allocate(sizeof(ImageConfig), true, out_resource->allocation_tag);
+		ImageConfig* resource_data = (ImageConfig*)Memory::allocate(sizeof(ImageConfig), AllocationTag::RESOURCE);
 		resource_data->pixels = data;
 		resource_data->width = width;
 		resource_data->height = height;

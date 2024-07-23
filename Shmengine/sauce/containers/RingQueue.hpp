@@ -11,7 +11,7 @@ struct RingQueue
 {
 
 	RingQueue() : arr({}), count(0), flags(0), head_index(0), tail_index(0) {};
-	SHMINLINE RingQueue(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
+	SHMINLINE RingQueue(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::RING_QUEUE, void* memory = 0);
 	SHMINLINE ~RingQueue();
 
 	SHMINLINE RingQueue(const RingQueue& other);
@@ -20,7 +20,7 @@ struct RingQueue
 	SHMINLINE RingQueue& operator=(RingQueue&& other);
 
 	// NOTE: Call for already instantiated arrays
-	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
+	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::RING_QUEUE, void* memory = 0);
 	SHMINLINE void free_data();
 
 	SHMINLINE void clear();

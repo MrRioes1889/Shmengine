@@ -81,7 +81,7 @@ namespace RenderViewSystem
 		view.type = config.type;
 		view.name = config.name;
 		view.custom_shader_name = config.custom_shader_name;
-		view.renderpasses.init(config.pass_configs.capacity, 0, AllocationTag::MAIN);
+		view.renderpasses.init(config.pass_configs.capacity, 0, AllocationTag::RENDERER);
 
 		for (uint32 i = 0; i < view.renderpasses.capacity; i++)
 		{
@@ -99,6 +99,7 @@ namespace RenderViewSystem
 		if (config.type == Renderer::RenderViewType::WORLD) 
 		{		
 			view.on_build_packet = Renderer::render_view_world_on_build_packet;  // For building the packet
+			view.on_destroy_packet = Renderer::render_view_world_on_destroy_packet;
 			view.on_render = Renderer::render_view_world_on_render;              // For rendering the packet
 			view.on_create = Renderer::render_view_world_on_create;
 			view.on_destroy = Renderer::render_view_world_on_destroy;
@@ -107,6 +108,7 @@ namespace RenderViewSystem
 		else if (config.type == Renderer::RenderViewType::UI) 
 		{
 			view.on_build_packet = Renderer::render_view_ui_on_build_packet;  // For building the packet
+			view.on_destroy_packet = Renderer::render_view_ui_on_destroy_packet;
 			view.on_render = Renderer::render_view_ui_on_render;              // For rendering the packet
 			view.on_create = Renderer::render_view_ui_on_create;
 			view.on_destroy = Renderer::render_view_ui_on_destroy;
@@ -115,6 +117,7 @@ namespace RenderViewSystem
 		else if (config.type == Renderer::RenderViewType::SKYBOX) 
 		{
 			view.on_build_packet = Renderer::render_view_skybox_on_build_packet;  // For building the packet
+			view.on_destroy_packet = Renderer::render_view_skybox_on_destroy_packet;
 			view.on_render = Renderer::render_view_skybox_on_render;              // For rendering the packet
 			view.on_create = Renderer::render_view_skybox_on_create;
 			view.on_destroy = Renderer::render_view_skybox_on_destroy;

@@ -7,6 +7,7 @@
 enum class AllocatorPageSize
 {
 	MINIMAL = sizeof(void*),
+	TINY = 0x10,
 	SMALL = 0x20,
 	MEDIUM = 0x40,
 	LARGE = 0x100
@@ -41,15 +42,16 @@ struct Freelist
 	void destroy();
 
 	bool32 allocate(uint64 size, uint64* out_offset, uint64* bytes_allocated = 0);
+	bool32 allocate_aligned(uint64 size, uint64* out_offset, uint16 alignment, uint64* bytes_allocated = 0);
 	bool32 free(uint64 offset, uint64* bytes_freed = 0);
 
 	int64 get_reserved_size(uint64 offset);
 
-	uint64 nodes_size = 0;
-	AllocatorPageSize page_size = AllocatorPageSize::MINIMAL;
-	uint32 max_nodes_count = 0;
-	uint32 nodes_count = 0;
-	uint32 pages_count = 0;
-	Node* nodes = 0;
+	uint64 nodes_size;
+	AllocatorPageSize page_size;
+	uint32 max_nodes_count;
+	uint32 nodes_count;
+	uint32 pages_count;
+	Node* nodes;
 
 };

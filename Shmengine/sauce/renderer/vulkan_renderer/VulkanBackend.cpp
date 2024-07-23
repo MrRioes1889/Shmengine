@@ -124,7 +124,7 @@ namespace Renderer::Vulkan
 
 		uint32 available_layer_count = 0;
 		VK_CHECK(vkEnumerateInstanceLayerProperties(&available_layer_count, 0));
-		Sarray<VkLayerProperties> available_layers(available_layer_count, 0, AllocationTag::TRANSIENT);
+		Sarray<VkLayerProperties> available_layers(available_layer_count, 0);
 		VK_CHECK(vkEnumerateInstanceLayerProperties(&available_layer_count, available_layers.data));
 
 		for (uint32 i = 0; i < validation_layer_count; i++)
@@ -203,7 +203,7 @@ namespace Renderer::Vulkan
 		for (uint32 i = 0; i < VulkanConfig::renderpass_max_registered; i++)
 			context.registered_renderpasses[i].id = INVALID_ID;
 
-		context.renderpass_table.init(VulkanConfig::renderpass_max_registered, 0, AllocationTag::MAIN);
+		context.renderpass_table.init(VulkanConfig::renderpass_max_registered, 0);
 		context.renderpass_table.floodfill(INVALID_ID);
 
 		for (uint32 i = 0; i < config.pass_config_count; i++)
@@ -242,8 +242,8 @@ namespace Renderer::Vulkan
 
 		create_command_buffers();
 
-		context.image_available_semaphores.init(context.swapchain.max_frames_in_flight, 0, AllocationTag::MAIN);
-		context.queue_complete_semaphores.init(context.swapchain.max_frames_in_flight, 0, AllocationTag::MAIN);
+		context.image_available_semaphores.init(context.swapchain.max_frames_in_flight, 0, AllocationTag::RENDERER);
+		context.queue_complete_semaphores.init(context.swapchain.max_frames_in_flight, 0, AllocationTag::RENDERER);
 
 		for (uint32 i = 0; i < context.swapchain.max_frames_in_flight; i++)
 		{
@@ -465,7 +465,6 @@ namespace Renderer::Vulkan
 		vulkan_swapchain_present(
 			&context,
 			&context.swapchain,
-			context.device.graphics_queue,
 			context.device.present_queue,
 			context.queue_complete_semaphores[context.current_frame],
 			context.image_index);
@@ -476,7 +475,7 @@ namespace Renderer::Vulkan
 
 	static void _texture_create(Texture* texture, VkFormat image_format)
 	{
-		texture->internal_data.init(sizeof(VulkanImage), 0, AllocationTag::MAIN);
+		texture->internal_data.init(sizeof(VulkanImage), 0, AllocationTag::TEXTURE);
 		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 
 		vulkan_image_create(
@@ -762,7 +761,7 @@ namespace Renderer::Vulkan
 	{
 		if (!context.graphics_command_buffers.data)
 		{
-			context.graphics_command_buffers.init(context.swapchain.render_images.capacity, 0, AllocationTag::MAIN);
+			context.graphics_command_buffers.init(context.swapchain.render_images.capacity, 0, AllocationTag::RENDERER);
 			for (uint32 i = 0; i < context.graphics_command_buffers.capacity; i++)
 				context.graphics_command_buffers[i] = {};
 		}

@@ -15,12 +15,10 @@ namespace Memory
         SystemConfig config;
 
         uint64 allocated_size;
+        uint32 allocation_count;
 
         Buffer main_memory;
         DynamicAllocator main_allocator;
-
-        Buffer transient_memory;
-        DynamicAllocator transient_allocator;
 
         Buffer string_memory;
         DynamicAllocator string_allocator;
@@ -32,11 +30,15 @@ namespace Memory
     static bool32 system_initialized = false;
     static SystemState* system_state;
 
-    static void* platform_allocate(uint64 size, bool32 aligned);
-    static void* platform_reallocate(uint64 size, void* block, bool32 aligned);
+    static void* platform_allocate(uint64 size, uint16 alignment);
+    static void* platform_reallocate(uint64 size, void* block, uint16 alignment);
     static void platform_free(void* block, bool32 aligned);
 
-    static void init_buffer_and_allocator_pair(Buffer* buffer, DynamicAllocator* allocator, uint64 size, AllocatorPageSize page_size, AllocationTag tag, uint32 node_count_limit = 0)
+    static void* _allocate(DynamicAllocator* allocator, uint64 size, AllocationTag tag, uint16 alignment = 1);
+    static void* _reallocate(DynamicAllocator* allocator, uint64 size, void* block, uint16 alignment = 1);
+    static void _free_memory(DynamicAllocator* allocator, void* block, bool32 aligned = true);
+
+    static void init_buffer_and_allocator_pair(Buffer* buffer, DynamicAllocator* out_allocator, DynamicAllocator* target_allocator, uint64 size, AllocatorPageSize page_size, AllocationTag tag, uint32 node_count_limit = 0, uint16 alignment = 1)
     {
         uint64 nodes_size = 0;
         if (node_count_limit)
@@ -44,9 +46,10 @@ namespace Memory
         else
             nodes_size = Freelist::get_required_nodes_array_memory_size_by_data_size(size, page_size);
 
-        buffer->init(size + nodes_size, 0, tag);
+        void* data = _allocate(target_allocator, size + nodes_size, tag, alignment);
+        buffer->init(size + nodes_size, 0, tag, data);
         void* main_nodes = (((uint8*)buffer->data) + size);
-        allocator->init(size, buffer->data, nodes_size, main_nodes, page_size, node_count_limit);
+        out_allocator->init(size, buffer->data, nodes_size, main_nodes, page_size, node_count_limit);
     }
 
     bool32 system_init(SystemConfig config)
@@ -56,12 +59,12 @@ namespace Memory
         zero_memory(system_state, sizeof(SystemState));
         system_state->config = config;
 
-        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, config.total_allocation_size, AllocatorPageSize::SMALL, AllocationTag::PLAT, 10000);
+        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, 0, config.total_allocation_size, AllocatorPageSize::TINY, AllocationTag::MAIN_MEMORY, 10000, 64);
 
-        init_buffer_and_allocator_pair(&system_state->transient_memory, &system_state->transient_allocator, config.total_allocation_size / 16, AllocatorPageSize::SMALL, AllocationTag::MAIN, 10000);
-        init_buffer_and_allocator_pair(&system_state->string_memory, &system_state->string_allocator, Mebibytes(64), AllocatorPageSize::MINIMAL, AllocationTag::MAIN, 100000);
+        init_buffer_and_allocator_pair(&system_state->string_memory, &system_state->string_allocator, &system_state->main_allocator, Mebibytes(64), AllocatorPageSize::MINIMAL, AllocationTag::ALLOCATORS, 100000);
 
         system_state->allocated_size = 0;
+        system_state->allocation_count = 0;
 
         if (!Threading::mutex_create(&system_state->allocation_mutex))
         {
@@ -76,169 +79,49 @@ namespace Memory
 
     void system_shutdown()
     {
-        system_state->transient_memory.free_data();
+        system_state->string_memory.free_data();
         system_state->main_memory.free_data();
         Threading::mutex_destroy(&system_state->allocation_mutex); 
         system_state = 0;
     }
 
-    void* allocate(uint64 size, bool32 aligned, AllocationTag tag)
+    void* allocate(uint64 size, AllocationTag tag, uint16 alignment)
     {
-        if (size == 0)
-            return 0;
-
-        void* ret = 0;
-
-        if (!system_state)
-        {
-            if (system_initialized)
-                return 0;
-            else
-                return platform_allocate(size, aligned);
-        }
-
-        if (!Threading::mutex_lock(&system_state->allocation_mutex))
-        {
-            SHMFATAL("Failed obtaining lock for general allocation mutex!");
-            return 0;
-        }
-
-        switch (tag)
-        {
-        case AllocationTag::PLAT:
-        {
-            ret = platform_allocate(size, aligned);
-            break;
-        }
-        case AllocationTag::TRANSIENT:
-        {
-            ret = system_state->transient_allocator.allocate(size);
-            break;
-        }
-        case AllocationTag::STRING:
-        {
-            /*uint64 bytes_allocated = 0;
-            ret = system_state->string_allocator.allocate(size, &bytes_allocated);
-            uint64 offset = (uint64)ret - (uint64)system_state->string_allocator.data;
-            SHMDEBUGV("string allocated at offset: %lu; bytes allocated: %lu", offset, bytes_allocated);*/
-            ret = system_state->string_allocator.allocate(size);
-            break;
-        }
-        default:
-        {
-            ret = system_state->main_allocator.allocate(size);
-            break;
-        }
-        }
-
-        Threading::mutex_unlock(&system_state->allocation_mutex);       
-
-        zero_memory(ret, size);
-        return ret;
-
+        return _allocate(&system_state->main_allocator, size, tag, alignment);
+    }
+    void* reallocate(uint64 size, void* block, uint16 alignment)
+    {
+        return _reallocate(&system_state->main_allocator, size, block, alignment);
+    }
+    void free_memory(void* block, bool32 aligned)
+    {
+        _free_memory(&system_state->main_allocator, block, aligned);
     }
 
-    void* reallocate(uint64 size, void* block, bool32 aligned, AllocationTag tag)
+    void* allocate_string(uint64 size, AllocationTag tag, uint16 alignment)
     {
-        if (!system_state)
-        {
-            if (system_initialized)
-                return 0;
-            else
-                return platform_reallocate(size, block, aligned);
-        }
-
-        void* ret = 0;
-
-        if (!Threading::mutex_lock(&system_state->allocation_mutex))
-        {
-            SHMFATAL("Failed obtaining lock for general allocation mutex!");
-            return 0;
-        }
-
-        switch (tag)
-        {
-        case AllocationTag::PLAT:
-        {
-            ret = platform_reallocate(size, block, aligned);
-            break;
-        }           
-        case AllocationTag::TRANSIENT:
-        {
-            ret = system_state->transient_allocator.reallocate(size, block);
-            break;
-        }         
-        case AllocationTag::STRING:
-        {
-            /*uint64 bytes_freed = 0;
-            uint64 bytes_allocated = 0;
-            ret = system_state->string_allocator.reallocate(size, block, &bytes_freed, &bytes_allocated);
-            uint64 from_offset = (uint64)block - (uint64)system_state->string_allocator.data;
-            uint64 to_offset = (uint64)ret - (uint64)system_state->string_allocator.data;
-            SHMDEBUGV("String reallocated from: %lu, to: %lu; Bytes freed: %lu; Bytes allocated; %lu", from_offset, to_offset, bytes_freed, bytes_allocated);*/
-            ret = system_state->string_allocator.reallocate(size, block);
-            break;
-        }         
-        default:
-        {
-            ret = system_state->main_allocator.reallocate(size, block);
-            break;
-        }          
-        }
-
-        Threading::mutex_unlock(&system_state->allocation_mutex);
-
-        return ret;
-   
+        return _allocate(&system_state->string_allocator, size, tag, alignment);
+    }
+    void* reallocate_string(uint64 size, void* block, uint16 alignment)
+    {
+        return _reallocate(&system_state->string_allocator, size, block, alignment);
+    }
+    void free_memory_string(void* block, bool32 aligned)
+    {
+        _free_memory(&system_state->string_allocator, block, aligned);
     }
 
-    void free_memory(void* block, bool32 aligned, AllocationTag tag)
-    {       
-
-        if (!system_state)
-        {
-            if (system_initialized)
-                return;
-            else
-                return platform_free(block, aligned);
-        }
-
-        if (!Threading::mutex_lock(&system_state->allocation_mutex))
-        {
-            SHMFATAL("Failed obtaining lock for general allocation mutex!");
-            return;
-        }
-
-        switch (tag)
-        {
-        case AllocationTag::PLAT:
-        {
-            platform_free(block, aligned);
-            break;
-        }         
-        case AllocationTag::TRANSIENT:
-        {
-            system_state->transient_allocator.free(block);
-            break;
-        }        
-        case AllocationTag::STRING:
-        {
-            /*uint64 bytes_freed = 0;
-            system_state->string_allocator.free(block, &bytes_freed);
-            uint64 offset = (uint64)block - (uint64)system_state->string_allocator.data;
-            SHMDEBUGV("String freed at offset: %lu; Bytes freed: %lu", offset, bytes_freed);*/
-            system_state->string_allocator.free(block);
-            break;
-        }          
-        default:
-        {
-            system_state->main_allocator.free(block);
-            break;
-        }          
-        }
-
-        Threading::mutex_unlock(&system_state->allocation_mutex);
-        
+    void* allocate_platform(uint64 size, AllocationTag tag, uint16 alignment)
+    {
+        return _allocate(0, size, tag, alignment);
+    }
+    void* reallocate_platform(uint64 size, void* block, uint16 alignment)
+    {
+        return _reallocate(0, size, block, alignment);
+    }
+    void free_memory_platform(void* block, bool32 aligned)
+    {
+        _free_memory(0, block, aligned);
     }
 
     void* zero_memory(void* block, uint64 size)
@@ -256,16 +139,131 @@ namespace Memory
         return Platform::set_memory(dest, value, size);
     }
 
-    static void* platform_allocate(uint64 size, bool32 aligned)
+    uint32 get_current_allocation_count()
     {
-        return Platform::allocate(size, aligned);
+        return system_state->allocation_count;
     }
 
-    static void* platform_reallocate(uint64 size, void* block, bool32 aligned)
+    static void* _allocate(DynamicAllocator* allocator, uint64 size, AllocationTag tag, uint16 alignment)
     {
-        void* new_block = Platform::allocate(size, aligned);
+        if (size == 0) //|| !Math::is_power_of_2(alignment))
+            return 0;
+
+        void* ret = 0;
+
+        if (!system_state && system_initialized)
+            return 0;
+
+        if (!Threading::mutex_lock(&system_state->allocation_mutex))
+        {
+            SHMFATAL("Failed obtaining lock for general allocation mutex!");
+            return 0;
+        }
+    
+        /*uint64 bytes_allocated = 0;
+        ret = system_state->string_allocator.allocate(size, &bytes_allocated);
+        uint64 offset = (uint64)ret - (uint64)system_state->string_allocator.data;
+        SHMDEBUGV("string allocated at offset: %lu; bytes allocated: %lu", offset, bytes_allocated);*/
+        if (!system_state || !allocator)
+        {
+            ret = platform_allocate(size, alignment);
+            tag = AllocationTag::PLATFORM;
+        }         
+        else
+        {
+            ret = allocator->allocate(size, tag, alignment);
+        }     
+
+        system_state->allocation_count++;
+
+        Threading::mutex_unlock(&system_state->allocation_mutex);       
+
+        zero_memory(ret, size);
+        return ret;
+
+    }
+
+    static void* _reallocate(DynamicAllocator* allocator, uint64 size, void* block, uint16 alignment)
+    {
+
+        if (!system_state && system_initialized)
+            return 0;
+
+        void* ret = 0;
+
+        if (!Threading::mutex_lock(&system_state->allocation_mutex))
+        {
+            SHMFATAL("Failed obtaining lock for general allocation mutex!");
+            return 0;
+        }
+
+        /*uint64 bytes_freed = 0;
+        uint64 bytes_allocated = 0;
+        ret = system_state->string_allocator.reallocate(size, block, &bytes_freed, &bytes_allocated);
+        uint64 from_offset = (uint64)block - (uint64)system_state->string_allocator.data;
+        uint64 to_offset = (uint64)ret - (uint64)system_state->string_allocator.data;
+        SHMDEBUGV("String reallocated from: %lu, to: %lu; Bytes freed: %lu; Bytes allocated; %lu", from_offset, to_offset, bytes_freed, bytes_allocated);*/
+        AllocationTag tag;
+        if (!system_state || !allocator)
+        {
+            ret = platform_reallocate(size, block, alignment);
+            tag = AllocationTag::PLATFORM;
+        }        
+        else
+        {
+            ret = allocator->reallocate(size, block, &tag, alignment);
+        }
+            
+
+        Threading::mutex_unlock(&system_state->allocation_mutex);
+
+        return ret;
+   
+    }
+
+    static void _free_memory(DynamicAllocator* allocator, void* block, bool32 aligned)
+    {       
+
+        if (!system_state && system_initialized)
+            return;
+
+        if (!Threading::mutex_lock(&system_state->allocation_mutex))
+        {
+            SHMFATAL("Failed obtaining lock for general allocation mutex!");
+            return;
+        }
+
+        /*uint64 bytes_freed = 0;
+        system_state->string_allocator.free(block, &bytes_freed);
+        uint64 offset = (uint64)block - (uint64)system_state->string_allocator.data;
+        SHMDEBUGV("String freed at offset: %lu; Bytes freed: %lu", offset, bytes_freed);*/
+        AllocationTag tag;
+        if (!system_state || !allocator)
+        {
+            platform_free(block, aligned);
+            tag = AllocationTag::PLATFORM;
+        }          
+        else
+        {
+            allocator->free(block, &tag);
+        }
+
+        system_state->allocation_count--;
+
+        Threading::mutex_unlock(&system_state->allocation_mutex);
+        
+    }
+
+    static void* platform_allocate(uint64 size, uint16 alignment)
+    {
+        return Platform::allocate(size, alignment);
+    }
+
+    static void* platform_reallocate(uint64 size, void* block, uint16 alignment)
+    {
+        void* new_block = Platform::allocate(size, alignment);
         copy_memory(block, new_block, size);
-        free_memory(block, aligned, AllocationTag::PLAT);
+        Platform::free_memory(block, alignment > 1);
         return new_block;
     }
 

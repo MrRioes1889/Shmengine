@@ -15,7 +15,7 @@ namespace ResourceSystem
         }
 
         if (resource->data)
-            Memory::free_memory(resource->data, true, resource->allocation_tag);
+            Memory::free_memory(resource->data);
 
             
         resource->full_path.free_data();

@@ -21,7 +21,7 @@ namespace Renderer
 	bool32 render_view_ui_on_create(RenderView* self)
 	{
 		
-		self->internal_data.init(sizeof(RenderViewUIInternalData), 0, AllocationTag::MAIN);
+		self->internal_data.init(sizeof(RenderViewUIInternalData), 0, AllocationTag::RENDERER);
 		RenderViewUIInternalData* data = (RenderViewUIInternalData*)self->internal_data.data;
 
 		data->shader_id = ShaderSystem::get_id(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
@@ -69,7 +69,7 @@ namespace Renderer
 		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
 			total_geometry_count += mesh_data->meshes[i]->geometries.count;
 
-		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::MAIN);
+		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER);
 		out_packet->view = self;
 
 		out_packet->projection_matrix = internal_data->projection_matrix;
@@ -89,6 +89,11 @@ namespace Renderer
 
 		return true;
 
+	}
+
+	void render_view_ui_on_destroy_packet(const RenderView* self, RenderViewPacket* packet)
+	{
+		packet->geometries.free_data();
 	}
 
 	bool32 render_view_ui_on_render(const RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)

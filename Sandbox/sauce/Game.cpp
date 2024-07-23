@@ -16,6 +16,7 @@ bool32 game_init(Game* game_inst)
 
     state->world_camera = CameraSystem::get_default_camera();
     state->world_camera->set_position({ 10.5f, 5.0f, 9.5f });
+    state->allocation_count = 0;
 
     return true;
 }
@@ -23,6 +24,13 @@ bool32 game_init(Game* game_inst)
 bool32 game_update(Game* game_inst, float32 delta_time) 
 {
     GameState* state = (GameState*)game_inst->state;
+
+    uint32 allocation_count = Memory::get_current_allocation_count();
+    if (Input::key_pressed(Keys::KEY_M))
+    {
+        SHMDEBUGV("Memory Stats: Current Allocation Count: %u, This frame: %u", allocation_count, allocation_count - state->allocation_count);
+    }
+    state->allocation_count = allocation_count;
 
     if (Input::key_pressed(Keys::KEY_C))
     {

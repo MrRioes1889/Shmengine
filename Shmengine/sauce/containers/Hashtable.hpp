@@ -22,9 +22,9 @@ struct Hashtable
 	Hashtable(Hashtable&& other) = delete;
 	Hashtable() : element_count(0) {};
 
-	SHMINLINE Hashtable(uint32 count, uint32 creation_flags, AllocationTag tag);
+	SHMINLINE Hashtable(uint32 count, uint32 creation_flags, AllocationTag tag = AllocationTag::DICT);
 	SHMINLINE Hashtable(uint32 count, uint32 creation_flags, void* memory);
-	SHMINLINE void init(uint32 count, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
+	SHMINLINE void init(uint32 count, uint32 creation_flags, AllocationTag tag = AllocationTag::DICT, void* memory = 0);
 
 	SHMINLINE void free_data();
 	SHMINLINE ~Hashtable();
@@ -71,7 +71,7 @@ SHMINLINE Hashtable<T>::Hashtable(uint32 count, uint32 creation_flags, Allocatio
 template <typename T>
 SHMINLINE Hashtable<T>::Hashtable(uint32 count, uint32 creation_flags, void* memory)
 {
-	init(count, creation_flags, AllocationTag::UNKNOWN, memory);
+	init(count, creation_flags, AllocationTag::DICT, memory);
 }
 
 template<typename T>

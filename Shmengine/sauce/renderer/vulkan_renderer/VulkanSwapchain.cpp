@@ -96,12 +96,12 @@ static bool32 create(VulkanContext* context, uint32 width, uint32 height, Vulkan
 	VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, out_swapchain->handle, &image_count, 0));
 	if (!out_swapchain->render_images.data)
 	{
-		out_swapchain->render_images.init(image_count, 0, AllocationTag::MAIN);
+		out_swapchain->render_images.init(image_count, 0, AllocationTag::RENDERER);
 
 		for (uint32 i = 0; i < out_swapchain->render_images.capacity; i++)
 		{
 			uint64 allocation_size = sizeof(VulkanImage);
-			void* internal_data = Memory::allocate(allocation_size, 0, AllocationTag::MAIN);
+			void* internal_data = Memory::allocate(allocation_size, AllocationTag::TEXTURE);
 
 			char tex_name[] = "__internal_vulkan_swapchain_image_0__";
 			tex_name[34] = (char)('0' + i);
@@ -155,7 +155,7 @@ static bool32 create(VulkanContext* context, uint32 width, uint32 height, Vulkan
 	if (!vulkan_device_detect_depth_format(&context->device))
 		SHMFATAL("Failed to find a supported depth buffer format!");
 
-	VulkanImage* depth_image = (VulkanImage*)Memory::allocate(sizeof(VulkanImage), true, AllocationTag::MAIN);
+	VulkanImage* depth_image = (VulkanImage*)Memory::allocate(sizeof(VulkanImage), AllocationTag::RENDERER);
 	vulkan_image_create(
 		context,
 		TextureType::TYPE_2D,
@@ -194,8 +194,8 @@ static void destroy(VulkanContext* context, VulkanSwapchain* swapchain)
 
 	VulkanImage* depth_image = (VulkanImage*)swapchain->depth_texture->internal_data.data;
 	vulkan_image_destroy(context, depth_image);
-	Memory::free_memory(depth_image, true, AllocationTag::MAIN);
-	Memory::free_memory(swapchain->depth_texture, true, AllocationTag::MAIN);
+	Memory::free_memory(depth_image);
+	Memory::free_memory(swapchain->depth_texture);
 
 	for (uint32 i = 0; i < swapchain->render_images.capacity; i++)
 	{
@@ -243,7 +243,7 @@ bool32 vulkan_swapchain_acquire_next_image_index(VulkanContext* context, VulkanS
 
 }
 
-void vulkan_swapchain_present(VulkanContext* context, VulkanSwapchain* swapchain, VkQueue graphics_queue, VkQueue present_queue, VkSemaphore render_complete_semaphore, uint32 present_image_index)
+void vulkan_swapchain_present(VulkanContext* context, VulkanSwapchain* swapchain, VkQueue present_queue, VkSemaphore render_complete_semaphore, uint32 present_image_index)
 {
 
 	VkPresentInfoKHR present_info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };

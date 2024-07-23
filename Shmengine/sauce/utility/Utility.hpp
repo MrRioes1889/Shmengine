@@ -75,10 +75,15 @@ SHMINLINE SHMAPI int32 clamp(int32 x, int32 min, int32 max)
 
 SHMINLINE uint64 get_aligned(uint64 operand, uint64 granularity)
 {
+	return (granularity * (operand / granularity)) + (granularity * ((operand % granularity) != 0));
+}
+
+SHMINLINE uint64 get_aligned_pow2(uint64 operand, uint64 granularity)
+{
 	return ((operand + (granularity - 1)) & ~(granularity - 1));
 }
 
 SHMINLINE Range get_aligned_range(uint64 offset, uint64 size, uint64 granularity)
 {
-	return { get_aligned(offset, granularity), get_aligned(size, granularity) };
+	return { get_aligned_pow2(offset, granularity), get_aligned_pow2(size, granularity) };
 }

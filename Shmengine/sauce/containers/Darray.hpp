@@ -11,7 +11,8 @@ namespace DarrayFlag
 {
 	enum Value
 	{
-		NON_RESIZABLE = 1 << 0
+		NON_RESIZABLE = 1 << 0,
+		IS_STRING = 1 << 1
 	};
 }
 
@@ -19,8 +20,8 @@ template <typename T>
 struct SHMAPI Darray
 {
 
-	SHMINLINE Darray() : count(0), data(0), flags(0), allocation_tag((uint16)AllocationTag::UNKNOWN) {};
-	SHMINLINE Darray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN);
+	SHMINLINE Darray() : count(0), data(0), flags(0), allocation_tag((uint16)AllocationTag::DARRAY) {};
+	SHMINLINE Darray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::DARRAY);
 	SHMINLINE ~Darray();
 
 	SHMINLINE Darray(const Darray& other);
@@ -29,7 +30,7 @@ struct SHMAPI Darray
 	SHMINLINE Darray& operator=(Darray&& other);
 
 	// NOTE: Call for already instantiated arrays
-	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN);
+	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::DARRAY);
 	SHMINLINE void free_data();
 
 	SHMINLINE void clear();
@@ -152,7 +153,10 @@ SHMINLINE void Darray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 	capacity = reserve_count;
 	count = 0;
 	flags = (uint16)creation_flags;
-	data = (T*)Memory::allocate(sizeof(T) * reserve_count, true, (AllocationTag)allocation_tag);
+	if (flags & DarrayFlag::IS_STRING)
+		data = (T*)Memory::allocate_string(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
+	else
+		data = (T*)Memory::allocate(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
 }
 
 template<typename T>
@@ -164,7 +168,10 @@ SHMINLINE void Darray<T>::free_data()
 		for (uint32 i = 0; i < count; i++)
 			data[i].~T();
 
-		Memory::free_memory(data, true, (AllocationTag)allocation_tag);
+		if (flags & DarrayFlag::IS_STRING)
+			Memory::free_memory_string(data);
+		else
+			Memory::free_memory(data);
 	}
 
 	capacity = 0;
@@ -199,7 +206,12 @@ inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 	while (capacity < requested_size)
 		capacity *= DARRAY_RESIZE_FACTOR;
 	uint64 allocation_size = capacity * sizeof(T);
-	data = (T*)Memory::reallocate(allocation_size, data, true, (AllocationTag)allocation_tag);
+
+	if (flags & DarrayFlag::IS_STRING)
+		data = (T*)Memory::reallocate_string(allocation_size, data);
+	else
+		data = (T*)Memory::reallocate(allocation_size, data);
+
 	// TODO: Remove this and put zeroin out in reallocation function instead
 	Memory::zero_memory((data + old_size), (capacity - old_size) * sizeof(T));
 }

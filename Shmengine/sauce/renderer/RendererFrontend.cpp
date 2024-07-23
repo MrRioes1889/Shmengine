@@ -104,13 +104,13 @@ namespace Renderer
 		CRITICAL_INIT(system_state->backend.init(config, &system_state->window_render_target_count), "ERROR: Failed to initialize renderer backend.");
 
 		system_state->skybox_renderpass = Renderer::renderpass_get(skybox_renderpass_name);
-		system_state->skybox_renderpass->render_targets.init(system_state->window_render_target_count, 0, AllocationTag::MAIN);
+		system_state->skybox_renderpass->render_targets.init(system_state->window_render_target_count, 0);
 
 		system_state->world_renderpass = Renderer::renderpass_get(world_renderpass_name);
-		system_state->world_renderpass->render_targets.init(system_state->window_render_target_count, 0, AllocationTag::MAIN);
+		system_state->world_renderpass->render_targets.init(system_state->window_render_target_count, 0);
 
 		system_state->ui_renderpass = Renderer::renderpass_get(ui_renderpass_name);
-		system_state->ui_renderpass->render_targets.init(system_state->window_render_target_count, 0, AllocationTag::MAIN);
+		system_state->ui_renderpass->render_targets.init(system_state->window_render_target_count, 0);
 
 		regenerate_render_targets();
 

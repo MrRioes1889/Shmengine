@@ -16,7 +16,7 @@ namespace Platform
 	void system_shutdown();
 	bool32 pump_messages();
 
-	void* allocate(uint64 size, bool32 aligned);
+	void* allocate(uint64 size, uint16 alignment);
 	void free_memory(void* mem, bool32 aligned);
 
 	void* zero_memory(void* mem, uint64 size);

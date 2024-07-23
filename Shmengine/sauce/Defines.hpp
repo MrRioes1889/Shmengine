@@ -43,7 +43,7 @@ typedef void* (*PFN_allocator_allocate_callback)(uint64 size);
 // Smallest positive number where 1.0 + FLOAT_EPSILON != 0
 #define FLOAT_EPSILON 1.192092896e-07f
 
-#define PTR_BYTES_OFFSET(ptr, bytes) (void*)(((uint8*)ptr) + bytes)
+#define PTR_BYTES_OFFSET(ptr, bytes) (((uint8*)ptr) + (bytes))
 
 #define MAX_FILEPATH_LENGTH 512
 
