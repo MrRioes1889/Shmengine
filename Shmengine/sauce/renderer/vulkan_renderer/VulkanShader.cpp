@@ -1,28 +1,23 @@
-#include "VulkanCommon.hpp"
 #include "VulkanBackend.hpp"
 
-#include "VulkanBuffer.hpp"
 #include "VulkanPipeline.hpp"
 #include "VulkanUtils.hpp"
 #include "systems/ResourceSystem.hpp"
 #include "systems/TextureSystem.hpp"
 
-static VulkanContext* context = 0;
+#include "renderer/RendererFrontend.hpp"
 
 namespace Renderer::Vulkan
 {
+
+	extern VulkanContext context;
 
 	static bool32 create_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage);
 
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
 
-	void shaders_init_context(VulkanContext* c)
-	{
-		context = c;
-	}
-
-	bool32 shader_create(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
+	bool32 vk_shader_create(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
 	{
 
 		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::RENDERER);
@@ -188,7 +183,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	void shader_destroy(Shader* shader)
+	void vk_shader_destroy(Shader* shader)
 	{
 
 		if (!shader->internal_data)
@@ -201,8 +196,8 @@ namespace Renderer::Vulkan
 			return;
 		}
 
-		VkDevice logical_device = context->device.logical_device;
-		VkAllocationCallbacks* vk_allocator = context->allocator_callbacks;
+		VkDevice logical_device = context.device.logical_device;
+		VkAllocationCallbacks* vk_allocator = context.allocator_callbacks;
 
 		for (uint32 i = 0; i < s->config.descriptor_set_count; ++i)
 		{
@@ -217,17 +212,17 @@ namespace Renderer::Vulkan
 			vkDestroyDescriptorPool(logical_device, s->descriptor_pool, vk_allocator);
 		}
 
-		buffer_unlock_memory(context, &s->uniform_buffer);
+		vk_buffer_unmap_memory(&s->uniform_buffer, 0, VK_WHOLE_SIZE);
 		s->mapped_uniform_buffer = 0;
-		buffer_destroy(context, &s->uniform_buffer);
+		renderbuffer_destroy(&s->uniform_buffer);
 
 		// Pipeline
-		pipeline_destroy(context, &s->pipeline);
+		pipeline_destroy(&context, &s->pipeline);
 
 		// Shader modules
 		for (uint32 i = 0; i < s->config.stage_count; ++i)
 		{
-			vkDestroyShaderModule(context->device.logical_device, s->stages[i].handle, context->allocator_callbacks);
+			vkDestroyShaderModule(context.device.logical_device, s->stages[i].handle, context.allocator_callbacks);
 		}
 
 		// Free the internal data memory.
@@ -236,11 +231,11 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 shader_init(Shader* shader)
+	bool32 vk_shader_init(Shader* shader)
 	{
 
-		VkDevice& logical_device = context->device.logical_device;
-		VkAllocationCallbacks* vk_allocator = context->allocator_callbacks;
+		VkDevice& logical_device = context.device.logical_device;
+		VkAllocationCallbacks* vk_allocator = context.allocator_callbacks;
 		VulkanShader* s = (VulkanShader*)shader->internal_data;
 
 		// Create a module for each stage.
@@ -322,9 +317,9 @@ namespace Renderer::Vulkan
 		// Viewport.
 		VkViewport viewport;
 		viewport.x = 0.0f;
-		viewport.y = (float32)context->framebuffer_height;
-		viewport.width = (float32)context->framebuffer_width;
-		viewport.height = -(float32)context->framebuffer_height;
+		viewport.y = (float32)context.framebuffer_height;
+		viewport.width = (float32)context.framebuffer_width;
+		viewport.height = -(float32)context.framebuffer_height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
@@ -332,8 +327,8 @@ namespace Renderer::Vulkan
 		VkRect2D scissor;
 		scissor.offset.x = 0;
 		scissor.offset.y = 0;
-		scissor.extent.width = context->framebuffer_width;
-		scissor.extent.height = context->framebuffer_height;
+		scissor.extent.width = context.framebuffer_width;
+		scissor.extent.height = context.framebuffer_height;
 
 		VkPipelineShaderStageCreateInfo stage_create_infos[VulkanConfig::shader_max_stages] = {};
 		for (uint32 i = 0; i < s->config.stage_count; ++i)
@@ -342,7 +337,7 @@ namespace Renderer::Vulkan
 		}
 
 		bool32 pipeline_result = pipeline_create(
-			context,
+			&context,
 			s->renderpass,
 			shader->attribute_stride,
 			shader->attributes.count,
@@ -367,38 +362,31 @@ namespace Renderer::Vulkan
 		}
 
 		// Grab the UBO alignment requirement from the device.
-		shader->required_ubo_alignment = context->device.properties.limits.minUniformBufferOffsetAlignment;
+		shader->required_ubo_alignment = context.device.properties.limits.minUniformBufferOffsetAlignment;
 
 		// Make sure the UBO is aligned according to device requirements.
 		shader->global_ubo_stride = (uint32)get_aligned_pow2(shader->global_ubo_size, shader->required_ubo_alignment);
 		shader->ubo_stride = (uint32)get_aligned_pow2(shader->ubo_size, shader->required_ubo_alignment);
 
 		// Uniform  buffer.
-		uint32 device_local_bits = context->device.supports_device_local_host_visible ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
 		// TODO: max count should be configurable, or perhaps long term support of buffer resizing.
 		uint64 total_buffer_size = shader->global_ubo_stride + (shader->ubo_stride * VulkanConfig::max_material_count);  // global + (locals)
-		if (!buffer_create(
-			context,
-			total_buffer_size,
-			(VkBufferUsageFlagBits)(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | device_local_bits,
-			true,
-			true,
-			&s->uniform_buffer))
+		if (!renderbuffer_create(RenderbufferType::UNIFORM, total_buffer_size, true, &s->uniform_buffer))
 		{
 			SHMERROR("Vulkan buffer creation failed for object shader.");
 			return false;
 		}
+		renderbuffer_bind(&s->uniform_buffer, 0);
 
 		// Allocate space for the global UBO, whcih should occupy the _stride_ space, _not_ the actual size used.
-		if (!buffer_allocate(&s->uniform_buffer, shader->global_ubo_stride, &shader->global_ubo_offset))
+		if (!renderbuffer_allocate(&s->uniform_buffer, shader->global_ubo_stride, &shader->global_ubo_offset))
 		{
 			SHMERROR("Failed to allocate space for the uniform buffer!");
 			return false;
 		}
 
 		// Map the entire buffer's memory.
-		s->mapped_uniform_buffer = buffer_lock_memory(context, &s->uniform_buffer, 0, VK_WHOLE_SIZE /*total_buffer_size*/, 0);
+		s->mapped_uniform_buffer = vk_buffer_map_memory(&s->uniform_buffer, 0, VK_WHOLE_SIZE);
 
 		// Allocate global descriptor sets, one per frame. Global is always the first set.
 		VkDescriptorSetLayout global_layouts[3] =
@@ -412,20 +400,20 @@ namespace Renderer::Vulkan
 		alloc_info.descriptorPool = s->descriptor_pool;
 		alloc_info.descriptorSetCount = 3;
 		alloc_info.pSetLayouts = global_layouts;
-		VK_CHECK(vkAllocateDescriptorSets(context->device.logical_device, &alloc_info, s->global_descriptor_sets));
+		VK_CHECK(vkAllocateDescriptorSets(context.device.logical_device, &alloc_info, s->global_descriptor_sets));
 
 		return true;
 
 	}
 
-	bool32 shader_use(Shader* s)
+	bool32 vk_shader_use(Shader* s)
 	{
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
-		pipeline_bind(&context->graphics_command_buffers[context->image_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &v_shader->pipeline);
+		pipeline_bind(&context.graphics_command_buffers[context.image_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &v_shader->pipeline);
 		return true;
 	}
 
-	bool32 shader_bind_globals(Shader* s)
+	bool32 vk_shader_bind_globals(Shader* s)
 	{
 		if (!s)
 		{
@@ -437,7 +425,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 shader_bind_instance(Shader* s, uint32 instance_id)
+	bool32 vk_shader_bind_instance(Shader* s, uint32 instance_id)
 	{
 
 		if (!s)
@@ -454,17 +442,17 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 shader_apply_globals(Shader* s)
+	bool32 vk_shader_apply_globals(Shader* s)
 	{
 
-		uint32 image_index = context->image_index;
+		uint32 image_index = context.image_index;
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
-		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
+		VkCommandBuffer command_buffer = context.graphics_command_buffers[image_index].handle;
 		VkDescriptorSet global_descriptor = v_shader->global_descriptor_sets[image_index];
 
 		// Apply UBO first
 		VkDescriptorBufferInfo bufferInfo;
-		bufferInfo.buffer = v_shader->uniform_buffer.handle;
+		bufferInfo.buffer = ((VulkanBuffer*)v_shader->uniform_buffer.internal_data.data)->handle;
 		bufferInfo.offset = s->global_ubo_offset;
 		bufferInfo.range = s->global_ubo_stride;
 
@@ -491,7 +479,7 @@ namespace Renderer::Vulkan
 			// descriptor_writes[1] = ...
 		}
 
-		vkUpdateDescriptorSets(context->device.logical_device, global_set_binding_count, descriptor_writes, 0, 0);
+		vkUpdateDescriptorSets(context.device.logical_device, global_set_binding_count, descriptor_writes, 0, 0);
 
 		// Bind the global descriptor set to be updated.
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipeline.layout, 0, 1, &global_descriptor, 0, 0);
@@ -499,7 +487,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 shader_apply_instance(Shader* s, bool32 needs_update)
+	bool32 vk_shader_apply_instance(Shader* s, bool32 needs_update)
 	{
 		
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -508,8 +496,8 @@ namespace Renderer::Vulkan
 			SHMERROR("This shader does not use instances.");
 			return false;
 		}
-		uint32 image_index = context->image_index;
-		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
+		uint32 image_index = context.image_index;
+		VkCommandBuffer command_buffer = context.graphics_command_buffers[image_index].handle;
 
 		// Obtain instance data.
 		VulkanShaderInstanceState* object_state = &v_shader->instance_states[s->bound_instance_id];
@@ -527,7 +515,7 @@ namespace Renderer::Vulkan
 			uint8* instance_ubo_generation = &(object_state->descriptor_set_state.descriptor_states[descriptor_index].generations[image_index]);
 
 			VkDescriptorBufferInfo buffer_info;
-			buffer_info.buffer = v_shader->uniform_buffer.handle;
+			buffer_info.buffer = ((VulkanBuffer*)v_shader->uniform_buffer.internal_data.data)->handle;
 			buffer_info.offset = object_state->offset;
 			buffer_info.range = s->ubo_stride;
 
@@ -612,7 +600,7 @@ namespace Renderer::Vulkan
 
 			if (descriptor_count > 0)
 			{
-				vkUpdateDescriptorSets(context->device.logical_device, descriptor_count, descriptor_writes, 0, 0);
+				vkUpdateDescriptorSets(context.device.logical_device, descriptor_count, descriptor_writes, 0, 0);
 			}
 
 		}
@@ -623,7 +611,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 shader_acquire_instance_resources(Shader* s, TextureMap** maps, uint32* out_instance_id)
+	bool32 vk_shader_acquire_instance_resources(Shader* s, TextureMap** maps, uint32* out_instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -662,7 +650,7 @@ namespace Renderer::Vulkan
 		uint64 size = s->ubo_stride;
 		if (size > 0)
 		{
-			if (!buffer_allocate(&v_shader->uniform_buffer, size, &instance_state->offset))
+			if (!renderbuffer_allocate(&v_shader->uniform_buffer, size, &instance_state->offset))
 			{
 				SHMERROR("vulkan_material_shader_acquire_resources failed to acquire ubo space");
 				return false;
@@ -696,7 +684,7 @@ namespace Renderer::Vulkan
 		alloc_info.descriptorSetCount = 3;
 		alloc_info.pSetLayouts = layouts;
 		VkResult result = vkAllocateDescriptorSets(
-			context->device.logical_device,
+			context.device.logical_device,
 			&alloc_info,
 			instance_state->descriptor_set_state.descriptor_sets);
 		if (result != VK_SUCCESS)
@@ -709,18 +697,18 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 shader_release_instance_resources(Shader* s, uint32 instance_id)
+	bool32 vk_shader_release_instance_resources(Shader* s, uint32 instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		VulkanShaderInstanceState* instance_state = &v_shader->instance_states[instance_id];
 
 		// Wait for any pending operations using the descriptor set to finish.
-		vkDeviceWaitIdle(context->device.logical_device);
+		vkDeviceWaitIdle(context.device.logical_device);
 
 		// Free 3 descriptor sets (one per frame)
 		VkResult result = vkFreeDescriptorSets(
-			context->device.logical_device,
+			context.device.logical_device,
 			v_shader->descriptor_pool,
 			3,
 			instance_state->descriptor_set_state.descriptor_sets);
@@ -731,7 +719,7 @@ namespace Renderer::Vulkan
 
 		instance_state->instance_texture_maps.free_data();
 
-		buffer_free(&v_shader->uniform_buffer, instance_state->offset);
+		renderbuffer_free(&v_shader->uniform_buffer, instance_state->offset);
 		instance_state->offset = INVALID_ID;
 		instance_state->id = INVALID_ID;
 
@@ -739,7 +727,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value)
+	bool32 vk_shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -759,7 +747,7 @@ namespace Renderer::Vulkan
 			if (uniform->scope == ShaderScope::LOCAL)
 			{
 				// Is local, using push constants. Do this immediately.
-				VkCommandBuffer command_buffer = context->graphics_command_buffers[context->image_index].handle;
+				VkCommandBuffer command_buffer = context.graphics_command_buffers[context.image_index].handle;
 				vkCmdPushConstants(command_buffer, v_shader->pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform->offset, uniform->size, value);
 			}
 			else
@@ -790,9 +778,9 @@ namespace Renderer::Vulkan
 		shader_stage->module_create_info.pCode = (uint32*)resource.data;
 
 		VK_CHECK(vkCreateShaderModule(
-			context->device.logical_device,
+			context.device.logical_device,
 			&shader_stage->module_create_info,
-			context->allocator_callbacks,
+			context.allocator_callbacks,
 			&shader_stage->handle));
 
 		// Release the resource.
@@ -836,7 +824,7 @@ namespace Renderer::Vulkan
 		}
 	}
 
-	bool32 texture_map_acquire_resources(TextureMap* out_map) 
+	bool32 vk_texture_map_acquire_resources(TextureMap* out_map) 
 	{
 		// Create a sampler for the texture
 		VkSamplerCreateInfo sampler_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
@@ -860,7 +848,7 @@ namespace Renderer::Vulkan
 		sampler_info.minLod = 0.0f;
 		sampler_info.maxLod = 0.0f;
 
-		VkResult result = vkCreateSampler(context->device.logical_device, &sampler_info, context->allocator_callbacks, (VkSampler*)&out_map->internal_data);
+		VkResult result = vkCreateSampler(context.device.logical_device, &sampler_info, context.allocator_callbacks, (VkSampler*)&out_map->internal_data);
 		if (!vulkan_result_is_success(VK_SUCCESS)) {
 			SHMERRORV("Error creating texture sampler: %s", vulkan_result_string(result, true));
 			return false;
@@ -869,10 +857,10 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	void texture_map_release_resources(TextureMap* map) {
+	void vk_texture_map_release_resources(TextureMap* map) {
 		if (map) {
-			vkDeviceWaitIdle(context->device.logical_device);
-			vkDestroySampler(context->device.logical_device, (VkSampler)map->internal_data, context->allocator_callbacks);
+			vkDeviceWaitIdle(context.device.logical_device);
+			vkDestroySampler(context.device.logical_device, (VkSampler)map->internal_data, context.allocator_callbacks);
 			map->internal_data = 0;
 		}
 	}

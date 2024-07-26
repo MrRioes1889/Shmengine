@@ -3,6 +3,7 @@
 #include "Defines.hpp"
 
 #include "resources/ResourceTypes.hpp"
+#include "memory/Freelist.hpp"
 #include "utility/Math.hpp"
 
 namespace Platform
@@ -73,6 +74,184 @@ namespace Renderer
 
 		Sarray<RenderTarget> render_targets;
 		Buffer internal_data;
+	};
+
+	enum class RenderbufferType
+	{
+		UNKNOWN,
+		VERTEX,
+		INDEX,
+		UNIFORM,
+		STAGING,
+		READ,
+		STORAGE
+	};
+
+	struct Renderbuffer
+	{		
+		uint64 size;
+		RenderbufferType type;
+		bool32 has_freelist;
+		Buffer freelist_data;
+		Freelist freelist;
+		Buffer internal_data;
+	};
+
+	namespace ShaderStage
+	{
+		enum Value
+		{
+			VERTEX = 1,
+			GEOMETRY = 1 << 1,
+			FRAGMENT = 1 << 2,
+			COMPUTE = 1 << 3,
+		};
+	}
+
+	enum class ShaderFaceCullMode
+	{
+		NONE = 0,
+		FRONT = 1,
+		BACK = 2,
+		BOTH = 3
+	};
+
+	enum class ShaderAttributeType
+	{
+		FLOAT32,
+		FLOAT32_2,
+		FLOAT32_3,
+		FLOAT32_4,
+		MAT4,
+		INT8,
+		UINT8,
+		INT16,
+		UINT16,
+		INT32,
+		UINT32,
+	};
+
+	enum class ShaderUniformType
+	{
+		FLOAT32,
+		FLOAT32_2,
+		FLOAT32_3,
+		FLOAT32_4,
+		INT8,
+		UINT8,
+		INT16,
+		UINT16,
+		INT32,
+		UINT32,
+		MAT4,
+		SAMPLER,
+		CUSTOM = 255
+	};
+
+	enum class ShaderScope
+	{
+		GLOBAL,
+		INSTANCE,
+		LOCAL
+	};
+
+	struct ShaderAttributeConfig
+	{
+		String name;
+		uint8 size;
+		ShaderAttributeType type;
+	};
+
+	struct ShaderUniformConfig
+	{
+		String name;
+		uint8 size;
+		uint32 location;
+		ShaderUniformType type;
+		ShaderScope scope;
+	};
+
+	struct ShaderConfig
+	{
+		String name;
+
+		String renderpass_name;
+		Darray<ShaderAttributeConfig> attributes;
+		Darray<ShaderUniformConfig> uniforms;
+		Darray<ShaderStage::Value> stages;
+		Darray<String> stage_names;
+		Darray<String> stage_filenames;
+
+		ShaderFaceCullMode cull_mode;
+	};
+
+	enum class ShaderState
+	{
+		NOT_CREATED,
+		UNINITIALIZED,
+		INITIALIZED
+	};
+
+	struct ShaderUniform
+	{
+		uint32 offset;
+		uint16 location;
+		uint16 index;
+		uint16 size;
+		uint8 set_index;
+
+		ShaderScope scope;
+		ShaderUniformType type;
+	};
+
+	struct ShaderAttribute
+	{
+		String name;
+		ShaderAttributeType type;
+		uint32 size;
+	};
+
+	struct Shader
+	{
+		uint32 id;
+		uint64 required_ubo_alignment;
+
+		uint32 global_ubo_size;
+		uint32 global_ubo_stride;
+		uint64 global_ubo_offset;
+
+		uint32 ubo_size;
+		uint32 ubo_stride;
+
+		uint32 push_constant_size;
+		uint32 push_constant_stride;
+
+		String name;
+
+		Darray<TextureMap*> global_texture_maps;
+
+		ShaderScope bound_scope;
+
+		uint32 bound_instance_id;
+		uint64 bound_ubo_offset;
+
+		ShaderState state;
+		uint32 instance_texture_count;
+
+		Hashtable<uint16> uniform_lookup;
+		Darray<ShaderUniform> uniforms;
+		Darray<ShaderAttribute> attributes;
+
+		uint16 attribute_stride;
+		uint32 push_constant_range_count;
+		Range push_constant_ranges[32];
+
+		uint64 renderer_frame_number;
+
+		Renderbuffer uniform_buffer;
+
+		void* internal_data;
+
 	};
 
 	enum BackendType
@@ -150,19 +329,32 @@ namespace Renderer
 		bool32(*geometry_create)(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
 		void (*geometry_destroy)(Geometry* geometry);
 
-		bool32(*shader_create)(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
-		void(*shader_destroy)(Shader* shader);
-		bool32(*shader_init)(Shader* shader);
-		bool32(*shader_use)(Shader* shader);
-		bool32(*shader_bind_globals)(Shader* shader);
-		bool32(*shader_bind_instance)(Shader* shader, uint32 instance_id);
-		bool32(*shader_apply_globals)(Shader* shader);
-		bool32(*shader_apply_instance)(Shader* shader, bool32 needs_update);
-		bool32(*shader_acquire_instance_resources)(Shader* shader, TextureMap** maps, uint32* out_instance_id);
-		bool32(*shader_release_instance_resources)(Shader* shader, uint32 instance_id);
-		bool32(*shader_set_uniform)(Shader* shader, ShaderUniform* uniform, const void* value);
-		bool32(*texture_map_acquire_resources)(TextureMap* out_map);
-		void(*texture_map_release_resources)(TextureMap* out_map);
+		bool32 (*shader_create)(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+		void (*shader_destroy)(Shader* shader);
+		bool32 (*shader_init)(Shader* shader);
+		bool32 (*shader_use)(Shader* shader);
+		bool32 (*shader_bind_globals)(Shader* shader);
+		bool32 (*shader_bind_instance)(Shader* shader, uint32 instance_id);
+		bool32 (*shader_apply_globals)(Shader* shader);
+		bool32 (*shader_apply_instance)(Shader* shader, bool32 needs_update);
+		bool32 (*shader_acquire_instance_resources)(Shader* shader, TextureMap** maps, uint32* out_instance_id);
+		bool32 (*shader_release_instance_resources)(Shader* shader, uint32 instance_id);
+		bool32 (*shader_set_uniform)(Shader* shader, ShaderUniform* uniform, const void* value);
+		bool32 (*texture_map_acquire_resources)(TextureMap* out_map);
+		void (*texture_map_release_resources)(TextureMap* out_map);
+
+		bool32 (*renderbuffer_create_internal)(Renderbuffer* buffer);
+		void (*renderbuffer_destroy_internal)(Renderbuffer* buffer);
+		bool32 (*renderbuffer_bind)(Renderbuffer* buffer, uint64 offset);
+		bool32 (*renderbuffer_unbind)(Renderbuffer* buffer);
+		void* (*renderbuffer_map_memory)(Renderbuffer* buffer, uint64 offset, uint64 size);
+		void (*renderbuffer_unmap_memory)(Renderbuffer* buffer, uint64 offset, uint64 size);
+		bool32 (*renderbuffer_flush)(Renderbuffer* buffer, uint64 offset, uint64 size);
+		bool32 (*renderbuffer_read)(Renderbuffer* buffer, uint64 offset, uint64 size, void** out_memory);
+		bool32 (*renderbuffer_resize)(Renderbuffer* buffer, uint64 new_total_size);
+		bool32 (*renderbuffer_load_range)(Renderbuffer* buffer, uint64 offset, uint64 size, const void* data);
+		bool32 (*renderbuffer_copy_range)(Renderbuffer* source, uint64 source_offset, Renderbuffer* dest, uint64 dest_offset, uint64 size);
+		bool32 (*renderbuffer_draw)(Renderbuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only);
 
 		bool8 (*is_multithreaded)();
 	};

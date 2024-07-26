@@ -263,7 +263,7 @@ namespace Platform
         return true;
     }
 
-    bool32 create_vulkan_surface(VulkanContext* context)
+    bool32 create_vulkan_surface(Renderer::Vulkan::VulkanContext* context)
     {
 
         VkWin32SurfaceCreateInfoKHR create_info = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };

@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 #include "resources/ResourceTypes.hpp"
+#include "renderer/RendererTypes.hpp"
 
 namespace ShaderSystem
 {
@@ -17,17 +18,17 @@ namespace ShaderSystem
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
 	void system_shutdown();
 
-	SHMAPI bool32 create_shader(const ShaderConfig& config);
+	SHMAPI bool32 create_shader(const Renderer::ShaderConfig& config);
 
 	SHMAPI uint32 get_id(const char* shader_name);
 
-	SHMAPI Shader* get_shader(uint32 shader_id);
-	SHMAPI Shader* get_shader(const char* shader_name);
+	SHMAPI Renderer::Shader* get_shader(uint32 shader_id);
+	SHMAPI Renderer::Shader* get_shader(const char* shader_name);
 
 	SHMAPI bool32 use_shader(uint32 shader_id);
 	SHMAPI bool32 use_shader(const char* shader_name);
 
-	SHMAPI uint16 get_uniform_index(Shader* shader, const char* uniform_name);
+	SHMAPI uint16 get_uniform_index(Renderer::Shader* shader, const char* uniform_name);
 
 	SHMAPI bool32 set_uniform(const char* uniform_name, const void* value);
 	SHMAPI bool32 set_uniform(uint16 index, const void* value);

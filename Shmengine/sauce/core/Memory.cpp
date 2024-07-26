@@ -44,9 +44,9 @@ namespace Memory
     {
         uint64 nodes_size = 0;
         if (node_count_limit)
-            nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(node_count_limit, page_size);
+            nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(node_count_limit);
         else
-            nodes_size = Freelist::get_required_nodes_array_memory_size_by_data_size(size, page_size);
+            nodes_size = Freelist::get_max_node_count_by_data_size(size, page_size) * sizeof(Freelist::Node);
 
         void* data = _allocate(target_allocator, size + nodes_size, tag, alignment);
         buffer->init(size + nodes_size, 0, tag, data);

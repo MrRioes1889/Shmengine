@@ -1,6 +1,7 @@
 #include "ShaderLoader.hpp"
 
 #include "resources/ResourceTypes.hpp"
+#include "renderer/RendererTypes.hpp"
 #include "LoaderUtils.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
@@ -9,9 +10,11 @@
 
 namespace ResourceSystem
 {
+
 	static bool32 shader_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
 	{
 
+        using namespace Renderer;
         const char* format = "%s%s%s%s";
         char full_filepath[MAX_FILEPATH_LENGTH];
 
@@ -291,7 +294,7 @@ namespace ResourceSystem
 
         if (resource->data)
         {
-            ShaderConfig* data = (ShaderConfig*)resource->data;
+            Renderer::ShaderConfig* data = (Renderer::ShaderConfig*)resource->data;
             (*data).~ShaderConfig();
         }
 

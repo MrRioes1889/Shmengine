@@ -2,11 +2,11 @@
 
 #include "VulkanTypes.hpp"
 
-struct VulkanContext;
+//struct Renderer::Vulkan::VulkanContext;
 namespace Platform
 {
 
-	bool32 create_vulkan_surface(VulkanContext* context);
+	bool32 create_vulkan_surface(Renderer::Vulkan::VulkanContext* context);
 
 }
 

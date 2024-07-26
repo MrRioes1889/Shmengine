@@ -202,7 +202,7 @@ namespace MaterialSystem
                 return 0;
             }
 
-            Shader* s = ShaderSystem::get_shader(m->shader_id);
+            Renderer::Shader* s = ShaderSystem::get_shader(m->shader_id);
             if (system_state->material_shader_id == INVALID_ID && CString::equal(config.shader_name.c_str(), Renderer::RendererConfig::builtin_shader_name_world)) {
                 system_state->material_shader_id = s->id;
                 system_state->material_locations.projection = ShaderSystem::get_uniform_index(s, "projection");
@@ -282,7 +282,7 @@ namespace MaterialSystem
 
     bool32 apply_globals(uint32 shader_id, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode)
     {
-        Shader* s = ShaderSystem::get_shader(shader_id);
+        Renderer::Shader* s = ShaderSystem::get_shader(shader_id);
         if (!s)
             return false;
 
@@ -398,7 +398,7 @@ namespace MaterialSystem
             return false;
 
         // Send it off to the renderer to acquire resources.
-        Shader* s = ShaderSystem::get_shader(config.shader_name.c_str());
+        Renderer::Shader* s = ShaderSystem::get_shader(config.shader_name.c_str());
         if (!s) {
             SHMERRORV("Unable to load material because its shader was not found: '%s'. This is likely a problem with the material asset.", config.shader_name.c_str());
             return false;
@@ -465,7 +465,7 @@ namespace MaterialSystem
         system_state->default_material.normal_map.use = TextureUse::MAP_NORMAL;
         system_state->default_material.normal_map.texture = TextureSystem::get_default_normal_texture();
 
-        Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_world);
+        Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_world);
         TextureMap* maps[3] = { &system_state->default_material.diffuse_map, &system_state->default_material.specular_map, &system_state->default_material.normal_map };
         if (!Renderer::shader_acquire_instance_resources(s, maps, &system_state->default_material.internal_id))
         {

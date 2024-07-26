@@ -31,6 +31,7 @@ struct Sarray
 	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::ARRAY, void* memory = 0);
 	SHMINLINE void free_data();
 
+	SHMINLINE void resize(uint32 new_count, void* memory = 0);
 	SHMINLINE void clear();
 
 	SHMINLINE T* transfer_data();
@@ -180,6 +181,18 @@ SHMINLINE void Sarray<T>::free_data()
 		
 	data = 0;
 	capacity = 0;
+}
+
+
+template<typename T>
+SHMINLINE void Sarray<T>::resize(uint32 new_count, void* memory)
+{
+	if (data && !(flags & SarrayFlag::EXTERNAL_MEMORY))
+		data = Memory::reallocate(new_count * sizeof(T), memory);
+	else
+		data = memory;
+
+	capacity = new_count;
 }
 
 template<typename T>

@@ -4,6 +4,7 @@
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "memory/LinearAllocator.hpp"
+#include "memory/Freelist.hpp"
 #include "systems/ResourceSystem.hpp"
 #include "systems/TextureSystem.hpp"
 #include "systems/MaterialSystem.hpp"
@@ -369,6 +370,143 @@ namespace Renderer
 	void texture_map_release_resources(TextureMap* out_map)
 	{
 		return system_state->backend.texture_map_release_resources(out_map);
+	}
+
+	bool32 renderbuffer_create(RenderbufferType type, uint64 size, bool32 use_freelist, Renderbuffer* out_buffer)
+	{
+
+		out_buffer->size = size;
+		out_buffer->type = type;
+		out_buffer->has_freelist = use_freelist;
+
+		if (out_buffer->has_freelist)
+		{
+			AllocatorPageSize freelist_page_size = AllocatorPageSize::TINY;
+			uint32 freelist_nodes_count = Freelist::get_max_node_count_by_data_size(out_buffer->size, freelist_page_size);
+			if (freelist_nodes_count > 10000)
+				freelist_nodes_count = 10000;
+
+			uint64 freelist_nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(freelist_nodes_count);
+			out_buffer->freelist_data.init(freelist_nodes_size, 0, AllocationTag::RENDERER);
+			out_buffer->freelist.init(size, out_buffer->freelist_data.data, freelist_page_size, freelist_nodes_count);
+		}
+
+		if (!system_state->backend.renderbuffer_create_internal(out_buffer))
+		{
+			SHMFATAL("Failed to create backend part of renderbuffer!");
+			renderbuffer_destroy(out_buffer);
+			return false;
+		}
+
+		return true;
+	}
+
+	void renderbuffer_destroy(Renderbuffer* buffer)
+	{	
+		buffer->freelist.destroy();
+		buffer->freelist_data.free_data();
+		system_state->backend.renderbuffer_destroy_internal(buffer);
+	}
+
+	bool32 renderbuffer_bind(Renderbuffer* buffer, uint64 offset)
+	{
+		return system_state->backend.renderbuffer_bind(buffer, offset);
+	}
+
+	bool32 renderbuffer_unbind(Renderbuffer* buffer)
+	{
+		return system_state->backend.renderbuffer_unbind(buffer);
+	}
+
+	void* renderbuffer_map_memory(Renderbuffer* buffer, uint64 offset, uint64 size)
+	{
+		return system_state->backend.renderbuffer_map_memory(buffer, offset, size);
+	}
+
+	void renderbuffer_unmap_memory(Renderbuffer* buffer, uint64 offset, uint64 size)
+	{
+		system_state->backend.renderbuffer_unmap_memory(buffer, offset, size);
+	}
+
+	bool32 renderbuffer_flush(Renderbuffer* buffer, uint64 offset, uint64 size)
+	{
+		return system_state->backend.renderbuffer_flush(buffer, offset, size);
+	}
+
+	bool32 renderbuffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void** out_memory)
+	{
+		return system_state->backend.renderbuffer_read(buffer, offset, size, out_memory);
+	}
+
+	bool32 renderbuffer_resize(Renderbuffer* buffer, uint64 new_total_size)
+	{
+
+		if (new_total_size <= buffer->size) {
+			SHMERROR("renderer_renderbuffer_resize - New size has to be larger than current one.");
+			return false;
+		}
+
+		if (!system_state->backend.renderbuffer_resize(buffer, new_total_size))
+		{
+			SHMERROR("renderer_renderbuffer_resize - Failed to resize internal renderbuffer.");
+			return false;
+		}
+
+		if (buffer->has_freelist)
+		{
+			AllocatorPageSize freelist_page_size = AllocatorPageSize::TINY;
+			uint32 freelist_nodes_count = Freelist::get_max_node_count_by_data_size(new_total_size, freelist_page_size);
+			if (freelist_nodes_count > 10000)
+				freelist_nodes_count = 10000;
+
+			uint64 freelist_nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(freelist_nodes_count);
+			if (freelist_nodes_count != buffer->freelist.max_nodes_count)
+				buffer->freelist_data.resize(freelist_nodes_count * sizeof(Freelist::Node));
+
+			buffer->freelist.resize(new_total_size, buffer->freelist_data.data, freelist_nodes_count);
+		}
+
+		buffer->size = new_total_size;
+		return true;
+
+	}
+
+	bool32 renderbuffer_allocate(Renderbuffer* buffer, uint64 size, uint64* out_offset)
+	{
+		if (!buffer->has_freelist)
+		{
+			SHMERROR("renderbuffer_allocate - Cannot allocate for a buffer without attached freelist!");
+			return false;
+		}
+
+		buffer->freelist.allocate(size, out_offset);
+		return true;
+	}
+
+	void renderbuffer_free(Renderbuffer* buffer, uint64 offset)
+	{
+		if (!buffer->has_freelist)
+		{
+			SHMERROR("renderbuffer_free - Cannot free data for a buffer without attached freelist!");
+			return;
+		}
+
+		buffer->freelist.free(offset);
+	}
+
+	bool32 renderbuffer_load_range(Renderbuffer* buffer, uint64 offset, uint64 size, const void* data)
+	{
+		return system_state->backend.renderbuffer_load_range(buffer, offset, size, data);
+	}
+
+	bool32 renderbuffer_copy_range(Renderbuffer* source, uint64 source_offset, Renderbuffer* dest, uint64 dest_offset, uint64 size)
+	{
+		return system_state->backend.renderbuffer_copy_range(source, source_offset, dest, dest_offset, size);
+	}
+
+	bool32 renderbuffer_draw(Renderbuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
+	{
+		return system_state->backend.renderbuffer_draw(buffer, offset, element_count, bind_only);
 	}
 
 	bool8 is_multithreaded()

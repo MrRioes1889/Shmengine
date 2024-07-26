@@ -359,7 +359,7 @@ namespace Application
 		skybox_cube_config.material_name[0] = 0;
 		app_state->skybox.g = GeometrySystem::acquire_from_config(skybox_cube_config, true);
 		app_state->skybox.renderer_frame_number = INVALID_ID64;
-		Shader* skybox_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_skybox);
+		Renderer::Shader* skybox_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_skybox);
 		TextureMap* maps[1] = { &app_state->skybox.cubemap };
 		if (!Renderer::shader_acquire_instance_resources(skybox_shader, maps, &app_state->skybox.instance_id))
 		{

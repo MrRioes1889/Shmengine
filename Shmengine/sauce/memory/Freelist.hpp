@@ -22,22 +22,22 @@ struct Freelist
 		uint32 page_count;
 	};
 
-	static SHMINLINE uint64 get_required_nodes_array_memory_size_by_node_count(uint32 node_count_limit, AllocatorPageSize page_size)
+	static SHMINLINE uint32 get_max_node_count_by_data_size(uint64 data_size, AllocatorPageSize page_size)
+	{
+		return (uint32)(data_size / (uint32)page_size);
+	}
+
+	static SHMINLINE uint64 get_required_nodes_array_memory_size_by_node_count(uint32 node_count_limit)
 	{
 		return node_count_limit * sizeof(Node);
 	}
 
-	static SHMINLINE uint64 get_required_nodes_array_memory_size_by_data_size(uint64 data_size, AllocatorPageSize page_size)
-	{
-		return data_size / (uint32)page_size * sizeof(Node);
-	}
-
 	Freelist();
-	Freelist(uint64 buffer_size, uint64 in_nodes_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit = 0);
+	Freelist(uint64 buffer_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit);
 	~Freelist();
 
-	void init(uint64 buffer_size, uint64 in_nodes_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit = 0);
-	void resize(void* nodes_ptr, uint64 in_nodes_size);
+	void init(uint64 buffer_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit);
+	void resize(uint64 data_buffer_size, void* nodes_ptr, uint32 new_max_nodes_count);
 	void clear_nodes();
 	void destroy();
 
@@ -47,7 +47,6 @@ struct Freelist
 
 	int64 get_reserved_size(uint64 offset);
 
-	uint64 nodes_size;
 	AllocatorPageSize page_size;
 	uint32 max_nodes_count;
 	uint32 nodes_count;

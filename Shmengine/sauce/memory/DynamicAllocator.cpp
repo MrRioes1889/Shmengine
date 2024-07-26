@@ -14,23 +14,22 @@ DynamicAllocator::DynamicAllocator()
 {
 }
 
-DynamicAllocator::DynamicAllocator(uint64 buffer_size, void* buffer_ptr, uint64 nodes_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit)
+DynamicAllocator::DynamicAllocator(uint64 buffer_size, void* buffer_ptr, uint64 nodes_buffer_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit)
 {
-	init(buffer_size, buffer_ptr, nodes_size, nodes_ptr, freelist_page_size, max_nodes_count_limit);
+	init(buffer_size, buffer_ptr, nodes_buffer_size, nodes_ptr, freelist_page_size, max_nodes_count_limit);
 }
 
 DynamicAllocator::~DynamicAllocator()
 {
 }
 
-void DynamicAllocator::init(uint64 buffer_size, void* buffer_ptr, uint64 nodes_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit)
+void DynamicAllocator::init(uint64 buffer_size, void* buffer_ptr, uint64 nodes_buffer_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit)
 {
-	if (max_nodes_count_limit)
-		Freelist::get_required_nodes_array_memory_size_by_node_count(max_nodes_count_limit, freelist_page_size);
-	else
-		Freelist::get_required_nodes_array_memory_size_by_data_size(buffer_size, freelist_page_size);
+	uint32 max_nodes_count = (uint32)(nodes_buffer_size / (uint32)freelist_page_size);
+	if (max_nodes_count_limit && max_nodes_count_limit < max_nodes_count)
+		max_nodes_count = max_nodes_count_limit;
 
-	freelist.init(buffer_size, nodes_size, nodes_ptr, freelist_page_size, max_nodes_count_limit);
+	freelist.init(buffer_size, nodes_ptr, freelist_page_size, max_nodes_count);
 
 	data = buffer_ptr;
 }
@@ -78,7 +77,7 @@ void* DynamicAllocator::reallocate(uint64 requested_size, void* data_ptr, Alloca
 	freelist.free(old_data_offset, bytes_freed);
 	void* new_data = allocate(requested_size, *out_tag, alignment, bytes_allocated);
 	void* old_data_ptr = PTR_BYTES_OFFSET(data, old_data_offset + old_alignment_offset + sizeof(AllocHeader));
-	Memory::copy_memory(old_data_ptr, new_data, old_size - sizeof(AllocHeader) - old_alignment_offset);
+	Memory::copy_memory(old_data_ptr, new_data, requested_size);
 
 	return new_data;
 }

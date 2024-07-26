@@ -13,7 +13,6 @@ static SHMINLINE int64 find_first_free_node_aligned(Freelist* freelist, uint32 p
 static SHMINLINE int64 find_allocated_node(Freelist* freelist, uint64 expected_offset);
 
 Freelist::Freelist() :
-nodes_size(0),
 page_size(AllocatorPageSize::MINIMAL),
 max_nodes_count(0),
 nodes_count(0),
@@ -22,19 +21,17 @@ nodes(0)
 {
 }
 
-Freelist::Freelist(uint64 buffer_size, uint64 in_nodes_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit)
+Freelist::Freelist(uint64 buffer_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit)
 {
-	init(buffer_size, nodes_size, nodes_ptr, freelist_page_size, max_nodes_count_limit);
+	init(buffer_size, nodes_ptr, freelist_page_size, max_nodes_count_limit);
 }
 
 Freelist::~Freelist()
 {
 }
 
-void Freelist::init(uint64 buffer_size, uint64 in_nodes_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit)
+void Freelist::init(uint64 buffer_size, void* nodes_ptr, AllocatorPageSize freelist_page_size, uint32 max_nodes_count_limit)
 {
-
-	nodes_size = in_nodes_size;
 	page_size = freelist_page_size;
 	pages_count = (uint32)(buffer_size / (uint32)freelist_page_size);
 	if (max_nodes_count_limit && max_nodes_count_limit < pages_count)
@@ -42,22 +39,38 @@ void Freelist::init(uint64 buffer_size, uint64 in_nodes_size, void* nodes_ptr, A
 	else
 		max_nodes_count = pages_count;
 
-	nodes = (Freelist::Node*)nodes_ptr;
+	nodes_count = 1;
+	nodes = (Node*)nodes_ptr;
 
 	clear_nodes();
 
 }
 
-void Freelist::resize(void* nodes_ptr, uint64 in_nodes_size)
+void Freelist::resize(uint64 data_buffer_size, void* nodes_ptr, uint32 new_max_nodes_count)
 {
-	SHMASSERT(in_nodes_size < (max_nodes_count * sizeof(Freelist::Node)));
-	nodes_size = in_nodes_size;
-	nodes = (Freelist::Node*)nodes_ptr;
+	uint32 new_pages_count = (uint32)(data_buffer_size / (uint32)page_size);
+	SHMASSERT(new_max_nodes_count >= max_nodes_count && new_pages_count >= pages_count);
+	max_nodes_count = new_max_nodes_count;
+	nodes = (Node*)nodes_ptr;
+	uint32 pages_count_diff = new_pages_count - pages_count;
+	pages_count = new_pages_count;
+
+	if (!nodes[nodes_count - 1].reserved)
+	{
+		nodes[nodes_count - 1].page_count += pages_count_diff;
+	}
+	else
+	{
+		SHMASSERT(nodes_count < max_nodes_count);
+		nodes_count++;
+		nodes[nodes_count - 1].page_count = pages_count_diff;
+		nodes[nodes_count - 1].reserved = false;
+	}
 }
 
 void Freelist::clear_nodes()
 {
-	Memory::zero_memory(nodes, max_nodes_count * sizeof(Freelist::Node));
+	Memory::zero_memory(nodes, nodes_count * sizeof(Node));
 	nodes[0].reserved = false;
 	nodes[0].page_count = pages_count;
 	nodes_count = 1;
@@ -67,7 +80,6 @@ void Freelist::destroy()
 {
 	nodes = 0;
 	nodes_count = 0;
-	nodes_size = 0;
 	max_nodes_count = 0;
 	pages_count = 0;
 }
@@ -86,7 +98,7 @@ bool32 Freelist::allocate_aligned(uint64 size, uint64* out_offset, uint16 alignm
 	if (alignment > 1 && (alignment % (uint16)page_size) != 0)
 		return false;
 
-	uint32 nodes_added = 1 + (alignment != 0 ? 1 : 0);
+	uint32 nodes_added = 1 + (alignment > 1 ? 1 : 0);
 	if ((nodes_count + nodes_added) > max_nodes_count)
 		return false;
 

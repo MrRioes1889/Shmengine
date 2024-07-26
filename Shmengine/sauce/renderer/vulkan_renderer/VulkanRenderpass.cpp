@@ -1,17 +1,12 @@
+#include "VulkanTypes.hpp"
 #include "VulkanBackend.hpp"
-#include "VulkanCommon.hpp"
-
-static VulkanContext* context = 0;
 
 namespace Renderer::Vulkan
 {
 
-	void renderpass_init_context(VulkanContext* c)
-	{
-		context = c;
-	}
+	extern VulkanContext context;
 
-	void renderpass_create(Renderpass* out_renderpass, float32 depth, uint32 stencil, bool32 has_prev_pass, bool32 has_next_pass)
+	void vk_renderpass_create(Renderpass* out_renderpass, float32 depth, uint32 stencil, bool32 has_prev_pass, bool32 has_next_pass)
 	{
 
 		out_renderpass->internal_data.init(sizeof(VulkanRenderpass), 0, AllocationTag::RENDERER);
@@ -31,7 +26,7 @@ namespace Renderer::Vulkan
 
 		bool32 do_clear_color = (out_renderpass->clear_flags & RenderpassClearFlags::COLOR_BUFFER);
 		VkAttachmentDescription color_att = {};
-		color_att.format = context->swapchain.image_format.format; // TODO: Make configurable
+		color_att.format = context.swapchain.image_format.format; // TODO: Make configurable
 		color_att.samples = VK_SAMPLE_COUNT_1_BIT;
 		color_att.loadOp = do_clear_color ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 		color_att.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -55,7 +50,7 @@ namespace Renderer::Vulkan
 		VkAttachmentReference depth_att_ref = {};
 		if (do_clear_depth)
 		{		
-			depth_att.format = context->device.depth_format; // TODO: Make configurable
+			depth_att.format = context.device.depth_format; // TODO: Make configurable
 			depth_att.samples = VK_SAMPLE_COUNT_1_BIT;
 			if (has_prev_pass)
 				depth_att.loadOp = do_clear_depth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -110,22 +105,22 @@ namespace Renderer::Vulkan
 		create_info.pNext = 0;
 		create_info.flags = 0;
 
-		VK_CHECK(vkCreateRenderPass(context->device.logical_device, &create_info, context->allocator_callbacks, &v_renderpass->handle));
+		VK_CHECK(vkCreateRenderPass(context.device.logical_device, &create_info, context.allocator_callbacks, &v_renderpass->handle));
 
 	}
 
-	void renderpass_destroy(Renderpass* renderpass)
+	void vk_renderpass_destroy(Renderpass* renderpass)
 	{
 		if (renderpass->internal_data.data)
 		{
 			VulkanRenderpass* v_renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
-			vkDestroyRenderPass(context->device.logical_device, v_renderpass->handle, context->allocator_callbacks);
+			vkDestroyRenderPass(context.device.logical_device, v_renderpass->handle, context.allocator_callbacks);
 			v_renderpass->handle = 0;
 			renderpass->internal_data.free_data();
 		}
 	}
 
-	Renderpass* renderpass_get(const char* name)
+	Renderpass* vk_renderpass_get(const char* name)
 	{
 		if (!name[0])
 		{
@@ -133,19 +128,19 @@ namespace Renderer::Vulkan
 			return 0;
 		}
 
-		uint32 id = context->renderpass_table.get_value(name);
+		uint32 id = context.renderpass_table.get_value(name);
 		if (id == INVALID_ID)
 		{
 			SHMERRORV("renderpass_get - No renderpass called '%s' registered. Returning 0.", name);
 			return 0;
 		}
 
-		return &context->registered_renderpasses[id];
+		return &context.registered_renderpasses[id];
 	}
 
-	bool32 renderpass_begin(Renderpass* renderpass, RenderTarget* render_target)
+	bool32 vk_renderpass_begin(Renderpass* renderpass, RenderTarget* render_target)
 	{
-		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->image_index];
+		VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
 		VulkanRenderpass* v_renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
 
 		VkRenderPassBeginInfo begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
@@ -191,15 +186,15 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 renderpass_end(Renderpass* renderpass)
+	bool32 vk_renderpass_end(Renderpass* renderpass)
 	{
-		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->image_index];
+		VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
 		vkCmdEndRenderPass(command_buffer->handle);
 		command_buffer->state = VulkanCommandBufferState::RECORDING;
 		return true;
 	}
 
-	void render_target_create(uint32 attachment_count, Texture* const * attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target)
+	void vk_render_target_create(uint32 attachment_count, Texture* const * attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target)
 	{
 		SHMASSERT(attachment_count <= 32);
 		VkImageView attachment_views[32];
@@ -229,15 +224,15 @@ namespace Renderer::Vulkan
 		framebuffer_create_info.height = height;
 		framebuffer_create_info.layers = 1;
 
-		VK_CHECK(vkCreateFramebuffer(context->device.logical_device, &framebuffer_create_info, context->allocator_callbacks, (VkFramebuffer*)&out_target->internal_framebuffer));
+		VK_CHECK(vkCreateFramebuffer(context.device.logical_device, &framebuffer_create_info, context.allocator_callbacks, (VkFramebuffer*)&out_target->internal_framebuffer));
 	}
 
-	void render_target_destroy(RenderTarget* target, bool32 free_internal_memory)
+	void vk_render_target_destroy(RenderTarget* target, bool32 free_internal_memory)
 	{
 		if (!target->internal_framebuffer)
 			return;
 
-		vkDestroyFramebuffer(context->device.logical_device, (VkFramebuffer)target->internal_framebuffer, context->allocator_callbacks);
+		vkDestroyFramebuffer(context.device.logical_device, (VkFramebuffer)target->internal_framebuffer, context.allocator_callbacks);
 		target->internal_framebuffer = 0;
 		if (free_internal_memory)
 			target->attachments.free_data();
