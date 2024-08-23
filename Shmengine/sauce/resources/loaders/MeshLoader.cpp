@@ -14,17 +14,9 @@ enum class MeshFileType {
     OBJ
 };
 
-struct test
-{
-    void* ptr1;
-    uint32 test2;
-    void* ptr2;
-};
-
 struct SupportedMeshFileType {
     const char* extension;
     MeshFileType type;
-    bool32 is_binary;
 };
 
 struct MeshVertexIndexData {
@@ -90,8 +82,8 @@ namespace ResourceSystem
 
         const uint32 supported_file_type_count = 2;
         SupportedMeshFileType supported_file_types[supported_file_type_count] = {};
-        supported_file_types[0] = { ".shmesh", MeshFileType::SHMESH, true };
-        supported_file_types[1] = { ".obj", MeshFileType::OBJ, false };
+        supported_file_types[0] = { ".shmesh", MeshFileType::SHMESH };
+        supported_file_types[1] = { ".obj", MeshFileType::OBJ };
 
         String full_filepath(MAX_FILEPATH_LENGTH);
         MeshFileType file_type = MeshFileType::NOT_FOUND;

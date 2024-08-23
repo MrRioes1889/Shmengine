@@ -35,55 +35,133 @@ namespace CString
 
 			char format_identifier = c[0];
 
-			bool32 ll_value = false;
+			ArgSize arg_size = ArgSize::LONG;
 			if (format_identifier == 'l')
 			{
-				ll_value = true;
+				arg_size = ArgSize::LONG_LONG;
 				c++;
-				format_identifier = c[0];
+			}
+			if (format_identifier == 'h')
+			{
+				arg_size = ArgSize::SHORT;
+				c++;
+				if (c[0] == 'h')
+				{
+					arg_size = ArgSize::SHORT_SHORT;
+					c++;
+				}
 			}
 
-			bool32 format_parse_successful = true;
+			format_identifier = c[0];
+
+			bool32 valid_format = true;
+
 			switch (format_identifier)
 			{
 			case('i'):
 			{
-				if (!(args[arg_i].type == Arg::Type::INT32 || (args[arg_i].type == Arg::Type::INT64 && ll_value)))
-				{
-					SHMERROR("print_s: Provided arguments do not match format!");
-					return -1;
-				}
 
-				if (args[arg_i].type == Arg::Type::INT32)
+				switch (arg_size)
 				{
-					int32 v = args[arg_i++].int32_value[0];         //Fetch Integer argument
-					target_i += append(buffer_limit, target_buffer, to_string(v));
-				}	
-				else
+				case ArgSize::LONG_LONG:
 				{
-					int64 v = args[arg_i++].int64_value;         //Fetch Integer argument
-					target_i += append(buffer_limit, target_buffer, to_string(v));
+					if (args[arg_i].type == Arg::Type::INT64)
+					{
+						int64 v = args[arg_i++].int64_value;         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v));
+					}
+					else
+						valid_format = false;
+					break;
 				}
+				case ArgSize::SHORT:
+				{
+					if (args[arg_i].type == Arg::Type::INT16)
+					{
+						int16 v = args[arg_i++].int16_value[0];         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v));
+					}
+					else
+						valid_format = false;
+					break;
+				}
+				case ArgSize::SHORT_SHORT:
+				{
+					if (args[arg_i].type == Arg::Type::INT8)
+					{
+						int8 v = args[arg_i++].int8_value[0];         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v));
+					}
+					else
+						valid_format = false;
+					break;
+				}
+				default:
+				{
+					if (args[arg_i].type == Arg::Type::INT32)
+					{
+						int32 v = args[arg_i++].int32_value[0];         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v));
+					}
+					else
+						valid_format = false;
+					break;
+				}
+				}				
+
 				break;
 			}
 			case('u'):
 			{
-				if (!(args[arg_i].type == Arg::Type::UINT32 || (args[arg_i].type == Arg::Type::UINT64 && ll_value)))
+
+				switch (arg_size)
 				{
-					SHMERROR("print_s: Provided arguments do not match format!");
-					return -1;
+				case ArgSize::LONG_LONG:
+				{
+					if (args[arg_i].type == Arg::Type::UINT64)
+					{
+						uint64 v = args[arg_i++].uint64_value;         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v));
+					}
+					else
+						valid_format = false;
+					break;
+				}
+				case ArgSize::SHORT:
+				{
+					if (args[arg_i].type == Arg::Type::UINT16)
+					{
+						uint16 v = args[arg_i++].uint16_value[0];         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v));
+					}
+					else
+						valid_format = false;
+					break;
+				}
+				case ArgSize::SHORT_SHORT:
+				{
+					if (args[arg_i].type == Arg::Type::UINT8)
+					{
+						uint8 v = args[arg_i++].uint8_value[0];         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v));
+					}
+					else
+						valid_format = false;
+					break;
+				}
+				default:
+				{
+					if (args[arg_i].type == Arg::Type::UINT32)
+					{
+						uint32 v = args[arg_i++].uint32_value[0];         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v));
+					}
+					else
+						valid_format = false;
+					break;
+				}
 				}
 
-				if (args[arg_i].type == Arg::Type::UINT32)
-				{
-					uint32 v = args[arg_i++].uint32_value[0];         //Fetch Integer argument
-					target_i += append(buffer_limit, target_buffer, to_string(v));
-				}
-				else
-				{
-					uint64 v = args[arg_i++].uint64_value;         //Fetch Integer argument
-					target_i += append(buffer_limit, target_buffer, to_string(v));
-				}
 				break;
 			}
 			case('s'):
@@ -121,24 +199,40 @@ namespace CString
 					decimals = (int32)(*c - '0');
 				}
 
-				if (!(args[arg_i].type == Arg::Type::FLOAT32 || (args[arg_i].type == Arg::Type::FLOAT64 && ll_value)))
+				switch (arg_size)
 				{
-					SHMERROR("print_s: Provided arguments do not match format!");
-					return -1;
+				case ArgSize::LONG_LONG:
+				{
+					if (args[arg_i].type == Arg::Type::FLOAT64)
+					{
+						float64 v = args[arg_i++].float64_value;         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v, decimals));
+					}
+					else
+						valid_format = false;
+					break;
+				}
+				default:
+				{
+					if (args[arg_i].type == Arg::Type::FLOAT32)
+					{
+						float32 v = args[arg_i++].float32_value[0];         //Fetch Integer argument
+						target_i += append(buffer_limit, target_buffer, to_string(v, decimals));
+					}
+					else
+						valid_format = false;
+					break;
+				}
 				}
 
-				if (args[arg_i].type == Arg::Type::FLOAT32)
-				{
-					float32 v = args[arg_i++].float32_value[0];         //Fetch Character argument
-					target_i += append(buffer_limit, target_buffer, to_string(v, decimals));
-				}
-				else
-				{
-					float64 v = args[arg_i++].float64_value;         //Fetch Integer argument
-					target_i += append(buffer_limit, target_buffer, to_string(v, decimals));
-				}
 				break;
 			}
+			}
+
+			if (!valid_format)
+			{
+				SHMERROR("print_s: Provided arguments do not match format!");
+				return -1;
 			}
 		}
 
@@ -159,27 +253,43 @@ namespace CString
 			temp_format_ptr = &temp_format_ptr[macro_index + 1];
 			char format_identifier = temp_format_ptr[0];
 
-			bool32 ll_value = false;
+			ArgSize arg_size = ArgSize::LONG;
 			if (format_identifier == 'l')
 			{
-				ll_value = true;
+				arg_size = ArgSize::LONG_LONG;
 				temp_format_ptr++;
-				format_identifier = temp_format_ptr[0];
 			}
+			if (format_identifier == 'h')
+			{
+				arg_size = ArgSize::SHORT;
+				temp_format_ptr++;
+				if (temp_format_ptr[0] == 'h')
+				{
+					arg_size = ArgSize::SHORT_SHORT;
+					temp_format_ptr++;
+				}
+			}
+
+			format_identifier = temp_format_ptr[0];
 
 			switch (format_identifier)
 			{
 			case 'f':
 			{
-				if (!ll_value)
+				switch (arg_size)
 				{
-					args[arg_count].float32_value[0] = (float32)va_arg(arg_ptr, float64);
-					args[arg_count++].type = Arg::Type::FLOAT32;
-				}
-				else
+				case ArgSize::LONG_LONG:
 				{
 					args[arg_count].float64_value = va_arg(arg_ptr, float64);
 					args[arg_count++].type = Arg::Type::FLOAT64;
+					break;
+				}
+				default:
+				{
+					args[arg_count].float32_value[0] = (float32)va_arg(arg_ptr, float64);
+					args[arg_count++].type = Arg::Type::FLOAT32;
+					break;
+				}
 				}
 
 				temp_format_ptr++;
@@ -187,15 +297,32 @@ namespace CString
 			}
 			case 'i':
 			{
-				if (!ll_value)
+				switch (arg_size)
 				{
-					args[arg_count].int32_value[0] = (int32)va_arg(arg_ptr, int64);
-					args[arg_count++].type = Arg::Type::INT32;
-				}
-				else
+				case ArgSize::LONG_LONG:
 				{
 					args[arg_count].int64_value = va_arg(arg_ptr, int64);
 					args[arg_count++].type = Arg::Type::INT64;
+					break;
+				}
+				case ArgSize::SHORT:
+				{
+					args[arg_count].int16_value[0] = (int16)va_arg(arg_ptr, int64);
+					args[arg_count++].type = Arg::Type::INT16;
+					break;
+				}
+				case ArgSize::SHORT_SHORT:
+				{
+					args[arg_count].int8_value[0] = (int8)va_arg(arg_ptr, int64);
+					args[arg_count++].type = Arg::Type::INT8;
+					break;
+				}
+				default:
+				{
+					args[arg_count].int32_value[0] = (int32)va_arg(arg_ptr, int64);
+					args[arg_count++].type = Arg::Type::INT32;
+					break;
+				}
 				}
 
 				temp_format_ptr++;
@@ -203,15 +330,32 @@ namespace CString
 			}
 			case 'u':
 			{
-				if (!ll_value)
+				switch (arg_size)
 				{
-					args[arg_count].uint32_value[0] = (uint32)va_arg(arg_ptr, uint64);
-					args[arg_count++].type = Arg::Type::UINT32;
-				}
-				else
+				case ArgSize::LONG_LONG:
 				{
 					args[arg_count].uint64_value = va_arg(arg_ptr, uint64);
 					args[arg_count++].type = Arg::Type::UINT64;
+					break;
+				}
+				case ArgSize::SHORT:
+				{
+					args[arg_count].uint16_value[0] = (uint16)va_arg(arg_ptr, uint64);
+					args[arg_count++].type = Arg::Type::UINT16;
+					break;
+				}
+				case ArgSize::SHORT_SHORT:
+				{
+					args[arg_count].uint8_value[0] = (uint8)va_arg(arg_ptr, uint64);
+					args[arg_count++].type = Arg::Type::UINT8;
+					break;
+				}
+				default:
+				{
+					args[arg_count].uint32_value[0] = (uint32)va_arg(arg_ptr, uint64);
+					args[arg_count++].type = Arg::Type::UINT32;
+					break;
+				}
 				}
 
 				temp_format_ptr++;
@@ -226,7 +370,7 @@ namespace CString
 			}
 			case 'c':
 			{
-				args[arg_count].char_value[0] = va_arg(arg_ptr, char);
+				args[arg_count].char_value[0] = (char)va_arg(arg_ptr, uint64);
 				args[arg_count++].type = Arg::Type::CHAR;
 				temp_format_ptr++;
 				break;
@@ -277,22 +421,34 @@ namespace CString
 
 				char format_identifier = format[0];
 
-				bool32 ll_value = false;
+				ArgSize arg_size = ArgSize::LONG;
 				if (format_identifier == 'l')
 				{
-					ll_value = true;
+					arg_size = ArgSize::LONG_LONG;
 					format++;
 				}
+				if (format_identifier == 'h')
+				{
+					arg_size = ArgSize::SHORT;
+					format++;
+					if (format[0] == 'h')
+					{
+						arg_size = ArgSize::SHORT_SHORT;
+						format++;
+					}
+				}
+
+				format_identifier = format[0];
 
 				const uint32 parse_buffer_size = 512;
 				char parse_buffer[parse_buffer_size] = {};
 
 				for (uint32 i = 0; i < parse_buffer_size; i++)
 				{
-					if (*source == *(format + 1))
+					if (*source == *(format + 1) || (!*(format + 1) && is_whitespace(*source)))
 						break;
 
-					if (!*source)
+					if (!*source || i == (parse_buffer_size - 1))
 					{
 						SHMERROR("string_scan: Provided arguments do not match format!");
 						return false;
@@ -302,62 +458,149 @@ namespace CString
 					source++;
 				}
 
+				bool32 valid_format = true;
 				switch (format_identifier)
 				{
 				case 'f':
 				{
-					if (!(args[ptr_i].type == Arg::Type::FLOAT32_PTR || (args[ptr_i].type == Arg::Type::FLOAT64_PTR && ll_value)))
+					switch (arg_size)
 					{
-						SHMERROR("string_scan: Provided arguments do not match format!");
-						return false;
+					case ArgSize::LONG_LONG:
+					{
+						if (args[ptr_i].type == Arg::Type::FLOAT64_PTR)
+							parse_f64(parse_buffer, arg_copies[ptr_i++].float64_value);
+						else
+							valid_format = false;
+						break;
 					}
-
-					if (args[ptr_i].type == Arg::Type::FLOAT32_PTR)
-						parse_f32(parse_buffer, arg_copies[ptr_i++].float32_value[0]);
-					else
-						parse_f64(parse_buffer, arg_copies[ptr_i++].float64_value);
+					default:
+					{
+						if (args[ptr_i].type == Arg::Type::FLOAT32_PTR)	
+							parse_f32(parse_buffer, arg_copies[ptr_i++].float32_value[0]);
+						else
+							valid_format = false;						
+						break;
+					}
+					}
 
 					format++;				
 					break;
 				}
 				case 'i':
 				{
-					if (!(args[ptr_i].type == Arg::Type::INT32_PTR || (args[ptr_i].type == Arg::Type::INT64_PTR && ll_value)))
+					switch (arg_size)
 					{
-						SHMERROR("string_scan: Provided arguments do not match format!");
-						return false;
+					case ArgSize::LONG_LONG:
+					{
+						if (args[ptr_i].type == Arg::Type::INT64_PTR)
+							parse_i64(parse_buffer, arg_copies[ptr_i++].int64_value);
+						else
+							valid_format = false;
+						break;
 					}
-
-					if (args[ptr_i].type == Arg::Type::INT32_PTR)
-						parse_i32(parse_buffer, arg_copies[ptr_i++].int32_value[0]);
-					else
-						parse_i64(parse_buffer, arg_copies[ptr_i++].int64_value);
+					case ArgSize::SHORT:
+					{
+						if (args[ptr_i].type == Arg::Type::INT16_PTR)
+							parse_i16(parse_buffer, arg_copies[ptr_i++].int16_value[0]);
+						else
+							valid_format = false;
+						break;
+					}
+					case ArgSize::SHORT_SHORT:
+					{
+						if (args[ptr_i].type == Arg::Type::INT8_PTR)
+							parse_i8(parse_buffer, arg_copies[ptr_i++].int8_value[0]);
+						else
+							valid_format = false;
+						break;
+					}
+					default:
+					{
+						if (args[ptr_i].type == Arg::Type::INT32_PTR)
+							parse_i32(parse_buffer, arg_copies[ptr_i++].int32_value[0]);
+						else
+							valid_format = false;
+						break;
+					}
+					}
 
 					format++;
 					break;
 				}
 				case 'u':
 				{
-					if (!(args[ptr_i].type == Arg::Type::UINT32_PTR || (args[ptr_i].type == Arg::Type::UINT64_PTR && ll_value)))
+
+					switch (arg_size)
+					{
+					case ArgSize::LONG_LONG:
+					{
+						if (args[ptr_i].type == Arg::Type::UINT64_PTR)
+							parse_u64(parse_buffer, arg_copies[ptr_i++].uint64_value);
+						else
+							valid_format = false;
+						break;
+					}
+					case ArgSize::SHORT:
+					{
+						if (args[ptr_i].type == Arg::Type::UINT16_PTR)
+							parse_u16(parse_buffer, arg_copies[ptr_i++].uint16_value[0]);
+						else
+							valid_format = false;
+						break;
+					}
+					case ArgSize::SHORT_SHORT:
+					{
+						if (args[ptr_i].type == Arg::Type::UINT8_PTR)
+							parse_u8(parse_buffer, arg_copies[ptr_i++].uint8_value[0]);
+						else
+							valid_format = false;
+						break;
+					}
+					default:
+					{
+						if (args[ptr_i].type == Arg::Type::UINT32_PTR)
+							parse_u32(parse_buffer, arg_copies[ptr_i++].uint32_value[0]);
+						else
+							valid_format = false;
+						break;
+					}
+					}
+
+					format++;
+					break;
+				}
+				case 's':
+				{
+					if (args[ptr_i].type != Arg::Type::CHAR_PTR)
 					{
 						SHMERROR("string_scan: Provided arguments do not match format!");
 						return false;
 					}
 
-					if (args[ptr_i].type == Arg::Type::UINT32_PTR)
-						parse_u32(parse_buffer, arg_copies[ptr_i++].uint32_value[0]);
-					else
-						parse_u64(parse_buffer, arg_copies[ptr_i++].uint64_value);
+					CString::copy(parse_buffer_size, args[ptr_i++].char_buffer, parse_buffer);
 
 					format++;
 					break;
 				}
 				}
+
+				if (!valid_format)
+				{
+					SHMERROR("string_scan: Provided arguments do not match format!");
+					return false;
+				}
 			}
 			else
 			{
+
+				if (!*format)
+					break;
+
+				while (*source == ' ' && *format != *source)
+					source++;
+
 				if (*format != *source)
-				{
+				{					
 					SHMERROR("string_scan: Provided arguments do not match format!");
 					return false;
 				}
@@ -384,6 +627,16 @@ namespace CString
 				*(args[i].float64_ptr) = arg_copies[i].float64_value;
 				break;
 			}
+			case Arg::Type::INT8_PTR:
+			{
+				*(args[i].int8_ptr) = arg_copies[i].int8_value[0];
+				break;
+			}
+			case Arg::Type::INT16_PTR:
+			{
+				*(args[i].int16_ptr) = arg_copies[i].int16_value[0];
+				break;
+			}
 			case Arg::Type::INT32_PTR:
 			{
 				*(args[i].int32_ptr) = arg_copies[i].int32_value[0];
@@ -392,6 +645,16 @@ namespace CString
 			case Arg::Type::INT64_PTR:
 			{
 				*(args[i].int64_ptr) = arg_copies[i].int64_value;
+				break;
+			}
+			case Arg::Type::UINT8_PTR:
+			{
+				*(args[i].int8_ptr) = arg_copies[i].int8_value[0];
+				break;
+			}
+			case Arg::Type::UINT16_PTR:
+			{
+				*(args[i].int16_ptr) = arg_copies[i].int16_value[0];
 				break;
 			}
 			case Arg::Type::UINT32_PTR:
@@ -427,26 +690,43 @@ namespace CString
 			temp_format_ptr = &temp_format_ptr[macro_index + 1];
 			char format_identifier = temp_format_ptr[0];
 
-			bool32 ll_value = false;
+			ArgSize arg_size = ArgSize::LONG;
 			if (format_identifier == 'l')
 			{
-				ll_value = true;
+				arg_size = ArgSize::LONG_LONG;
 				temp_format_ptr++;
 			}
+			if (format_identifier == 'h')
+			{
+				arg_size = ArgSize::SHORT;
+				temp_format_ptr++;
+				if (temp_format_ptr[0] == 'h')
+				{
+					arg_size = ArgSize::SHORT_SHORT;
+					temp_format_ptr++;
+				}
+			}
+
+			format_identifier = temp_format_ptr[0];
 
 			switch (format_identifier)
 			{
 			case 'f':
 			{
-				if (!ll_value)
+				switch (arg_size)
 				{
-					args[arg_count].float32_ptr = (float32*)va_arg(arg_ptr, float32*);
-					args[arg_count++].type = Arg::Type::FLOAT32_PTR;
-				}
-				else
+				case ArgSize::LONG_LONG:
 				{
 					args[arg_count].float64_ptr = (float64*)va_arg(arg_ptr, float64*);
 					args[arg_count++].type = Arg::Type::FLOAT64_PTR;
+					break;
+				}
+				default:
+				{
+					args[arg_count].float32_ptr = (float32*)va_arg(arg_ptr, float32*);
+					args[arg_count++].type = Arg::Type::FLOAT32_PTR;
+					break;
+				}
 				}
 			
 				temp_format_ptr++;
@@ -454,15 +734,32 @@ namespace CString
 			}
 			case 'i':
 			{
-				if (!ll_value)
+				switch (arg_size)
 				{
-					args[arg_count].int32_ptr = (int32*)va_arg(arg_ptr, int32*);
-					args[arg_count++].type = Arg::Type::INT32_PTR;
-				}
-				else
+				case ArgSize::LONG_LONG:
 				{
 					args[arg_count].int64_ptr = (int64*)va_arg(arg_ptr, int64*);
 					args[arg_count++].type = Arg::Type::INT64_PTR;
+					break;
+				}
+				case ArgSize::SHORT:
+				{
+					args[arg_count].int16_ptr = (int16*)va_arg(arg_ptr, int16*);
+					args[arg_count++].type = Arg::Type::INT16_PTR;
+					break;
+				}
+				case ArgSize::SHORT_SHORT:
+				{
+					args[arg_count].int8_ptr = (int8*)va_arg(arg_ptr, int8*);
+					args[arg_count++].type = Arg::Type::INT8_PTR;
+					break;
+				}
+				default:
+				{
+					args[arg_count].int32_ptr = (int32*)va_arg(arg_ptr, int32*);
+					args[arg_count++].type = Arg::Type::INT32_PTR;
+					break;
+				}
 				}
 
 				temp_format_ptr++;
@@ -470,16 +767,42 @@ namespace CString
 			}
 			case 'u':
 			{
-				if (!ll_value)
+				switch (arg_size)
 				{
-					args[arg_count].uint32_ptr = (uint32*)va_arg(arg_ptr, uint32*);
-					args[arg_count++].type = Arg::Type::UINT32_PTR;
-				}
-				else
+				case ArgSize::LONG_LONG:
 				{
 					args[arg_count].uint64_ptr = (uint64*)va_arg(arg_ptr, uint64*);
 					args[arg_count++].type = Arg::Type::UINT64_PTR;
+					break;
 				}
+				case ArgSize::SHORT:
+				{
+					args[arg_count].uint16_ptr = (uint16*)va_arg(arg_ptr, uint16*);
+					args[arg_count++].type = Arg::Type::UINT16_PTR;
+					break;
+				}
+				case ArgSize::SHORT_SHORT:
+				{
+					args[arg_count].uint8_ptr = (uint8*)va_arg(arg_ptr, uint8*);
+					args[arg_count++].type = Arg::Type::UINT8_PTR;
+					break;
+				}
+				default:
+				{
+					args[arg_count].uint32_ptr = (uint32*)va_arg(arg_ptr, uint32*);
+					args[arg_count++].type = Arg::Type::UINT32_PTR;
+					break;
+				}
+				}
+
+				temp_format_ptr++;
+				break;
+			}
+			case 's':
+			{
+
+				args[arg_count].char_buffer = (char*)va_arg(arg_ptr, char*);
+				args[arg_count++].type = Arg::Type::CHAR_PTR;
 
 				temp_format_ptr++;
 				break;

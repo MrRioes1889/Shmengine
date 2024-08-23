@@ -42,7 +42,7 @@ void Buffer::free_data()
 void Buffer::resize(uint64 new_size, void* memory)
 {
 	if (data && !(flags & BufferFlag::EXTERNAL_MEMORY))
-		data = Memory::reallocate(new_size, memory);
+		data = Memory::reallocate(new_size, data);
 	else
 		data = memory;
 

@@ -314,12 +314,41 @@ namespace Renderer
 
 	void shader_destroy(Shader* s) 
 	{
+		renderbuffer_unmap_memory(&s->uniform_buffer, 0, s->uniform_buffer.size);
+		renderbuffer_destroy(&s->uniform_buffer);
 		system_state->backend.shader_destroy(s);
 	}
 
 	bool32 shader_init(Shader* s) 
 	{
-		return system_state->backend.shader_init(s);
+
+		// Make sure the UBO is aligned according to device requirements.
+		s->global_ubo_stride = (uint32)get_aligned_pow2(s->global_ubo_size, s->required_ubo_alignment);
+		s->ubo_stride = (uint32)get_aligned_pow2(s->ubo_size, s->required_ubo_alignment);
+
+		// Uniform  buffer.
+		// TODO: max count should be configurable, or perhaps long term support of buffer resizing.
+		uint64 total_buffer_size = s->global_ubo_stride + (s->ubo_stride * RendererConfig::max_material_count);  // global + (locals)
+		if (!renderbuffer_create(RenderbufferType::UNIFORM, total_buffer_size, true, &s->uniform_buffer))
+		{
+			SHMERROR("Vulkan buffer creation failed for object shader.");
+			return false;
+		}
+		renderbuffer_bind(&s->uniform_buffer, 0);
+
+		// Allocate space for the global UBO, whcih should occupy the _stride_ space, _not_ the actual size used.
+		if (!renderbuffer_allocate(&s->uniform_buffer, s->global_ubo_stride, &s->global_ubo_offset))
+		{
+			renderbuffer_destroy(&s->uniform_buffer);
+			SHMERROR("Failed to allocate space for the uniform buffer!");
+			return false;
+		}
+
+		bool32 res = system_state->backend.shader_init(s);
+		if (!res)
+			renderbuffer_destroy(&s->uniform_buffer);
+
+		return res;
 	}
 
 	bool32 shader_use(Shader* s) 

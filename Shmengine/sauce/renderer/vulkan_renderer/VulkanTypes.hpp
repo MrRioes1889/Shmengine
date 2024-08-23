@@ -20,25 +20,6 @@
 namespace Renderer::Vulkan
 {
 
-	struct VulkanConfig
-	{
-		inline static const uint32 max_material_count = 0x400;
-		inline static const uint32 max_ui_count = 0x400;
-		inline static const uint32 max_geometry_count = 0x1000;
-		inline static const uint32 frames_count = 3;
-
-		inline static const uint32 shader_max_instances = max_material_count;
-		inline static const uint32 shader_max_stages = 8;
-		inline static const uint32 shader_max_global_textures = 31;
-		inline static const uint32 shader_max_instance_textures = 31;
-		inline static const uint32 shader_max_attributes = 16;
-		inline static const uint32 shader_max_uniforms = 128;
-		inline static const uint32 shader_max_bindings = 2;
-		inline static const uint32 shader_max_push_const_ranges = 32;
-
-		inline static const uint32 renderpass_max_registered = 31;
-	};
-
 	struct VulkanBuffer
 	{
 		VkBuffer handle;
@@ -118,7 +99,7 @@ namespace Renderer::Vulkan
 
 	struct VulkanSwapchain
 	{
-		RenderTarget render_targets[VulkanConfig::frames_count];
+		RenderTarget render_targets[RendererConfig::frames_count];
 
 		VkSurfaceFormatKHR image_format;
 		VkSwapchainKHR handle;
@@ -155,7 +136,7 @@ namespace Renderer::Vulkan
 	{
 		uint8 sampler_binding_index;
 		uint8 binding_count;
-		VkDescriptorSetLayoutBinding bindings[VulkanConfig::shader_max_bindings];
+		VkDescriptorSetLayoutBinding bindings[RendererConfig::shader_max_bindings];
 	};
 
 	struct VulkanShaderStage
@@ -171,32 +152,33 @@ namespace Renderer::Vulkan
 		uint16 max_descriptor_set_count;
 		uint16 descriptor_set_count;
 
-		VulkanShaderStageConfig stages[VulkanConfig::shader_max_stages];
+		VulkanShaderStageConfig stages[RendererConfig::shader_max_stages];
 
 		VkDescriptorPoolSize pool_sizes[2];
 
 		VulkanDescriptorSetConfig descriptor_sets[2];
 
-		VkVertexInputAttributeDescription attributes[VulkanConfig::shader_max_attributes];
+		VkVertexInputAttributeDescription attributes[RendererConfig::shader_max_attributes];
 
 		ShaderFaceCullMode cull_mode;
 	};
 
 	struct VulkanDescriptorState
 	{
-		uint8 generations[VulkanConfig::frames_count];
-		uint32 ids[VulkanConfig::frames_count];
+		uint8 generations[RendererConfig::frames_count];
+		uint32 ids[RendererConfig::frames_count];
 	};
 
 	struct VulkanShaderDescriptorSetState
 	{
-		VkDescriptorSet descriptor_sets[VulkanConfig::frames_count];
-		VulkanDescriptorState descriptor_states[VulkanConfig::shader_max_bindings];
+		VkDescriptorSet descriptor_sets[RendererConfig::frames_count];
+		VulkanDescriptorState descriptor_states[RendererConfig::shader_max_bindings];
 	};
 
 	struct VulkanShaderInstanceState
 	{
 		uint32 id;
+		// TODO: Think about whether the offset serves a purpose
 		uint64 offset;
 
 		VulkanShaderDescriptorSetState descriptor_set_state;
@@ -226,20 +208,20 @@ namespace Renderer::Vulkan
 
 		VulkanRenderpass* renderpass;
 
-		VulkanShaderStage stages[VulkanConfig::shader_max_stages];
+		VulkanShaderStage stages[RendererConfig::shader_max_stages];
 
 		VkDescriptorPool descriptor_pool;
 
 		VkDescriptorSetLayout descriptor_set_layouts[2];
 
-		VkDescriptorSet global_descriptor_sets[VulkanConfig::frames_count];
+		VkDescriptorSet global_descriptor_sets[RendererConfig::frames_count];
 
 		void* mapped_uniform_buffer;
-		Renderbuffer uniform_buffer;
+		//Renderbuffer uniform_buffer;
 
 		VulkanPipeline pipeline;
 
-		VulkanShaderInstanceState instance_states[VulkanConfig::shader_max_instances];
+		VulkanShaderInstanceState instance_states[RendererConfig::shader_max_instances];
 
 	};
 
@@ -268,22 +250,22 @@ namespace Renderer::Vulkan
 		VulkanSwapchain swapchain;
 
 		Hashtable<uint32> renderpass_table;
-		Renderer::Renderpass registered_renderpasses[VulkanConfig::renderpass_max_registered];
+		Renderer::Renderpass registered_renderpasses[RendererConfig::renderpass_max_registered];
 
 		Renderbuffer object_vertex_buffer;
 		Renderbuffer object_index_buffer;
 
-		Renderer::RenderTarget world_render_targets[VulkanConfig::frames_count];
+		Renderer::RenderTarget world_render_targets[RendererConfig::frames_count];
 
-		VulkanGeometryData geometries[VulkanConfig::max_geometry_count];
+		VulkanGeometryData geometries[RendererConfig::max_geometry_count];
 
 		Sarray<VulkanCommandBuffer> graphics_command_buffers = {};
 
 		Sarray<VkSemaphore> image_available_semaphores = {};
 		Sarray<VkSemaphore> queue_complete_semaphores = {};
 
-		VkFence fences_in_flight[VulkanConfig::frames_count - 1];
-		VkFence images_in_flight[VulkanConfig::frames_count];
+		VkFence fences_in_flight[RendererConfig::frames_count - 1];
+		VkFence images_in_flight[RendererConfig::frames_count];
 
 #if defined(_DEBUG)
 		VkDebugUtilsMessengerEXT debug_messenger;

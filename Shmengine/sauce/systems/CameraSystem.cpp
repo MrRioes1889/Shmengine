@@ -44,7 +44,8 @@ namespace CameraSystem
 
 		system_state->registered_camera_table.floodfill(INVALID_ID16);
 
-		for (uint32 i = 0; i < config.max_camera_count; ++i) {
+		for (uint32 i = 0; i < config.max_camera_count; ++i) 
+		{
 			system_state->registered_cameras[i].id = INVALID_ID16;
 			system_state->registered_cameras[i].reference_count = 0;
 		}

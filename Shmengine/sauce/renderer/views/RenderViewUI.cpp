@@ -5,13 +5,18 @@
 #include "systems/ShaderSystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "renderer/RendererFrontend.hpp"
+#include "resources/UIText.hpp"
 
 struct RenderViewUIInternalData {
-	uint32 shader_id;
 	float32 near_clip;
 	float32 far_clip;
 	Math::Mat4 projection_matrix;
 	Math::Mat4 view_matrix;
+	uint32 shader_id;
+	Renderer::Shader* shader;
+	uint16 diffuse_map_location;
+	uint16 diffuse_color_location;
+	uint16 model_location;
 	// u32 render_mode;
 };
 
@@ -23,8 +28,12 @@ namespace Renderer
 		
 		self->internal_data.init(sizeof(RenderViewUIInternalData), 0, AllocationTag::RENDERER);
 		RenderViewUIInternalData* data = (RenderViewUIInternalData*)self->internal_data.data;
-
+	
 		data->shader_id = ShaderSystem::get_id(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
+		data->shader = ShaderSystem::get_shader(data->shader_id);
+		data->diffuse_map_location = ShaderSystem::get_uniform_index(data->shader, "diffuse_texture");
+		data->diffuse_color_location = ShaderSystem::get_uniform_index(data->shader, "diffuse_color");
+		data->model_location = ShaderSystem::get_uniform_index(data->shader, "model");
 
 		data->near_clip = -100.0f;
 		data->far_clip = 100.0f;
@@ -62,12 +71,12 @@ namespace Renderer
 	bool32 render_view_ui_on_build_packet(const RenderView* self, void* data, RenderViewPacket* out_packet)
 	{
 
-		MeshPacketData* mesh_data = (MeshPacketData*)data;
+		UIPacketData* packet_data = (UIPacketData*)data;
 		RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
 
 		uint32 total_geometry_count = 0;
-		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
-			total_geometry_count += mesh_data->meshes[i]->geometries.count;
+		for (uint32 i = 0; i < packet_data->mesh_data.mesh_count; i++)
+			total_geometry_count += packet_data->mesh_data.meshes[i]->geometries.count;
 
 		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER);
 		out_packet->view = self;
@@ -75,10 +84,11 @@ namespace Renderer
 		out_packet->projection_matrix = internal_data->projection_matrix;
 		out_packet->view_matrix = internal_data->view_matrix;
 
+		out_packet->extended_data = data;
 
-		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
+		for (uint32 i = 0; i < packet_data->mesh_data.mesh_count; i++)
 		{
-			Mesh* m = mesh_data->meshes[i];
+			Mesh* m = packet_data->mesh_data.meshes[i];
 			for (uint32 g = 0; g < m->geometries.count; g++)
 			{
 				GeometryRenderData* render_data = out_packet->geometries.push({});
@@ -148,6 +158,37 @@ namespace Renderer
 
 				// Draw it.
 				geometry_draw(packet.geometries[i]);
+			}
+
+			UIPacketData* packet_data = (UIPacketData*)packet.extended_data;  // array of texts
+			for (uint32 i = 0; i < packet_data->text_count; ++i) {
+				UIText* text = packet_data->texts[i];
+				ShaderSystem::bind_instance(text->instance_id);
+
+				if (!ShaderSystem::set_uniform(data->diffuse_map_location, &text->font_atlas->map)) {
+					SHMERROR("Failed to apply bitmap font diffuse map uniform.");
+					return false;
+				}
+
+				// TODO: font colour.
+				static Math::Vec4f white_colour = { 1.0f, 1.0f, 1.0f, 1.0f };  // white
+				if (!ShaderSystem::set_uniform(data->diffuse_color_location, &white_colour)) {
+					SHMERROR("Failed to apply bitmap font diffuse colour uniform.");
+					return false;
+				}
+				bool32 needs_update = text->render_frame_number != frame_number;
+				ShaderSystem::apply_instance(needs_update);
+
+				// Sync the frame number.
+				text->render_frame_number = frame_number;
+
+				// Apply the locals
+				Math::Mat4 model = Math::transform_get_world(text->transform);
+				if (!ShaderSystem::set_uniform(data->model_location, &model)) {
+					SHMERROR("Failed to apply model matrix for text");
+				}
+
+				ui_text_draw(text);
 			}
 
 			if (!renderpass_end(renderpass))

@@ -11,6 +11,8 @@ namespace Platform
 	struct PlatformState;
 }
 
+struct UIText;
+
 namespace Renderer
 {
 
@@ -19,6 +21,22 @@ namespace Renderer
 		static inline const char* builtin_shader_name_world = "Shader.Builtin.Material";
 		static inline const char* builtin_shader_name_ui = "Shader.Builtin.UI";
 		static inline const char* builtin_shader_name_skybox = "Shader.Builtin.Skybox";
+
+		inline static const uint32 max_material_count = 0x400;
+		inline static const uint32 max_ui_count = 0x400;
+		inline static const uint32 max_geometry_count = 0x1000;
+		inline static const uint32 frames_count = 3;
+
+		inline static const uint32 shader_max_instances = max_material_count;
+		inline static const uint32 shader_max_stages = 8;
+		inline static const uint32 shader_max_global_textures = 31;
+		inline static const uint32 shader_max_instance_textures = 31;
+		inline static const uint32 shader_max_attributes = 16;
+		inline static const uint32 shader_max_uniforms = 128;
+		inline static const uint32 shader_max_bindings = 2;
+		inline static const uint32 shader_max_push_const_ranges = 32;
+
+		inline static const uint32 renderpass_max_registered = 31;
 	};
 
 	namespace ViewMode
@@ -441,6 +459,14 @@ namespace Renderer
 	struct SkyboxPacketData
 	{
 		Skybox* skybox;
+	};
+	
+	struct UIPacketData {
+		MeshPacketData mesh_data;
+		// TODO: temp
+		uint32 text_count;
+		UIText** texts;
+		// end
 	};
 
 	struct RenderPacket

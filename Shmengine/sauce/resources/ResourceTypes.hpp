@@ -15,7 +15,15 @@ enum class ResourceType
 	STATIC_MESH,
 	SHADER,
 	MESH,
+	BITMAP_FONT,
 	CUSTOM
+};
+
+struct ResourceHeader {
+	char signature[4];
+	uint8 resource_type;
+	uint8 version;
+	uint16 reserved;
 };
 
 struct Resource
@@ -110,7 +118,59 @@ struct TextureMap
 	TextureRepeat repeat_v;
 	TextureRepeat repeat_w;
 
+};
 
+struct FontKerning {
+	int32 codepoint_0;
+	int32 codepoint_1;
+	int16 amount;
+
+	SHMINLINE bool8 operator<=(const FontKerning& other) { return codepoint_0 != other.codepoint_0 ? codepoint_0 <= other.codepoint_0 : codepoint_1 <= other.codepoint_1; }
+	SHMINLINE bool8 operator>=(const FontKerning& other) { return codepoint_0 != other.codepoint_0 ? codepoint_0 >= other.codepoint_0 : codepoint_1 >= other.codepoint_1; }
+};
+
+struct FontGlyph {
+	int32 codepoint;
+	uint16 x;
+	uint16 y;
+	uint16 width;
+	uint16 height;
+	int16 x_offset;
+	int16 y_offset;
+	int16 x_advance;
+	uint8 page_id;
+
+	uint32 kernings_offset;
+};
+
+enum class FontType {
+	BITMAP,
+	SYSTEM
+};
+
+struct FontAtlas {
+	FontType type;
+	char face[256];
+	uint32 size;
+	uint32 line_height;
+	int32 baseline;
+	uint32 atlas_size_x;
+	uint32 atlas_size_y;
+	TextureMap map;
+	Sarray<FontGlyph> glyphs;
+	Darray<FontKerning> kernings;
+	float32 tab_x_advance;
+	Buffer internal_data;
+};
+
+struct BitmapFontPage {
+	uint32 id;
+	char file[256];
+};
+
+struct BitmapFontResourceData {
+	FontAtlas data;
+	Sarray<BitmapFontPage> pages;
 };
 
 struct Material
@@ -129,8 +189,6 @@ struct Material
 	TextureMap diffuse_map;	
 	TextureMap specular_map;	
 	TextureMap normal_map;	
-
-	
 
 };
 

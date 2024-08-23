@@ -19,6 +19,7 @@
 #include "systems/CameraSystem.hpp"
 #include "systems/RenderViewSystem.hpp"
 #include "systems/JobSystem.hpp"
+#include "systems/FontSystem.hpp"
 
 // TODO: temp
 #include "utility/Math.hpp"
@@ -27,6 +28,8 @@
 
 #include "renderer/RendererGeometry.hpp"
 #include "resources/Mesh.hpp"
+#include "resources/ResourceTypes.hpp"
+#include "resources/UIText.hpp"
 // end
 
 namespace Application
@@ -57,7 +60,9 @@ namespace Application
 		void* geometry_system_state;
 		void* camera_system_state;
 		void* job_system_state;
+		void* font_system_state;
 
+		// TODO: temp
 		Skybox skybox;
 
 		Darray<Mesh> world_meshes;
@@ -65,6 +70,9 @@ namespace Application
 		Mesh* car_mesh;
 		Mesh* sponza_mesh;
 		bool32 models_loaded;
+
+		UIText test_text;
+		// end
 	};
 
 	static bool32 initialized = false;
@@ -289,6 +297,32 @@ namespace Application
 			return false;
 		}
 
+		FontSystem::Config font_sys_config;
+		font_sys_config.auto_release = false;
+		font_sys_config.max_bitmap_font_config_count = 15;
+		font_sys_config.max_system_font_config_count = 15;
+
+		FontSystem::BitmapFontConfig bitmap_font_configs[2] = {};
+
+		bitmap_font_configs[0].name = "Noto Serif 21px";
+		bitmap_font_configs[0].resource_name = "NotoSerif_21";
+		bitmap_font_configs[0].size = 21;
+
+		bitmap_font_configs[1].name = "Roboto Mono 21px";
+		bitmap_font_configs[1].resource_name = "RobotoMono_21";
+		bitmap_font_configs[1].size = 21;
+		
+		font_sys_config.default_bitmap_font_count = 2;
+		font_sys_config.bitmap_font_configs = bitmap_font_configs;
+	
+		font_sys_config.default_system_font_count = 0;
+		font_sys_config.system_font_configs = 0;
+		if (!FontSystem::system_init(allocate_subsystem_callback, app_state->font_system_state, font_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize font system. Application shutting down..");
+			return false;
+		}
+
 		CameraSystem::Config camera_sys_config;
 		camera_sys_config.max_camera_count = 61;
 		if (!CameraSystem::system_init(allocate_subsystem_callback, app_state->camera_system_state, camera_sys_config))
@@ -340,6 +374,14 @@ namespace Application
 		}
 
 		// TODO: temporary
+
+		if (!ui_text_create(UITextType::BITMAP, "Roboto Mono 21px", 21, "Some test täext,\n\tyo!", &app_state->test_text))
+		{
+			SHMERROR("Failed to load basic ui bitmap text.");
+			return false;
+		}
+		ui_text_set_position(&app_state->test_text, { 50, 100, 0 });
+
 
 		// Skybox
 		TextureMap& cube_map = app_state->skybox.cubemap;
@@ -555,17 +597,32 @@ namespace Application
 					return false;
 				}
 
-				Renderer::MeshPacketData ui_mesh_data = {};
-				ui_mesh_data.mesh_count = 0;		
-				for (uint32 i = 0; i < app_state->ui_meshes.count; i++)
+				Renderer::UIPacketData ui_mesh_data = {};
+				ui_mesh_data.mesh_data.mesh_count = 0;		
+				/*for (uint32 i = 0; i < app_state->ui_meshes.count; i++)
 				{
 					if (app_state->ui_meshes[i].generation != INVALID_ID8)
 					{
-						ui_meshes[ui_mesh_data.mesh_count] = &app_state->ui_meshes[i];
-						ui_mesh_data.mesh_count++;
+						ui_meshes[ui_mesh_data.mesh_data.mesh_count] = &app_state->ui_meshes[i];
+						ui_mesh_data.mesh_data.mesh_count++;
 					}
 				}
-				ui_mesh_data.meshes = ui_meshes.data;
+				ui_mesh_data.mesh_data.meshes = ui_meshes.data;*/
+
+				Camera* world_camera = CameraSystem::get_default_camera();
+				Math::Vec3f pos = world_camera->get_position();
+				Math::Vec3f rot = world_camera->get_rotation();
+
+				char ui_text_buffer[256];
+				CString::safe_print_s<float32, float32, float32, float32, float32, float32>
+					(ui_text_buffer, 256, "Camera Pos : [%f3, %f3, %f3] \nCamera Rot : [%f3, %f3, %f3]",
+					pos.x, pos.y, pos.z, rot.x, rot.y, rot.z);
+				ui_text_set_text(&app_state->test_text, ui_text_buffer);
+
+				ui_mesh_data.text_count = 1;
+				UIText* texts[1];
+				texts[0] = &app_state->test_text;
+				ui_mesh_data.texts = texts;
 
 				if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &ui_mesh_data, &render_packet.views[2]))
 				{
@@ -603,9 +660,11 @@ namespace Application
 
 		// temp
 		Renderer::texture_map_release_resources(&app_state->skybox.cubemap);
+		ui_text_destroy(&app_state->test_text);
 		// end
 	
 		CameraSystem::system_shutdown();
+		FontSystem::system_shutdown();
 		GeometrySystem::system_shutdown();
 		MaterialSystem::system_shutdown();
 		TextureSystem::system_shutdown();

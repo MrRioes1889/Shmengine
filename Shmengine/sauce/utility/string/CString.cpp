@@ -551,10 +551,68 @@ namespace CString
 		return true;
 	}
 
+	bool32 parse_i8(const char* s, int8& out)
+	{
+
+		int8 sign = 1;
+		const char* ptr = s;
+		int8 ret = 0;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		uint32 multiplier = 1;
+
+		for (int32 i = (int32)(length(ptr) - 1); i >= 0; i--)
+		{
+			if (ptr[i] < '0' || ptr[i] > '9')
+				return false;
+
+			uint32 digit = ptr[i] - '0';
+			ret += (int8)(digit * multiplier);
+			multiplier *= 10;
+		}
+
+		out = ret * sign;
+		return true;
+	}
+
+	bool32 parse_i16(const char* s, int16& out)
+	{
+
+		int8 sign = 1;
+		const char* ptr = s;
+		int16 ret = 0;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		uint32 multiplier = 1;
+
+		for (int32 i = (int32)(length(ptr) - 1); i >= 0; i--)
+		{
+			if (ptr[i] < '0' || ptr[i] > '9')
+				return false;
+
+			uint32 digit = ptr[i] - '0';
+			ret += (int16)(digit * multiplier);
+			multiplier *= 10;
+		}
+
+		out = ret * sign;
+		return true;
+	}
+
 	bool32 parse_i32(const char* s, int32& out)
 	{
 
-		int32 sign = 1;
+		int8 sign = 1;
 		const char* ptr = s;
 		int32 ret = 0;
 
@@ -583,7 +641,7 @@ namespace CString
 	bool32 parse_i64(const char* s, int64& out)
 	{
 
-		int32 sign = 1;
+		int8 sign = 1;
 		const char* ptr = s;
 		int64 ret = 0;
 
@@ -609,10 +667,68 @@ namespace CString
 		return true;
 	}
 
+	bool32 parse_u8(const char* s, uint8& out)
+	{
+
+		int8 sign = 1;
+		const char* ptr = s;
+		uint8 ret = 0;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		uint32 multiplier = 1;
+
+		for (int32 i = (int32)(length(ptr) - 1); i >= 0; i--)
+		{
+			if (ptr[i] < '0' || ptr[i] > '9')
+				return false;
+
+			uint32 digit = ptr[i] - '0';
+			ret += (uint8)(digit * multiplier);
+			multiplier *= 10;
+		}
+
+		out = ret * sign;
+		return true;
+	}
+
+	bool32 parse_u16(const char* s, uint16& out)
+	{
+
+		int8 sign = 1;
+		const char* ptr = s;
+		uint16 ret = 0;
+
+		if (ptr[0] == '-')
+		{
+			sign = -1;
+			ptr++;
+		}
+
+		uint32 multiplier = 1;
+
+		for (int32 i = (int32)(length(ptr) - 1); i >= 0; i--)
+		{
+			if (ptr[i] < '0' || ptr[i] > '9')
+				return false;
+
+			uint32 digit = ptr[i] - '0';
+			ret += (uint8)(digit * multiplier);
+			multiplier *= 10;
+		}
+
+		out = ret * sign;
+		return true;
+	}
+
 	bool32 parse_u32(const char* s, uint32& out)
 	{
 
-		int32 sign = 1;
+		int8 sign = 1;
 		const char* ptr = s;
 		uint32 ret = 0;
 
@@ -641,7 +757,7 @@ namespace CString
 	bool32 parse_u64(const char* s, uint64& out)
 	{
 
-		int32 sign = 1;
+		int8 sign = 1;
 		const char* ptr = s;
 		uint64 ret = 0;
 

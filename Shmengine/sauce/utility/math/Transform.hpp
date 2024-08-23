@@ -11,6 +11,10 @@ namespace Math
 	SHMAPI Transform transform_from_position_rotation(Vec3f position, Quat rotation);
 	SHMAPI Transform transform_from_position_rotation_scale(Vec3f position, Quat rotation, Vec3f scale);
 
+	SHMAPI void transform_set_position(Transform& t, Vec3f position);
+	SHMAPI void transform_set_rotaion(Transform& t, Quat rotation);
+	SHMAPI void transform_set_scale(Transform& t, Vec3f scale);
+
 	SHMAPI void transform_translate(Transform& t, Vec3f translation);
 	SHMAPI void transform_rotate(Transform& t, Quat rotation);
 	SHMAPI void transform_scale(Transform& t, Vec3f scale);

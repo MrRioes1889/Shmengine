@@ -76,6 +76,24 @@ namespace Math
 		return t;
 	}
 
+	void transform_set_position(Transform& t, Vec3f position)
+	{
+		t.position = position;
+		t.is_dirty = true;
+	}
+
+	void transform_set_rotaion(Transform& t, Quat rotation)
+	{
+		t.rotation = rotation;
+		t.is_dirty = true;
+	}
+
+	void transform_set_scale(Transform& t, Vec3f scale)
+	{
+		t.scale = scale;
+		t.is_dirty = true;
+	}
+
 	void transform_translate(Transform& t, Vec3f translation)
 	{
 		t.position = t.position + translation;

@@ -17,6 +17,7 @@
 #include "systems/TextureSystem.hpp"
 #include "systems/ResourceSystem.hpp"
 
+// TODO: Get rid of frontend include
 #include "renderer/RendererFrontend.hpp"
 
 #define VULKAN_USE_CUSTOM_ALLOCATOR 1
@@ -201,10 +202,10 @@ namespace Renderer::Vulkan
 
 		*out_window_render_target_count = context.swapchain.render_images.capacity;
 
-		for (uint32 i = 0; i < VulkanConfig::renderpass_max_registered; i++)
+		for (uint32 i = 0; i < RendererConfig::renderpass_max_registered; i++)
 			context.registered_renderpasses[i].id = INVALID_ID;
 
-		context.renderpass_table.init(VulkanConfig::renderpass_max_registered, 0);
+		context.renderpass_table.init(RendererConfig::renderpass_max_registered, 0);
 		context.renderpass_table.floodfill(INVALID_ID);
 
 		for (uint32 i = 0; i < config.pass_config_count; i++)
@@ -216,7 +217,7 @@ namespace Renderer::Vulkan
 				return false;
 			}
 
-			for (uint32 j = 0; j < VulkanConfig::renderpass_max_registered; j++) {
+			for (uint32 j = 0; j < RendererConfig::renderpass_max_registered; j++) {
 				if (context.registered_renderpasses[j].id == INVALID_ID) {
 					// Found one.
 					context.registered_renderpasses[j].id = j;
@@ -276,7 +277,7 @@ namespace Renderer::Vulkan
 		}
 		renderbuffer_bind(&context.object_index_buffer, 0);
 
-		for (uint32 i = 0; i < VulkanConfig::max_geometry_count; i++)
+		for (uint32 i = 0; i < RendererConfig::max_geometry_count; i++)
 		{
 			context.geometries[i].id = INVALID_ID;
 		}
@@ -321,7 +322,7 @@ namespace Renderer::Vulkan
 		}	*/		
 
 		SHMDEBUG("Destroying vulkan renderpass...");
-		for (uint32 i = 0; i < VulkanConfig::renderpass_max_registered; i++)
+		for (uint32 i = 0; i < RendererConfig::renderpass_max_registered; i++)
 		{
 			if (context.registered_renderpasses[i].id != INVALID_ID)
 				vk_renderpass_destroy(&context.registered_renderpasses[i]);
@@ -639,7 +640,7 @@ namespace Renderer::Vulkan
 		}
 		else
 		{
-			for (uint32 i = 0; i < VulkanConfig::max_geometry_count; i++)
+			for (uint32 i = 0; i < RendererConfig::max_geometry_count; i++)
 			{
 				if (context.geometries[i].id == INVALID_ID)
 				{

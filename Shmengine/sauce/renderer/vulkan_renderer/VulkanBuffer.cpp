@@ -129,6 +129,9 @@ namespace Renderer::Vulkan
 
 	void vk_buffer_destroy(Renderbuffer* buffer)
 	{
+		if (!buffer->internal_data.data)
+			return;
+
 		VulkanBuffer* v_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		vk_buffer_destroy_internal(v_buffer);
 		buffer->internal_data.free_data();

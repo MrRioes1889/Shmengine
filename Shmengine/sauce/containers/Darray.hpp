@@ -46,6 +46,8 @@ struct SHMAPI Darray
 	SHMINLINE void remove_at(uint32 index);
 
 	SHMINLINE T* transfer_data();
+
+	SHMINLINE void copy_memory(const void* source, uint64 size, uint64 offset, uint32 imported_count);
 	
 	SHMINLINE T& operator[](uint32 index)
 	{
@@ -313,4 +315,13 @@ inline SHMINLINE T* Darray<T>::transfer_data()
 	count = 0;
 
 	return ret;
+}
+
+template<typename T>
+SHMINLINE void Darray<T>::copy_memory(const void* source, uint64 size, uint64 offset, uint32 imported_count)
+{
+	SHMASSERT_MSG((size + offset) <= (sizeof(T) * capacity) && imported_count <= capacity, "Darray does not fit requested size and/or imported count does not fit!");
+	uint8* dest = ((uint8*)data) + offset;
+	Memory::copy_memory(source, dest, size);
+	count = imported_count;
 }
