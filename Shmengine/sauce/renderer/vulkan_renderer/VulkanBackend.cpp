@@ -370,7 +370,7 @@ namespace Renderer::Vulkan
 		SHMINFOV("Vulkan renderer backend->resize: w/h/gen: %u/%u/%u", width, height, context.framebuffer_size_generation);
 	}
 
-	bool32 begin_frame(float32 delta_time)
+	bool32 begin_frame(float64 delta_time)
 	{
 		
 		context.frame_delta_time = delta_time;
@@ -444,7 +444,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 end_frame(float32 delta_time)
+	bool32 end_frame(float64 delta_time)
 	{
 
 		VulkanCommandBuffer* cmd = &context.graphics_command_buffers[context.image_index];

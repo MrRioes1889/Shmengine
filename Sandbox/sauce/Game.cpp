@@ -21,7 +21,7 @@ bool32 game_init(Game* game_inst)
     return true;
 }
 
-bool32 game_update(Game* game_inst, float32 delta_time) 
+bool32 game_update(Game* game_inst, float64 delta_time) 
 {
     GameState* state = (GameState*)game_inst->state;
 
@@ -71,60 +71,60 @@ bool32 game_update(Game* game_inst, float32 delta_time)
     {
         if (Input::is_key_down(Keys::KEY_LEFT))
         {
-            state->world_camera->yaw(1.0f * delta_time);
+            state->world_camera->yaw(1.0f * (float32)delta_time);
         }
         if (Input::is_key_down(Keys::KEY_RIGHT))
         {
-            state->world_camera->yaw(-1.0f * delta_time);
+            state->world_camera->yaw(-1.0f * (float32)delta_time);
         }
         if (Input::is_key_down(Keys::KEY_UP))
         {
-            state->world_camera->pitch(1.0f * delta_time);
+            state->world_camera->pitch(1.0f * (float32)delta_time);
         }
         if (Input::is_key_down(Keys::KEY_DOWN))
         {
-            state->world_camera->pitch(-1.0f * delta_time);
+            state->world_camera->pitch(-1.0f * (float32)delta_time);
         }
     }
     else
     {
         Math::Vec2i mouse_offset = Input::get_internal_mouse_offset();
         float32 mouse_sensitivity = 3.0f;
-        state->world_camera->yaw(-mouse_offset.x * delta_time * mouse_sensitivity);
-        state->world_camera->pitch(-mouse_offset.y * delta_time * mouse_sensitivity);
+        state->world_camera->yaw(-mouse_offset.x * (float32)delta_time * mouse_sensitivity);
+        state->world_camera->pitch(-mouse_offset.y * (float32)delta_time * mouse_sensitivity);
     }
     
     float32 temp_move_speed = 50.0f;
 
     if (Input::is_key_down(Keys::KEY_W))
     {
-        state->world_camera->move_forward(temp_move_speed * delta_time);
+        state->world_camera->move_forward(temp_move_speed * (float32)delta_time);
     }
     if (Input::is_key_down(Keys::KEY_S))
     {
-        state->world_camera->move_backward(temp_move_speed * delta_time);
+        state->world_camera->move_backward(temp_move_speed * (float32)delta_time);
     }
     if (Input::is_key_down(Keys::KEY_D))
     {
-        state->world_camera->move_right(temp_move_speed * delta_time);
+        state->world_camera->move_right(temp_move_speed * (float32)delta_time);
     }
     if (Input::is_key_down(Keys::KEY_A))
     {
-        state->world_camera->move_left(temp_move_speed * delta_time);
+        state->world_camera->move_left(temp_move_speed * (float32)delta_time);
     }
     if (Input::is_key_down(Keys::KEY_SPACE))
     {
-        state->world_camera->move_up(temp_move_speed * delta_time);
+        state->world_camera->move_up(temp_move_speed * (float32)delta_time);
     }
     if (Input::is_key_down(Keys::KEY_SHIFT))
     {
-        state->world_camera->move_down(temp_move_speed * delta_time);
+        state->world_camera->move_down(temp_move_speed * (float32)delta_time);
     }
 
     return true;
 }
 
-bool32 game_render(Game* game_inst, float32 delta_time) 
+bool32 game_render(Game* game_inst, float64 delta_time) 
 {
     return true;
 }

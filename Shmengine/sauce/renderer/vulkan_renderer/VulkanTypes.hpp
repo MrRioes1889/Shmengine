@@ -281,9 +281,9 @@ namespace Renderer::Vulkan
 		uint32 framebuffer_width;
 		uint32 framebuffer_height;
 
-		float32 frame_delta_time;
-
 		bool8 is_multithreaded;
+
+		float64 frame_delta_time;
 	};
 
 }

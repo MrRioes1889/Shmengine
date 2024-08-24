@@ -319,8 +319,8 @@ namespace Renderer
 
 		void (*on_resized)(uint32 width, uint32 height);
 
-		bool32(*begin_frame)(float32 delta_time);
-		bool32(*end_frame)(float32 delta_time);
+		bool32(*begin_frame)(float64 delta_time);
+		bool32(*end_frame)(float64 delta_time);
 
 		void (*render_target_create)(uint32 attachment_count, Texture* const * attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
 		void (*render_target_destroy)(RenderTarget* target, bool32 free_internal_memory);
@@ -471,7 +471,7 @@ namespace Renderer
 
 	struct RenderPacket
 	{
-		float32 delta_time;
+		float64 delta_time;
 
 		Sarray<RenderViewPacket> views;
 	};

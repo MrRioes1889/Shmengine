@@ -42,7 +42,7 @@ namespace Application
 		bool32 is_running;
 		bool32 is_suspended;
 		uint32 width, height;
-		float32 last_time;
+		float64 last_time;
 		Clock clock;
 
 		Memory::LinearAllocator systems_allocator;
@@ -520,9 +520,9 @@ namespace Application
 		clock_update(&app_state->clock);
 		app_state->last_time = app_state->clock.elapsed;
 
-		float32 running_time = 0;
+		float64 running_time = 0;
 		uint32 frame_count = 0;
-		float32 target_frame_seconds = 1.0f / 120.0f;
+		float64 target_frame_seconds = 1.0f / 120.0f;
 
 		Renderer::RenderPacket render_packet = {};
 		render_packet.views.init(3, 0);
@@ -534,8 +534,8 @@ namespace Application
 		{
 
 			clock_update(&app_state->clock);
-			float32 current_time = app_state->clock.elapsed;
-			float32 delta_time = current_time - app_state->last_time;
+			float64 current_time = app_state->clock.elapsed;
+			float64 delta_time = current_time - app_state->last_time;
 			float64 frame_start_time = Platform::get_absolute_time();
 			app_state->last_time = current_time;
 
@@ -574,7 +574,7 @@ namespace Application
 					return false;
 				}
 			
-				Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * delta_time, true);
+				Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * (float32)delta_time, true);
 				Math::transform_rotate(app_state->world_meshes[0].transform, rotation);
 				Math::transform_rotate(app_state->world_meshes[1].transform, rotation);
 				Math::transform_rotate(app_state->world_meshes[2].transform, rotation);						
@@ -640,7 +640,7 @@ namespace Application
 
 			float64 frame_end_time = Platform::get_absolute_time();
 			float64 frame_elapsed_time = frame_end_time - frame_start_time;
-			running_time += (float32)frame_elapsed_time;
+			running_time += frame_elapsed_time;
 			float64 remaining_s = target_frame_seconds - frame_elapsed_time;
 
 			if (remaining_s > 0)

@@ -5,7 +5,7 @@
 struct Clock
 {
 	float64 start_time;
-	float32 elapsed;
+	float64 elapsed;
 };
 
 SHMAPI void clock_update(Clock* clock);
