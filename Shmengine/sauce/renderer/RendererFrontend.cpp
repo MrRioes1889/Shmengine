@@ -451,7 +451,7 @@ namespace Renderer
 	}
 
 	void* renderbuffer_map_memory(Renderbuffer* buffer, uint64 offset, uint64 size)
-	{
+	{		
 		return system_state->backend.renderbuffer_map_memory(buffer, offset, size);
 	}
 

@@ -54,13 +54,13 @@ namespace Renderer::Vulkan
 		case RenderbufferType::VERTEX:
 		{
 			buffer->usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-			buffer->memory_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			buffer->memory_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; //| VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			break;
 		}		
 		case RenderbufferType::INDEX:
 		{
 			buffer->usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-			buffer->memory_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			buffer->memory_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; //| VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			break;
 		}		
 		case RenderbufferType::UNIFORM:
@@ -93,6 +93,9 @@ namespace Renderer::Vulkan
 			return false;
 		}
 		}
+
+		buffer->is_mapped = false;
+		buffer->is_locked = false;
 
 		VkBufferCreateInfo buffer_create_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		buffer_create_info.size = size;
@@ -259,13 +262,18 @@ namespace Renderer::Vulkan
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		void* data;
 		VK_CHECK(vkMapMemory(context.device.logical_device, internal_buffer->memory, offset, size, 0, &data));
+		internal_buffer->is_mapped = true;
 		return data;
 	}
 
 	void vk_buffer_unmap_memory(Renderbuffer* buffer)
-	{
+	{		
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
+		if (!internal_buffer->is_mapped)
+			return;
+
 		vkUnmapMemory(context.device.logical_device, internal_buffer->memory);
+		internal_buffer->is_mapped = false;
 	}
 
 	bool32 vk_buffer_flush(Renderbuffer* buffer, uint64 offset, uint64 size)
