@@ -61,7 +61,7 @@ namespace Renderer
 	bool32 renderbuffer_bind(Renderbuffer* buffer, uint64 offset);
 	bool32 renderbuffer_unbind(Renderbuffer* buffer);
 	void* renderbuffer_map_memory(Renderbuffer* buffer, uint64 offset, uint64 size);
-	void renderbuffer_unmap_memory(Renderbuffer* buffer, uint64 offset, uint64 size);
+	void renderbuffer_unmap_memory(Renderbuffer* buffer);
 	bool32 renderbuffer_flush(Renderbuffer* buffer, uint64 offset, uint64 size);
 	bool32 renderbuffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void** out_memory);
 	bool32 renderbuffer_resize(Renderbuffer* buffer, uint64 new_total_size);

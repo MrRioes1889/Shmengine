@@ -67,7 +67,7 @@ namespace Renderer::Vulkan
 	bool32 vk_buffer_bind(Renderbuffer* buffer, uint64 offset);
 	bool32 vk_buffer_unbind(Renderbuffer* buffer);
 	void* vk_buffer_map_memory(Renderbuffer* buffer, uint64 offset, uint64 size);
-	void vk_buffer_unmap_memory(Renderbuffer* buffer, uint64 offset, uint64 size);
+	void vk_buffer_unmap_memory(Renderbuffer* buffer);
 	bool32 vk_buffer_flush(Renderbuffer* buffer, uint64 offset, uint64 size);
 	bool32 vk_buffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void** out_memory);
 	bool32 vk_buffer_load_range(Renderbuffer* buffer, uint64 offset, uint64 size, const void* data);

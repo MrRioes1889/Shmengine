@@ -11,6 +11,8 @@ tests_name = "Tests"
 
 IncludeDir = {}
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+
 project  (engine_name)
     kind "SharedLib"
     language "C++"
@@ -33,12 +35,15 @@ project  (engine_name)
     includedirs
 	{
         "%{wks.location}/" .. engine_name .. "/sauce",        
-        "$(VULKAN_SDK)/Include"
+        "$(VULKAN_SDK)/Include",
+        "%{wks.location}/vendor/Optick/include", 
 	}
 
     links
     {
-        "$(VULKAN_SDK)/Lib/vulkan-1.lib"  
+        "$(VULKAN_SDK)/Lib/vulkan-1.lib",
+        "Winmm.lib",
+        "%{wks.location}/vendor/Optick/lib/x64/release/OptickCore.lib",   
     } 
 
     flags("FatalWarnings")
@@ -55,7 +60,7 @@ project  (engine_name)
         buildmessage 'Post build events'
         buildcommands 
         {
-            '$(SolutionDir)/post-build.bat'
+            '$(SolutionDir)/post-build.bat bin\\Debug-windows-x86_64\\Sandbox',
         }
         -- Output file does not get generated. Only there so that post build event is triggered every time.
         buildoutputs { '$(SolutionDir)/dummy_target_file' }
@@ -99,6 +104,7 @@ project (app_name)
 	{
 		"%{wks.location}/" .. app_name .. "/sauce",
         "%{wks.location}/" .. engine_name .. "/sauce",
+        "%{wks.location}/vendor/Optick/include", 
 	}
 
     links
@@ -106,6 +112,7 @@ project (app_name)
         "user32.lib",
         "Gdi32.lib",
         "Winmm.lib",
+        "%{wks.location}/vendor/Optick/lib/x64/release/OptickCore.lib",   
         "%{wks.location}/bin/" .. outputdir .. "Shmengine.lib",   
     }
 

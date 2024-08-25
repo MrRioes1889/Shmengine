@@ -129,6 +129,8 @@ namespace Platform
         clock_frequency = 1.0 / (float64)frequency.QuadPart;
         QueryPerformanceCounter(&start_time);
 
+        timeBeginPeriod(1);
+
         return TRUE;
     }
 

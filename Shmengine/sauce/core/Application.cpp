@@ -21,6 +21,8 @@
 #include "systems/JobSystem.hpp"
 #include "systems/FontSystem.hpp"
 
+#include "optick.h"
+
 // TODO: temp
 #include "utility/Math.hpp"
 #include "utility/math/Transform.hpp"
@@ -536,6 +538,8 @@ namespace Application
 		while (app_state->is_running)
 		{
 
+			OPTICK_FRAME("MainThread");
+
 			last_frame_timerpool = global_timerpool;
 			global_timerpool.reset();
 			clock_update(&app_state->clock);
@@ -633,6 +637,7 @@ namespace Application
 				UIText* texts[1];
 				texts[0] = &app_state->test_text;
 				ui_mesh_data.texts = texts;
+				//ui_mesh_data.text_count = 0;
 				
 				if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &ui_mesh_data, &render_packet.views[2]))
 				{
@@ -650,20 +655,24 @@ namespace Application
 				//global_timerpool.timer_stop();
 			}
 
-			float64 frame_end_time = Platform::get_absolute_time();
-			float64 frame_elapsed_time = frame_end_time - frame_start_time;
-			last_frametime = frame_elapsed_time;
-			running_time += frame_elapsed_time;
+			float64 frame_elapsed_time = Platform::get_absolute_time() - frame_start_time;
 			float64 remaining_s = target_frame_seconds - frame_elapsed_time;
 
-			if (remaining_s > 0)
+			bool32 limit_frames = false;
+			if (remaining_s > 0 && limit_frames)
 			{
-				uint32 remaining_ms = (uint32)(remaining_s * 1000);
+				uint32 remaining_ms = (uint32)(remaining_s * 1000);			
+				Platform::sleep(remaining_ms);
 
-				bool32 limit_frames = false;
-				if (limit_frames)
-					Platform::sleep(remaining_ms);
+				while (frame_elapsed_time < target_frame_seconds)
+					frame_elapsed_time = Platform::get_absolute_time() - frame_start_time;
 			}
+
+			float64 frame_end_time = Platform::get_absolute_time();
+			frame_elapsed_time = frame_end_time - frame_start_time;
+			last_frametime = frame_elapsed_time;
+			running_time += frame_elapsed_time;
+
 			frame_count++;
 
 			Input::frame_end(delta_time);	

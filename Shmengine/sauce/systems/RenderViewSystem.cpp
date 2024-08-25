@@ -7,6 +7,7 @@
 #include "renderer/views/RenderViewWORLD.hpp"
 #include "renderer/views/RenderViewUI.hpp"
 #include "renderer/views/RenderViewSkybox.hpp"
+#include "optick.h"
 
 namespace RenderViewSystem
 {
@@ -148,6 +149,7 @@ namespace RenderViewSystem
 
 	bool32 build_packet(const Renderer::RenderView* view, void* data, Renderer::RenderViewPacket* out_packet)
 	{
+		OPTICK_EVENT();
 		return view->on_build_packet(view, data, out_packet);
 	}
 

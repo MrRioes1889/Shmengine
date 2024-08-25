@@ -12,6 +12,8 @@
 #include "systems/CameraSystem.hpp"
 #include "systems/RenderViewSystem.hpp"
 
+#include "optick.h"
+
 // TODO: temporary
 #include "utility/CString.hpp"
 #include "core/Event.hpp"
@@ -165,6 +167,7 @@ namespace Renderer
 
 	bool32 draw_frame(RenderPacket* data)
 	{
+		OPTICK_EVENT();
 		Backend& backend = system_state->backend;
 		backend.frame_count++;
 		bool32 did_resize = false;
@@ -314,7 +317,6 @@ namespace Renderer
 
 	void shader_destroy(Shader* s) 
 	{
-		renderbuffer_unmap_memory(&s->uniform_buffer, 0, s->uniform_buffer.size);
 		renderbuffer_destroy(&s->uniform_buffer);
 		system_state->backend.shader_destroy(s);
 	}
@@ -432,6 +434,7 @@ namespace Renderer
 
 	void renderbuffer_destroy(Renderbuffer* buffer)
 	{	
+		renderbuffer_unmap_memory(buffer);
 		buffer->freelist.destroy();
 		buffer->freelist_data.free_data();
 		system_state->backend.renderbuffer_destroy_internal(buffer);
@@ -452,9 +455,9 @@ namespace Renderer
 		return system_state->backend.renderbuffer_map_memory(buffer, offset, size);
 	}
 
-	void renderbuffer_unmap_memory(Renderbuffer* buffer, uint64 offset, uint64 size)
+	void renderbuffer_unmap_memory(Renderbuffer* buffer)
 	{
-		system_state->backend.renderbuffer_unmap_memory(buffer, offset, size);
+		system_state->backend.renderbuffer_unmap_memory(buffer);
 	}
 
 	bool32 renderbuffer_flush(Renderbuffer* buffer, uint64 offset, uint64 size)

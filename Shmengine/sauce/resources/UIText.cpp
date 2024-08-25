@@ -8,6 +8,8 @@
 #include "renderer/RendererFrontend.hpp"
 #include "containers/Sarray.hpp"
 
+#include "optick.h"
+
 static uint32 utf8_string_length(const char* str);
 static bool32 utf8_bytes_to_codepoint(const char* bytes, uint32 offset, int32* out_codepoint, uint8* out_advance);
 
@@ -103,10 +105,11 @@ void ui_text_set_position(UIText* ui_text, Math::Vec3f position)
 }
 
 void ui_text_set_text(UIText* ui_text, const char* text)
-{
-
+{   
     if (ui_text->text == text)
         return;
+
+    OPTICK_EVENT();
 
     if (!FontSystem::verify_atlas(ui_text->font_atlas, text))
     {

@@ -262,7 +262,7 @@ namespace Renderer::Vulkan
 		return data;
 	}
 
-	void vk_buffer_unmap_memory(Renderbuffer* buffer, uint64 offset, uint64 size)
+	void vk_buffer_unmap_memory(Renderbuffer* buffer)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		vkUnmapMemory(context.device.logical_device, internal_buffer->memory);
@@ -293,7 +293,7 @@ namespace Renderer::Vulkan
 			void* data_ptr;
 			VK_CHECK(vkMapMemory(context.device.logical_device, internal_buffer->memory, offset, size, 0, &data_ptr));
 			Memory::copy_memory(data_ptr, *out_memory, size);
-			vkUnmapMemory(context.device.logical_device, internal_buffer->memory);
+			//vkUnmapMemory(context.device.logical_device, internal_buffer->memory);
 			return true;
 			
 		}
@@ -311,7 +311,7 @@ namespace Renderer::Vulkan
 		void* mapped_data;
 		VK_CHECK(vkMapMemory(context.device.logical_device, read.memory, 0, size, 0, &mapped_data));
 		Memory::copy_memory(mapped_data, *out_memory, size);
-		vkUnmapMemory(context.device.logical_device, read.memory);
+		//vkUnmapMemory(context.device.logical_device, read.memory);
 
 		// Clean up the read buffer.
 		vk_buffer_unbind_internal(&read);
@@ -339,7 +339,7 @@ namespace Renderer::Vulkan
 			void* data_ptr;
 			VK_CHECK(vkMapMemory(context.device.logical_device, buffer->memory, offset, size, 0, &data_ptr));
 			Memory::copy_memory(data, data_ptr, size);
-			vkUnmapMemory(context.device.logical_device, buffer->memory);
+			//vkUnmapMemory(context.device.logical_device, buffer->memory);
 			return true;
 
 		}
