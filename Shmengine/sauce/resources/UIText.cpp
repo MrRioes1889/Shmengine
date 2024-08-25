@@ -303,6 +303,8 @@ static void regenerate_geometry(UIText* ui_text)
         return;
     }
 
+    
+
 }
 
 

@@ -209,7 +209,7 @@ namespace Application
 		}
 
 		ResourceSystem::Config resource_sys_config;
-		resource_sys_config.asset_base_path = "D:/dev/Shmengine/assets/";
+		resource_sys_config.asset_base_path = "../assets/";
 		resource_sys_config.max_loader_count = 32;
 		if (!ResourceSystem::system_init(allocate_subsystem_callback, app_state->resource_system_state, resource_sys_config))
 		{
@@ -530,9 +530,14 @@ namespace Application
 		Sarray<Mesh*> world_meshes(app_state->world_meshes.count, 0);
 		Sarray<Mesh*> ui_meshes(app_state->world_meshes.count, 0);
 
+		float64 last_frametime = 0.0;
+		TimerPool last_frame_timerpool;
+
 		while (app_state->is_running)
 		{
 
+			last_frame_timerpool = global_timerpool;
+			global_timerpool.reset();
 			clock_update(&app_state->clock);
 			float64 current_time = app_state->clock.elapsed;
 			float64 delta_time = current_time - app_state->last_time;
@@ -541,15 +546,18 @@ namespace Application
 
 			JobSystem::update();
 
+			//global_timerpool.timer_start("Platform message pump");
 			if (!Platform::pump_messages())
 			{
 				app_state->is_running = false;
 			}
+			//global_timerpool.timer_stop();
 
 			Input::frame_start();
 
 			if (!app_state->is_suspended)
 			{
+				//global_timerpool.timer_start("Game layer updates");
 				if (!app_state->game_inst->update(app_state->game_inst, delta_time))
 				{
 					app_state->is_running = false;
@@ -561,24 +569,25 @@ namespace Application
 					app_state->is_running = false;
 					break;
 				}
+				global_timerpool.timer_stop();
 
 				render_packet.delta_time = delta_time;
 
 				// TODO: temporary
-
+		
 				Renderer::SkyboxPacketData skybox_data = {};
 				skybox_data.skybox = &app_state->skybox;
 				if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), &skybox_data, &render_packet.views[0]))
 				{
 					SHMERROR("Failed to build packet for view 'skybox'.");
 					return false;
-				}
-			
+				}		
+							
 				Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * (float32)delta_time, true);
 				Math::transform_rotate(app_state->world_meshes[0].transform, rotation);
 				Math::transform_rotate(app_state->world_meshes[1].transform, rotation);
 				Math::transform_rotate(app_state->world_meshes[2].transform, rotation);						
-
+				
 				Renderer::MeshPacketData world_mesh_data = {};
 				world_mesh_data.mesh_count = 0;
 				for (uint32 i = 0; i < app_state->world_meshes.count; i++)
@@ -589,14 +598,14 @@ namespace Application
 						world_mesh_data.mesh_count++;
 					}
 				}
-				world_mesh_data.meshes = world_meshes.data;
+				world_mesh_data.meshes = world_meshes.data;			
 
 				if (!RenderViewSystem::build_packet(RenderViewSystem::get("world_opaque"), &world_mesh_data, &render_packet.views[1]))
 				{
 					SHMERROR("Failed to build packet for view 'world_opaque'.");
 					return false;
-				}
-
+				}				
+				
 				Renderer::UIPacketData ui_mesh_data = {};
 				ui_mesh_data.mesh_data.mesh_count = 0;		
 				/*for (uint32 i = 0; i < app_state->ui_meshes.count; i++)
@@ -612,34 +621,38 @@ namespace Application
 				Camera* world_camera = CameraSystem::get_default_camera();
 				Math::Vec3f pos = world_camera->get_position();
 				Math::Vec3f rot = world_camera->get_rotation();
-
+				
 				char ui_text_buffer[256];
 				CString::safe_print_s<float32, float32, float32, float32, float32, float32>
-					(ui_text_buffer, 256, "Camera Pos : [%f3, %f3, %f3] \nCamera Rot : [%f3, %f3, %f3]",
-					pos.x, pos.y, pos.z, rot.x, rot.y, rot.z);
-				ui_text_set_text(&app_state->test_text, ui_text_buffer);
+					(ui_text_buffer, 256, "Camera Pos : [%f3, %f3, %f3] \nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms",
+					pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0);	
+							
+				ui_text_set_text(&app_state->test_text, ui_text_buffer);		
 
 				ui_mesh_data.text_count = 1;
 				UIText* texts[1];
 				texts[0] = &app_state->test_text;
 				ui_mesh_data.texts = texts;
-
+				
 				if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &ui_mesh_data, &render_packet.views[2]))
 				{
 					SHMERROR("Failed to build packet for view 'ui'.");
 					return false;
-				}
+				}		
 
+				//global_timerpool.timer_start("draw_frame");
 				Renderer::draw_frame(&render_packet);
 
 				for (uint32 i = 0; i < render_packet.views.capacity; i++)
 				{
 					render_packet.views[i].view->on_destroy_packet(render_packet.views[i].view, &render_packet.views[i]);
 				}
+				//global_timerpool.timer_stop();
 			}
 
 			float64 frame_end_time = Platform::get_absolute_time();
 			float64 frame_elapsed_time = frame_end_time - frame_start_time;
+			last_frametime = frame_elapsed_time;
 			running_time += frame_elapsed_time;
 			float64 remaining_s = target_frame_seconds - frame_elapsed_time;
 

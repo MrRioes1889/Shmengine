@@ -1,0 +1,6 @@
+[INFO]: Input subsystem initialized!
+[INFO]: Event subsystem initialized!
+[INFO]: Shmengine Engine Version: 0.001a
+[INFO]: Starting the engines :)
+[DEBUG]:Window resize occured: 1600, 900
+[WARN]: Renderer backend does not exist to accept resize!

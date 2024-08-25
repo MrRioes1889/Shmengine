@@ -5,7 +5,7 @@
 
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
-
+#include "core/Clock.hpp"
 
 namespace Renderer::Vulkan
 {
@@ -329,9 +329,10 @@ namespace Renderer::Vulkan
 
 	}
 
+	// TODO: Overhaul for performance necessary. Creating/destruction of staging buffer and copy function seem to be major bottlenecks!
 	static bool32 vk_buffer_load_range_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
-
+		
 		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
 		{
 
@@ -342,19 +343,21 @@ namespace Renderer::Vulkan
 			return true;
 
 		}
-
-		VulkanBuffer staging;
+		
+		VulkanBuffer staging;		
 		if (!vk_buffer_create_internal(&staging, RenderbufferType::STAGING, size)) {
-			SHMERROR("vk_buffer_read - Failed to create read buffer.");
+			SHMERROR("vk_buffer_read - failed to create read buffer.");
 			return false;
-		}
+		}		
 		vk_buffer_bind_internal(&staging, 0);
 
 		vk_buffer_load_range_internal(&staging, 0, size, data);
-		vk_buffer_copy_range_internal(staging.handle, 0, buffer->handle, offset, size);
+		vk_buffer_copy_range_internal(staging.handle, 0, buffer->handle, offset, size);	
+		
 
 		vk_buffer_unbind_internal(&staging);
 		vk_buffer_destroy_internal(&staging);
+				
 
 		return true;
 

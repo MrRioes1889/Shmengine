@@ -25,7 +25,8 @@ namespace Log
         out_state = allocator_callback(sizeof(SystemState));
         system_state = (SystemState*)out_state;
 
-        if (!FileSystem::file_open("D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log", FILE_MODE_WRITE, &system_state->log_file))
+        //D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log
+        if (!FileSystem::file_open("../bin/console.log", FILE_MODE_WRITE, &system_state->log_file))
         {
             Platform::console_write_error("Error: Unable to open console.log file for writing", LOG_LEVEL_ERROR);
             return false;
