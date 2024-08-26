@@ -7,6 +7,8 @@
 #include "core/Logging.hpp"
 #include "core/Clock.hpp"
 
+#include "optick.h"
+
 namespace Renderer::Vulkan
 {
 
@@ -342,15 +344,15 @@ namespace Renderer::Vulkan
 	{
 		
 		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
-		{
-
+		{			
 			void* data_ptr;
 			VK_CHECK(vkMapMemory(context.device.logical_device, buffer->memory, offset, size, 0, &data_ptr));
 			Memory::copy_memory(data, data_ptr, size);
 			//vkUnmapMemory(context.device.logical_device, buffer->memory);
 			return true;
-
 		}
+
+		OPTICK_EVENT();
 		
 		VulkanBuffer staging;		
 		if (!vk_buffer_create_internal(&staging, RenderbufferType::STAGING, size)) {
@@ -360,12 +362,10 @@ namespace Renderer::Vulkan
 		vk_buffer_bind_internal(&staging, 0);
 
 		vk_buffer_load_range_internal(&staging, 0, size, data);
-		vk_buffer_copy_range_internal(staging.handle, 0, buffer->handle, offset, size);	
-		
+		vk_buffer_copy_range_internal(staging.handle, 0, buffer->handle, offset, size);		
 
 		vk_buffer_unbind_internal(&staging);
-		vk_buffer_destroy_internal(&staging);
-				
+		vk_buffer_destroy_internal(&staging);			
 
 		return true;
 
