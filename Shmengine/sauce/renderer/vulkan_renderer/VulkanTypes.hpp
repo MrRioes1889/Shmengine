@@ -24,8 +24,8 @@ namespace Renderer::Vulkan
 	{
 		VkBuffer handle;
 		VkDeviceMemory memory;
-		bool8 is_locked;
-		bool8 is_mapped;
+		void* mapped_memory;
+		bool32 is_locked;		
 		VkBufferUsageFlags usage;
 		int32 memory_index;
 		uint32 memory_property_flags;
