@@ -4,8 +4,8 @@ SET wd=%~dp0
 SET build_dir=%1
 echo %build_dir%
 
-echo "copying optick dll to output directory : vendor/Optick/lib/x64/release/OptickCore.dll -> %build_dir%\OptickCore.dll"
-ROBOCOPY %wd%vendor\Optick\lib\x64\release %wd%%build_dir% "OptickCore.dll"
+echo "copying optick dll to output directory : vendor/Optick/lib/x64/release/OptickCore.dll -> %build_dir%OptickCore.dll"
+ROBOCOPY %wd%vendor\Optick\lib\x64\release %build_dir% "OptickCore.dll"
 IF %ERRORLEVEL% GEQ 2 (echo Error: %ERRORLEVEL% && exit)
 
 echo %wd%

@@ -73,7 +73,8 @@ namespace Application
 		Mesh* sponza_mesh;
 		bool32 models_loaded;
 
-		UIText test_text;
+		UIText test_bitmap_text;
+		UIText test_truetype_text;
 		// end
 	};
 
@@ -302,7 +303,7 @@ namespace Application
 		FontSystem::Config font_sys_config;
 		font_sys_config.auto_release = false;
 		font_sys_config.max_bitmap_font_config_count = 15;
-		font_sys_config.max_system_font_config_count = 15;
+		font_sys_config.max_truetype_font_config_count = 15;
 
 		FontSystem::BitmapFontConfig bitmap_font_configs[2] = {};
 
@@ -316,9 +317,16 @@ namespace Application
 		
 		font_sys_config.default_bitmap_font_count = 2;
 		font_sys_config.bitmap_font_configs = bitmap_font_configs;
+
+		FontSystem::TruetypeFontConfig truetype_font_configs[2] = {};
+
+		truetype_font_configs[0].name = "Martian Mono";
+		truetype_font_configs[0].resource_name = "MartianMono";
+		truetype_font_configs[0].default_size = 21;
 	
-		font_sys_config.default_system_font_count = 0;
-		font_sys_config.system_font_configs = 0;
+		font_sys_config.default_truetype_font_count = 1;
+		font_sys_config.truetype_font_configs = truetype_font_configs;
+
 		if (!FontSystem::system_init(allocate_subsystem_callback, app_state->font_system_state, font_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize font system. Application shutting down..");
@@ -377,12 +385,19 @@ namespace Application
 
 		// TODO: temporary
 
-		if (!ui_text_create(UITextType::BITMAP, "Roboto Mono 21px", 21, "Some test täext,\n\tyo!", &app_state->test_text))
+		if (!ui_text_create(UITextType::BITMAP, "Roboto Mono 21px", 21, "Some test täext,\n\tyo!", &app_state->test_bitmap_text))
 		{
 			SHMERROR("Failed to load basic ui bitmap text.");
 			return false;
 		}
-		ui_text_set_position(&app_state->test_text, { 50, 100, 0 });
+		ui_text_set_position(&app_state->test_bitmap_text, { 50, 300, 0 });
+
+		if (!ui_text_create(UITextType::TRUETYPE, "Martian Mono", 21, "Some täest text,\n\tyo!", &app_state->test_truetype_text))
+		{
+			SHMERROR("Failed to load basic ui truetype text.");
+			return false;
+		}
+		ui_text_set_position(&app_state->test_truetype_text, { 50, 100, 0 });
 
 
 		// Skybox
@@ -631,11 +646,12 @@ namespace Application
 					(ui_text_buffer, 256, "Camera Pos : [%f3, %f3, %f3] \nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms",
 					pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0);	
 							
-				ui_text_set_text(&app_state->test_text, ui_text_buffer);		
+				ui_text_set_text(&app_state->test_truetype_text, ui_text_buffer);		
 
 				ui_mesh_data.text_count = 1;
-				UIText* texts[1];
-				texts[0] = &app_state->test_text;
+				UIText* texts[2];
+				texts[0] = &app_state->test_truetype_text;
+				texts[1] = &app_state->test_bitmap_text;
 				ui_mesh_data.texts = texts;
 				//ui_mesh_data.text_count = 0;
 				
@@ -682,7 +698,8 @@ namespace Application
 
 		// temp
 		Renderer::texture_map_release_resources(&app_state->skybox.cubemap);
-		ui_text_destroy(&app_state->test_text);
+		ui_text_destroy(&app_state->test_bitmap_text);
+		ui_text_destroy(&app_state->test_truetype_text);
 		// end
 	
 		CameraSystem::system_shutdown();

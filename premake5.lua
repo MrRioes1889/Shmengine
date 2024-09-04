@@ -60,7 +60,7 @@ project  (engine_name)
         buildmessage 'Post build events'
         buildcommands 
         {
-            '$(SolutionDir)/post-build.bat bin\\Debug-windows-x86_64\\Sandbox',
+            '$(SolutionDir)/post-build.bat $(OutDirFullPath)',
         }
         -- Output file does not get generated. Only there so that post build event is triggered every time.
         buildoutputs { '$(SolutionDir)/dummy_target_file' }

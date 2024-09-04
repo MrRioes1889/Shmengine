@@ -236,6 +236,11 @@ namespace TextureSystem
 
 	}
 
+	void write_to_texture(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
+	{
+		Renderer::texture_write_data(t, offset, size, pixels);
+	}
+
 	void release(const char* name)
 	{
 

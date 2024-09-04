@@ -16,6 +16,7 @@ enum class ResourceType
 	SHADER,
 	MESH,
 	BITMAP_FONT,
+	//TRUETYPE_FONT,
 	CUSTOM
 };
 
@@ -123,7 +124,7 @@ struct TextureMap
 struct FontKerning {
 	int32 codepoint_0;
 	int32 codepoint_1;
-	int16 amount;
+	int16 advance;
 
 	SHMINLINE bool8 operator<=(const FontKerning& other) { return codepoint_0 != other.codepoint_0 ? codepoint_0 <= other.codepoint_0 : codepoint_1 <= other.codepoint_1; }
 	SHMINLINE bool8 operator>=(const FontKerning& other) { return codepoint_0 != other.codepoint_0 ? codepoint_0 >= other.codepoint_0 : codepoint_1 >= other.codepoint_1; }
@@ -145,22 +146,21 @@ struct FontGlyph {
 
 enum class FontType {
 	BITMAP,
-	SYSTEM
+	TRUETYPE
 };
 
 struct FontAtlas {
 	FontType type;
 	char face[256];
-	uint32 size;
+	uint32 font_size;
 	uint32 line_height;
 	int32 baseline;
 	uint32 atlas_size_x;
 	uint32 atlas_size_y;
+	float32 tab_x_advance;
 	TextureMap map;
 	Sarray<FontGlyph> glyphs;
-	Darray<FontKerning> kernings;
-	float32 tab_x_advance;
-	Buffer internal_data;
+	Darray<FontKerning> kernings;	
 };
 
 struct BitmapFontPage {
@@ -171,6 +171,15 @@ struct BitmapFontPage {
 struct BitmapFontResourceData {
 	FontAtlas data;
 	Sarray<BitmapFontPage> pages;
+};
+
+//struct TruetypeFontFace {
+//	char file[256];
+//};
+
+struct TruetypeFontResourceData {
+	char face[256];
+	Buffer binary_data;
 };
 
 struct Material

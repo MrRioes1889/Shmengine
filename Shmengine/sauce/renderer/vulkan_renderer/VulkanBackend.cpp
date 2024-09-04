@@ -19,6 +19,7 @@
 
 // TODO: Get rid of frontend include
 #include "renderer/RendererFrontend.hpp"
+#include "optick.h"
 
 #define VULKAN_USE_CUSTOM_ALLOCATOR 1
 
@@ -373,6 +374,7 @@ namespace Renderer::Vulkan
 	bool32 begin_frame(float64 delta_time)
 	{
 		
+		OPTICK_EVENT();
 		context.frame_delta_time = delta_time;
 		VulkanDevice* device = &context.device;
 
@@ -446,7 +448,8 @@ namespace Renderer::Vulkan
 
 	bool32 end_frame(float64 delta_time)
 	{
-
+		
+		OPTICK_EVENT();
 		VulkanCommandBuffer* cmd = &context.graphics_command_buffers[context.image_index];
 
 		vulkan_command_buffer_end(cmd);

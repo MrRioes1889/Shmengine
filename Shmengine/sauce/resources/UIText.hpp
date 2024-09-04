@@ -9,7 +9,7 @@ enum class UITextType
 {
 	UNKNOWN = 0,
 	BITMAP,
-	SYSTEM
+	TRUETYPE
 };
 
 struct UIText

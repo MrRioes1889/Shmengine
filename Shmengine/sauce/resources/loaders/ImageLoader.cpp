@@ -103,11 +103,13 @@ namespace ResourceSystem
 
 	static void image_loader_unload(ResourceLoader* loader, Resource* resource)
 	{
-		uint8* pixels = ((ImageConfig*)resource->data)->pixels;
-		if (pixels)
-			stbi_image_free(pixels);
+	
 		if (resource->data)
 		{
+			uint8* pixels = ((ImageConfig*)resource->data)->pixels;
+			if (pixels)
+				stbi_image_free(pixels);
+
 			ImageConfig* data = (ImageConfig*)resource->data;
 			(*data).~ImageConfig();
 		}	

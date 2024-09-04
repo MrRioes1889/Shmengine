@@ -172,7 +172,6 @@ namespace Renderer
 		backend.frame_count++;
 		bool32 did_resize = false;
 
-
 		if (system_state->resizing) {
 			system_state->frames_since_resize++;
 
@@ -528,6 +527,7 @@ namespace Renderer
 
 	bool32 renderbuffer_load_range(Renderbuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
+		OPTICK_EVENT();
 		return system_state->backend.renderbuffer_load_range(buffer, offset, size, data);
 	}
 

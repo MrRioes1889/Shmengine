@@ -10,9 +10,6 @@
 
 #include "optick.h"
 
-static uint32 utf8_string_length(const char* str);
-static bool32 utf8_bytes_to_codepoint(const char* bytes, uint32 offset, int32* out_codepoint, uint8* out_advance);
-
 static void regenerate_geometry(UIText* ui_text);
 
 static const uint32 quad_vertex_count = 4;
@@ -106,10 +103,9 @@ void ui_text_set_position(UIText* ui_text, Math::Vec3f position)
 
 void ui_text_set_text(UIText* ui_text, const char* text)
 {   
-    if (ui_text->text == text)
-        return;
-
     OPTICK_EVENT();
+    if (ui_text->text == text)
+        return;  
 
     if (!FontSystem::verify_atlas(ui_text->font_atlas, text))
     {
@@ -142,8 +138,9 @@ void ui_text_draw(UIText* ui_text)
 static void regenerate_geometry(UIText* ui_text)
 {
 
+    OPTICK_EVENT();
     uint32 char_length = ui_text->text.len();
-    uint32 utf8_length = utf8_string_length(ui_text->text.c_str());
+    uint32 utf8_length = FontSystem::utf8_string_length(ui_text->text.c_str());
 
     uint32 vertices_count = quad_vertex_count * utf8_length;
     uint32 indices_count = quad_index_count * utf8_length;
@@ -196,7 +193,7 @@ static void regenerate_geometry(UIText* ui_text)
 
         // NOTE: UTF-8 codepoint handling.
         uint8 advance = 0;
-        if (!utf8_bytes_to_codepoint(ui_text->text.c_str(), c, &codepoint, &advance)) {
+        if (!FontSystem::utf8_bytes_to_codepoint(ui_text->text.c_str(), c, &codepoint, &advance)) {
             SHMWARN("Invalid UTF-8 found in string, using unknown codepoint of -1");
             codepoint = -1;
         }
@@ -231,7 +228,7 @@ static void regenerate_geometry(UIText* ui_text)
             float32 tminy = (float32)g->y / ui_text->font_atlas->atlas_size_y;
             float32 tmaxy = (float32)(g->y + g->height) / ui_text->font_atlas->atlas_size_y;
             // Flip the y axis for system text
-            if (ui_text->type == UITextType::SYSTEM) {
+            if (ui_text->type == UITextType::TRUETYPE) {
                 tminy = 1.0f - tminy;
                 tmaxy = 1.0f - tmaxy;
             }
@@ -257,7 +254,7 @@ static void regenerate_geometry(UIText* ui_text)
                 int32 next_codepoint = 0;
                 uint8 advance_next = 0;
 
-                if (!utf8_bytes_to_codepoint(ui_text->text.c_str(), offset, &next_codepoint, &advance_next)) {
+                if (!FontSystem::utf8_bytes_to_codepoint(ui_text->text.c_str(), offset, &next_codepoint, &advance_next)) {
                     SHMWARN("Invalid UTF-8 found in string, using unknown codepoint of -1");
                     codepoint = -1;
                 }
@@ -265,7 +262,7 @@ static void regenerate_geometry(UIText* ui_text)
                     for (uint32 i = 0; i < ui_text->font_atlas->kernings.count; ++i) {
                         FontKerning* k = &ui_text->font_atlas->kernings[i];
                         if (k->codepoint_0 == codepoint && k->codepoint_1 == next_codepoint) {
-                            kerning = k->amount;
+                            kerning = k->advance;
                         }
                     }
                 }
@@ -306,90 +303,4 @@ static void regenerate_geometry(UIText* ui_text)
         return;
     }
 
-    
-
-}
-
-
-static uint32 utf8_string_length(const char* str) 
-{
-    uint32 length = 0;
-    for (uint32 i = 0; str[i]; i++, length++)
-    {
-        uint32 c = (uint32)str[i];
-        if (c == 0) {
-            break;
-        }
-        if (c >= 0 && c < 127) {
-            // Normal ascii character
-        }
-        else if ((c & 0xE0) == 0xC0) {
-            // Double-byte character, increment once more.
-            i += 1;
-        }
-        else if ((c & 0xF0) == 0xE0) {
-            // Triple-byte character, increment twice more.
-            i += 2;
-        }
-        else if ((c & 0xF8) == 0xF0) {
-            // 4-byte character, increment thrice more.
-            i += 3;
-        }
-        else {
-            // NOTE: Not supporting 5 and 6-byte characters; return as invalid UTF-8.
-            SHMERROR("utf8_string_length - Not supporting 5 and 6-byte characters; Invalid UTF-8.");
-            return 0;
-        }
-    }
-
-    return length;
-}
-
-static bool32 utf8_bytes_to_codepoint(const char* bytes, uint32 offset, int32* out_codepoint, uint8* out_advance) {
-    int32 codepoint = (uint32)bytes[offset];
-    if (codepoint >= 0 && codepoint < 0x7F) 
-    {
-        // Normal single-byte ascii character.
-        *out_advance = 1;
-        *out_codepoint = codepoint;
-        return true;
-    }
-    else if ((codepoint & 0xE0) == 0xC0) 
-    {
-        // Double-byte character
-        codepoint = ((bytes[offset + 0] & 0b00011111) << 6) +
-            (bytes[offset + 1] & 0b00111111);
-        *out_advance = 2;
-        *out_codepoint = codepoint;
-        return true;
-    }
-    else if ((codepoint & 0xF0) == 0xE0) 
-    {
-        // Triple-byte character
-        codepoint = ((bytes[offset + 0] & 0b00001111) << 12) +
-            ((bytes[offset + 1] & 0b00111111) << 6) +
-            (bytes[offset + 2] & 0b00111111);
-        *out_advance = 3;
-        *out_codepoint = codepoint;
-        return true;
-    }
-    else if ((codepoint & 0xF8) == 0xF0) 
-    {
-        // 4-byte character
-        codepoint = ((bytes[offset + 0] & 0b00000111) << 18) +
-            ((bytes[offset + 1] & 0b00111111) << 12) +
-            ((bytes[offset + 2] & 0b00111111) << 6) +
-            (bytes[offset + 3] & 0b00111111);
-        *out_advance = 4;
-        *out_codepoint = codepoint;
-        return true;
-    }
-    else 
-    {
-        // NOTE: Not supporting 5 and 6-byte characters; return as invalid UTF-8.
-        *out_advance = 0;
-        *out_codepoint = 0;
-        SHMERROR("utf8_bytes_to_codepoint - Not supporting 5 and 6-byte characters; Invalid UTF-8.");
-        return false;
-    }
 }

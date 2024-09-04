@@ -47,7 +47,6 @@ namespace ResourceSystem
     static bool32 write_shmbmf_file(const char* shmbmf_filepath, const char* name, const BitmapFontResourceData* out_data);
     static bool32 load_shmbmf_file(FileSystem::FileHandle* shmbmf_file, const char* shmbmf_filepath, BitmapFontResourceData* out_data);
 
-
     static bool32 bitmap_font_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
     {
 
@@ -76,14 +75,14 @@ namespace ResourceSystem
         }
 
         if (file_type == BitmapFontFileType::NOT_FOUND) {
-            SHMERRORV("Mesh resource loader failed to find file '%s' with any valid extensions.", full_filepath_wo_extension.c_str());
+            SHMERRORV("bitmap_font_loader_load - Bitmap font resource loader failed to find file '%s' with any valid extensions.", full_filepath_wo_extension.c_str());
             return false;
         }
 
         FileSystem::FileHandle f;
         if (!FileSystem::file_open(full_filepath.c_str(), FileMode::FILE_MODE_READ, &f))
         {
-            SHMERRORV("mesh_loader_load - Failed to open file for loading mesh '%s'", full_filepath.c_str());
+            SHMERRORV("bitmap_font_loader_load - Failed to open file for loading bitmap font '%s'", full_filepath.c_str());
             return false;
         }
 
@@ -124,8 +123,9 @@ namespace ResourceSystem
 
     static void bitmap_font_loader_unload(ResourceLoader* loader, Resource* resource)
     {
-        BitmapFontResourceData& data = *((BitmapFontResourceData*)resource->data);
-        data.~BitmapFontResourceData();
+        BitmapFontResourceData* data = (BitmapFontResourceData*)resource->data;
+        if (data)
+            data->~BitmapFontResourceData();
 
         resource_unload(loader, resource);
     }
@@ -185,7 +185,7 @@ namespace ResourceSystem
                 CString::safe_scan<char*, uint32*>(values.c_str(), 
                     "face=\"%s\" size=%u ", 
                     out_data->data.face, 
-                    &out_data->data.size);
+                    &out_data->data.font_size);
             }
             else if (line_identifier == "common")
             {
@@ -283,7 +283,7 @@ namespace ResourceSystem
 
                 if (first_char_id < 256 && second_char_id < 256)
                 {
-                    FontKerning k = { .codepoint_0 = (int32)first_char_id, .codepoint_1 = (int32)second_char_id, .amount = amount };
+                    FontKerning k = { .codepoint_0 = (int32)first_char_id, .codepoint_1 = (int32)second_char_id, .advance = amount };
                     out_data->data.kernings.push(k);
                 }
             }
@@ -335,7 +335,7 @@ namespace ResourceSystem
         CString::copy(256, file_header.face, out_data->data.face);
         file_header.line_height = out_data->data.line_height;
         file_header.baseline = out_data->data.baseline;
-        file_header.glyph_size = out_data->data.size;
+        file_header.glyph_size = out_data->data.font_size;
         file_header.atlas_size_x = out_data->data.atlas_size_x;
         file_header.atlas_size_y = out_data->data.atlas_size_y;
 
@@ -392,7 +392,7 @@ namespace ResourceSystem
         CString::copy(256, out_data->data.face, file_header->face);
         out_data->data.line_height = file_header->line_height;
         out_data->data.baseline = file_header->baseline;
-        out_data->data.size = file_header->glyph_size;
+        out_data->data.font_size = file_header->glyph_size;
         out_data->data.atlas_size_x = file_header->atlas_size_x;
         out_data->data.atlas_size_y = file_header->atlas_size_y;
 
