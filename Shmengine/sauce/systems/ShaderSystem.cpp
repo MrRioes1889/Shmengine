@@ -83,7 +83,7 @@ namespace ShaderSystem
 		system_state = 0;
 	}
 
-	bool32 create_shader(const Renderer::ShaderConfig& config)
+	bool32 create_shader(const Renderer::Renderpass* renderpass, const Renderer::ShaderConfig* config)
 	{
 
 		using namespace Renderer;
@@ -99,7 +99,7 @@ namespace ShaderSystem
 		Memory::zero_memory(shader, sizeof(Shader));
 		shader->id = id;
 		shader->state = Renderer::ShaderState::NOT_CREATED;
-		shader->name = config.name;
+		shader->name = config->name;
 		shader->bound_instance_id = INVALID_ID;
 		shader->renderer_frame_number = INVALID_ID64;
 
@@ -116,38 +116,37 @@ namespace ShaderSystem
 		shader->push_constant_stride = 128;
 		shader->push_constant_size = 0;
 
-		Renderer::Renderpass* renderpass = Renderer::renderpass_get(config.renderpass_name.c_str());
-		if (!renderpass)
-		{
-			SHMERRORV("shader_create - Unable to find renderpass '%s'", config.renderpass_name.c_str());
-			return false;
-		}
+		shader->shader_flags = 0;
+		if (config->depth_test)
+			shader->shader_flags |= ShaderFlags::DEPTH_TEST;
+		if (config->depth_write)
+			shader->shader_flags |= ShaderFlags::DEPTH_WRITE;
 
-		if (!Renderer::shader_create(shader, config, renderpass, (uint8)config.stages.count, config.stage_filenames, config.stages.data))
+		if (!Renderer::shader_create(shader, config, renderpass, (uint8)config->stages.count, config->stage_filenames, config->stages.data))
 		{
 			SHMERROR("shader_create - Error creating shader.");
 			return false;
 		}
 
 		shader->state = ShaderState::UNINITIALIZED;
-		for (uint32 i = 0; i < config.attributes.count; i++)
-			add_attribute(shader, config.attributes.data[i]);
+		for (uint32 i = 0; i < config->attributes.count; i++)
+			add_attribute(shader, config->attributes.data[i]);
 
-		for (uint32 i = 0; i < config.uniforms.count; i++)
+		for (uint32 i = 0; i < config->uniforms.count; i++)
 		{
-			if (config.uniforms.data[i].type == ShaderUniformType::SAMPLER)
-				add_sampler(shader, config.uniforms.data[i]);
+			if (config->uniforms.data[i].type == ShaderUniformType::SAMPLER)
+				add_sampler(shader, config->uniforms.data[i]);
 			else
-				uniform_add(shader, config.uniforms.data[i]);
+				uniform_add(shader, config->uniforms.data[i]);
 		}
 
 		if (!Renderer::shader_init(shader))
 		{
-			SHMERRORV("shader_create - Error initializing shader '%s'.", config.name.c_str());
+			SHMERRORV("shader_create - Error initializing shader '%s'.", config->name.c_str());
 			return false;
 		}
 
-		if (!system_state->lookup.set_value(config.name.c_str(), shader->id))
+		if (!system_state->lookup.set_value(config->name.c_str(), shader->id))
 		{
 			Renderer::shader_destroy(shader);
 			return false;

@@ -156,10 +156,21 @@ namespace Platform
         return TRUE;
     }
 
+#define DEV_SYSTEM 1
+
     void* allocate(uint64 size, uint16 alignment)
     {
         if (alignment > 1)
+        {
+#if DEV_SYSTEM
+            static uint64 start_adress = Gibibytes(1) * 1024 * 4;
+            void* ret = VirtualAlloc((void*)start_adress, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            start_adress += Gibibytes(16);
+            return ret;
+#else
             return _aligned_malloc(size, alignment);
+#endif
+        }      
         else
             return malloc(size);
     }
@@ -167,7 +178,15 @@ namespace Platform
     void free_memory(void* block, bool32 aligned)
     {
         if (aligned)
+#if DEV_SYSTEM
+        {
+            VirtualFree(block, 0, MEM_RELEASE);
+        }
+#else
+        {
             return _aligned_free(block);
+        }
+#endif
         else
             return free(block);
     }

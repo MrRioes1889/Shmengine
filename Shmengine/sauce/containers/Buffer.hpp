@@ -4,12 +4,14 @@
 #include "core/Memory.hpp"
 #include "Sarray.hpp"
 
-namespace BufferFlag
+namespace BufferFlags
 {
-	enum Value
+	enum
 	{
-		EXTERNAL_MEMORY = 1 << 0
+		EXTERNAL_MEMORY = 1 << 0,
+		PLATFORM_ALLOCATION = 1 << 1
 	};
+	typedef uint16 Value;
 }
 
 struct SHMAPI Buffer

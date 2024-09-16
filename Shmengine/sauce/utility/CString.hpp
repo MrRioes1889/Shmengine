@@ -112,6 +112,7 @@ namespace CString
 	SHMAPI bool32 parse_u32(const char* s, uint32& out);
 	SHMAPI bool32 parse_u64(const char* s, uint64& out);
 	SHMAPI bool32 parse_b32(const char* s, bool32& out);
+	SHMAPI bool32 parse_b8(const char* s, bool8& out);
 
 	struct Arg
 	{

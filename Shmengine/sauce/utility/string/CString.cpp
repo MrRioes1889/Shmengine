@@ -793,5 +793,15 @@ namespace CString
 		return true;
 	}
 
+	bool32 parse_b8(const char* s, bool8& out)
+	{
+		if (equal_i(s, "true") || equal_i(s, "1"))
+			out = true;
+		else
+			out = false;
+
+		return true;
+	}
+
 }
 

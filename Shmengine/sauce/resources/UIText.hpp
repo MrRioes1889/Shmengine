@@ -15,6 +15,7 @@ enum class UITextType
 struct UIText
 {
 	UITextType type;
+	UniqueId unique_id;
 	uint32 instance_id;
 	FontAtlas* font_atlas;
 	Renderer::Renderbuffer vertex_buffer;

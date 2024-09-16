@@ -1,6 +1,7 @@
 #include "VulkanBackend.hpp"
 
 #include "VulkanTypes.hpp"
+#include "VulkanInternal.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanPlatform.hpp"
 #include "VulkanSwapchain.hpp"
@@ -9,6 +10,7 @@
 #include "VulkanImage.hpp"
 
 #include "core/Logging.hpp"
+#include "core/Event.hpp"
 #include "containers/Darray.hpp"
 #include "utility/CString.hpp"
 
@@ -48,8 +50,6 @@ namespace Renderer::Vulkan
 		context.is_multithreaded = false;
 
 		create_vulkan_allocator(context.allocator_callbacks);
-
-		context.on_render_target_refresh_required = config.on_render_target_refresh_required;
 
 		context.framebuffer_width = 800;
 		context.framebuffer_height = 600;
@@ -201,47 +201,7 @@ namespace Renderer::Vulkan
 
 		vulkan_swapchain_create(&context, context.framebuffer_width, context.framebuffer_height, &context.swapchain);
 
-		*out_window_render_target_count = context.swapchain.render_images.capacity;
-
-		for (uint32 i = 0; i < RendererConfig::renderpass_max_registered; i++)
-			context.registered_renderpasses[i].id = INVALID_ID;
-
-		context.renderpass_table.init(RendererConfig::renderpass_max_registered, 0);
-		context.renderpass_table.floodfill(INVALID_ID);
-
-		for (uint32 i = 0; i < config.pass_config_count; i++)
-		{
-			uint32 id = context.renderpass_table.get_value(config.pass_configs[i].name);
-			if (id != INVALID_ID)
-			{
-				SHMERRORV("Hashtable-collision with renderpass named '%s'. Initialization failed.", config.pass_configs[i].name);
-				return false;
-			}
-
-			for (uint32 j = 0; j < RendererConfig::renderpass_max_registered; j++) {
-				if (context.registered_renderpasses[j].id == INVALID_ID) {
-					// Found one.
-					context.registered_renderpasses[j].id = j;
-					id = j;
-					break;
-				}
-			}
-
-			if (id == INVALID_ID)
-			{
-				SHMERROR("No space was found for a new renderpass. Increase VULKAN_MAX_REGISTERED_RENDERPASSES. Initialization failed.");
-				return false;
-			}
-
-			context.registered_renderpasses[id].clear_flags = config.pass_configs[i].clear_flags;
-			context.registered_renderpasses[id].clear_color = config.pass_configs[i].clear_color;
-			context.registered_renderpasses[id].dim = config.pass_configs[i].dim;
-			context.registered_renderpasses[id].offset = config.pass_configs[i].offset;
-
-			vk_renderpass_create(&context.registered_renderpasses[id], 1.0f, 0, config.pass_configs[i].prev_name != 0, config.pass_configs[i].next_name != 0);
-
-			context.renderpass_table.set_value(config.pass_configs[i].name, id);
-		}
+		*out_window_render_target_count = context.swapchain.render_textures.capacity;
 
 		create_command_buffers();
 
@@ -321,13 +281,6 @@ namespace Renderer::Vulkan
 			render_target_destroy(&context.world_render_targets[i], true);
 			render_target_destroy(&context.swapchain.render_targets[i], true);
 		}	*/		
-
-		SHMDEBUG("Destroying vulkan renderpass...");
-		for (uint32 i = 0; i < RendererConfig::renderpass_max_registered; i++)
-		{
-			if (context.registered_renderpasses[i].id != INVALID_ID)
-				vk_renderpass_destroy(&context.registered_renderpasses[i]);
-		}
 
 		SHMDEBUG("Destroying vulkan swapchain...");
 		vulkan_swapchain_destroy(&context, &context.swapchain);
@@ -425,22 +378,10 @@ namespace Renderer::Vulkan
 		vulkan_command_reset(cmd);
 		vulkan_command_buffer_begin(cmd, false, false, false);
 
-		VkViewport viewport;
-		viewport.x = 0.0f;
-		viewport.y = (float32)context.framebuffer_height;
-		viewport.width = (float32)context.framebuffer_width;
-		viewport.height = -(float32)context.framebuffer_height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		VkRect2D scissor;
-		scissor.offset.x = 0;
-		scissor.offset.y = 0;
-		scissor.extent.width = context.framebuffer_width;
-		scissor.extent.height = context.framebuffer_height;
-
-		vkCmdSetViewport(cmd->handle, 0, 1, &viewport);
-		vkCmdSetScissor(cmd->handle, 0, 1, &scissor);
+		context.viewport_rect = { 0.0f, (float32)context.framebuffer_height, (float32)context.framebuffer_width, -(float32)context.framebuffer_height };
+		vk_set_viewport(context.viewport_rect);
+		context.scissor_rect = { 0, 0, context.framebuffer_width, context.framebuffer_height };
+		vk_set_scissor(context.scissor_rect);
 
 		return true;
 
@@ -498,36 +439,40 @@ namespace Renderer::Vulkan
 
 	}
 
-	static void _texture_create(Texture* texture, VkFormat image_format)
+	void vk_set_viewport(Math::Vec4f rect)
 	{
-		texture->internal_data.init(sizeof(VulkanImage), 0, AllocationTag::TEXTURE);
-		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
+		VkViewport vp;
+		vp.x = rect.x;
+		vp.y = rect.y;
+		vp.width = rect.z;
+		vp.height = rect.w;
+		vp.minDepth = 0.0f;
+		vp.maxDepth = 1.0f;
 
-		vulkan_image_create(
-			&context,
-			texture->type,
-			texture->width,
-			texture->height,
-			image_format,
-			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			true,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			image);
-
-		texture->generation++;
+		VulkanCommandBuffer* cmd_buffer = &context.graphics_command_buffers[context.image_index];
+		vkCmdSetViewport(cmd_buffer->handle, 0, 1, &vp);
 	}
 
-	void vk_texture_create(const void* pixels, Texture* texture)
+	void vk_reset_viewport()
 	{
-		
-		uint32 image_size = texture->width * texture->height * texture->channel_count * (texture->type == TextureType::TYPE_CUBE ? 6 : 1);
-		VkFormat image_format = VK_FORMAT_R8G8B8A8_UNORM;
+		vk_set_viewport(context.viewport_rect);
+	}
 
-		_texture_create(texture, image_format);
-		vk_texture_write_data(texture, 0, image_size, (uint8*)pixels);	
+	void vk_set_scissor(Math::Rect2Di rect)
+	{
+		VkRect2D scissor;
+		scissor.offset.x = rect.pos.x;
+		scissor.offset.y = rect.pos.y;
+		scissor.extent.width = rect.width;
+		scissor.extent.height = rect.height;
 
+		VulkanCommandBuffer* cmd_buffer = &context.graphics_command_buffers[context.image_index];
+		vkCmdSetScissor(cmd_buffer->handle, 0, 1, &scissor);
+	}
+
+	void vk_reset_scissor()
+	{
+		vk_set_scissor(context.scissor_rect);
 	}
 
 	static VkFormat channel_count_to_format(uint32 channel_count, VkFormat default_format) {
@@ -545,10 +490,65 @@ namespace Renderer::Vulkan
 		}
 	}
 
+	static void _texture_create(Texture* texture, VkFormat image_format)
+	{
+		texture->internal_data.init(sizeof(VulkanImage), 0, AllocationTag::TEXTURE);
+		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
+
+		VkImageUsageFlags usage = 0;
+		VkImageAspectFlags aspect = 0;
+
+		if (texture->flags & TextureFlags::IS_DEPTH)
+		{
+			usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+		}
+		else
+		{
+			usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+		}
+
+		vulkan_image_create(
+			&context,
+			texture->type,
+			texture->width,
+			texture->height,
+			image_format,
+			VK_IMAGE_TILING_OPTIMAL,
+			usage,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			true,
+			aspect,
+			image);
+
+		texture->generation++;
+	}
+
+	void vk_texture_create(const void* pixels, Texture* texture)
+	{
+		
+		uint32 image_size = texture->width * texture->height * texture->channel_count * (texture->type == TextureType::TYPE_CUBE ? 6 : 1);
+		VkFormat image_format;
+
+		if (texture->flags & TextureFlags::IS_DEPTH)
+			image_format = context.device.depth_format;
+		else
+			image_format = VK_FORMAT_R8G8B8A8_UNORM;
+
+		_texture_create(texture, image_format);
+		vk_texture_write_data(texture, 0, image_size, (uint8*)pixels);	
+
+	}
+
 	void vk_texture_create_writable(Texture* texture)
 	{
+		VkFormat image_format;
+		if (texture->flags & TextureFlags::IS_DEPTH)
+			image_format = context.device.depth_format;
+		else
+			image_format = channel_count_to_format(texture->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 
-		VkFormat image_format = channel_count_to_format(texture->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 		_texture_create(texture, image_format);
 
 	}
@@ -561,31 +561,33 @@ namespace Renderer::Vulkan
 		{
 			vulkan_image_destroy(&context, image);
 
-			VkFormat image_format = channel_count_to_format(texture->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
+			VkFormat image_format;
 			texture->width = width;
 			texture->height = height;
+			if (texture->flags & TextureFlags::IS_DEPTH)
+				image_format = context.device.depth_format;
+			else
+				image_format = channel_count_to_format(texture->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
+
 			_texture_create(texture, image_format);
 		}		
 
 	}
 
-	void vk_texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
+	bool32 vk_texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
 	{
 
 		VulkanImage* image = (VulkanImage*)t->internal_data.data;
-
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 
-		// Create a staging buffer and load data into it.
-		Renderbuffer staging;
-		if (!renderbuffer_create(RenderbufferType::STAGING, size, false, &staging))
-		{
-			SHMERROR("vk_texture_write_data - Failed to create staging buffer!");
-			return;
+		VulkanBuffer staging;
+		if (!vk_buffer_create_internal(&staging, RenderbufferType::STAGING, size)) {
+			SHMERROR("Failed to create staging buffer.");
+			return false;
 		}
-		renderbuffer_bind(&staging, 0);
+		vk_buffer_bind_internal(&staging, 0);
 
-		vk_buffer_load_range(&staging, 0, size, pixels);
+		vk_buffer_load_range_internal(&staging, 0, size, pixels);
 
 		VulkanCommandBuffer temp_buffer;
 		VkCommandPool pool = context.device.graphics_command_pool;
@@ -593,14 +595,84 @@ namespace Renderer::Vulkan
 
 		vulkan_command_buffer_reserve_and_begin_single_use(&context, pool, &temp_buffer);
 		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		vulkan_image_copy_from_buffer(&context, t->type, image, ((VulkanBuffer*)staging.internal_data.data)->handle, &temp_buffer);
+		vulkan_image_copy_from_buffer(&context, t->type, image, staging.handle, &temp_buffer);
 		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		vulkan_command_buffer_end_single_use(&context, pool, &temp_buffer, queue);
 
-		renderbuffer_unbind(&staging);
-		renderbuffer_destroy(&staging);
+		vk_buffer_unbind_internal(&staging);
+		vk_buffer_destroy_internal(&staging);
 
 		t->generation++;
+		return true;
+
+	}
+
+	bool32 vk_texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory)
+	{
+
+		VulkanImage* image = (VulkanImage*)t->internal_data.data;
+		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
+
+		VulkanBuffer read;
+		if (!vk_buffer_create_internal(&read, RenderbufferType::READ, size)) {
+			SHMERROR("Failed to create read buffer.");
+			return false;
+		}
+		vk_buffer_bind_internal(&read, 0);
+
+		VulkanCommandBuffer temp_buffer;
+		VkCommandPool pool = context.device.graphics_command_pool;
+		VkQueue queue = context.device.graphics_queue;
+
+		vulkan_command_buffer_reserve_and_begin_single_use(&context, pool, &temp_buffer);
+		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		vulkan_image_copy_to_buffer(&context, t->type, image, read.handle, &temp_buffer);
+		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		vulkan_command_buffer_end_single_use(&context, pool, &temp_buffer, queue);
+
+		if (!vk_buffer_read_internal(&read, offset, size, out_memory))
+			SHMERROR("Failed to read data from dedicated buffer.");
+
+		// Clean up the read buffer.
+		vk_buffer_unbind_internal(&read);
+		vk_buffer_destroy_internal(&read);
+
+		return true;
+
+	}
+
+	bool32 vk_texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba)
+	{
+
+		VulkanImage* image = (VulkanImage*)t->internal_data.data;
+		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
+
+		VulkanBuffer read;
+		if (!vk_buffer_create_internal(&read, RenderbufferType::READ, sizeof(uint32)))
+		{
+			SHMERROR("Failed to create read buffer.");
+			return false;
+		}
+		vk_buffer_bind_internal(&read, 0);
+
+		VulkanCommandBuffer temp_buffer;
+		VkCommandPool pool = context.device.graphics_command_pool;
+		VkQueue queue = context.device.graphics_queue;
+
+		vulkan_command_buffer_reserve_and_begin_single_use(&context, pool, &temp_buffer);
+		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		vulkan_image_copy_pixel_to_buffer(&context, t->type, image, read.handle, x, y, &temp_buffer);
+		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		vulkan_command_buffer_end_single_use(&context, pool, &temp_buffer, queue);
+
+		if (!vk_buffer_read_internal(&read, 0, sizeof(uint32), (void*)out_rgba))
+			SHMERROR("Failed to read data from dedicated buffer.");
+
+		// Clean up the read buffer.
+		vk_buffer_unbind_internal(&read);
+		vk_buffer_destroy_internal(&read);
+
+		return true;
 
 	}
 
@@ -753,24 +825,34 @@ namespace Renderer::Vulkan
 
 	}
 
-	Texture* vk_window_attachment_get(uint32 index)
+	Texture* vk_get_color_attachment(uint32 index)
 	{
-		if (index >= context.swapchain.render_images.capacity) {
-			SHMFATALV("Attempting to get attachment index out of range: %u. Attachment count: %u", index, context.swapchain.render_images.capacity);
+		if (index >= context.swapchain.render_textures.capacity) {
+			SHMFATALV("Failed to get color attachment index out of range: %u. Attachment count: %u", index, context.swapchain.render_textures.capacity);
 			return 0;
 		}
 
-		return context.swapchain.render_images[index];
+		return &context.swapchain.render_textures[index];
 	}
 
-	Texture* vk_depth_attachment_get()
+	Texture* vk_get_depth_attachment(uint32 attachment_index)
 	{
-		return context.swapchain.depth_texture;
+		if (attachment_index >= context.swapchain.depth_textures.capacity) {
+			SHMFATALV("Failed to get attachment index out of range: %u. Attachment count: %u", attachment_index, context.swapchain.depth_textures.capacity);
+			return 0;
+		}
+
+		return &context.swapchain.depth_textures[attachment_index];
 	}
 
-	uint32 vk_window_attachment_index_get()
+	uint32 vk_get_window_attachment_index()
 	{
 		return context.image_index;
+	}
+
+	uint32 vk_get_window_attachment_count()
+	{
+		return context.swapchain.render_textures.capacity;
 	}
 
 	bool8 vk_is_multithreaded()
@@ -797,7 +879,7 @@ namespace Renderer::Vulkan
 	{
 		if (!context.graphics_command_buffers.data)
 		{
-			context.graphics_command_buffers.init(context.swapchain.render_images.capacity, 0, AllocationTag::RENDERER);
+			context.graphics_command_buffers.init(context.swapchain.render_textures.capacity, 0, AllocationTag::RENDERER);
 			for (uint32 i = 0; i < context.graphics_command_buffers.capacity; i++)
 				context.graphics_command_buffers[i] = {};
 		}
@@ -831,7 +913,7 @@ namespace Renderer::Vulkan
 		context.recreating_swapchain = true;
 		vkDeviceWaitIdle(context.device.logical_device);
 
-		for (uint32 i = 0; i < context.swapchain.render_images.capacity; i++)
+		for (uint32 i = 0; i < context.swapchain.render_textures.capacity; i++)
 			context.images_in_flight[i] = 0;
 
 		vulkan_device_query_swapchain_support(context.device.physical_device, context.surface, &context.device.swapchain_support);
@@ -841,11 +923,10 @@ namespace Renderer::Vulkan
 
 		context.framebuffer_size_last_generation = context.framebuffer_size_generation;
 
-		for (uint32 i = 0; i < context.swapchain.render_images.capacity; i++)
+		for (uint32 i = 0; i < context.swapchain.render_textures.capacity; i++)
 			vulkan_command_buffer_free(&context, context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
 
-		if (context.on_render_target_refresh_required)
-			context.on_render_target_refresh_required();
+		Event::event_fire(SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, 0, {});
 
 		create_command_buffers();
 		context.recreating_swapchain = false;

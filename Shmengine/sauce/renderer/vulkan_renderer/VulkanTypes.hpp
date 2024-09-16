@@ -91,11 +91,9 @@ namespace Renderer::Vulkan
 	{
 		VkRenderPass handle;
 		float32 depth;
-		uint32 stencil;
-		VulkanRenderpassState state;
+		uint32 stencil;	
 		uint32 clear_flags;
-		bool32 has_prev_pass;
-		bool32 has_next_pass;
+		VulkanRenderpassState state;
 	};
 
 	struct VulkanSwapchain
@@ -104,8 +102,8 @@ namespace Renderer::Vulkan
 
 		VkSurfaceFormatKHR image_format;
 		VkSwapchainKHR handle;
-		Sarray<Texture*> render_images = {};
-		Texture* depth_texture;
+		Sarray<Texture> render_textures;
+		Sarray<Texture> depth_textures;
 
 		uint32 max_frames_in_flight;
 	};
@@ -187,6 +185,29 @@ namespace Renderer::Vulkan
 
 	};
 
+	struct VulkanPipelineConfig
+	{
+
+		uint32 vertex_stride;
+		uint32 attribute_count;
+		uint32 descriptor_set_layout_count;
+		uint32 stage_count;
+		uint32 push_constant_range_count;
+
+		VulkanRenderpass* renderpass;	
+		VkVertexInputAttributeDescription* attribute_descriptions;	
+		VkDescriptorSetLayout* descriptor_set_layouts;
+		VkPipelineShaderStageCreateInfo* stages;
+		Range* push_constant_ranges;
+
+		VkViewport viewport;
+		VkRect2D scissor;
+
+		Renderer::ShaderFaceCullMode cull_mode;
+		bool32 is_wireframe;
+		uint32 shader_flags;	
+	};
+
 	struct VulkanPipeline
 	{
 		VkPipeline handle;
@@ -241,7 +262,6 @@ namespace Renderer::Vulkan
 	struct VulkanContext
 	{
 		int32(*find_memory_index)(uint32 type_filter, uint32 property_flags);
-		void(*on_render_target_refresh_required)();
 
 		VkInstance instance;
 		VkAllocationCallbacks* allocator_callbacks;
@@ -249,9 +269,6 @@ namespace Renderer::Vulkan
 		VulkanDevice device;
 
 		VulkanSwapchain swapchain;
-
-		Hashtable<uint32> renderpass_table;
-		Renderer::Renderpass registered_renderpasses[RendererConfig::renderpass_max_registered];
 
 		Renderbuffer object_vertex_buffer;
 		Renderbuffer object_index_buffer;
@@ -271,6 +288,9 @@ namespace Renderer::Vulkan
 #if defined(_DEBUG)
 		VkDebugUtilsMessengerEXT debug_messenger;
 #endif
+
+		Math::Vec4f viewport_rect;
+		Math::Rect2Di scissor_rect;
 
 		uint32 image_index;
 		uint32 current_frame;

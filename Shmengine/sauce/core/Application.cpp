@@ -32,6 +32,7 @@
 #include "resources/Mesh.hpp"
 #include "resources/ResourceTypes.hpp"
 #include "resources/UIText.hpp"
+#include "core/Identifier.hpp"
 // end
 
 namespace Application
@@ -72,6 +73,8 @@ namespace Application
 		Mesh* car_mesh;
 		Mesh* sponza_mesh;
 		bool32 models_loaded;
+
+		UniqueId hovered_object_id;
 
 		UIText test_bitmap_text;
 		UIText test_truetype_text;
@@ -193,6 +196,7 @@ namespace Application
 		Event::event_register(SystemEventCode::KEY_PRESSED, 0, on_key);
 		Event::event_register(SystemEventCode::KEY_RELEASED, 0, on_key);
 		Event::event_register(SystemEventCode::WINDOW_RESIZED, 0, on_resized);
+		Event::event_register(SystemEventCode::OBJECT_HOVER_ID_CHANGED, 0, on_event);
 		// TODO: temporary
 		Event::event_register(SystemEventCode::DEBUG0, 0, event_on_debug_event);
 		Event::event_register(SystemEventCode::DEBUG1, 0, event_on_debug_event);
@@ -284,22 +288,6 @@ namespace Application
 			return false;
 		}
 
-		MaterialSystem::Config material_sys_config;
-		material_sys_config.max_material_count = 0x1000;
-		if (!MaterialSystem::system_init(allocate_subsystem_callback, app_state->material_system_state, material_sys_config))
-		{
-			SHMFATAL("ERROR: Failed to initialize material system. Application shutting down..");
-			return false;
-		}
-
-		GeometrySystem::Config geometry_sys_config;
-		geometry_sys_config.max_geometry_count = 0x1000;
-		if (!GeometrySystem::system_init(allocate_subsystem_callback, app_state->geometry_system_state, geometry_sys_config))
-		{
-			SHMFATAL("ERROR: Failed to initialize geometry system. Application shutting down..");
-			return false;
-		}
-
 		FontSystem::Config font_sys_config;
 		font_sys_config.auto_release = false;
 		font_sys_config.max_bitmap_font_config_count = 15;
@@ -345,25 +333,79 @@ namespace Application
 		skybox_view_config.type = Renderer::RenderViewType::SKYBOX;
 		skybox_view_config.width = 0;
 		skybox_view_config.height = 0;
-		skybox_view_config.name = "skybox";
-		skybox_view_config.pass_configs.init(1, 0);
-		skybox_view_config.pass_configs[0].name = "Renderpass.Builtin.Skybox";
+		skybox_view_config.name = "skybox";		
 		skybox_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+
+		const uint32 skybox_pass_count = 1;
+		Renderer::RenderpassConfig skybox_passes[skybox_pass_count] = {};		
+		skybox_passes[0].name = "Renderpass.Builtin.Skybox";
+		skybox_passes[0].dim = { 1600, 900 };
+		skybox_passes[0].offset = { 0, 0 };
+		skybox_passes[0].clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
+		skybox_passes[0].clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER;
+		skybox_passes[0].depth = 1.0f;
+		skybox_passes[0].stencil = 0;
+
+		const uint32 skybox_target_att_count = 1;
+		Renderer::RenderTargetAttachmentConfig skybox_target_atts[skybox_target_att_count] = {};
+		skybox_target_atts[0].type = Renderer::RenderTargetAttachmentType::COLOR;
+		skybox_target_atts[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
+		skybox_target_atts[0].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
+		skybox_target_atts[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
+		skybox_target_atts[0].present_after = false;
+		
+		skybox_passes[0].target_config.attachment_count = skybox_target_att_count;
+		skybox_passes[0].target_config.attachment_configs = skybox_target_atts;
+		skybox_passes[0].render_target_count = Renderer::get_window_attachment_count();
+
+		skybox_view_config.pass_count = skybox_pass_count;
+		skybox_view_config.pass_configs = skybox_passes;
+
 		if (!RenderViewSystem::create(skybox_view_config))
 		{
 			SHMFATAL("Failed to create render view!");
 			return false;
 		}
 
-		Renderer::RenderViewConfig opaque_view_config = {};
-		opaque_view_config.type = Renderer::RenderViewType::WORLD;
-		opaque_view_config.width = 0;
-		opaque_view_config.height = 0;
-		opaque_view_config.name = "world_opaque";
-		opaque_view_config.pass_configs.init(1, 0);
-		opaque_view_config.pass_configs[0].name = "Renderpass.Builtin.World";
-		opaque_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
-		if (!RenderViewSystem::create(opaque_view_config))
+		Renderer::RenderViewConfig world_view_config = {};
+		world_view_config.type = Renderer::RenderViewType::WORLD;
+		world_view_config.width = 0;
+		world_view_config.height = 0;
+		world_view_config.name = "world";
+		world_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+
+		const uint32 world_pass_count = 1;
+		Renderer::RenderpassConfig world_passes[world_pass_count] = {};
+		world_passes[0].name = "Renderpass.Builtin.World";
+		world_passes[0].dim = { 1600, 900 };
+		world_passes[0].offset = { 0, 0 };
+		world_passes[0].clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
+		world_passes[0].clear_flags = Renderer::RenderpassClearFlags::DEPTH_BUFFER | Renderer::RenderpassClearFlags::STENCIL_BUFFER;
+		world_passes[0].depth = 1.0f;
+		world_passes[0].stencil = 0;
+
+		const uint32 world_target_att_count = 2;
+		Renderer::RenderTargetAttachmentConfig world_target_atts[world_target_att_count] = {};
+		world_target_atts[0].type = Renderer::RenderTargetAttachmentType::COLOR;
+		world_target_atts[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
+		world_target_atts[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
+		world_target_atts[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
+		world_target_atts[0].present_after = false;
+
+		world_target_atts[1].type = Renderer::RenderTargetAttachmentType::DEPTH;
+		world_target_atts[1].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
+		world_target_atts[1].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
+		world_target_atts[1].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
+		world_target_atts[1].present_after = false;
+
+		world_passes[0].target_config.attachment_count = world_target_att_count;
+		world_passes[0].target_config.attachment_configs = world_target_atts;
+		world_passes[0].render_target_count = Renderer::get_window_attachment_count();
+
+		world_view_config.pass_count = world_pass_count;
+		world_view_config.pass_configs = world_passes;
+
+		if (!RenderViewSystem::create(world_view_config))
 		{
 			SHMFATAL("Failed to create render view!");
 			return false;
@@ -374,12 +416,52 @@ namespace Application
 		ui_view_config.width = 0;
 		ui_view_config.height = 0;
 		ui_view_config.name = "ui";
-		ui_view_config.pass_configs.init(1, 0);
-		ui_view_config.pass_configs[0].name = "Renderpass.Builtin.UI";
 		ui_view_config.view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+
+		const uint32 ui_pass_count = 1;
+		Renderer::RenderpassConfig ui_passes[ui_pass_count] = {};
+		ui_passes[0].name = "Renderpass.Builtin.UI";
+		ui_passes[0].dim = { 1600, 900 };
+		ui_passes[0].offset = { 0, 0 };
+		ui_passes[0].clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
+		ui_passes[0].clear_flags = Renderer::RenderpassClearFlags::NONE;
+		ui_passes[0].depth = 1.0f;
+		ui_passes[0].stencil = 0;
+
+		const uint32 ui_target_att_count = 1;
+		Renderer::RenderTargetAttachmentConfig ui_target_atts[ui_target_att_count] = {};
+		ui_target_atts[0].type = Renderer::RenderTargetAttachmentType::COLOR;
+		ui_target_atts[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
+		ui_target_atts[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
+		ui_target_atts[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
+		ui_target_atts[0].present_after = true;
+
+		ui_passes[0].target_config.attachment_count = ui_target_att_count;
+		ui_passes[0].target_config.attachment_configs = ui_target_atts;
+		ui_passes[0].render_target_count = Renderer::get_window_attachment_count();
+
+		ui_view_config.pass_count = ui_pass_count;
+		ui_view_config.pass_configs = ui_passes;
+
 		if (!RenderViewSystem::create(ui_view_config))
 		{
 			SHMFATAL("Failed to create render view!");
+			return false;
+		}
+
+		MaterialSystem::Config material_sys_config;
+		material_sys_config.max_material_count = 0x1000;
+		if (!MaterialSystem::system_init(allocate_subsystem_callback, app_state->material_system_state, material_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize material system. Application shutting down..");
+			return false;
+		}
+
+		GeometrySystem::Config geometry_sys_config;
+		geometry_sys_config.max_geometry_count = 0x1000;
+		if (!GeometrySystem::system_init(allocate_subsystem_callback, app_state->geometry_system_state, geometry_sys_config))
+		{
+			SHMFATAL("ERROR: Failed to initialize geometry system. Application shutting down..");
 			return false;
 		}
 
@@ -436,6 +518,7 @@ namespace Application
 		Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
 		cube_mesh->geometries.push(GeometrySystem::acquire_from_config(g_config, true));
 		cube_mesh->transform = Math::transform_create();
+		cube_mesh->unique_id = identifier_acquire_new_id(cube_mesh);
 		cube_mesh->generation = 0;
 
 		Mesh* cube_mesh2 = app_state->world_meshes.push({});
@@ -444,6 +527,7 @@ namespace Application
 		Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
 		cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
 		cube_mesh2->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
+		cube_mesh2->unique_id = identifier_acquire_new_id(cube_mesh);
 		cube_mesh2->generation = 0;
 
 		Mesh* cube_mesh3 = app_state->world_meshes.push({});
@@ -452,16 +536,19 @@ namespace Application
 		Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);	
 		cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(g_config3, true));
 		cube_mesh3->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
+		cube_mesh3->unique_id = identifier_acquire_new_id(cube_mesh);
 		cube_mesh3->generation = 0;
 
 		app_state->world_meshes[1].transform.parent = &app_state->world_meshes[0].transform;
 		app_state->world_meshes[2].transform.parent = &app_state->world_meshes[0].transform;
 	
 		app_state->car_mesh = app_state->world_meshes.push({});
+		app_state->car_mesh->unique_id = identifier_acquire_new_id(app_state->car_mesh);
 		app_state->car_mesh->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
 		app_state->car_mesh->generation = INVALID_ID8;
 
 		app_state->sponza_mesh = app_state->world_meshes.push({});
+		app_state->sponza_mesh->unique_id = identifier_acquire_new_id(app_state->car_mesh);
 		app_state->sponza_mesh->transform = Math::transform_from_position_rotation_scale({ 15.0f, 0.0f, 1.0f }, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
 		app_state->sponza_mesh->generation = INVALID_ID8;
 
@@ -509,6 +596,7 @@ namespace Application
 		// Get UI geometry from config.
 		app_state->ui_meshes.init(1, 0);
 		Mesh* ui_mesh = app_state->ui_meshes.push({});
+		ui_mesh->unique_id = identifier_acquire_new_id(ui_mesh);
 		ui_mesh->geometries.init(1, 0);
 		ui_mesh->geometries.push(0);
 		ui_mesh->geometries[0] = GeometrySystem::acquire_from_config(ui_config, true);
@@ -619,9 +707,9 @@ namespace Application
 				}
 				world_mesh_data.meshes = world_meshes.data;			
 
-				if (!RenderViewSystem::build_packet(RenderViewSystem::get("world_opaque"), &world_mesh_data, &render_packet.views[1]))
+				if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), &world_mesh_data, &render_packet.views[1]))
 				{
-					SHMERROR("Failed to build packet for view 'world_opaque'.");
+					SHMERROR("Failed to build packet for view 'world'.");
 					return false;
 				}				
 				
@@ -700,12 +788,18 @@ namespace Application
 		Renderer::texture_map_release_resources(&app_state->skybox.cubemap);
 		ui_text_destroy(&app_state->test_bitmap_text);
 		ui_text_destroy(&app_state->test_truetype_text);
+
+		for (uint32 i = 0; i < render_packet.views.capacity; i++)
+		{
+			render_packet.views[i].view->on_destroy(render_packet.views[i].view);
+		}
 		// end
 	
-		CameraSystem::system_shutdown();
-		FontSystem::system_shutdown();
 		GeometrySystem::system_shutdown();
 		MaterialSystem::system_shutdown();
+		RenderViewSystem::system_shutdown();
+		CameraSystem::system_shutdown();
+		FontSystem::system_shutdown();	
 		TextureSystem::system_shutdown();
 		JobSystem::system_shutdown();
 		ShaderSystem::system_shutdown();
@@ -735,6 +829,11 @@ namespace Application
 		{
 			SHMINFO("Application Quit event received. Shutting down.");
 			app_state->is_running = false;
+			return true;
+		}
+		case SystemEventCode::OBJECT_HOVER_ID_CHANGED:
+		{
+			app_state->hovered_object_id = data.ui32[0];
 			return true;
 		}
 		}

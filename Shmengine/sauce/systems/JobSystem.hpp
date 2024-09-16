@@ -56,6 +56,6 @@ namespace JobSystem
 
 	SHMAPI void submit(JobInfo info);
 
-	SHMAPI JobInfo job_create(fp_job_start entry_point, fp_job_on_complete on_success, fp_job_on_complete on_failure, void* params, uint32 params_size, uint32 results_size, JobType::Value type = JobType::GENERAL, JobPriority priority = JobPriority::NORMAL);
+	SHMAPI JobInfo job_create(fp_job_start entry_point, fp_job_on_complete on_success, fp_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobType::Value type = JobType::GENERAL, JobPriority priority = JobPriority::NORMAL);
 
 }

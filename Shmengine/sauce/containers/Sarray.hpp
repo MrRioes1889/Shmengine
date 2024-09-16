@@ -158,6 +158,9 @@ SHMINLINE void Sarray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 {
 	SHMASSERT_MSG(!data, "Cannot init non empty sarray!");
 
+	if (!reserve_count)
+		return;
+
 	allocation_tag = (uint16)tag;
 	capacity = reserve_count;
 	flags = (uint16)creation_flags;

@@ -6,74 +6,166 @@ namespace Renderer::Vulkan
 
 	extern VulkanContext context;
 
-	void vk_renderpass_create(Renderpass* out_renderpass, float32 depth, uint32 stencil, bool32 has_prev_pass, bool32 has_next_pass)
+	bool32 vk_renderpass_create(const RenderpassConfig* config, Renderpass* out_renderpass)
 	{
 
 		out_renderpass->internal_data.init(sizeof(VulkanRenderpass), 0, AllocationTag::RENDERER);
 		VulkanRenderpass* v_renderpass = (VulkanRenderpass*)out_renderpass->internal_data.data;
 
-		v_renderpass->depth = depth;
-		v_renderpass->stencil = stencil;
-		v_renderpass->has_prev_pass = has_prev_pass;
-		v_renderpass->has_next_pass = has_next_pass;
+		v_renderpass->depth = config->depth;
+		v_renderpass->stencil = config->stencil;
 
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
-		// TODO: Make configurable
-		uint32 attachment_description_count = 0;
-		VkAttachmentDescription attachment_descriptions[2];
+		Darray<VkAttachmentDescription> attachment_descriptions(4, 0);
+		Darray<VkAttachmentDescription> color_att_descriptions(4, 0);
+		Darray<VkAttachmentDescription> depth_att_descriptions(4, 0);
 
-		bool32 do_clear_color = (out_renderpass->clear_flags & RenderpassClearFlags::COLOR_BUFFER);
-		VkAttachmentDescription color_att = {};
-		color_att.format = context.swapchain.image_format.format; // TODO: Make configurable
-		color_att.samples = VK_SAMPLE_COUNT_1_BIT;
-		color_att.loadOp = do_clear_color ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-		color_att.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		color_att.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		color_att.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		color_att.initialLayout = has_prev_pass ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
-		color_att.finalLayout = has_next_pass ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		color_att.flags = 0;
+		bool8 do_clear_color = (out_renderpass->clear_flags & RenderpassClearFlags::COLOR_BUFFER) != 0;
+		bool8 do_clear_depth = (out_renderpass->clear_flags & RenderpassClearFlags::DEPTH_BUFFER) != 0;
 
-		attachment_descriptions[attachment_description_count++] = color_att;
-
-		VkAttachmentReference color_att_ref = {};
-		color_att_ref.attachment = 0;
-		color_att_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &color_att_ref;
-
-		bool32 do_clear_depth = (out_renderpass->clear_flags & RenderpassClearFlags::DEPTH_BUFFER);
-		VkAttachmentDescription depth_att = {};
-		VkAttachmentReference depth_att_ref = {};
-		if (do_clear_depth)
-		{		
-			depth_att.format = context.device.depth_format; // TODO: Make configurable
-			depth_att.samples = VK_SAMPLE_COUNT_1_BIT;
-			if (has_prev_pass)
-				depth_att.loadOp = do_clear_depth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-			else 
-				depth_att.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			depth_att.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			depth_att.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			depth_att.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			depth_att.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			depth_att.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			depth_att.flags = 0;
-
-			attachment_descriptions[attachment_description_count++] = depth_att;
-		
-			depth_att_ref.attachment = 1;
-			depth_att_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-			subpass.pDepthStencilAttachment = &depth_att_ref;
-		}
-		else
+		for (uint32 i = 0; i < config->target_config.attachment_count; i++)
 		{
-			attachment_descriptions[attachment_description_count] = {};
-			subpass.pDepthStencilAttachment = 0;
+			RenderTargetAttachmentConfig* att_config = &config->target_config.attachment_configs[i];
+
+			VkAttachmentDescription att_desc = {};
+			if (att_config->type == RenderTargetAttachmentType::COLOR)
+			{
+				if (att_config->source == RenderTargetAttachmentSource::DEFAULT)
+					att_desc.format = context.swapchain.image_format.format;
+				else
+					att_desc.format = VK_FORMAT_R8G8B8A8_UNORM;
+
+				att_desc.samples = VK_SAMPLE_COUNT_1_BIT;
+
+				if (att_config->load_op == RenderTargetAttachmentLoadOp::DONT_CARE)
+				{
+					att_desc.loadOp = do_clear_color ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				}
+				else if (att_config->load_op == RenderTargetAttachmentLoadOp::LOAD)
+				{
+					if (do_clear_color)
+					{
+						SHMWARN("Color attachment load operation overwritten by clear flag!");
+						att_desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+					}
+					else
+					{
+						att_desc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+					}
+				}
+				else
+				{
+					SHMERROR("Failed to load attachment descriptions: Invalid load operation.");
+					return false;
+				}
+
+				if (att_config->store_op == RenderTargetAttachmentStoreOp::DONT_CARE)
+				{
+					att_desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				}
+				else if (att_config->store_op == RenderTargetAttachmentStoreOp::STORE)
+				{
+					att_desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				}
+				else
+				{
+					SHMERROR("Failed to load attachment descriptions: Invalid store operation.");
+					return false;
+				}
+
+				att_desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				att_desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				att_desc.initialLayout = att_config->load_op == RenderTargetAttachmentLoadOp::LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+				att_desc.finalLayout = att_config->present_after ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+				color_att_descriptions.push(att_desc);
+			}
+			if (att_config->type == RenderTargetAttachmentType::DEPTH)
+			{
+				if (att_config->source == RenderTargetAttachmentSource::DEFAULT)
+					att_desc.format = context.device.depth_format;
+				else
+					att_desc.format = context.device.depth_format;
+
+				att_desc.samples = VK_SAMPLE_COUNT_1_BIT;
+
+				if (att_config->load_op == RenderTargetAttachmentLoadOp::DONT_CARE)
+				{
+					att_desc.loadOp = do_clear_depth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				}
+				else if (att_config->load_op == RenderTargetAttachmentLoadOp::LOAD)
+				{
+					if (do_clear_depth)
+					{
+						SHMWARN("Depth attachment load operation overwritten by clear flag!");
+						att_desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+					}
+					else
+					{
+						att_desc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+					}
+				}
+				else
+				{
+					SHMERROR("Failed to load attachment descriptions: Invalid load operation.");
+					return false;
+				}
+
+				if (att_config->store_op == RenderTargetAttachmentStoreOp::DONT_CARE)
+				{
+					att_desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				}
+				else if (att_config->store_op == RenderTargetAttachmentStoreOp::STORE)
+				{
+					att_desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				}
+				else
+				{
+					SHMERROR("Failed to load attachment descriptions: Invalid store operation.");
+					return false;
+				}
+
+				att_desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				att_desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				att_desc.initialLayout = att_config->load_op == RenderTargetAttachmentLoadOp::LOAD ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+				att_desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+				depth_att_descriptions.push(att_desc);
+			}
+
+			attachment_descriptions.push(att_desc);
+		}
+
+		uint32 att_added = 0;
+
+		subpass.colorAttachmentCount = 0;
+		subpass.pColorAttachments = 0;
+		Sarray<VkAttachmentReference> color_att_refs(color_att_descriptions.count, 0);
+		if (color_att_refs.capacity > 0)
+		{
+			for (uint32 i = 0; i < color_att_refs.capacity; i++)
+			{
+				color_att_refs[i].attachment = att_added++;
+				color_att_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
+
+			subpass.colorAttachmentCount = color_att_refs.capacity;
+			subpass.pColorAttachments = color_att_refs.data;
+		}
+
+		subpass.pDepthStencilAttachment = 0;
+		Sarray<VkAttachmentReference> depth_att_refs(depth_att_descriptions.count, 0);
+		if (depth_att_refs.capacity > 0)
+		{
+			for (uint32 i = 0; i < depth_att_refs.capacity; i++)
+			{
+				depth_att_refs[i].attachment = att_added++;
+				depth_att_refs[i].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			}
+
+			subpass.pDepthStencilAttachment = depth_att_refs.data;
 		}
 
 
@@ -96,8 +188,8 @@ namespace Renderer::Vulkan
 		dependency.dependencyFlags = 0;
 
 		VkRenderPassCreateInfo create_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-		create_info.attachmentCount = attachment_description_count;
-		create_info.pAttachments = attachment_descriptions;
+		create_info.attachmentCount = attachment_descriptions.count;
+		create_info.pAttachments = attachment_descriptions.data;
 		create_info.subpassCount = 1;
 		create_info.pSubpasses = &subpass;
 		create_info.dependencyCount = 1;
@@ -106,6 +198,14 @@ namespace Renderer::Vulkan
 		create_info.flags = 0;
 
 		VK_CHECK(vkCreateRenderPass(context.device.logical_device, &create_info, context.allocator_callbacks, &v_renderpass->handle));
+
+		attachment_descriptions.free_data();
+		color_att_descriptions.free_data();
+		color_att_refs.free_data();
+		depth_att_descriptions.free_data();
+		depth_att_refs.free_data();
+
+		return true;
 
 	}
 
@@ -118,24 +218,6 @@ namespace Renderer::Vulkan
 			v_renderpass->handle = 0;
 			renderpass->internal_data.free_data();
 		}
-	}
-
-	Renderpass* vk_renderpass_get(const char* name)
-	{
-		if (!name[0])
-		{
-			SHMERROR("renderpass_get - empty name. Returning 0.");
-			return 0;
-		}
-
-		uint32 id = context.renderpass_table.get_value(name);
-		if (id == INVALID_ID)
-		{
-			SHMERRORV("renderpass_get - No renderpass called '%s' registered. Returning 0.", name);
-			return 0;
-		}
-
-		return &context.registered_renderpasses[id];
 	}
 
 	bool32 vk_renderpass_begin(Renderpass* renderpass, RenderTarget* render_target)
@@ -176,7 +258,18 @@ namespace Renderer::Vulkan
 
 			begin_info.clearValueCount++;
 		}
-
+		// TODO: neccesary?
+		/*else
+		{		
+			for (uint32 i = 0; i < render_target->attachments.capacity; i++)
+			{
+				if (render_target->attachments[i].type == RenderTargetAttachmentType::DEPTH)
+				{
+					begin_info.clearValueCount++;
+					break;
+				}
+			}
+		}*/
 
 		begin_info.pClearValues = (begin_info.clearValueCount > 0) ? clear_values : 0;
 
@@ -194,24 +287,12 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	void vk_render_target_create(uint32 attachment_count, Texture* const * attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target)
+	bool32 vk_render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target)
 	{
 		SHMASSERT(attachment_count <= 32);
 		VkImageView attachment_views[32];
 		for (uint32 i = 0; i < attachment_count; i++) 
-			attachment_views[i] = ((VulkanImage*)attachments[i]->internal_data.data)->view;
-		
-
-		// Take a copy of the attachments and count.
-		if (!out_target->attachments.data)
-		{
-			out_target->attachments.init(attachment_count, 0, AllocationTag::RENDERER);
-		}		
-		else if (out_target->attachments.capacity < attachment_count)
-		{
-			out_target->attachments.free_data();
-			out_target->attachments.init(attachment_count, 0, AllocationTag::RENDERER);
-		}
+			attachment_views[i] = ((VulkanImage*)attachments[i].texture->internal_data.data)->view;
 
 		for (uint32 i = 0; i < attachment_count; i++)
 			out_target->attachments[i] = attachments[i];	
@@ -225,6 +306,8 @@ namespace Renderer::Vulkan
 		framebuffer_create_info.layers = 1;
 
 		VK_CHECK(vkCreateFramebuffer(context.device.logical_device, &framebuffer_create_info, context.allocator_callbacks, (VkFramebuffer*)&out_target->internal_framebuffer));
+
+		return true;
 	}
 
 	void vk_render_target_destroy(RenderTarget* target, bool32 free_internal_memory)

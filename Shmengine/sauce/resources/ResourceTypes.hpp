@@ -6,6 +6,7 @@
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
 #include "utility/Utility.hpp"
+#include "core/Identifier.hpp"
 
 enum class ResourceType
 {
@@ -55,7 +56,8 @@ namespace TextureFlags
 		HAS_TRANSPARENCY = 1 << 0,
 		IS_WRITABLE = 1 << 1,
 		IS_WRAPPED = 1 << 2,
-		FLIP_Y = 1 << 3
+		FLIP_Y = 1 << 3,
+		IS_DEPTH = 1 << 4,
 	};
 }
 
@@ -231,6 +233,7 @@ struct Geometry
 
 struct Mesh
 {
+	UniqueId unique_id;
 	uint8 generation;
 	Darray<Geometry*> geometries;
 	Math::Transform transform;

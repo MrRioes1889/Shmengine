@@ -2,6 +2,7 @@
 #include "VulkanDevice.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanUtils.hpp"
+#include "VulkanInternal.hpp"
 
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
@@ -29,16 +30,6 @@ namespace Renderer::Vulkan
 		return (buffer->memory_property_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
 
-	static bool32 vk_buffer_create_internal(VulkanBuffer* buffer, RenderbufferType type, uint64 size);
-	static void vk_buffer_destroy_internal(VulkanBuffer* buffer);
-	static bool32 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size);
-	static void* vk_buffer_map_memory_internal(VulkanBuffer* buffer, uint64 offset, uint64 size);
-	static void vk_buffer_unmap_memory_internal(VulkanBuffer* buffer);
-	static bool32 vk_buffer_bind_internal(VulkanBuffer* buffer, uint64 offset);
-	static bool32 vk_buffer_unbind_internal(VulkanBuffer* buffer);
-	static bool32 vk_buffer_load_range_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, const void* data);
-	static bool32 vk_buffer_copy_range_internal(VkBuffer source, uint64 source_offset, VkBuffer dest, uint64 dest_offset, uint64 size);
-
 	bool32 vk_buffer_create(Renderbuffer* buffer)
 	{
 		buffer->internal_data.init(sizeof(VulkanBuffer), 0, AllocationTag::VULKAN);
@@ -51,7 +42,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	static bool32 vk_buffer_create_internal(VulkanBuffer* buffer, RenderbufferType type, uint64 size)
+	bool32 vk_buffer_create_internal(VulkanBuffer* buffer, RenderbufferType type, uint64 size)
 	{
 
 		switch (type) {
@@ -149,7 +140,7 @@ namespace Renderer::Vulkan
 		buffer->internal_data.free_data();
 	}
 
-	static void vk_buffer_destroy_internal(VulkanBuffer* buffer)
+	void vk_buffer_destroy_internal(VulkanBuffer* buffer)
 	{
 	
 		vkDeviceWaitIdle(context.device.logical_device);
@@ -179,7 +170,7 @@ namespace Renderer::Vulkan
 		return vk_buffer_resize_internal(internal_buffer, buffer->size, new_size);
 	}
 
-	static bool32 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size)
+	bool32 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size)
 	{
 
 		// Create new buffer.
@@ -251,7 +242,7 @@ namespace Renderer::Vulkan
 		return vk_buffer_bind_internal(internal_buffer, offset);
 	}
 
-	static bool32 vk_buffer_bind_internal(VulkanBuffer* buffer, uint64 offset)
+	bool32 vk_buffer_bind_internal(VulkanBuffer* buffer, uint64 offset)
 	{
 		VK_CHECK(vkBindBufferMemory(context.device.logical_device, buffer->handle, buffer->memory, offset));
 		return true;
@@ -263,7 +254,7 @@ namespace Renderer::Vulkan
 		return vk_buffer_unbind_internal(internal_buffer);
 	}
 
-	static bool32 vk_buffer_unbind_internal(VulkanBuffer* buffer)
+	bool32 vk_buffer_unbind_internal(VulkanBuffer* buffer)
 	{
 		return true;
 	}
@@ -274,7 +265,7 @@ namespace Renderer::Vulkan
 		return vk_buffer_map_memory_internal(internal_buffer, offset, size);
 	}
 
-	static void* vk_buffer_map_memory_internal(VulkanBuffer* buffer, uint64 offset, uint64 size)
+	void* vk_buffer_map_memory_internal(VulkanBuffer* buffer, uint64 offset, uint64 size)
 	{
 		if (buffer->mapped_memory)
 			return buffer->mapped_memory;
@@ -289,7 +280,7 @@ namespace Renderer::Vulkan
 		vk_buffer_unmap_memory_internal(internal_buffer);
 	}
 
-	static void vk_buffer_unmap_memory_internal(VulkanBuffer* buffer)
+	void vk_buffer_unmap_memory_internal(VulkanBuffer* buffer)
 	{
 		if (!buffer->mapped_memory)
 			return;
@@ -313,15 +304,20 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_buffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void** out_memory)
+	bool32 vk_buffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void* out_memory)
 	{
-
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
-		if (!buffer_is_device_local(internal_buffer) || buffer_is_host_visible(internal_buffer)) 
+		return vk_buffer_read_internal(internal_buffer, offset, size, out_memory);
+	}
+
+	bool32 vk_buffer_read_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
+	{
+	
+		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
 		{
 
-			uint8* ptr = (uint8*)internal_buffer->mapped_memory + offset;
-			Memory::copy_memory(ptr, *out_memory, size);
+			uint8* ptr = (uint8*)buffer->mapped_memory + offset;
+			Memory::copy_memory(ptr, out_memory, size);
 			return true;
 			
 		}
@@ -333,12 +329,12 @@ namespace Renderer::Vulkan
 		}
 		vk_buffer_bind_internal(&read, 0);
 
-		vk_buffer_copy_range_internal(internal_buffer->handle, offset, read.handle, 0, size);
+		vk_buffer_copy_range_internal(buffer->handle, offset, read.handle, 0, size);
 
 		// Map/copy/unmap
 		void* mapped_data;
 		VK_CHECK(vkMapMemory(context.device.logical_device, read.memory, 0, size, 0, &mapped_data));
-		Memory::copy_memory(mapped_data, *out_memory, size);
+		Memory::copy_memory(mapped_data, out_memory, size);
 		vkUnmapMemory(context.device.logical_device, read.memory);
 
 		// Clean up the read buffer.
@@ -358,7 +354,7 @@ namespace Renderer::Vulkan
 	}
 
 	// TODO: Overhaul for performance necessary. Creating/destruction of staging buffer and copy function seem to be major bottlenecks!
-	static bool32 vk_buffer_load_range_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, const void* data)
+	bool32 vk_buffer_load_range_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
 
 		OPTICK_EVENT();
@@ -422,7 +418,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	static bool32 vk_buffer_copy_range_internal(VkBuffer source, uint64 source_offset, VkBuffer dest, uint64 dest_offset, uint64 size)
+	bool32 vk_buffer_copy_range_internal(VkBuffer source, uint64 source_offset, VkBuffer dest, uint64 dest_offset, uint64 size)
 	{
 
 		VkQueue queue = context.device.graphics_queue;

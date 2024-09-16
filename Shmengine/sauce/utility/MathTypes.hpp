@@ -171,6 +171,12 @@ namespace Math
 		uint32 width, height;
 	};
 
+	struct Rect2Di
+	{
+		Vec2i pos;
+		uint32 width, height;
+	};
+
 	struct Circle2D
 	{
 		Vec2f pos;

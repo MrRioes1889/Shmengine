@@ -42,7 +42,7 @@ void* DynamicAllocator::allocate(uint64 size, AllocationTag tag, uint16 alignmen
 		return 0;
 
 	uint64 total_data_offset = (uint64)data + data_offset + sizeof(AllocHeader);
-	uint64 alignment_offset = get_aligned(total_data_offset, alignment) - total_data_offset;
+	uint64 alignment_offset = get_aligned(total_data_offset, alignment) - total_data_offset;	
 	uint8* ret = PTR_BYTES_OFFSET(data, data_offset + alignment_offset);
 	((AllocHeader*)ret)->alignment_offset = (uint16)alignment_offset;
 	((AllocHeader*)ret)->allocation_tag = (uint8)tag;
@@ -53,21 +53,24 @@ void* DynamicAllocator::allocate(uint64 size, AllocationTag tag, uint16 alignmen
 
 bool32 DynamicAllocator::free(void* data_ptr, AllocationTag* out_tag, uint64* bytes_freed)
 {
+
 	SHMASSERT(data_ptr >= data);
 	uint8* ptr = PTR_BYTES_OFFSET(data_ptr, -(int32)sizeof(AllocHeader));
 	uint16 alignment_offset = ((AllocHeader*)ptr)->alignment_offset;
 	*out_tag = (AllocationTag)((AllocHeader*)ptr)->allocation_tag;
 	ptr = PTR_BYTES_OFFSET(ptr, -(int32)alignment_offset);
 	uint64 data_offset = (uint64)ptr - (uint64)data;
+
 	return freelist.free(data_offset, bytes_freed);
 }
 
 void* DynamicAllocator::reallocate(uint64 requested_size, void* data_ptr, AllocationTag* out_tag, uint16 alignment, uint64* bytes_freed, uint64* bytes_allocated)
 {
-	uint8* ptr = PTR_BYTES_OFFSET(data_ptr, -(int32)sizeof(AllocHeader));
+	uint8* ptr = PTR_BYTES_OFFSET(data_ptr, -(int32)sizeof(AllocHeader));	
 	uint16 old_alignment_offset = ((AllocHeader*)ptr)->alignment_offset;
 	*out_tag = (AllocationTag)((AllocHeader*)ptr)->allocation_tag;
 	ptr = PTR_BYTES_OFFSET(ptr, -old_alignment_offset);
+
 	uint64 old_data_offset = (uint64)ptr - (uint64)data;
 	uint64 old_size = freelist.get_reserved_size(old_data_offset);
 	if (old_size >= requested_size)

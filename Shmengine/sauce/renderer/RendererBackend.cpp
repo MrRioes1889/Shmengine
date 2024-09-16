@@ -15,9 +15,10 @@ namespace Renderer
 			out_backend->shutdown = Vulkan::shutdown;
 			out_backend->begin_frame = Vulkan::begin_frame;
 			out_backend->end_frame = Vulkan::end_frame;
+			out_backend->renderpass_create = Vulkan::vk_renderpass_create;
+			out_backend->renderpass_destroy = Vulkan::vk_renderpass_destroy;
 			out_backend->renderpass_begin = Vulkan::vk_renderpass_begin;
 			out_backend->renderpass_end = Vulkan::vk_renderpass_end;
-			out_backend->renderpass_get = Vulkan::vk_renderpass_get;
 			out_backend->render_target_create = Vulkan::vk_render_target_create;
 			out_backend->render_target_destroy = Vulkan::vk_render_target_destroy;
 			out_backend->on_resized = Vulkan::on_resized;
@@ -26,6 +27,8 @@ namespace Renderer
 			out_backend->texture_create_writable = Vulkan::vk_texture_create_writable;
 			out_backend->texture_resize = Vulkan::vk_texture_resize;
 			out_backend->texture_write_data = Vulkan::vk_texture_write_data;
+			out_backend->texture_read_data = Vulkan::vk_texture_read_data;
+			out_backend->texture_read_pixel = Vulkan::vk_texture_read_pixel;
 			out_backend->texture_destroy = Vulkan::vk_texture_destroy;
 			out_backend->geometry_create = Vulkan::vk_geometry_create;
 			out_backend->geometry_destroy = Vulkan::vk_geometry_destroy;
@@ -59,9 +62,15 @@ namespace Renderer
 			out_backend->renderbuffer_copy_range = Vulkan::vk_buffer_copy_range;
 			out_backend->renderbuffer_draw = Vulkan::vk_buffer_draw;
 
-			out_backend->window_attachment_get = Vulkan::vk_window_attachment_get;
-			out_backend->depth_attachment_get = Vulkan::vk_depth_attachment_get;
-			out_backend->window_attachment_index_get = Vulkan::vk_window_attachment_index_get;
+			out_backend->get_window_attachment = Vulkan::vk_get_color_attachment;
+			out_backend->get_depth_attachment = Vulkan::vk_get_depth_attachment;
+			out_backend->get_window_attachment_index = Vulkan::vk_get_window_attachment_index;
+			out_backend->get_window_attachment_count = Vulkan::vk_get_window_attachment_count;
+			
+			out_backend->set_viewport = Vulkan::vk_set_viewport;
+			out_backend->reset_viewport = Vulkan::vk_reset_viewport;
+			out_backend->set_scissor = Vulkan::vk_set_scissor;
+			out_backend->reset_scissor = Vulkan::vk_reset_scissor;
 
 			out_backend->is_multithreaded = Vulkan::vk_is_multithreaded;
 

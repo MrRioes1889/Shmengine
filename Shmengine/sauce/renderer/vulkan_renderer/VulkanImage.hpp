@@ -39,6 +39,9 @@ namespace Renderer::Vulkan
 	);
 
 	void vulkan_image_copy_from_buffer(VulkanContext* context, TextureType type, VulkanImage* image, VkBuffer buffer, VulkanCommandBuffer* command_buffer);
+
+	void vulkan_image_copy_to_buffer(VulkanContext* context, TextureType type, VulkanImage* image, VkBuffer buffer, VulkanCommandBuffer* command_buffer);
+	void vulkan_image_copy_pixel_to_buffer(VulkanContext* context, TextureType type, VulkanImage* image, VkBuffer buffer, uint32 x, uint32 y, VulkanCommandBuffer* command_buffer);
 }
 
 

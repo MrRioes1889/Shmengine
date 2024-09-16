@@ -21,9 +21,11 @@ namespace RenderViewSystem
 
 	Renderer::RenderView* get(const char* name);
 
-	bool32 build_packet(const Renderer::RenderView* view, void* data, Renderer::RenderViewPacket* out_packet);
+	bool32 build_packet(Renderer::RenderView* view, void* data, Renderer::RenderViewPacket* out_packet);
 
 	void on_window_resize(uint32 width, uint32 height);
-	bool32 on_render(const Renderer::RenderView* view, const Renderer::RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
+	bool32 on_render(Renderer::RenderView* view, const Renderer::RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
+
+	void regenerate_render_targets(Renderer::RenderView* view);
 
 }

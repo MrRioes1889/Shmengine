@@ -7,41 +7,22 @@
 namespace Renderer::Vulkan
 {
 
-    bool32 pipeline_create
-    (
-        VulkanContext* context,
-        VulkanRenderpass* renderpass,
-        uint32 stride,
-        uint32 attribute_count,
-        VkVertexInputAttributeDescription* attributes,
-        uint32 descriptor_set_layout_count,
-        VkDescriptorSetLayout* descriptor_set_layouts,
-        uint32 stage_count,
-        VkPipelineShaderStageCreateInfo* stages,
-        VkViewport viewport,
-        VkRect2D scissor,
-        ShaderFaceCullMode cull_mode,
-        bool32 is_wireframe,
-        bool32 depth_test_enabled,
-        uint32 push_constant_range_count,
-        Range* push_constant_ranges,
-        VulkanPipeline* out_pipeline
-    )
+    bool32 pipeline_create(VulkanContext* context, const VulkanPipelineConfig* config, VulkanPipeline* out_pipeline)
     {
 
         VkPipelineViewportStateCreateInfo vp_state_create_info = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
         vp_state_create_info.viewportCount = 1;
-        vp_state_create_info.pViewports = &viewport;
+        vp_state_create_info.pViewports = &config->viewport;
         vp_state_create_info.scissorCount = 1;
-        vp_state_create_info.pScissors = &scissor;
+        vp_state_create_info.pScissors = &config->scissor;
 
         // Rasterizer
         VkPipelineRasterizationStateCreateInfo rasterizer_create_info = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
         rasterizer_create_info.depthClampEnable = VK_FALSE;
         rasterizer_create_info.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer_create_info.polygonMode = is_wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
+        rasterizer_create_info.polygonMode = config->is_wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
         rasterizer_create_info.lineWidth = 1.0f;
-        switch (cull_mode)
+        switch (config->cull_mode)
         {
         case ShaderFaceCullMode::NONE:
         {
@@ -119,15 +100,15 @@ namespace Renderer::Vulkan
         // Vertex input
         VkVertexInputBindingDescription binding_description;
         binding_description.binding = 0;  // Binding index
-        binding_description.stride = stride;
+        binding_description.stride = config->vertex_stride;
         binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;  // Move to next data entry for each vertex.
 
         // Attributes
         VkPipelineVertexInputStateCreateInfo vertex_input_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
         vertex_input_info.vertexBindingDescriptionCount = 1;
         vertex_input_info.pVertexBindingDescriptions = &binding_description;
-        vertex_input_info.vertexAttributeDescriptionCount = attribute_count;
-        vertex_input_info.pVertexAttributeDescriptions = attributes;
+        vertex_input_info.vertexAttributeDescriptionCount = config->attribute_count;
+        vertex_input_info.pVertexAttributeDescriptions = config->attribute_descriptions;
 
         // Input assembly
         VkPipelineInputAssemblyStateCreateInfo input_assembly = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
@@ -139,18 +120,18 @@ namespace Renderer::Vulkan
 
         //Push Constants
         VkPushConstantRange ranges[RendererConfig::shader_max_push_const_ranges];
-        if (push_constant_range_count > 0) {
-            if (push_constant_range_count > RendererConfig::shader_max_push_const_ranges) {
-                SHMERRORV("vulkan_graphics_pipeline_create: cannot have more than 32 push constant ranges. Passed count: %i", push_constant_range_count);
+        if (config->push_constant_range_count > 0) {
+            if (config->push_constant_range_count > RendererConfig::shader_max_push_const_ranges) {
+                SHMERRORV("vulkan_graphics_pipeline_create: cannot have more than 32 push constant ranges. Passed count: %i", config->push_constant_range_count);
                 return false;
             }
           
-            for (uint32 i = 0; i < push_constant_range_count; ++i) {
+            for (uint32 i = 0; i < config->push_constant_range_count; ++i) {
                 ranges[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-                ranges[i].offset = (uint32)push_constant_ranges[i].offset;
-                ranges[i].size = (uint32)push_constant_ranges[i].size;
+                ranges[i].offset = (uint32)config->push_constant_ranges[i].offset;
+                ranges[i].size = (uint32)config->push_constant_ranges[i].size;
             }
-            pipeline_layout_create_info.pushConstantRangeCount = push_constant_range_count;
+            pipeline_layout_create_info.pushConstantRangeCount = config->push_constant_range_count;
             pipeline_layout_create_info.pPushConstantRanges = ranges;
         }
         else {
@@ -159,8 +140,8 @@ namespace Renderer::Vulkan
         }
 
         // Descriptor set layouts
-        pipeline_layout_create_info.setLayoutCount = descriptor_set_layout_count;
-        pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
+        pipeline_layout_create_info.setLayoutCount = config->descriptor_set_layout_count;
+        pipeline_layout_create_info.pSetLayouts = config->descriptor_set_layouts;
 
         // Create the pipeline layout.
         VK_CHECK(vkCreatePipelineLayout(
@@ -171,22 +152,22 @@ namespace Renderer::Vulkan
 
         // Pipeline create
         VkGraphicsPipelineCreateInfo pipeline_create_info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-        pipeline_create_info.stageCount = stage_count;
-        pipeline_create_info.pStages = stages;
+        pipeline_create_info.stageCount = config->stage_count;
+        pipeline_create_info.pStages = config->stages;
         pipeline_create_info.pVertexInputState = &vertex_input_info;
         pipeline_create_info.pInputAssemblyState = &input_assembly;
 
         pipeline_create_info.pViewportState = &vp_state_create_info;
         pipeline_create_info.pRasterizationState = &rasterizer_create_info;
         pipeline_create_info.pMultisampleState = &multisampling_create_info;
-        pipeline_create_info.pDepthStencilState = depth_test_enabled ? &depth_stencil : 0;
+        pipeline_create_info.pDepthStencilState = (config->shader_flags & ShaderFlags::DEPTH_TEST) ? &depth_stencil : 0;
         pipeline_create_info.pColorBlendState = &color_blend_state_create_info;
         pipeline_create_info.pDynamicState = &dynamic_state_create_info;
         pipeline_create_info.pTessellationState = 0;
 
         pipeline_create_info.layout = out_pipeline->layout;
 
-        pipeline_create_info.renderPass = renderpass->handle;
+        pipeline_create_info.renderPass = config->renderpass->handle;
         pipeline_create_info.subpass = 0;
         pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_create_info.basePipelineIndex = -1;

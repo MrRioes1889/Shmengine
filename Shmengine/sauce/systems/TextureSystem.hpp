@@ -22,7 +22,7 @@ namespace TextureSystem
 	Texture* acquire_cube(const char* name, bool32 auto_release);
 	Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency);
 
-	Texture* wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size);
+	bool32 wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture);
 	bool32 set_internal(Texture* t, void* internal_data, uint64 internal_data_size);
 	bool32 resize(Texture* t, uint32 width, uint32 height, bool32 regenerate_internal_data);
 	void write_to_texture(Texture* t, uint32 offset, uint32 size, const uint8* pixels);

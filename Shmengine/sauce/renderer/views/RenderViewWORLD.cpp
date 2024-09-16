@@ -3,20 +3,23 @@
 #include "core/Event.hpp"
 #include "utility/Math.hpp"
 #include "utility/math/Transform.hpp"
+#include "systems/ResourceSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/CameraSystem.hpp"
+#include "systems/RenderViewSystem.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "utility/Sort.hpp"
 
 struct RenderViewWORLDInternalData {
-	uint32 shader_id;
+	Renderer::Shader* shader;
 	float32 near_clip;
 	float32 far_clip;
 	float32 fov;
+	uint32 render_mode;
 	Math::Mat4 projection_matrix;
 	Math::Vec4f ambient_color;
-	uint32 render_mode;
+	
 
 	Camera* camera;
 };
@@ -28,15 +31,15 @@ namespace Renderer
 	{
 
 		RenderView* self = (RenderView*)listener_inst;
-		if (!self) {
+		if (!self) 
 			return false;
-		}
-		RenderViewWORLDInternalData* internal_data = (RenderViewWORLDInternalData*)self->internal_data.data;
-		if (!internal_data) {
-			return false;
-		}
 
-		switch (code) {
+		RenderViewWORLDInternalData* internal_data = (RenderViewWORLDInternalData*)self->internal_data.data;
+		if (!internal_data) 
+			return false;
+
+		switch (code) 
+		{
 		case SystemEventCode::SET_RENDER_MODE: {
 			int32 mode = data.i32[0];
 			switch (mode) {
@@ -57,9 +60,14 @@ namespace Renderer
 				SHMDEBUG("Renderer mode set to normals.");
 				internal_data->render_mode = ViewMode::NORMALS;
 				break;
-			}
+			}			
 			}
 			return true;
+		}
+		case SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
+		{
+			RenderViewSystem::regenerate_render_targets(self);
+			return false;
 		}
 		}
 
@@ -72,7 +80,23 @@ namespace Renderer
 		self->internal_data.init(sizeof(RenderViewWORLDInternalData), 0, AllocationTag::RENDERER);
 		RenderViewWORLDInternalData* data = (RenderViewWORLDInternalData*)self->internal_data.data;
 
-		data->shader_id = ShaderSystem::get_id(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_world);
+		Resource config_resource;
+		if (!ResourceSystem::load(Renderer::RendererConfig::builtin_shader_name_world, ResourceType::SHADER, 0, &config_resource))
+		{
+			SHMERROR("Failed to load world material shader config.");
+			return false;
+		}
+		ShaderConfig* config = (ShaderConfig*)config_resource.data;
+
+		if (!ShaderSystem::create_shader(&self->renderpasses[0], config))
+		{
+			SHMERROR("Failed to create world material shader.");
+			ResourceSystem::unload(&config_resource);
+			return false;
+		}
+		ResourceSystem::unload(&config_resource);
+
+		data->shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_world);
 
 		data->near_clip = 0.1f;
 		data->far_clip = 1000.0f;
@@ -83,6 +107,7 @@ namespace Renderer
 		data->ambient_color = { 0.25f, 0.25f, 0.25f, 1.0f };	
 
 		Event::event_register((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
+		Event::event_register((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
 
 		return true;
 
@@ -91,6 +116,7 @@ namespace Renderer
 	void render_view_world_on_destroy(RenderView* self)
 	{
 		Event::event_unregister((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
+		Event::event_unregister((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
 		self->internal_data.free_data();
 	}
 
@@ -108,12 +134,12 @@ namespace Renderer
 
 		for (uint32 i = 0; i < self->renderpasses.capacity; i++)
 		{
-			self->renderpasses[i]->dim.width = width;
-			self->renderpasses[i]->dim.height = height;
+			self->renderpasses[i].dim.width = width;
+			self->renderpasses[i].dim.height = height;
 		}
 	}
 
-	bool32 render_view_world_on_build_packet(const RenderView* self, void* data, RenderViewPacket* out_packet)
+	bool32 render_view_world_on_build_packet(RenderView* self, void* data, RenderViewPacket* out_packet)
 	{
 
 		struct GeometryDistance
@@ -185,7 +211,7 @@ namespace Renderer
 		packet->geometries.free_data();
 	}
 
-	bool32 render_view_world_on_render(const RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
+	bool32 render_view_world_on_render(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
 	{
 
 		RenderViewWORLDInternalData* data = (RenderViewWORLDInternalData*)self->internal_data.data;
@@ -193,7 +219,7 @@ namespace Renderer
 		for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
 		{
 
-			Renderpass* renderpass = self->renderpasses[rp];
+			Renderpass* renderpass = &self->renderpasses[rp];
 
 			if (!renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 			{
@@ -201,13 +227,15 @@ namespace Renderer
 				return false;
 			}
 
-			if (!ShaderSystem::use_shader(data->shader_id)) {
+			if (!ShaderSystem::use_shader(data->shader->id)) 
+			{
 				SHMERROR("render_view_world_on_render - Failed to use shader. Render frame failed.");
 				return false;
 			}
 
 			// Apply globals
-			if (!MaterialSystem::apply_globals(data->shader_id, frame_number, &packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode)) {
+			if (!MaterialSystem::apply_globals(data->shader->id, frame_number, &packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode)) 
+			{
 				SHMERROR("render_view_world_on_render - Failed to use apply globals for shader. Render frame failed.");
 				return false;
 			}

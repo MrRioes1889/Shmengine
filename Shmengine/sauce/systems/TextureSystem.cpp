@@ -167,7 +167,7 @@ namespace TextureSystem
 
 	}
 
-	Texture* wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size)
+	bool32 wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture)
 	{
 
 		uint32 id = INVALID_ID;
@@ -179,7 +179,7 @@ namespace TextureSystem
 			if (!add_texture_reference(name, TextureType::TYPE_2D, false, true, &id))
 			{
 				SHMERRORV("wrap_internal - failed to obtain new id for texture: '%s'.", name);
-				return 0;
+				return false;
 			}
 
 			t = &system_state->registered_textures[id];
@@ -187,7 +187,11 @@ namespace TextureSystem
 		else
 		{
 			// TODO: Think about whether this is necessary
-			t = (Texture*)Memory::allocate(sizeof(Texture), AllocationTag::TEXTURE);
+			if (out_texture)
+				t = out_texture;
+			else
+				t = (Texture*)Memory::allocate(sizeof(Texture), AllocationTag::TEXTURE);
+
 			SHMTRACEV("wrap_internal created texture '%s', but not registering, resulting in an allocation. It is up to the caller to free this memory.", name);
 		}
 
@@ -203,7 +207,8 @@ namespace TextureSystem
 		t->flags |= TextureFlags::IS_WRITABLE;
 		t->flags |= TextureFlags::IS_WRAPPED;
 		t->internal_data.init(internal_data_size, 0, AllocationTag::TEXTURE, internal_data);
-		return t;
+
+		return true;
 
 	}
 
@@ -322,7 +327,7 @@ namespace TextureSystem
 		ImageResourceParams resource_params;
 		resource_params.flip_y = true;
 
-		if (!ResourceSystem::load(load_params->resource_name, ResourceType::IMAGE, &params, &load_params->image_resource))
+		if (!ResourceSystem::load(load_params->resource_name, ResourceType::IMAGE, &resource_params, &load_params->image_resource))
 		{
 			SHMERRORV("load_texture - Failed to load image resources for texture '%s'", load_params->resource_name);
 			return false;
@@ -355,22 +360,22 @@ namespace TextureSystem
 		load_params->temp_texture.flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
 
 		Memory::copy_memory(load_params, results, sizeof(TextureLoadParams));
+		Memory::zero_memory(load_params, sizeof(TextureLoadParams));
 
 		return true;
 
 	}
 
 	static bool32 load_texture(const char* texture_name, Texture* t)
-	{
-		TextureLoadParams params;
+	{	
+		JobSystem::JobInfo job = JobSystem::job_create(texture_load_job_start, texture_load_on_success, texture_load_on_failure, sizeof(TextureLoadParams), sizeof(TextureLoadParams));
+		TextureLoadParams* params = (TextureLoadParams*)job.params;
 		uint32 name_length = CString::length(texture_name);
-		params.resource_name = (char*)Memory::allocate(name_length + 1, AllocationTag::STRING);
-		CString::copy(name_length + 1, params.resource_name, texture_name);
-		params.out_texture = t;
-		params.image_resource = {};
-		params.current_generation = t->generation;
-		
-		JobSystem::JobInfo job = JobSystem::job_create(texture_load_job_start, texture_load_on_success, texture_load_on_failure, &params, sizeof(TextureLoadParams), sizeof(TextureLoadParams));
+		params->resource_name = (char*)Memory::allocate(name_length + 1, AllocationTag::STRING);
+		CString::copy(name_length + 1, params->resource_name, texture_name);
+		params->out_texture = t;
+		params->image_resource = {};
+		params->current_generation = t->generation;
 		JobSystem::submit(job);
 		return true;
 	}

@@ -5,6 +5,8 @@
 #include "core/Logging.hpp"
 #include "containers/RingQueue.hpp"
 
+#define MT_ENABLED 1
+
 namespace JobSystem
 {
 
@@ -154,6 +156,7 @@ namespace JobSystem
 	SHMAPI void submit(JobInfo info)
 	{
 
+#if MT_ENABLED
 		uint32 thread_count = system_state->config.job_thread_count;
 		RingQueue<JobInfo>* queue = &system_state->normal_prio_queue;
 		Threading::Mutex* queue_mutex = &system_state->normal_prio_queue_mutex;
@@ -192,10 +195,29 @@ namespace JobSystem
 		queue->enqueue(info);
 		Threading::mutex_unlock(queue_mutex);
 		SHMTRACE("Job queued.");
+#else
+		bool32 result = info.entry_point(info.params, info.results);
+		if (result)
+			info.on_success(info.results);
+		else
+			info.on_failure(info.results);
+
+		if (info.params)
+		{
+			Memory::free_memory(info.params);
+			info.params = 0;
+		}
+		if (info.results)
+		{
+			Memory::free_memory(info.results);
+			info.results = 0;
+		}
+
+#endif
 
 	}
 
-	JobInfo job_create(fp_job_start entry_point, fp_job_on_complete on_success, fp_job_on_complete on_failure, void* params, uint32 params_size, uint32 results_size, JobType::Value type, JobPriority priority)
+	JobInfo job_create(fp_job_start entry_point, fp_job_on_complete on_success, fp_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobType::Value type, JobPriority priority)
 	{
 
 		JobInfo info = {};
@@ -209,7 +231,6 @@ namespace JobSystem
 		if (params_size)
 		{
 			info.params = Memory::allocate(params_size, AllocationTag::JOB);
-			Memory::copy_memory(params, info.params, params_size);
 		}		
 		else
 		{

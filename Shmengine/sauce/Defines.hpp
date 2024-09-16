@@ -18,7 +18,7 @@ typedef double float64;
 
 // Boolean types
 typedef int bool32;
-typedef char bool8;
+typedef bool bool8;
 
 typedef unsigned char byte;
 

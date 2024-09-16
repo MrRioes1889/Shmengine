@@ -18,7 +18,7 @@ namespace Renderer::Vulkan
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
 
-	bool32 vk_shader_create(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
+	bool32 vk_shader_create(Shader* shader, const ShaderConfig* config, const Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
 	{
 
 		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::RENDERER);
@@ -46,16 +46,16 @@ namespace Renderer::Vulkan
 			}
 		}
 
-		VulkanShader* out_shader = (VulkanShader*)shader->internal_data;
-		out_shader->renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
-		out_shader->config.max_descriptor_set_count = RendererConfig::shader_max_instances;
+		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
+		v_shader->renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
+		v_shader->config.max_descriptor_set_count = RendererConfig::shader_max_instances;
 
 
-		out_shader->config.stage_count = 0;
+		v_shader->config.stage_count = 0;
 
 		for (uint32 i = 0; i < stage_count; i++) {
 
-			if (out_shader->config.stage_count + 1 > RendererConfig::shader_max_stages) {
+			if (v_shader->config.stage_count + 1 > RendererConfig::shader_max_stages) {
 				SHMERRORV("Shaders may have a maximum of %i stages", RendererConfig::shader_max_stages);
 				return false;
 			}
@@ -73,58 +73,58 @@ namespace Renderer::Vulkan
 				continue;
 			}
 
-			out_shader->config.stages[out_shader->config.stage_count].stage = stage_flag;
-			CString::copy(VulkanShaderStageConfig::max_filename_length, out_shader->config.stages[out_shader->config.stage_count].filename, stage_filenames[i].c_str());
-			out_shader->config.stage_count++;
+			v_shader->config.stages[v_shader->config.stage_count].stage = stage_flag;
+			CString::copy(VulkanShaderStageConfig::max_filename_length, v_shader->config.stages[v_shader->config.stage_count].filename, stage_filenames[i].c_str());
+			v_shader->config.stage_count++;
 		}
 
 		// TODO: Replace
-		out_shader->config.pool_sizes[0] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 };
-		out_shader->config.pool_sizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096 };
+		v_shader->config.pool_sizes[0] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 };
+		v_shader->config.pool_sizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096 };
 
-		out_shader->config.descriptor_sets[0].sampler_binding_index = INVALID_ID8;
-		out_shader->config.descriptor_sets[1].sampler_binding_index = INVALID_ID8;
+		v_shader->config.descriptor_sets[0].sampler_binding_index = INVALID_ID8;
+		v_shader->config.descriptor_sets[1].sampler_binding_index = INVALID_ID8;
 
-		out_shader->config.cull_mode = config.cull_mode;
+		v_shader->config.cull_mode = config->cull_mode;
 
-		out_shader->global_uniform_count = 0;
-		out_shader->global_uniform_sampler_count = 0;
-		out_shader->instance_uniform_sampler_count = 0;
-		out_shader->instance_uniform_sampler_count = 0;
-		out_shader->local_uniform_count = 0;
-		for (uint32 i = 0; i < config.uniforms.count; i++)
+		v_shader->global_uniform_count = 0;
+		v_shader->global_uniform_sampler_count = 0;
+		v_shader->instance_uniform_sampler_count = 0;
+		v_shader->instance_uniform_sampler_count = 0;
+		v_shader->local_uniform_count = 0;
+		for (uint32 i = 0; i < config->uniforms.count; i++)
 		{
-			switch (config.uniforms[i].scope)
+			switch (config->uniforms[i].scope)
 			{
 			case ShaderScope::GLOBAL:
 			{
-				if (config.uniforms[i].type == ShaderUniformType::SAMPLER)
-					out_shader->global_uniform_sampler_count++;
+				if (config->uniforms[i].type == ShaderUniformType::SAMPLER)
+					v_shader->global_uniform_sampler_count++;
 				else
-					out_shader->global_uniform_count++;
+					v_shader->global_uniform_count++;
 				break;
 			}
 			case ShaderScope::INSTANCE:
 			{
-				if (config.uniforms[i].type == ShaderUniformType::SAMPLER)
-					out_shader->instance_uniform_sampler_count++;
+				if (config->uniforms[i].type == ShaderUniformType::SAMPLER)
+					v_shader->instance_uniform_sampler_count++;
 				else
-					out_shader->instance_uniform_count++;
+					v_shader->instance_uniform_count++;
 				break;
 			}
 			case ShaderScope::LOCAL:
 			{
-				out_shader->local_uniform_count++;
+				v_shader->local_uniform_count++;
 				break;
 			}
 			}
 		}
 
-		if (out_shader->global_uniform_count > 0 || out_shader->global_uniform_sampler_count > 0)
+		if (v_shader->global_uniform_count > 0 || v_shader->global_uniform_sampler_count > 0)
 		{
-			VulkanDescriptorSetConfig& set_config = out_shader->config.descriptor_sets[out_shader->config.descriptor_set_count];
+			VulkanDescriptorSetConfig& set_config = v_shader->config.descriptor_sets[v_shader->config.descriptor_set_count];
 
-			if (out_shader->global_uniform_count > 0)
+			if (v_shader->global_uniform_count > 0)
 			{
 				uint8 binding_index = set_config.binding_count;
 				set_config.bindings[binding_index].binding = binding_index;
@@ -134,25 +134,25 @@ namespace Renderer::Vulkan
 				set_config.binding_count++;
 			}
 
-			if (out_shader->global_uniform_sampler_count > 0)
+			if (v_shader->global_uniform_sampler_count > 0)
 			{
 				uint8 binding_index = set_config.binding_count;
 				set_config.bindings[binding_index].binding = binding_index;
-				set_config.bindings[binding_index].descriptorCount = out_shader->global_uniform_sampler_count;
+				set_config.bindings[binding_index].descriptorCount = v_shader->global_uniform_sampler_count;
 				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 				set_config.sampler_binding_index = binding_index;
 				set_config.binding_count++;
 			}
 
-			out_shader->config.descriptor_set_count++;
+			v_shader->config.descriptor_set_count++;
 		}
 
-		if (out_shader->instance_uniform_count > 0 || out_shader->instance_uniform_sampler_count > 0)
+		if (v_shader->instance_uniform_count > 0 || v_shader->instance_uniform_sampler_count > 0)
 		{
-			VulkanDescriptorSetConfig& set_config = out_shader->config.descriptor_sets[out_shader->config.descriptor_set_count];
+			VulkanDescriptorSetConfig& set_config = v_shader->config.descriptor_sets[v_shader->config.descriptor_set_count];
 
-			if (out_shader->instance_uniform_count > 0)
+			if (v_shader->instance_uniform_count > 0)
 			{
 				uint8 binding_index = set_config.binding_count;
 				set_config.bindings[binding_index].binding = binding_index;
@@ -162,23 +162,23 @@ namespace Renderer::Vulkan
 				set_config.binding_count++;
 			}
 
-			if (out_shader->instance_uniform_sampler_count > 0)
+			if (v_shader->instance_uniform_sampler_count > 0)
 			{
 				uint8 binding_index = set_config.binding_count;
 				set_config.bindings[binding_index].binding = binding_index;
-				set_config.bindings[binding_index].descriptorCount = out_shader->instance_uniform_sampler_count;
+				set_config.bindings[binding_index].descriptorCount = v_shader->instance_uniform_sampler_count;
 				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 				set_config.sampler_binding_index = binding_index;
 				set_config.binding_count++;
 			}
 
-			out_shader->config.descriptor_set_count++;
+			v_shader->config.descriptor_set_count++;
 		}
 
 		// TODO: dynamic
 		for (uint32 i = 0; i < RendererConfig::shader_max_instances; ++i) {
-			out_shader->instance_states[i].id = INVALID_ID;
+			v_shader->instance_states[i].id = INVALID_ID;
 		}
 
 		// Grab the UBO alignment requirement from the device.
@@ -239,14 +239,14 @@ namespace Renderer::Vulkan
 
 		VkDevice& logical_device = context.device.logical_device;
 		VkAllocationCallbacks* vk_allocator = context.allocator_callbacks;
-		VulkanShader* s = (VulkanShader*)shader->internal_data;
+		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
 
 		// Create a module for each stage.
-		for (uint32 i = 0; i < s->config.stage_count; ++i)
+		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
 		{
-			if (!create_module(s, s->config.stages[i], &s->stages[i]))
+			if (!create_module(v_shader, v_shader->config.stages[i], &v_shader->stages[i]))
 			{
-				SHMERRORV("Unable to create %s shader module for '%s'. Shader will be destroyed.", s->config.stages[i].filename, shader->name.c_str());
+				SHMERRORV("Unable to create %s shader module for '%s'. Shader will be destroyed.", v_shader->config.stages[i].filename, shader->name.c_str());
 				return false;
 			}
 		}
@@ -281,7 +281,7 @@ namespace Renderer::Vulkan
 			attribute.format = types[(uint32)shader->attributes[i].type];
 
 			// Push into the config's attribute collection and add to the stride.
-			s->config.attributes[i] = attribute;
+			v_shader->config.attributes[i] = attribute;
 
 			offset += shader->attributes[i].size;
 		}
@@ -289,12 +289,12 @@ namespace Renderer::Vulkan
 		// Descriptor pool.
 		VkDescriptorPoolCreateInfo pool_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 		pool_info.poolSizeCount = 2;
-		pool_info.pPoolSizes = s->config.pool_sizes;
-		pool_info.maxSets = s->config.max_descriptor_set_count;
+		pool_info.pPoolSizes = v_shader->config.pool_sizes;
+		pool_info.maxSets = v_shader->config.max_descriptor_set_count;
 		pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 		// Create descriptor pool.
-		VkResult result = vkCreateDescriptorPool(logical_device, &pool_info, vk_allocator, &s->descriptor_pool);
+		VkResult result = vkCreateDescriptorPool(logical_device, &pool_info, vk_allocator, &v_shader->descriptor_pool);
 		if (!vulkan_result_is_success(result))
 		{
 			SHMERRORV("vulkan_shader_initialize failed creating descriptor pool: '%s'", vulkan_result_string(result, true));
@@ -302,12 +302,12 @@ namespace Renderer::Vulkan
 		}
 
 		// Create descriptor set layouts.
-		for (uint32 i = 0; i < s->config.descriptor_set_count; ++i)
+		for (uint32 i = 0; i < v_shader->config.descriptor_set_count; ++i)
 		{
 			VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-			layout_info.bindingCount = s->config.descriptor_sets[i].binding_count;
-			layout_info.pBindings = s->config.descriptor_sets[i].bindings;
-			result = vkCreateDescriptorSetLayout(logical_device, &layout_info, vk_allocator, &s->descriptor_set_layouts[i]);
+			layout_info.bindingCount = v_shader->config.descriptor_sets[i].binding_count;
+			layout_info.pBindings = v_shader->config.descriptor_sets[i].bindings;
+			result = vkCreateDescriptorSetLayout(logical_device, &layout_info, vk_allocator, &v_shader->descriptor_set_layouts[i]);
 			if (!vulkan_result_is_success(result))
 			{
 				SHMERRORV("vulkan_shader_initialize failed creating descriptor pool: '%s'", vulkan_result_string(result, true));
@@ -334,29 +334,29 @@ namespace Renderer::Vulkan
 		scissor.extent.height = context.framebuffer_height;
 
 		VkPipelineShaderStageCreateInfo stage_create_infos[RendererConfig::shader_max_stages] = {};
-		for (uint32 i = 0; i < s->config.stage_count; ++i)
+		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
 		{
-			stage_create_infos[i] = s->stages[i].shader_stage_create_info;
+			stage_create_infos[i] = v_shader->stages[i].shader_stage_create_info;
 		}
 
-		bool32 pipeline_result = pipeline_create(
-			&context,
-			s->renderpass,
-			shader->attribute_stride,
-			shader->attributes.count,
-			s->config.attributes,  // shader->attributes,
-			s->config.descriptor_set_count,
-			s->descriptor_set_layouts,
-			s->config.stage_count,
-			stage_create_infos,
-			viewport,
-			scissor,
-			s->config.cull_mode,
-			false,
-			true,
-			shader->push_constant_range_count,
-			shader->push_constant_ranges,
-			&s->pipeline);
+		VulkanPipelineConfig p_config = {};
+		p_config.renderpass = v_shader->renderpass;
+		p_config.vertex_stride = shader->attribute_stride;
+		p_config.attribute_count = shader->attributes.count;
+		p_config.attribute_descriptions = v_shader->config.attributes;
+		p_config.descriptor_set_layout_count = v_shader->config.descriptor_set_count;
+		p_config.descriptor_set_layouts = v_shader->descriptor_set_layouts;
+		p_config.stage_count = v_shader->config.stage_count;
+		p_config.stages = stage_create_infos;
+		p_config.viewport = viewport;
+		p_config.scissor = scissor;
+		p_config.cull_mode = v_shader->config.cull_mode;
+		p_config.is_wireframe = false;
+		p_config.shader_flags = shader->shader_flags;
+		p_config.push_constant_range_count = shader->push_constant_range_count;
+		p_config.push_constant_ranges = shader->push_constant_ranges;
+
+		bool32 pipeline_result = pipeline_create(&context, &p_config, &v_shader->pipeline);
 
 		if (!pipeline_result)
 		{
@@ -365,21 +365,21 @@ namespace Renderer::Vulkan
 		}
 
 		// Map the entire buffer's memory.
-		s->mapped_uniform_buffer = vk_buffer_map_memory(&shader->uniform_buffer, 0, VK_WHOLE_SIZE);
+		v_shader->mapped_uniform_buffer = vk_buffer_map_memory(&shader->uniform_buffer, 0, VK_WHOLE_SIZE);
 
 		// Allocate global descriptor sets, one per frame. Global is always the first set.
 		VkDescriptorSetLayout global_layouts[3] =
 		{
-			s->descriptor_set_layouts[desc_set_index_global],
-			s->descriptor_set_layouts[desc_set_index_global],
-			s->descriptor_set_layouts[desc_set_index_global]
+			v_shader->descriptor_set_layouts[desc_set_index_global],
+			v_shader->descriptor_set_layouts[desc_set_index_global],
+			v_shader->descriptor_set_layouts[desc_set_index_global]
 		};
 
 		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-		alloc_info.descriptorPool = s->descriptor_pool;
+		alloc_info.descriptorPool = v_shader->descriptor_pool;
 		alloc_info.descriptorSetCount = 3;
 		alloc_info.pSetLayouts = global_layouts;
-		VK_CHECK(vkAllocateDescriptorSets(context.device.logical_device, &alloc_info, s->global_descriptor_sets));
+		VK_CHECK(vkAllocateDescriptorSets(context.device.logical_device, &alloc_info, v_shader->global_descriptor_sets));
 
 		return true;
 
@@ -614,16 +614,20 @@ namespace Renderer::Vulkan
 		VulkanShaderInstanceState* instance_state = &v_shader->instance_states[*out_instance_id];
 		uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
 		uint32 instance_texture_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[sampler_binding_index].descriptorCount;
-		// Wipe out the memory for the entire array, even if it isn't all used.
-		instance_state->instance_texture_maps.init(s->instance_texture_count, true, AllocationTag::RENDERER);
-		Texture* default_texture = TextureSystem::get_default_texture();
-		// Set all the texture pointers to default until assigned.
-		for (uint32 i = 0; i < instance_texture_count; ++i)
+
+		if (instance_texture_count)
 		{
-			instance_state->instance_texture_maps[i] = maps[i];
-			if (!maps[i]->texture)
-				instance_state->instance_texture_maps[i]->texture = default_texture;
-		}
+			// Wipe out the memory for the entire array, even if it isn't all used.
+			instance_state->instance_texture_maps.init(s->instance_texture_count, true, AllocationTag::RENDERER);
+			Texture* default_texture = TextureSystem::get_default_texture();
+			// Set all the texture pointers to default until assigned.
+			for (uint32 i = 0; i < instance_texture_count; ++i)
+			{
+				instance_state->instance_texture_maps[i] = maps[i];
+				if (!maps[i]->texture)
+					instance_state->instance_texture_maps[i]->texture = default_texture;
+			}
+		}	
 
 		// Allocate some space in the UBO - by the stride, not the size.
 		uint64 size = s->ubo_stride;

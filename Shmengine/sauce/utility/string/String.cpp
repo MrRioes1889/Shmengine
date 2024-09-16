@@ -2,8 +2,9 @@
 #include "../CString.hpp"
 
 String::String()
+	: arr({})
 {
-	arr.init(String::min_reserve_size, DarrayFlag::IS_STRING, AllocationTag::STRING);
+	//arr.init(String::min_reserve_size, DarrayFlag::IS_STRING, AllocationTag::STRING);
 }
 
 String::String(uint32 reserve_size)

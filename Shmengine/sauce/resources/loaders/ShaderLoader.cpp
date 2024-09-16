@@ -75,16 +75,28 @@ namespace ResourceSystem
             mid(value, line.c_str(), equal_index + 1);
             value.trim();
 
-            if (var_name.equal_i("version")) {
+            if (var_name.equal_i("version")) 
+            {
                 // TODO: version
             }
-            else if (var_name.equal_i("name")) {
+            else if (var_name.equal_i("name")) 
+            {
                 r_data->name = value;
             }
-            else if (var_name.equal_i("renderpass")) {
-                r_data->renderpass_name = value;
+            else if (var_name.equal_i("renderpass")) 
+            {
+                //r_data->renderpass_name = value;
             }
-            else if (var_name.equal_i("stages")) {
+            else if (var_name.equal_i("depth_test")) 
+            {
+                 CString::parse_b8(value.c_str(), r_data->depth_test);
+            }
+            else if (var_name.equal_i("depth_write")) 
+            {
+                CString::parse_b8(value.c_str(), r_data->depth_write);
+            }
+            else if (var_name.equal_i("stages")) 
+            {
                 value.split(r_data->stage_names, ',');
                 for (uint32 i = 0; i < r_data->stage_names.count; i++)
                 {
@@ -101,12 +113,14 @@ namespace ResourceSystem
                         SHMERRORV("shader_loader_load - Invalid file layout. Unrecognized stage '%s'", r_data->stage_names[i].c_str());
                 }
             }
-            else if (var_name.equal_i("stagefiles")) {
+            else if (var_name.equal_i("stagefiles")) 
+            {
                 value.split(r_data->stage_filenames, ',');
                 for (uint32 i = 0; i < r_data->stage_filenames.count; i++)
                     r_data->stage_filenames[i].trim();
             }
-            else if (var_name.equal_i("cull_mode")) {
+            else if (var_name.equal_i("cull_mode")) 
+            {
                 if (value.equal_i("front"))
                     r_data->cull_mode = ShaderFaceCullMode::FRONT;
                 else if (value.equal_i("back"))
@@ -114,7 +128,8 @@ namespace ResourceSystem
                 else if (value.equal_i("both"))
                     r_data->cull_mode = ShaderFaceCullMode::BOTH;
             }
-            else if (var_name.equal_i("attributes") || var_name.equal_i("attribute")) {
+            else if (var_name.equal_i("attributes") || var_name.equal_i("attribute")) 
+            {
                 Darray<String> tmp(2, 0);
                 value.split(tmp, ',');
                 if (tmp.count != 2)

@@ -48,8 +48,12 @@ namespace Memory
         else
             nodes_size = Freelist::get_max_node_count_by_data_size(size, page_size) * sizeof(Freelist::Node);
 
+        BufferFlags::Value flags = 0;
+        if (!target_allocator)
+            flags = BufferFlags::PLATFORM_ALLOCATION;
+
         void* data = _allocate(target_allocator, size + nodes_size, tag, alignment);
-        buffer->init(size + nodes_size, 0, tag, data);
+        buffer->init(size + nodes_size, flags, tag, data);
         void* main_nodes = (((uint8*)buffer->data) + size);
         out_allocator->init(size, buffer->data, nodes_size, main_nodes, page_size, node_count_limit);
     }

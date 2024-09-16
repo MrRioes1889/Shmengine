@@ -35,8 +35,6 @@ namespace Renderer
 		inline static const uint32 shader_max_uniforms = 128;
 		inline static const uint32 shader_max_bindings = 2;
 		inline static const uint32 shader_max_push_const_ranges = 32;
-
-		inline static const uint32 renderpass_max_registered = 31;
 	};
 
 	namespace ViewMode
@@ -51,7 +49,7 @@ namespace Renderer
 
 	namespace RenderpassClearFlags
 	{
-		enum
+		enum Value
 		{
 			NONE = 0,
 			COLOR_BUFFER = 1 << 0,
@@ -60,9 +58,63 @@ namespace Renderer
 		};
 	}
 
+	enum class RenderTargetAttachmentType
+	{
+		NONE,
+		COLOR,
+		DEPTH,
+		STENCIL
+	};
+
+	enum class RenderTargetAttachmentSource
+	{
+		NONE,
+		DEFAULT,
+		VIEW
+	};
+
+	enum class RenderTargetAttachmentLoadOp
+	{
+		NONE,
+		DONT_CARE,
+		LOAD
+	};
+
+	enum class RenderTargetAttachmentStoreOp
+	{
+		NONE,
+		DONT_CARE,
+		STORE
+	};
+
+	struct RenderTargetAttachmentConfig
+	{
+		RenderTargetAttachmentType type;
+		RenderTargetAttachmentSource source;
+		RenderTargetAttachmentLoadOp load_op;
+		RenderTargetAttachmentStoreOp store_op;
+		bool32 present_after;
+	};
+
+	struct RenderTargetConfig
+	{
+		uint32 attachment_count;
+		RenderTargetAttachmentConfig* attachment_configs;
+	};
+
+	struct RenderTargetAttachment
+	{
+		RenderTargetAttachmentType type;
+		RenderTargetAttachmentSource source;
+		RenderTargetAttachmentLoadOp load_op;
+		RenderTargetAttachmentStoreOp store_op;
+		bool32 present_after;
+		Texture* texture;
+	};
+
 	struct RenderTarget
 	{
-		Sarray<Texture*> attachments;
+		Sarray<RenderTargetAttachment> attachments;
 		void* internal_framebuffer;
 
 		bool32 sync_window_to_size;
@@ -71,14 +123,18 @@ namespace Renderer
 	struct RenderpassConfig
 	{
 		const char* name;
-		const char* prev_name;
-		const char* next_name;
+
+		float32 depth;
+		uint32 stencil;
 
 		Math::Vec2u dim;
 		Math::Vec2i offset;
 		Math::Vec4f clear_color;
 
 		uint32 clear_flags;
+
+		uint32 render_target_count;
+		RenderTargetConfig target_config;
 	};
 
 	struct Renderpass
@@ -193,12 +249,14 @@ namespace Renderer
 	{
 		String name;
 
-		String renderpass_name;
 		Darray<ShaderAttributeConfig> attributes;
 		Darray<ShaderUniformConfig> uniforms;
 		Darray<ShaderStage::Value> stages;
 		Darray<String> stage_names;
 		Darray<String> stage_filenames;
+
+		bool8 depth_test;
+		bool8 depth_write;
 
 		ShaderFaceCullMode cull_mode;
 	};
@@ -229,11 +287,22 @@ namespace Renderer
 		uint32 size;
 	};
 
+	namespace ShaderFlags
+	{
+		enum
+		{
+			DEPTH_TEST = 1 << 0,
+			DEPTH_WRITE = 1 << 1
+		};
+		typedef uint32 Value;
+	}
+
 	struct Shader
 	{
 		uint32 id;
-		uint64 required_ubo_alignment;
+		ShaderFlags::Value shader_flags;
 
+		uint64 required_ubo_alignment;
 		uint32 global_ubo_size;
 		uint32 global_ubo_stride;
 		uint64 global_ubo_offset;
@@ -282,16 +351,13 @@ namespace Renderer
 	struct BackendConfig
 	{
 		const char* application_name;
-		uint32 pass_config_count;
-		RenderpassConfig* pass_configs;
-
-		void (*on_render_target_refresh_required)();
 	};
 
 	struct GeometryRenderData
 	{
 		Math::Mat4 model;
 		Geometry* geometry;
+		UniqueId unique_id;
 	};
 
 	struct Vertex3D
@@ -322,32 +388,40 @@ namespace Renderer
 		bool32(*begin_frame)(float64 delta_time);
 		bool32(*end_frame)(float64 delta_time);
 
-		void (*render_target_create)(uint32 attachment_count, Texture* const * attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
+		bool32 (*render_target_create)(uint32 attachment_count, const RenderTargetAttachment* attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
 		void (*render_target_destroy)(RenderTarget* target, bool32 free_internal_memory);
 
-		void (*renderpass_create)(Renderpass* out_renderpass, float32 depth, uint32 stencil, bool32 has_prev_pass, bool32 has_next_pass);
+		bool32 (*renderpass_create)(const RenderpassConfig* config, Renderpass* out_renderpass);
 		void (*renderpass_destroy)(Renderpass* pass);
-		Renderpass* (*renderpass_get)(const char* name);
 
-		bool32(*renderpass_begin)(Renderpass* pass, RenderTarget* target);
-		bool32(*renderpass_end)(Renderpass* pass);
+		bool32 (*renderpass_begin)(Renderpass* pass, RenderTarget* target);
+		bool32 (*renderpass_end)(Renderpass* pass);
 
-		Texture* (*window_attachment_get)(uint32 index);
-		Texture* (*depth_attachment_get)();
-		uint32 (*window_attachment_index_get)();		
+		Texture* (*get_window_attachment)(uint32 index);
+		Texture* (*get_depth_attachment)(uint32 attachment_index);
+		uint32 (*get_window_attachment_index)();	
+		uint32 (*get_window_attachment_count)();	
+
+		void (*set_viewport)(Math::Vec4f rect);
+		void (*reset_viewport)();
+
+		void (*set_scissor)(Math::Rect2Di rect);
+		void (*reset_scissor)();
 
 		void (*geometry_draw)(const GeometryRenderData& data);
 
 		void (*texture_create)(const void* pixels, Texture* texture);
 		void (*texture_create_writable)(Texture* texture);
 		void (*texture_resize)(Texture* texture, uint32 width, uint32 height);
-		void (*texture_write_data)(Texture* texture, uint32 offset, uint32 size, const uint8* pixels);
-		void (*texture_destroy)(Texture* texture);
+		bool32 (*texture_write_data)(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
+		bool32 (*texture_read_data)(Texture* t, uint32 offset, uint32 size, void* out_memory);
+		bool32 (*texture_read_pixel)(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
+		void (*texture_destroy)(Texture* texture);	
 
 		bool32(*geometry_create)(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
 		void (*geometry_destroy)(Geometry* geometry);
 
-		bool32 (*shader_create)(Shader* shader, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+		bool32 (*shader_create)(Shader* shader, const ShaderConfig* config, const Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 		void (*shader_destroy)(Shader* shader);
 		bool32 (*shader_init)(Shader* shader);
 		bool32 (*shader_use)(Shader* shader);
@@ -368,7 +442,7 @@ namespace Renderer
 		void* (*renderbuffer_map_memory)(Renderbuffer* buffer, uint64 offset, uint64 size);
 		void (*renderbuffer_unmap_memory)(Renderbuffer* buffer);
 		bool32 (*renderbuffer_flush)(Renderbuffer* buffer, uint64 offset, uint64 size);
-		bool32 (*renderbuffer_read)(Renderbuffer* buffer, uint64 offset, uint64 size, void** out_memory);
+		bool32 (*renderbuffer_read)(Renderbuffer* buffer, uint64 offset, uint64 size, void* out_memory);
 		bool32 (*renderbuffer_resize)(Renderbuffer* buffer, uint64 new_total_size);
 		bool32 (*renderbuffer_load_range)(Renderbuffer* buffer, uint64 offset, uint64 size, const void* data);
 		bool32 (*renderbuffer_copy_range)(Renderbuffer* source, uint64 source_offset, Renderbuffer* dest, uint64 dest_offset, uint64 size);
@@ -397,10 +471,6 @@ namespace Renderer
 		DEFAULT_ORTHOGRAPHIC = 2
 	};
 
-	struct RenderViewPassConfig
-	{
-		const char* name;
-	};
 
 	struct RenderViewConfig
 	{
@@ -412,7 +482,9 @@ namespace Renderer
 		RenderViewType type;
 		RenderViewViewMatrixSource view_matrix_source;
 		RenderViewProjMatrixSource proj_matrix_source;
-		Sarray<RenderViewPassConfig> pass_configs;
+
+		uint32 pass_count;
+		RenderpassConfig* pass_configs;
 	};
 
 	struct RenderViewPacket;
@@ -425,7 +497,7 @@ namespace Renderer
 		uint16 height;
 		RenderViewType type;
 
-		Sarray<Renderpass*> renderpasses;
+		Sarray<Renderpass> renderpasses;
 
 		const char* custom_shader_name;
 		Buffer internal_data;
@@ -433,14 +505,15 @@ namespace Renderer
 		bool32 (*on_create)(RenderView* self);
 		void (*on_destroy)(RenderView* self);
 		void (*on_resize)(RenderView* self, uint32 width, uint32 height);
-		bool32 (*on_build_packet)(const RenderView* self, void* data, RenderViewPacket* out_packet);
+		bool32 (*on_build_packet)(RenderView* self, void* data, RenderViewPacket* out_packet);
 		void (*on_destroy_packet)(const RenderView* self, RenderViewPacket* packet);
-		bool32 (*on_render)(const RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
+		bool32 (*on_render)(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
+		bool32(*regenerate_attachment_target)(const RenderView* self, uint32 pass_index, RenderTargetAttachment* attachment);
 	};
 
 	struct RenderViewPacket
 	{
-		const RenderView* view;
+		RenderView* view;
 		Math::Mat4 view_matrix;
 		Math::Mat4 projection_matrix;
 		Math::Vec3f view_position;

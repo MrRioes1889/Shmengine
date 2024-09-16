@@ -5,6 +5,8 @@ renderpass=Renderpass.Builtin.Skybox
 stages=vertex,fragment
 stagefiles=shaders/Builtin.SkyboxShader.vert.spv,shaders/Builtin.SkyboxShader.frag.spv
 cull_mode=front
+depth_test=0
+depth_write=0
 
 # Attributes: type,name
 attribute=vec3,in_position

@@ -151,6 +151,9 @@ SHMINLINE void Darray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 {
 	SHMASSERT_MSG(!data, "Cannot initialize Darray with existing data!");
 
+	if (!reserve_count)
+		return;
+
 	allocation_tag = (uint16)tag;
 	capacity = reserve_count;
 	count = 0;

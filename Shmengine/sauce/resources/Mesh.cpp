@@ -55,12 +55,11 @@ bool32 mesh_load_from_resource(const char* resource_name, Mesh* out_mesh)
 {
     out_mesh->generation = INVALID_ID8;
 
-    MeshLoadParams params;
-    params.resource_name = resource_name;
-    params.out_mesh = out_mesh;
-    params.mesh_resource = {};
-
-    JobSystem::JobInfo job = JobSystem::job_create(mesh_load_job_start, mesh_load_job_success, mesh_load_job_fail, &params, sizeof(MeshLoadParams), sizeof(MeshLoadParams));
+    JobSystem::JobInfo job = JobSystem::job_create(mesh_load_job_start, mesh_load_job_success, mesh_load_job_fail, sizeof(MeshLoadParams), sizeof(MeshLoadParams));
+    MeshLoadParams* params = (MeshLoadParams*)job.params;
+    params->resource_name = resource_name;
+    params->out_mesh = out_mesh;
+    params->mesh_resource = {};  
     JobSystem::submit(job);
 
     return true;

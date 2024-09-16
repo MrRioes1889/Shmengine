@@ -43,7 +43,6 @@ void quick_sort(T* arr, int32 low_index, int32 high_index, bool32 asc = true)
 
 	swap_elements(&arr[i], &arr[high_index]);
 	int32 partition_index = i;
-	//
 
 	quick_sort(arr, low_index, partition_index - 1, asc);
 	quick_sort(arr, partition_index + 1, high_index, asc);

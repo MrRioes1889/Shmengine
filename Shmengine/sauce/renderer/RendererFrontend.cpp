@@ -25,17 +25,10 @@ namespace Renderer
 	{
 		Renderer::Backend backend;
 
-		uint32 material_shader_id;
-		uint32 ui_shader_id;
-		uint32 skybox_shader_id;
-
 		uint32 framebuffer_width;
 		uint32 framebuffer_height;
 
 		uint32 window_render_target_count;
-		Renderpass* world_renderpass;
-		Renderpass* ui_renderpass;
-		Renderpass* skybox_renderpass;
 
 		bool32 resizing;
 		uint32 frames_since_resize;
@@ -43,15 +36,6 @@ namespace Renderer
 	};
 
 	static SystemState* system_state;
-
-#define CRITICAL_INIT(op, msg) \
-    if (!(op))				   \
-	{						   \
-        SHMERROR(msg);           \
-        return false;          \
-    }
-
-	static void regenerate_render_targets();
 
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name)
 	{
@@ -69,82 +53,12 @@ namespace Renderer
 
 		BackendConfig config = {};
 		config.application_name = application_name;
-		config.on_render_target_refresh_required = regenerate_render_targets;
 
-		const uint32 pass_config_count = 3;
-		config.pass_config_count = pass_config_count;
-		const char* world_renderpass_name = "Renderpass.Builtin.World";
-		const char* ui_renderpass_name = "Renderpass.Builtin.UI";
-		const char* skybox_renderpass_name = "Renderpass.Builtin.Skybox";
-		RenderpassConfig pass_configs[pass_config_count];
-
-		pass_configs[0].name = skybox_renderpass_name;
-		pass_configs[0].prev_name = 0;
-		pass_configs[0].next_name = world_renderpass_name;
-		pass_configs[0].dim = { system_state->framebuffer_width, system_state->framebuffer_height };
-		pass_configs[0].offset = { 0, 0 };
-		pass_configs[0].clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-		pass_configs[0].clear_flags = RenderpassClearFlags::COLOR_BUFFER;
-
-		pass_configs[1].name = world_renderpass_name;
-		pass_configs[1].prev_name = skybox_renderpass_name;
-		pass_configs[1].next_name = ui_renderpass_name;
-		pass_configs[1].dim = { system_state->framebuffer_width, system_state->framebuffer_height };
-		pass_configs[1].offset = { 0, 0 };
-		pass_configs[1].clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-		pass_configs[1].clear_flags = RenderpassClearFlags::DEPTH_BUFFER | RenderpassClearFlags::STENCIL_BUFFER;
-
-		pass_configs[2].name = ui_renderpass_name;
-		pass_configs[2].prev_name = world_renderpass_name;
-		pass_configs[2].next_name = 0;
-		pass_configs[2].dim = { system_state->framebuffer_width, system_state->framebuffer_height };
-		pass_configs[2].offset = { 0, 0 };
-		pass_configs[2].clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-		pass_configs[2].clear_flags = RenderpassClearFlags::NONE;
-
-		config.pass_configs = pass_configs;
-
-		CRITICAL_INIT(system_state->backend.init(config, &system_state->window_render_target_count), "ERROR: Failed to initialize renderer backend.");
-
-		system_state->skybox_renderpass = Renderer::renderpass_get(skybox_renderpass_name);
-		system_state->skybox_renderpass->render_targets.init(system_state->window_render_target_count, 0);
-
-		system_state->world_renderpass = Renderer::renderpass_get(world_renderpass_name);
-		system_state->world_renderpass->render_targets.init(system_state->window_render_target_count, 0);
-
-		system_state->ui_renderpass = Renderer::renderpass_get(ui_renderpass_name);
-		system_state->ui_renderpass->render_targets.init(system_state->window_render_target_count, 0);
-
-		regenerate_render_targets();
-
-		system_state->skybox_renderpass->dim = { system_state->framebuffer_width, system_state->framebuffer_height };
-		system_state->world_renderpass->dim = { system_state->framebuffer_width, system_state->framebuffer_height };
-		system_state->ui_renderpass->dim = { system_state->framebuffer_width, system_state->framebuffer_height };
-
-		// Shaders
-		Resource config_resource;
-		ShaderConfig* shader_config = 0;
-
-		// Builtin skybox shader.
-		CRITICAL_INIT(ResourceSystem::load(Renderer::RendererConfig::builtin_shader_name_skybox, ResourceType::SHADER, 0, &config_resource), "Failed to load builtin skybox shader.");
-		shader_config = (ShaderConfig*)config_resource.data;
-		CRITICAL_INIT(ShaderSystem::create_shader(*shader_config), "Failed to load builtin skybox shader.");
-		ResourceSystem::unload(&config_resource);
-		system_state->skybox_shader_id = ShaderSystem::get_id(Renderer::RendererConfig::builtin_shader_name_skybox);
-
-		// Builtin material shader.
-		CRITICAL_INIT(ResourceSystem::load(Renderer::RendererConfig::builtin_shader_name_world, ResourceType::SHADER, 0, &config_resource), "Failed to load builtin material shader.");
-		shader_config = (ShaderConfig*)config_resource.data;
-		CRITICAL_INIT(ShaderSystem::create_shader(*shader_config), "Failed to load builtin material shader.");
-		ResourceSystem::unload(&config_resource);
-		system_state->material_shader_id = ShaderSystem::get_id(Renderer::RendererConfig::builtin_shader_name_world);
-
-		// Builtin UI shader.
-		CRITICAL_INIT(ResourceSystem::load(Renderer::RendererConfig::builtin_shader_name_ui, ResourceType::SHADER, 0, &config_resource), "Failed to load builtin UI shader.");
-		shader_config = (ShaderConfig*)config_resource.data;
-		CRITICAL_INIT(ShaderSystem::create_shader(*shader_config), "Failed to load builtin ui shader.");
-		ResourceSystem::unload(&config_resource);
-		system_state->ui_shader_id = ShaderSystem::get_id(Renderer::RendererConfig::builtin_shader_name_ui);
+		if (!system_state->backend.init(config, &system_state->window_render_target_count))
+		{
+			SHMERROR("Failed to initialize renderer backend!");
+			return false;
+		}
 
 		return true;
 	}
@@ -153,13 +67,6 @@ namespace Renderer
 	{
 		if (!system_state)
 			return;
-
-		for (uint32 i = 0; i < system_state->window_render_target_count; i++)
-		{
-			system_state->backend.render_target_destroy(&system_state->skybox_renderpass->render_targets[i], true);
-			system_state->backend.render_target_destroy(&system_state->world_renderpass->render_targets[i], true);
-			system_state->backend.render_target_destroy(&system_state->ui_renderpass->render_targets[i], true);
-		}
 
 		system_state->backend.shutdown();	
 		system_state = 0;
@@ -180,8 +87,7 @@ namespace Renderer
 				uint32 width = system_state->framebuffer_width;
 				uint32 height = system_state->framebuffer_height;
 				RenderViewSystem::on_window_resize(width, height);
-				system_state->backend.on_resized(width, height);			
-
+				system_state->backend.on_resized(width, height);
 				system_state->frames_since_resize = 0;
 				system_state->resizing = false;
 				did_resize = true;
@@ -199,7 +105,7 @@ namespace Renderer
 			return false;
 		}
 
-		uint32 render_target_index = system_state->backend.window_attachment_index_get();
+		uint32 render_target_index = system_state->backend.get_window_attachment_index();
 
 		for (uint32 i = 0; i < data->views.capacity; i++)
 		{
@@ -234,9 +140,9 @@ namespace Renderer
 		
 	}
 
-	void render_target_create(uint32 attachment_count, Texture* const* attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target)
+	bool32 render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target)
 	{
-		system_state->backend.render_target_create(attachment_count, attachments, pass, width, height, out_target);
+		return system_state->backend.render_target_create(attachment_count, attachments, pass, width, height, out_target);
 	}
 
 	void render_target_destroy(RenderTarget* target, bool32 free_internal_memory)
@@ -244,19 +150,89 @@ namespace Renderer
 		system_state->backend.render_target_destroy(target, free_internal_memory);
 	}
 
-	void renderpass_create(Renderpass* out_renderpass, float32 depth, uint32 stencil, bool32 has_prev_pass, bool32 has_next_pass)
+	void set_viewport(Math::Vec4f rect)
 	{
-		system_state->backend.renderpass_create(out_renderpass, depth, stencil, has_prev_pass, has_next_pass);
+		system_state->backend.set_viewport(rect);
+	}
+
+	void reset_viewport()
+	{
+		system_state->backend.reset_viewport();
+	}
+
+	void set_scissor(Math::Rect2Di rect)
+	{
+		system_state->backend.set_scissor(rect);
+	}
+
+	void reset_scissor()
+	{
+		system_state->backend.reset_scissor();
+	}
+
+	Texture* get_window_attachment(uint32 index)
+	{
+		return system_state->backend.get_window_attachment(index);
+	}
+
+	Texture* get_depth_attachment(uint32 attachment_index)
+	{
+		return system_state->backend.get_depth_attachment(attachment_index);
+	}
+
+	uint32 get_window_attachment_index()
+	{
+		return system_state->backend.get_window_attachment_index();
+	}
+
+	uint32 get_window_attachment_count()
+	{
+		return system_state->backend.get_window_attachment_count();
+	}
+
+	bool32 renderpass_create(const RenderpassConfig* config, Renderpass* out_renderpass)
+	{
+
+		if (config->render_target_count <= 0)
+		{
+			SHMERROR("Failed to create renderpass. Target count has to be > 0.");
+			return false;
+		}
+
+		out_renderpass->render_targets.init(config->render_target_count, 0, AllocationTag::RENDERER);
+		out_renderpass->clear_flags = config->clear_flags;
+		out_renderpass->clear_color = config->clear_color;
+		out_renderpass->dim = config->dim;
+
+		for (uint32 t = 0; t < out_renderpass->render_targets.capacity; t++)
+		{
+			RenderTarget* target = &out_renderpass->render_targets[t];
+			target->attachments.init(config->target_config.attachment_count, 0, AllocationTag::RENDERER);
+
+			for (uint32 a = 0; a < target->attachments.capacity; a++)
+			{
+				RenderTargetAttachment* att = &target->attachments[a];
+				RenderTargetAttachmentConfig* att_config = &config->target_config.attachment_configs[a];
+
+				att->source = att_config->source;
+				att->type = att_config->type;
+				att->load_op = att_config->load_op;
+				att->store_op = att_config->store_op;
+				att->texture = 0;
+			}
+		}
+
+		return system_state->backend.renderpass_create(config, out_renderpass);
+
 	}
 
 	void renderpass_destroy(Renderpass* pass)
 	{
-		system_state->backend.renderpass_destroy(pass);
-	}
+		for (uint32 i = 0; i < pass->render_targets.capacity; i++)
+			render_target_destroy(&pass->render_targets[i], true);
+		pass->render_targets.free_data();
 
-	Renderpass* renderpass_get(const char* name)
-	{
-		return system_state->backend.renderpass_get(name);
+		system_state->backend.renderpass_destroy(pass);
 	}
 
 	bool32 renderpass_begin(Renderpass* pass, RenderTarget* target)
@@ -284,9 +260,19 @@ namespace Renderer
 		system_state->backend.texture_resize(texture, width, height);
 	}
 
-	void texture_write_data(Texture* texture, uint32 offset, uint32 size, const uint8* pixels)
+	bool32 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
 	{
-		system_state->backend.texture_write_data(texture, offset, size, pixels);
+		return system_state->backend.texture_write_data(t, offset, size, pixels);
+	}
+
+	bool32 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory)
+	{
+		return system_state->backend.texture_read_data(t, offset, size, out_memory);
+	}
+
+	bool32 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba)
+	{
+		return system_state->backend.texture_read_pixel(t, x, y, out_rgba);
 	}
 
 	void texture_destroy(Texture* texture)
@@ -309,9 +295,9 @@ namespace Renderer
 		system_state->backend.geometry_draw(data);
 	}
 
-	bool32 shader_create(Shader* s, const ShaderConfig& config, Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
+	bool32 shader_create(Shader* shader, const ShaderConfig* config, const Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
 	{
-		return system_state->backend.shader_create(s, config, renderpass, stage_count, stage_filenames, stages);
+		return system_state->backend.shader_create(shader, config, renderpass, stage_count, stage_filenames, stages);
 	}
 
 	void shader_destroy(Shader* s) 
@@ -464,7 +450,7 @@ namespace Renderer
 		return system_state->backend.renderbuffer_flush(buffer, offset, size);
 	}
 
-	bool32 renderbuffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void** out_memory)
+	bool32 renderbuffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void* out_memory)
 	{
 		return system_state->backend.renderbuffer_read(buffer, offset, size, out_memory);
 	}
@@ -544,51 +530,6 @@ namespace Renderer
 	bool8 is_multithreaded()
 	{
 		return system_state->backend.is_multithreaded();
-	}
-
-	static void regenerate_render_targets()
-	{
-		for (uint32 i = 0; i < system_state->window_render_target_count; i++) 
-		{
-			// Destroy the old first if they exist.
-			system_state->backend.render_target_destroy(&system_state->skybox_renderpass->render_targets[i], false);
-			system_state->backend.render_target_destroy(&system_state->world_renderpass->render_targets[i], false);
-			system_state->backend.render_target_destroy(&system_state->ui_renderpass->render_targets[i], false);
-
-			Texture* window_target_texture = system_state->backend.window_attachment_get(i);
-			Texture* depth_target_texture = system_state->backend.depth_attachment_get();
-
-			// Skybox render targets
-			Texture* skybox_attachments[1] = { window_target_texture };
-			system_state->backend.render_target_create(
-				1,
-				skybox_attachments,
-				system_state->skybox_renderpass,
-				system_state->framebuffer_width,
-				system_state->framebuffer_height,
-				&system_state->skybox_renderpass->render_targets[i]);
-
-			// World render targets.
-			Texture* attachments[2] = { window_target_texture, depth_target_texture };
-			system_state->backend.render_target_create(
-				2,
-				attachments,
-				system_state->world_renderpass,
-				system_state->framebuffer_width,
-				system_state->framebuffer_height,
-				&system_state->world_renderpass->render_targets[i]);
-
-			// UI render targets
-			Texture* ui_attachments[1] = { window_target_texture };
-			system_state->backend.render_target_create(
-				1,
-				ui_attachments,
-				system_state->ui_renderpass,
-				system_state->framebuffer_width,
-				system_state->framebuffer_height,
-				&system_state->ui_renderpass->render_targets[i]);
-
-		}
 	}
 	
 }

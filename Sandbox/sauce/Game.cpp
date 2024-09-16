@@ -9,6 +9,7 @@
 #include <utility/String.hpp>
 #include <renderer/RendererTypes.hpp>
 #include <utility/Sort.hpp>
+#include <string>
 
 bool32 game_init(Game* game_inst) 
 {
@@ -23,6 +24,7 @@ bool32 game_init(Game* game_inst)
 
 bool32 game_update(Game* game_inst, float64 delta_time) 
 {
+
     GameState* state = (GameState*)game_inst->state;
 
     uint32 allocation_count = Memory::get_current_allocation_count();

@@ -79,6 +79,8 @@ bool32 ui_text_create(UITextType type, const char* font_name, uint16 font_size, 
 
     regenerate_geometry(out_text);
 
+    out_text->unique_id = identifier_acquire_new_id(out_text);
+
     return true;
 
 }
@@ -93,6 +95,9 @@ void ui_text_destroy(UIText* text)
 
     Renderer::Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
     Renderer::shader_release_instance_resources(ui_shader, text->instance_id);
+
+    identifier_release_id(text->unique_id);
+    text->unique_id = 0;
 
 }
 
