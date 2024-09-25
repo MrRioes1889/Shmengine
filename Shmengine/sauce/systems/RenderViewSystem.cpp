@@ -4,9 +4,10 @@
 #include "utility/CString.hpp"
 #include "containers/Hashtable.hpp"
 #include "renderer/RendererFrontend.hpp"
-#include "renderer/views/RenderViewWORLD.hpp"
+#include "renderer/views/RenderViewWorld.hpp"
 #include "renderer/views/RenderViewUI.hpp"
 #include "renderer/views/RenderViewSkybox.hpp"
+#include "renderer/views/RenderViewPick.hpp"
 #include "optick.h"
 
 namespace RenderViewSystem
@@ -53,7 +54,10 @@ namespace RenderViewSystem
 		for (uint32 i = 0; i < system_state->config.max_view_count; i++)
 		{
 			if (system_state->registered_views[i].id != INVALID_ID)
+			{
 				destroy(&system_state->registered_views[i]);
+				system_state->registered_views[i].id = INVALID_ID;
+			}			
 		}
 
 		system_state = 0;
@@ -62,7 +66,7 @@ namespace RenderViewSystem
 	bool32 create(const Renderer::RenderViewConfig& config)
 	{
 
-		if (!config.pass_count) {
+		if (!config.pass_configs.capacity) {
 			SHMERROR("RenderViewSystem::create - Config must have at least one renderpass.");
 			return false;
 		}
@@ -90,7 +94,7 @@ namespace RenderViewSystem
 		view.type = config.type;
 		view.name = config.name;
 		view.custom_shader_name = config.custom_shader_name;
-		view.renderpasses.init(config.pass_count, 0, AllocationTag::RENDERER);
+		view.renderpasses.init(config.pass_configs.capacity, 0, AllocationTag::RENDERER);
 
 		for (uint32 i = 0; i < view.renderpasses.capacity; i++)
 		{
@@ -105,9 +109,9 @@ namespace RenderViewSystem
 	
 		if (config.type == Renderer::RenderViewType::WORLD) 
 		{		
-			view.on_build_packet = Renderer::render_view_world_on_build_packet;  // For building the packet
+			view.on_build_packet = Renderer::render_view_world_on_build_packet;
 			view.on_destroy_packet = Renderer::render_view_world_on_destroy_packet;
-			view.on_render = Renderer::render_view_world_on_render;              // For rendering the packet
+			view.on_render = Renderer::render_view_world_on_render;
 			view.on_create = Renderer::render_view_world_on_create;
 			view.on_destroy = Renderer::render_view_world_on_destroy;
 			view.on_resize = Renderer::render_view_world_on_resize;	
@@ -115,9 +119,9 @@ namespace RenderViewSystem
 		}
 		else if (config.type == Renderer::RenderViewType::UI) 
 		{
-			view.on_build_packet = Renderer::render_view_ui_on_build_packet;  // For building the packet
+			view.on_build_packet = Renderer::render_view_ui_on_build_packet;
 			view.on_destroy_packet = Renderer::render_view_ui_on_destroy_packet;
-			view.on_render = Renderer::render_view_ui_on_render;              // For rendering the packet
+			view.on_render = Renderer::render_view_ui_on_render; 
 			view.on_create = Renderer::render_view_ui_on_create;
 			view.on_destroy = Renderer::render_view_ui_on_destroy;
 			view.on_resize = Renderer::render_view_ui_on_resize;
@@ -125,13 +129,23 @@ namespace RenderViewSystem
 		}
 		else if (config.type == Renderer::RenderViewType::SKYBOX) 
 		{
-			view.on_build_packet = Renderer::render_view_skybox_on_build_packet;  // For building the packet
+			view.on_build_packet = Renderer::render_view_skybox_on_build_packet;
 			view.on_destroy_packet = Renderer::render_view_skybox_on_destroy_packet;
-			view.on_render = Renderer::render_view_skybox_on_render;              // For rendering the packet
+			view.on_render = Renderer::render_view_skybox_on_render;  
 			view.on_create = Renderer::render_view_skybox_on_create;
 			view.on_destroy = Renderer::render_view_skybox_on_destroy;
 			view.on_resize = Renderer::render_view_skybox_on_resize;
 			view.regenerate_attachment_target = 0;
+		}
+		else if (config.type == Renderer::RenderViewType::PICK)
+		{
+			view.on_build_packet = Renderer::render_view_pick_on_build_packet;
+			view.on_destroy_packet = Renderer::render_view_pick_on_destroy_packet;
+			view.on_render = Renderer::render_view_pick_on_render;
+			view.on_create = Renderer::render_view_pick_on_create;
+			view.on_destroy = Renderer::render_view_pick_on_destroy;
+			view.on_resize = Renderer::render_view_pick_on_resize;
+			view.regenerate_attachment_target = Renderer::render_view_pick_regenerate_attachment_target;
 		}
 
 		if (!view.on_create(&view))
@@ -167,10 +181,10 @@ namespace RenderViewSystem
 		return &system_state->registered_views[id];
 	}
 
-	bool32 build_packet(Renderer::RenderView* view, void* data, Renderer::RenderViewPacket* out_packet)
+	bool32 build_packet(Renderer::RenderView* view, Memory::LinearAllocator* frame_allocator, void* data, Renderer::RenderViewPacket* out_packet)
 	{
 		OPTICK_EVENT();
-		return view->on_build_packet(view, data, out_packet);
+		return view->on_build_packet(view, frame_allocator, data, out_packet);
 	}
 
 	void on_window_resize(uint32 width, uint32 height)

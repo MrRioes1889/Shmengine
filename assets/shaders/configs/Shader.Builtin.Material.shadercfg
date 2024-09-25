@@ -1,9 +1,8 @@
 # shader config file
 version=1.0
 name=Shader.Builtin.Material
-renderpass=Renderpass.Builtin.World
 stages=vertex,fragment
-stagefiles=shaders/Builtin.MaterialShader.vert.spv,shaders/Builtin.MaterialShader.frag.spv
+stagefiles=shaders/bin/Builtin.MaterialShader.vert.spv,shaders/bin/Builtin.MaterialShader.frag.spv
 depth_test=1
 depth_write=1
 

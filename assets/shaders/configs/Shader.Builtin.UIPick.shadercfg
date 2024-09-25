@@ -1,9 +1,8 @@
 # shader config file
 version=1.0
-name=Shader.Builtin.UI
-renderpass=Renderpass.Builtin.UI
+name=Shader.Builtin.UIPick
 stages=vertex,fragment
-stagefiles=shaders/Builtin.UIShader.vert.spv,shaders/Builtin.UIShader.frag.spv
+stagefiles=shaders/bin/Builtin.UIPickShader.vert.spv,shaders/bin/Builtin.UIPickShader.frag.spv
 depth_test=0
 depth_write=0
 
@@ -15,6 +14,5 @@ attribute=vec2,in_texcoord
 # NOTE: For scope: 0=global, 1=instance, 2=local
 uniform=mat4,0,projection
 uniform=mat4,0,view
-uniform=vec4,1,diffuse_color
-uniform=samp,1,diffuse_texture
+uniform=vec3,1,id_color
 uniform=mat4,2,model

@@ -18,6 +18,7 @@ namespace Memory
 	SHMAPI void linear_allocator_destroy(LinearAllocator* allocator);
 
 	SHMAPI void* linear_allocator_allocate(LinearAllocator* allocator, uint64 size);
+	SHMAPI void linear_allocator_free_all_data(LinearAllocator* allocator);
 
 }
 

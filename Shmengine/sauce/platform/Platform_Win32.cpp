@@ -264,6 +264,8 @@ namespace Platform
     {
         ShowCursor(!clip);
 
+        Math::Vec2i client_center = { (int32)plat_state->client_width / 2, (int32)plat_state->client_height / 2 };
+
         if (clip)
         {           
             RECT window_rect = {};
@@ -272,14 +274,15 @@ namespace Platform
             {
                 SHMDEBUG("ClipCursor failed!");
                 return false;
-            }          
-
-            set_cursor_pos(plat_state->client_width / 2 + plat_state->client_x, plat_state->client_height / 2 + plat_state->client_y);
+            }                    
         }
         else
         {
             ClipCursor(0);
         }
+
+        set_cursor_pos(client_center.x + (int32)plat_state->client_x, client_center.y + (int32)plat_state->client_y);
+        Input::process_mouse_move(client_center.x, client_center.y);
 
         return true;
     }
@@ -368,7 +371,8 @@ namespace Platform
             // Mouse move
             int32 x = LOWORD(l_param);
             int32 y = HIWORD(l_param);
-            Input::process_mouse_move(x, y);
+            if (!Input::is_cursor_clipped())
+                Input::process_mouse_move(x, y);
             break;
         } 
         case WM_MOUSEWHEEL: 

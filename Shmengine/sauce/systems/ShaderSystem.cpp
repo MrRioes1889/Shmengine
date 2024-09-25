@@ -54,7 +54,7 @@ namespace ShaderSystem
 
 		uint64 shader_array_size = sizeof(Renderer::Shader) * config.max_shader_count;
 		void* shader_array = allocator_callback(shader_array_size);
-		system_state->shaders.init(config.max_shader_count, SarrayFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, shader_array);
+		system_state->shaders.init(config.max_shader_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, shader_array);
 
 		for (uint32 i = 0; i < system_state->shaders.capacity; i++)
 		{

@@ -115,7 +115,7 @@ namespace Renderer
 		}
 	}
 
-	bool32 render_view_skybox_on_build_packet(RenderView* self, void* data, RenderViewPacket* out_packet)
+	bool32 render_view_skybox_on_build_packet(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet)
 	{
 
 		SkyboxPacketData* skybox_data = (SkyboxPacketData*)data;

@@ -324,7 +324,7 @@ namespace ResourceSystem
         loader.custom_type = 0;
         loader.load = shader_loader_load;
         loader.unload = shader_loader_unload;
-        loader.type_path = "shaders/";
+        loader.type_path = "shaders/configs/";
 
         return loader;
     }

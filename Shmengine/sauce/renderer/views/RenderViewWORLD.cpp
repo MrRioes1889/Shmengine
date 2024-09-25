@@ -1,4 +1,4 @@
-#include "RenderViewWORLD.hpp"
+#include "RenderViewWorld.hpp"
 
 #include "core/Event.hpp"
 #include "utility/Math.hpp"
@@ -11,7 +11,7 @@
 #include "renderer/RendererFrontend.hpp"
 #include "utility/Sort.hpp"
 
-struct RenderViewWORLDInternalData {
+struct RenderViewPickInternalData {
 	Renderer::Shader* shader;
 	float32 near_clip;
 	float32 far_clip;
@@ -34,7 +34,7 @@ namespace Renderer
 		if (!self) 
 			return false;
 
-		RenderViewWORLDInternalData* internal_data = (RenderViewWORLDInternalData*)self->internal_data.data;
+		RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 		if (!internal_data) 
 			return false;
 
@@ -77,11 +77,11 @@ namespace Renderer
 	bool32 render_view_world_on_create(RenderView* self)
 	{
 
-		self->internal_data.init(sizeof(RenderViewWORLDInternalData), 0, AllocationTag::RENDERER);
-		RenderViewWORLDInternalData* data = (RenderViewWORLDInternalData*)self->internal_data.data;
+		self->internal_data.init(sizeof(RenderViewPickInternalData), 0, AllocationTag::RENDERER);
+		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
 
 		Resource config_resource;
-		if (!ResourceSystem::load(Renderer::RendererConfig::builtin_shader_name_world, ResourceType::SHADER, 0, &config_resource))
+		if (!ResourceSystem::load(Renderer::RendererConfig::builtin_shader_name_material, ResourceType::SHADER, 0, &config_resource))
 		{
 			SHMERROR("Failed to load world material shader config.");
 			return false;
@@ -96,7 +96,7 @@ namespace Renderer
 		}
 		ResourceSystem::unload(&config_resource);
 
-		data->shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_world);
+		data->shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_material);
 
 		data->near_clip = 0.1f;
 		data->far_clip = 1000.0f;
@@ -125,7 +125,7 @@ namespace Renderer
 		if (self->width == width && self->height == height)
 			return;
 
-		RenderViewWORLDInternalData* data = (RenderViewWORLDInternalData*)self->internal_data.data;
+		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
 
 		self->width = (uint16)width;
 		self->height = (uint16)height;
@@ -139,7 +139,7 @@ namespace Renderer
 		}
 	}
 
-	bool32 render_view_world_on_build_packet(RenderView* self, void* data, RenderViewPacket* out_packet)
+	bool32 render_view_world_on_build_packet(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet)
 	{
 
 		struct GeometryDistance
@@ -152,7 +152,7 @@ namespace Renderer
 		};
 
 		MeshPacketData* mesh_data = (MeshPacketData*)data;
-		RenderViewWORLDInternalData* internal_data = (RenderViewWORLDInternalData*)self->internal_data.data;
+		RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 
 		uint32 total_geometry_count = 0;
 		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
@@ -214,7 +214,7 @@ namespace Renderer
 	bool32 render_view_world_on_render(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
 	{
 
-		RenderViewWORLDInternalData* data = (RenderViewWORLDInternalData*)self->internal_data.data;
+		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
 
 		for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
 		{

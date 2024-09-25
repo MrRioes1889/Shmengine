@@ -84,7 +84,7 @@ SHMINLINE void Hashtable<T>::init(uint32 count, uint32 creation_flags, Allocatio
 
 	uint32 buffer_flags = 0;
 	if (flags & HashtableFlag::EXTERNAL_MEMORY)
-		buffer_flags |= SarrayFlag::EXTERNAL_MEMORY;
+		buffer_flags |= SarrayFlags::EXTERNAL_MEMORY;
 
 	buffer.init(sizeof(T) * element_count, buffer_flags, tag, memory);
 }

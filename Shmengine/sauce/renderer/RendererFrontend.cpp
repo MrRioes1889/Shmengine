@@ -207,12 +207,12 @@ namespace Renderer
 		for (uint32 t = 0; t < out_renderpass->render_targets.capacity; t++)
 		{
 			RenderTarget* target = &out_renderpass->render_targets[t];
-			target->attachments.init(config->target_config.attachment_count, 0, AllocationTag::RENDERER);
+			target->attachments.init(config->target_config.attachment_configs.capacity, 0, AllocationTag::RENDERER);
 
 			for (uint32 a = 0; a < target->attachments.capacity; a++)
 			{
 				RenderTargetAttachment* att = &target->attachments[a];
-				RenderTargetAttachmentConfig* att_config = &config->target_config.attachment_configs[a];
+				const RenderTargetAttachmentConfig* att_config = &config->target_config.attachment_configs[a];
 
 				att->source = att_config->source;
 				att->type = att_config->type;
@@ -278,6 +278,7 @@ namespace Renderer
 	void texture_destroy(Texture* texture)
 	{
 		system_state->backend.texture_destroy(texture);
+		texture->internal_data.free_data();
 	}
 
 	bool32 geometry_create(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices)

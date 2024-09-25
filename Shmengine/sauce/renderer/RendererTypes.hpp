@@ -12,15 +12,23 @@ namespace Platform
 }
 
 struct UIText;
+struct Skybox;
+
+namespace Memory
+{
+	struct LinearAllocator;
+}
 
 namespace Renderer
 {
 
 	struct RendererConfig
 	{
-		static inline const char* builtin_shader_name_world = "Shader.Builtin.Material";
+		static inline const char* builtin_shader_name_material = "Shader.Builtin.Material";
 		static inline const char* builtin_shader_name_ui = "Shader.Builtin.UI";
 		static inline const char* builtin_shader_name_skybox = "Shader.Builtin.Skybox";
+		static inline const char* builtin_shader_name_world_pick = "Shader.Builtin.WorldPick";
+		static inline const char* builtin_shader_name_ui_pick = "Shader.Builtin.UIPick";
 
 		inline static const uint32 max_material_count = 0x400;
 		inline static const uint32 max_ui_count = 0x400;
@@ -98,8 +106,7 @@ namespace Renderer
 
 	struct RenderTargetConfig
 	{
-		uint32 attachment_count;
-		RenderTargetAttachmentConfig* attachment_configs;
+		Sarray<RenderTargetAttachmentConfig> attachment_configs;
 	};
 
 	struct RenderTargetAttachment
@@ -455,7 +462,8 @@ namespace Renderer
 	{
 		WORLD = 1,
 		UI = 2,
-		SKYBOX = 3
+		SKYBOX = 3,
+		PICK = 4
 	};
 
 	enum class RenderViewViewMatrixSource
@@ -483,8 +491,7 @@ namespace Renderer
 		RenderViewViewMatrixSource view_matrix_source;
 		RenderViewProjMatrixSource proj_matrix_source;
 
-		uint32 pass_count;
-		RenderpassConfig* pass_configs;
+		Sarray<RenderpassConfig> pass_configs;
 	};
 
 	struct RenderViewPacket;
@@ -505,7 +512,7 @@ namespace Renderer
 		bool32 (*on_create)(RenderView* self);
 		void (*on_destroy)(RenderView* self);
 		void (*on_resize)(RenderView* self, uint32 width, uint32 height);
-		bool32 (*on_build_packet)(RenderView* self, void* data, RenderViewPacket* out_packet);
+		bool32 (*on_build_packet)(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet);
 		void (*on_destroy_packet)(const RenderView* self, RenderViewPacket* packet);
 		bool32 (*on_render)(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
 		bool32(*regenerate_attachment_target)(const RenderView* self, uint32 pass_index, RenderTargetAttachment* attachment);
@@ -536,6 +543,18 @@ namespace Renderer
 	
 	struct UIPacketData {
 		MeshPacketData mesh_data;
+		// TODO: temp
+		uint32 text_count;
+		UIText** texts;
+		// end
+	};
+
+	struct PickPacketData {
+		uint32 world_geometry_count;
+		uint32 ui_geometry_count;
+		
+		MeshPacketData world_mesh_data;
+		MeshPacketData ui_mesh_data;
 		// TODO: temp
 		uint32 text_count;
 		UIText** texts;

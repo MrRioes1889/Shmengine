@@ -4,7 +4,7 @@
 #include "core/Logging.hpp"
 #include "core/Assert.hpp"
 
-typedef SarrayFlag::Value RingQueueFlags;
+typedef SarrayFlags::Value RingQueueFlags;
 
 template<typename T>
 struct RingQueue

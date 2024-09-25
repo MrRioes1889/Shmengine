@@ -107,11 +107,13 @@ namespace Renderer
 		}
 	}
 
-	bool32 render_view_ui_on_build_packet(RenderView* self, void* data, RenderViewPacket* out_packet)
-	{
-
-		UIPacketData* packet_data = (UIPacketData*)data;
+	bool32 render_view_ui_on_build_packet(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet)
+	{		
 		RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
+
+		out_packet->extended_data = Memory::linear_allocator_allocate(frame_allocator, sizeof(UIPacketData));
+		Memory::copy_memory(data, out_packet->extended_data, sizeof(UIPacketData));
+		UIPacketData* packet_data = (UIPacketData*)out_packet->extended_data;
 
 		uint32 total_geometry_count = 0;
 		for (uint32 i = 0; i < packet_data->mesh_data.mesh_count; i++)
@@ -121,9 +123,7 @@ namespace Renderer
 		out_packet->view = self;
 
 		out_packet->projection_matrix = internal_data->projection_matrix;
-		out_packet->view_matrix = internal_data->view_matrix;
-
-		out_packet->extended_data = data;
+		out_packet->view_matrix = internal_data->view_matrix;	
 
 		for (uint32 i = 0; i < packet_data->mesh_data.mesh_count; i++)
 		{

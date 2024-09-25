@@ -4,6 +4,6 @@
 
 typedef uint32 UniqueId;
 
-UniqueId identifier_acquire_new_id(void* owner);
+SHMAPI UniqueId identifier_acquire_new_id(void* owner);
 
-void identifier_release_id(UniqueId id);
+SHMAPI void identifier_release_id(UniqueId id);

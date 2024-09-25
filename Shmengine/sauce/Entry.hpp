@@ -5,19 +5,15 @@
 #include "core/Logging.hpp"
 #include "core/Assert.hpp"
 
-// Externally-defined function to create a game.
 extern bool32 create_game(Game* out_game);
 
-/**
- * The main entry point of the application.
- */
 #ifdef _WIN32
 
 #include <windows.h>
 
 int WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev_instance, _In_ LPSTR lpCmdLine, _In_ int n_show_cmd)
 {
-    // Request the game instance from the application.
+
     try
     {
         Game game_inst;

@@ -3,6 +3,7 @@
 #include "Defines.hpp"
 #include "utility/MathTypes.hpp"
 #include "renderer/RendererTypes.hpp"
+#include "memory/LinearAllocator.hpp"
 
 namespace RenderViewSystem
 {
@@ -19,9 +20,9 @@ namespace RenderViewSystem
 
 	bool32 create(const Renderer::RenderViewConfig& config);
 
-	Renderer::RenderView* get(const char* name);
+	SHMAPI Renderer::RenderView* get(const char* name);
 
-	bool32 build_packet(Renderer::RenderView* view, void* data, Renderer::RenderViewPacket* out_packet);
+	SHMAPI bool32 build_packet(Renderer::RenderView* view, Memory::LinearAllocator* frame_allocator, void* data, Renderer::RenderViewPacket* out_packet);
 
 	void on_window_resize(uint32 width, uint32 height);
 	bool32 on_render(Renderer::RenderView* view, const Renderer::RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);

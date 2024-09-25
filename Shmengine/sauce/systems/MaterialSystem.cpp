@@ -203,7 +203,7 @@ namespace MaterialSystem
             }
 
             Renderer::Shader* s = ShaderSystem::get_shader(m->shader_id);
-            if (system_state->material_shader_id == INVALID_ID && CString::equal(config.shader_name.c_str(), Renderer::RendererConfig::builtin_shader_name_world)) {
+            if (system_state->material_shader_id == INVALID_ID && CString::equal(config.shader_name.c_str(), Renderer::RendererConfig::builtin_shader_name_material)) {
                 system_state->material_shader_id = s->id;
                 system_state->material_locations.projection = ShaderSystem::get_uniform_index(s, "projection");
                 system_state->material_locations.view = ShaderSystem::get_uniform_index(s, "view");
@@ -465,7 +465,7 @@ namespace MaterialSystem
         system_state->default_material.normal_map.use = TextureUse::MAP_NORMAL;
         system_state->default_material.normal_map.texture = TextureSystem::get_default_normal_texture();
 
-        Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_world);
+        Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material);
         TextureMap* maps[3] = { &system_state->default_material.diffuse_map, &system_state->default_material.specular_map, &system_state->default_material.normal_map };
         if (!Renderer::shader_acquire_instance_resources(s, maps, &system_state->default_material.internal_id))
         {

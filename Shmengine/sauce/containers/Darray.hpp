@@ -17,7 +17,7 @@ namespace DarrayFlag
 }
 
 template <typename T>
-struct SHMAPI Darray
+struct Darray
 {
 
 	SHMINLINE Darray() : count(0), data(0), flags(0), allocation_tag((uint16)AllocationTag::DARRAY) {};

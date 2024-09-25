@@ -544,7 +544,7 @@ namespace ResourceSystem
             else if (identifier.nequal_i("newmtl", 6))
             {                
 
-                current_config.shader_name = Renderer::RendererConfig::builtin_shader_name_world;
+                current_config.shader_name = Renderer::RendererConfig::builtin_shader_name_material;
 
                 if (current_config.shininess == 0.0f)
                     current_config.shininess = 8.0f;
@@ -572,7 +572,7 @@ namespace ResourceSystem
 
         if (hit_name)
         {
-            current_config.shader_name = Renderer::RendererConfig::builtin_shader_name_world;
+            current_config.shader_name = Renderer::RendererConfig::builtin_shader_name_material;
 
             if (current_config.shininess == 0.0f)
                 current_config.shininess = 8.0f;

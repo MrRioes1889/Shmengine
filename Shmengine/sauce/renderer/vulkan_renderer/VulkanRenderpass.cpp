@@ -25,9 +25,9 @@ namespace Renderer::Vulkan
 		bool8 do_clear_color = (out_renderpass->clear_flags & RenderpassClearFlags::COLOR_BUFFER) != 0;
 		bool8 do_clear_depth = (out_renderpass->clear_flags & RenderpassClearFlags::DEPTH_BUFFER) != 0;
 
-		for (uint32 i = 0; i < config->target_config.attachment_count; i++)
+		for (uint32 i = 0; i < config->target_config.attachment_configs.capacity; i++)
 		{
-			RenderTargetAttachmentConfig* att_config = &config->target_config.attachment_configs[i];
+			const RenderTargetAttachmentConfig* att_config = &config->target_config.attachment_configs[i];
 
 			VkAttachmentDescription att_desc = {};
 			if (att_config->type == RenderTargetAttachmentType::COLOR)

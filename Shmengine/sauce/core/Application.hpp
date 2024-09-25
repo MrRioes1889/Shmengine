@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "renderer/RendererTypes.hpp"
+#include "systems/FontSystem.hpp"
 
 struct Game;
 
@@ -14,6 +16,10 @@ namespace Application
 
 		char* name;
 
+		FontSystem::Config fontsystem_config;
+		Sarray<FontSystem::BitmapFontConfig> bitmap_font_configs;
+		Sarray<FontSystem::TruetypeFontConfig> truetype_font_configs;
+		Sarray<Renderer::RenderViewConfig> render_view_configs;
 	};
 
 	SHMAPI bool32 init_primitive_subsystems(Game* game_inst);

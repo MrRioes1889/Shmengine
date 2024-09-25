@@ -678,20 +678,11 @@ namespace Renderer::Vulkan
 
 	void vk_texture_destroy(Texture* texture)
 	{
-
 		vkDeviceWaitIdle(context.device.logical_device);
 
 		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 		if (image)
-		{
-			vulkan_image_destroy(&context, image);
-			*image = {};
-
-			texture->internal_data.free_data();
-		}
-	
-		Memory::zero_memory(texture, sizeof(Texture));
-
+			vulkan_image_destroy(&context, image);			
 	}
 
 

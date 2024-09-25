@@ -27,7 +27,7 @@ namespace Renderer
 	Texture* get_window_attachment(uint32 index);
 	Texture* get_depth_attachment(uint32 attachment_index);
 	uint32 get_window_attachment_index();
-	uint32 get_window_attachment_count();
+	SHMAPI uint32 get_window_attachment_count();
 
 	bool32 renderpass_create(const RenderpassConfig* config, Renderpass* out_renderpass);
 	void renderpass_destroy(Renderpass* pass);

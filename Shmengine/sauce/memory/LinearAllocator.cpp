@@ -40,5 +40,10 @@ namespace Memory
 		return mem;
 	}
 
+	void linear_allocator_free_all_data(LinearAllocator* allocator)
+	{
+		allocator->allocated = 0;
+	}
+
 }
 

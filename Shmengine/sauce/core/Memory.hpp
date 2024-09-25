@@ -54,9 +54,9 @@ namespace Memory
 	SHMAPI void* reallocate(uint64 size, void* block, uint16 alignment = 1);
 	SHMAPI void free_memory(void* block);
 
-	void* allocate_string(uint64 size, AllocationTag tag, uint16 alignment = 1);
-	void* reallocate_string(uint64 size, void* block, uint16 alignment = 1);
-	void free_memory_string(void* block);
+	SHMAPI void* allocate_string(uint64 size, AllocationTag tag, uint16 alignment = 1);
+	SHMAPI void* reallocate_string(uint64 size, void* block, uint16 alignment = 1);
+	SHMAPI void free_memory_string(void* block);
 
 	void* allocate_platform(uint64 size, AllocationTag tag, uint16 alignment = 1);
 	void* reallocate_platform(uint64 size, void* block, uint16 alignment = 1);

@@ -29,9 +29,9 @@ namespace GeometrySystem
 	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
 	void system_shutdown();
 
-	Geometry* acquire_by_id(uint32 id);
-	Geometry* acquire_from_config(const GeometryConfig& config, bool32 auto_release);
-	void release(Geometry* geometry);
+	SHMAPI Geometry* acquire_by_id(uint32 id);
+	SHMAPI Geometry* acquire_from_config(const GeometryConfig& config, bool32 auto_release);
+	SHMAPI void release(Geometry* geometry);
 
 	Geometry* get_default_geometry();
 	Geometry* get_default_geometry_2d();

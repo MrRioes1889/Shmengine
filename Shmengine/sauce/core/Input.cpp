@@ -99,11 +99,11 @@ void Input::process_mousebutton(Mousebuttons button, bool8 pressed)
 
 void Input::process_mouse_move(int32 x, int32 y)
 {
-    if (system_state->mouse_pos.x != x || system_state->mouse_pos.y != y)
-    {
-        system_state->mouse_pos.x = x;
-        system_state->mouse_pos.y = y;
+    system_state->mouse_pos.x = x;
+    system_state->mouse_pos.y = y;
 
+    if (!system_state->cursor_clipped && (system_state->mouse_pos.x != x || system_state->mouse_pos.y != y))
+    {       
         EventData e;
         e.i32[0] = x;
         e.i32[1] = y;
@@ -132,7 +132,7 @@ void Input::process_mouse_scroll(int32 delta)
 }
 
 bool32 Input::clip_cursor()
-{
+{    
     system_state->cursor_clipped = (!system_state->cursor_clipped);
     return Platform::clip_cursor(system_state->cursor_clipped);
 }

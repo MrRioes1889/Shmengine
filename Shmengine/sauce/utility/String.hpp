@@ -4,7 +4,7 @@
 #include "CString.hpp"
 #include "containers/Darray.hpp"
 
-struct SHMAPI String
+struct String
 {
 
 	static const uint32 min_reserve_size = 16;
