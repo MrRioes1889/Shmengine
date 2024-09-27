@@ -110,5 +110,74 @@ namespace Math
 		return res;
 	}
 
+	Plane3D plane_3d_create(Vec3f p1, Vec3f norm)
+	{
+		Plane3D p;
+		p.normal = normalized(norm);
+		p.distance = inner_product(p.normal, p1);
+		return p;
+	}
+
+	Frustum frustum_create(Vec3f position, Vec3f forward, Vec3f right, Vec3f up, float32 aspect, float32 fov, float32 near, float32 far)
+	{
+		Frustum f;
+
+		float32 half_v = far * tan(fov * 0.5f);
+		float32 half_h = half_v * aspect;
+		Vec3f forward_far = forward * far;
+
+		// Top, bottom, right, left, far, near
+		f.sides[0] = plane_3d_create((forward * near) + position, forward);
+		f.sides[1] = plane_3d_create(position + forward_far, forward * -1.0f);
+		f.sides[2] = plane_3d_create(position, cross_product(up, (forward_far + (right * half_h))));
+		f.sides[3] = plane_3d_create(position, cross_product((forward_far - (right * half_h)), up));
+		f.sides[4] = plane_3d_create(position, cross_product(right, (forward_far - (up * half_v))));
+		f.sides[5] = plane_3d_create(position, cross_product((forward_far + (up * half_v)), right));
+
+		return f;
+	}
+
+	float32 plane_signed_distance(Plane3D p, Vec3f position)
+	{
+		return inner_product(p.normal, position) - p.distance;
+	}
+
+	bool32 plane_intersects_sphere(Plane3D p, Vec3f center, float32 radius)
+	{
+		return plane_signed_distance(p, center) > -radius;
+	}
+
+	bool32 frustum_intersects_sphere(Frustum f, Vec3f center, float32 radius)
+	{
+		for (uint32 i = 0; i < 6; i++)
+		{
+			if (!plane_intersects_sphere(f.sides[i], center, radius))
+				return false;
+		}
+
+		return true;
+	}
+
+	bool32 plane_intersects_aabb(Plane3D p, Vec3f center, Vec3f extents)
+	{
+		float32 r =
+			extents.x * Math::abs(p.normal.x) +
+			extents.y * Math::abs(p.normal.y) +
+			extents.z * Math::abs(p.normal.z);
+
+		return -r <= plane_signed_distance(p, center);
+	}	
+
+	bool32 frustum_intersects_aabb(Frustum f, Vec3f center, Vec3f extents)
+	{
+		for (uint32 i = 0; i < 6; i++)
+		{
+			if (!plane_intersects_aabb(f.sides[i], center, extents))
+				return false;
+		}
+
+		return true;
+	}
+
 }
 

@@ -220,8 +220,7 @@ namespace Renderer
 		PickPacketData* packet_data = (PickPacketData*)out_packet->extended_data;
 
 		uint32 total_geometry_count = 0;
-		for (uint32 i = 0; i < packet_data->world_mesh_data.mesh_count; i++)
-			total_geometry_count += packet_data->world_mesh_data.meshes[i]->geometries.count;
+		total_geometry_count += packet_data->world_geometries_count;
 		for (uint32 i = 0; i < packet_data->ui_mesh_data.mesh_count; i++)
 			total_geometry_count += packet_data->ui_mesh_data.meshes[i]->geometries.count;
 
@@ -231,24 +230,16 @@ namespace Renderer
 		Camera* world_camera = CameraSystem::get_default_camera();
 		internal_data->world_shader_info.view = world_camera->get_view();
 
-		packet_data->world_geometry_count = 0;
-		packet_data->ui_geometry_count = 0;
+		packet_data->world_geometries_count = 0;
+		packet_data->ui_geometries_count = 0;
 		
 		int32 max_instance_id = 0;
-		for (uint32 i = 0; i < packet_data->world_mesh_data.mesh_count; i++)
+		for (uint32 i = 0; i < packet_data->world_geometries_count; i++)
 		{
-			Mesh* m = packet_data->world_mesh_data.meshes[i];
-			for (uint32 j = 0; j < m->geometries.count; j++)
-			{
-				GeometryRenderData* render_data = out_packet->geometries.push({});
-				render_data->geometry = m->geometries[j];
-				render_data->model = Math::transform_get_world(m->transform);
-				render_data->unique_id = m->unique_id;
-				packet_data->world_geometry_count++;
-			}
+			out_packet->geometries.push(packet_data->world_geometries[i]);
 
-			if ((int32)m->unique_id > max_instance_id)
-				max_instance_id = m->unique_id;
+			if ((int32)packet_data->world_geometries[i].unique_id > max_instance_id)
+				max_instance_id = packet_data->world_geometries[i].unique_id;
 		}
 
 		for (uint32 i = 0; i < packet_data->ui_mesh_data.mesh_count; i++)
@@ -260,7 +251,7 @@ namespace Renderer
 				render_data->geometry = m->geometries[j];
 				render_data->model = Math::transform_get_world(m->transform);
 				render_data->unique_id = m->unique_id;
-				packet_data->ui_geometry_count++;
+				packet_data->ui_geometries_count++;
 			}
 
 			if ((int32)m->unique_id > max_instance_id)
@@ -326,7 +317,7 @@ namespace Renderer
 			ShaderSystem::set_uniform(data->world_shader_info.view_location, &data->world_shader_info.view);
 			ShaderSystem::apply_global();
 
-			for (uint32 i = 0; i < packet_data->world_geometry_count; i++)
+			for (uint32 i = 0; i < packet_data->world_geometries_count; i++)
 			{
 				const GeometryRenderData* render_data = &packet.geometries[i];
 				cur_instance_id = render_data->unique_id;
@@ -370,7 +361,7 @@ namespace Renderer
 			ShaderSystem::set_uniform(data->ui_shader_info.view_location, &data->ui_shader_info.view);
 			ShaderSystem::apply_global();
 
-			for (uint32 i = packet_data->world_geometry_count; i < packet.geometries.count; i++)
+			for (uint32 i = packet_data->world_geometries_count; i < packet.geometries.count; i++)
 			{
 				const GeometryRenderData* render_data = &packet.geometries[i];
 				cur_instance_id = render_data->unique_id;

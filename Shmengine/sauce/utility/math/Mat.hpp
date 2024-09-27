@@ -31,18 +31,45 @@ namespace Math
 		return res;
 	}
 
-	/**
- * @brief Creates and returns an orthographic projection matrix. Typically used to
- * render flat or 2D scenes.
- *
- * @param left - The left side of the view frustum.
- * @param right - The right side of the view frustum.
- * @param bottom - The bottom side of the view frustum.
- * @param top - The top side of the view frustum.
- * @param near_clip - The near clipping plane distance.
- * @param far_clip - The far clipping plane distance.
- * @return A new orthographic projection matrix.
- */
+    SHMINLINE Vec3f mat_mul_vec(Mat4 m, Vec3f v)
+    {
+        return {
+            v.x * m.data[0] + v.y * m.data[1] + v.z * m.data[2] + m.data[3],
+            v.x * m.data[4] + v.y * m.data[5] + v.z * m.data[6] + m.data[7],
+            v.x * m.data[8] + v.y * m.data[9] + v.z * m.data[10] + m.data[11]
+        };
+    }
+
+    SHMINLINE Vec4f mat_mul_vec(Mat4 m, Vec4f v)
+    {
+        return {
+            v.x * m.data[0] + v.y * m.data[1] + v.z * m.data[2] + v.w * m.data[3],
+            v.x * m.data[4] + v.y * m.data[5] + v.z * m.data[6] + v.w * m.data[7],
+            v.x * m.data[8] + v.y * m.data[9] + v.z * m.data[10] + v.w * m.data[11],
+            v.x * m.data[12] + v.y * m.data[13] + v.z * m.data[14] + v.w * m.data[15]
+        };
+    }
+
+    SHMINLINE Vec3f vec_mul_mat(Vec3f v, Mat4 m)
+    {
+        return {
+            v.x * m.data[0] + v.y * m.data[4] + v.z * m.data[8] + m.data[12],
+            v.x * m.data[1] + v.y * m.data[5] + v.z * m.data[9] + m.data[13],
+            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10] + m.data[14]
+        };
+    }
+
+    SHMINLINE Vec4f vec_mul_mat(Vec4f v, Mat4 m)
+    {
+        return {
+            v.x * m.data[0] + v.y * m.data[4] + v.z * m.data[8] + v.w * m.data[12],
+            v.x * m.data[1] + v.y * m.data[5] + v.z * m.data[9] + v.w * m.data[13],
+            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10] + v.w * m.data[14],
+            v.x * m.data[3] + v.y * m.data[7] + v.z * m.data[11] + v.w * m.data[15]
+        };
+    }
+
+
 	SHMINLINE Mat4 mat_orthographic(float32 left, float32 right, float32 bottom, float32 top, float32 near_clip, float32 far_clip) {
 		Mat4 res = MAT4_IDENTITY;
 
@@ -60,15 +87,6 @@ namespace Math
 		return res;
 	}
 
-	/**
-	 * @brief Creates and returns a perspective matrix. Typically used to render 3d scenes.
-	 *
-	 * @param fov_radians - The field of view in radians.
-	 * @param aspect_ratio - The aspect ratio.
-	 * @param near_clip - The near clipping plane distance.
-	 * @param far_clip - The far clipping plane distance.
-	 * @return A new perspective matrix.
-	 */
 	SHMINLINE Mat4 mat_perspective(float32 fov_radians, float32 aspect_ratio, float32 near_clip, float32 far_clip) {
 		float32 half_tan_fov = tan(fov_radians * 0.5f);
 		Mat4 res = {};
@@ -80,15 +98,6 @@ namespace Math
 		return res;
 	}
 
-    /**
- * @brief Creates and returns a look-at matrix, or a matrix looking
- * at target from the perspective of position.
- *
- * @param position - The position of the matrix.
- * @param target - The position to "look at".
- * @param up - The up vector.
- * @return A matrix looking at target from the perspective of position.
- */
     SHMINLINE Mat4 mat_look_at(Vec3f position, Vec3f target, Vec3f up) {
         Mat4 out_matrix;
         Vec3f z_axis;
@@ -120,13 +129,8 @@ namespace Math
         return out_matrix;
     }
 
-    /**
-     * @brief Returns a transposed copy of the provided matrix (rows->colums)
-     *
-     * @param matrix - The matrix to be transposed.
-     * @return A transposed copy of of the provided matrix.
-     */
-    SHMINLINE Mat4 mat_transposed(Mat4 matrix) {
+    SHMINLINE Mat4 mat_transposed(Mat4 matrix) 
+    {
         Mat4 out_matrix = MAT4_IDENTITY;
         out_matrix.data[0] = matrix.data[0];
         out_matrix.data[1] = matrix.data[4];
@@ -147,13 +151,8 @@ namespace Math
         return out_matrix;
     }
 
-    /**
-     * @brief Creates and returns an inverse of the provided matrix.
-     *
-     * @param matrix - The matrix to be inverted.
-     * @return A inverted copy of the provided matrix.
-     */
-    SHMINLINE Mat4 mat_inverse(Mat4 matrix) {
+    SHMINLINE Mat4 mat_inverse(Mat4 matrix) 
+    {
         const float32* m = matrix.data;
 
         float32 t0 = m[10] * m[15];
@@ -211,7 +210,8 @@ namespace Math
         return out_matrix;
     }
 
-    SHMINLINE Mat4 mat_translation(Vec3f position) {
+    SHMINLINE Mat4 mat_translation(Vec3f position) 
+    {
         Mat4 out_matrix = MAT4_IDENTITY;
         out_matrix.data[12] = position.x;
         out_matrix.data[13] = position.y;
@@ -219,13 +219,8 @@ namespace Math
         return out_matrix;
     }
 
-    /**
-     * @brief Returns a scale matrix using the provided scale.
-     *
-     * @param scale - The 3-component scale.
-     * @return A scale matrix.
-     */
-    SHMINLINE Mat4 mat_scale(Vec3f scale) {
+    SHMINLINE Mat4 mat_scale(Vec3f scale) 
+    {
         Mat4 out_matrix = MAT4_IDENTITY;
         out_matrix.data[0] = scale.x;
         out_matrix.data[5] = scale.y;
@@ -233,7 +228,8 @@ namespace Math
         return out_matrix;
     }
 
-    SHMINLINE Mat4 mat_euler_x(float32 angle_radians) {
+    SHMINLINE Mat4 mat_euler_x(float32 angle_radians) 
+    {
         Mat4 out_matrix = MAT4_IDENTITY;
         float32 c = cos(angle_radians);
         float32 s = sin(angle_radians);
@@ -244,7 +240,9 @@ namespace Math
         out_matrix.data[10] = c;
         return out_matrix;
     }
-    SHMINLINE Mat4 mat_euler_y(float32 angle_radians) {
+
+    SHMINLINE Mat4 mat_euler_y(float32 angle_radians)
+    {
         Mat4 out_matrix = MAT4_IDENTITY;
         float32 c = cos(angle_radians);
         float32 s = sin(angle_radians);
@@ -255,7 +253,9 @@ namespace Math
         out_matrix.data[10] = c;
         return out_matrix;
     }
-    SHMINLINE Mat4 mat_euler_z(float32 angle_radians) {
+
+    SHMINLINE Mat4 mat_euler_z(float32 angle_radians) 
+    {
         Mat4 out_matrix = MAT4_IDENTITY;
 
         float32 c = cos(angle_radians);
@@ -267,7 +267,9 @@ namespace Math
         out_matrix.data[5] = c;
         return out_matrix;
     }
-    SHMINLINE Mat4 mat_euler_xyz(float32 x_radians, float32 y_radians, float32 z_radians) {
+
+    SHMINLINE Mat4 mat_euler_xyz(float32 x_radians, float32 y_radians, float32 z_radians) 
+    {
         Mat4 rx = mat_euler_x(x_radians);
         Mat4 ry = mat_euler_y(y_radians);
         Mat4 rz = mat_euler_z(z_radians);
@@ -276,13 +278,8 @@ namespace Math
         return out_matrix;
     }
 
-    /**
-     * @brief Returns a forward vector relative to the provided matrix.
-     *
-     * @param matrix - The matrix from which to base the vector.
-     * @return A 3-component directional vector.
-     */
-    SHMINLINE Vec3f mat_forward(Mat4 matrix) {
+    SHMINLINE Vec3f mat_forward(Mat4 matrix) 
+    {
         Vec3f forward;
         forward.x = -matrix.data[2];
         forward.y = -matrix.data[6];
@@ -291,13 +288,8 @@ namespace Math
         return forward;
     }
 
-    /**
-     * @brief Returns a backward vector relative to the provided matrix.
-     *
-     * @param matrix - The matrix from which to base the vector.
-     * @return A 3-component directional vector.
-     */
-    SHMINLINE Vec3f mat_backward(Mat4 matrix) {
+    SHMINLINE Vec3f mat_backward(Mat4 matrix) 
+    {
         Vec3f backward;
         backward.x = matrix.data[2];
         backward.y = matrix.data[6];
@@ -306,13 +298,8 @@ namespace Math
         return backward;
     }
 
-    /**
-     * @brief Returns a upward vector relative to the provided matrix.
-     *
-     * @param matrix - The matrix from which to base the vector.
-     * @return A 3-component directional vector.
-     */
-    SHMINLINE Vec3f mat_up(Mat4 matrix) {
+    SHMINLINE Vec3f mat_up(Mat4 matrix) 
+    {
         Vec3f up;
         up.x = matrix.data[1];
         up.y = matrix.data[5];
@@ -321,13 +308,8 @@ namespace Math
         return up;
     }
 
-    /**
-     * @brief Returns a downward vector relative to the provided matrix.
-     *
-     * @param matrix - The matrix from which to base the vector.
-     * @return A 3-component directional vector.
-     */
-    SHMINLINE Vec3f mat_down(Mat4 matrix) {
+    SHMINLINE Vec3f mat_down(Mat4 matrix) 
+    {
         Vec3f down;
         down.x = -matrix.data[1];
         down.y = -matrix.data[5];
@@ -336,13 +318,8 @@ namespace Math
         return down;
     }
 
-    /**
-     * @brief Returns a left vector relative to the provided matrix.
-     *
-     * @param matrix - The matrix from which to base the vector.
-     * @return A 3-component directional vector.
-     */
-    SHMINLINE Vec3f mat_left(Mat4 matrix) {
+    SHMINLINE Vec3f mat_left(Mat4 matrix) 
+    {
         Vec3f left;
         left.x = -matrix.data[0];
         left.y = -matrix.data[4];
@@ -351,13 +328,8 @@ namespace Math
         return left;
     }
 
-    /**
-     * @brief Returns a right vector relative to the provided matrix.
-     *
-     * @param matrix - The matrix from which to base the vector.
-     * @return A 3-component directional vector.
-     */
-    SHMINLINE Vec3f mat_right(Mat4 matrix) {
+    SHMINLINE Vec3f mat_right(Mat4 matrix)
+    {
         Vec3f right;
         right.x = matrix.data[0];
         right.y = matrix.data[4];
@@ -366,7 +338,8 @@ namespace Math
         return right;
     }
 
-    SHMINLINE Mat4 quat_to_mat(Quat q) {
+    SHMINLINE Mat4 quat_to_mat(Quat q) 
+    {
         Mat4 res = MAT4_IDENTITY;
 
         // https://stackoverflow.com/questions/1556260/convert-quaternion-rotation-to-rotation-matrix
@@ -388,8 +361,8 @@ namespace Math
         return res;
     }
 
-    // Calculates a rotation matrix based on the quaternion and the passed in center point.
-    SHMINLINE Mat4 quat_to_rotation_matrix(Quat q, Vec3f center) {
+    SHMINLINE Mat4 quat_to_rotation_matrix(Quat q, Vec3f center) 
+    {
         Mat4 res;
 
         float32* o = res.data;

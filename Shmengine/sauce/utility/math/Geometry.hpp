@@ -7,6 +7,18 @@
 namespace Math
 {
 
+	SHMAPI Plane3D plane_3d_create(Vec3f p1, Vec3f norm);
+
+	SHMAPI Frustum frustum_create(Vec3f position, Vec3f forward, Vec3f right, Vec3f up, float32 aspect, float32 fov, float32 near, float32 far);
+
+	SHMAPI float32 plane_signed_distance(Plane3D p, Vec3f position);
+
+	SHMAPI bool32 plane_intersects_sphere(Plane3D p, Vec3f center, float32 radius);
+	SHMAPI bool32 plane_intersects_aabb(Plane3D p, Vec3f center, Vec3f extents);
+
+	SHMAPI bool32 frustum_intersects_sphere(Frustum f,  Vec3f center, float32 radius);
+	SHMAPI bool32 frustum_intersects_aabb(Frustum f,  Vec3f center,  Vec3f extents);
+
 	//------- Quat functions
 
 	SHMINLINE float32 quat_inner(Quat q1, Quat q2)

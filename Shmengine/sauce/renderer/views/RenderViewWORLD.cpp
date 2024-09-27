@@ -151,12 +151,11 @@ namespace Renderer
 			SHMINLINE bool8 operator>=(const GeometryDistance& other) { return dist >= other.dist; }
 		};
 
-		MeshPacketData* mesh_data = (MeshPacketData*)data;
+		WorldPacketData* packet_data = (WorldPacketData*)data;
 		RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 
 		uint32 total_geometry_count = 0;
-		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
-			total_geometry_count += mesh_data->meshes[i]->geometries.count;
+		total_geometry_count += packet_data->geometries_count;
 
 		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER);
 		out_packet->view = self;
@@ -168,30 +167,24 @@ namespace Renderer
 
 		Darray<GeometryDistance> transparent_geometries(total_geometry_count, 0, AllocationTag::RENDERER);
 
-		for (uint32 i = 0; i < mesh_data->mesh_count; i++)
+		for (uint32 i = 0; i < packet_data->geometries_count; i++)
 		{
-			Mesh* m = mesh_data->meshes[i];
-			Math::Mat4 model = Math::transform_get_world(m->transform);
-			for (uint32 g = 0; g < m->geometries.count; g++)
+			GeometryRenderData* g_data = &packet_data->geometries[i];
+			if (!g_data->geometry)
+				continue;
+
+			if (!(g_data->geometry->material->diffuse_map.texture->flags & TextureFlags::HAS_TRANSPARENCY))
 			{
+				out_packet->geometries.push(*g_data);
+			}
+			else
+			{
+				Math::Vec3f center = Math::vec_transform(g_data->geometry->center, g_data->model);
+				float32 distance = Math::vec_distance(center, internal_data->camera->get_position());
 
-				if (!(m->geometries[g]->material->diffuse_map.texture->flags & TextureFlags::HAS_TRANSPARENCY))
-				{
-					GeometryRenderData* render_data = out_packet->geometries.push({});
-					render_data->geometry = m->geometries[g];
-					render_data->model = model;
-				}
-				else
-				{
-
-					Math::Vec3f center = Math::vec_transform(m->geometries[g]->center, model);
-					float32 distance = Math::vec_distance(center, internal_data->camera->get_position());
-
-					GeometryDistance* transparent_data = transparent_geometries.push({});
-					transparent_data->dist = Math::abs(distance);
-					transparent_data->g.geometry = m->geometries[g];
-					transparent_data->g.model = model;
-				}
+				GeometryDistance* g_dist = transparent_geometries.push({});
+				g_dist->dist = Math::abs(distance);
+				g_dist->g = *g_data;
 			}
 		}
 

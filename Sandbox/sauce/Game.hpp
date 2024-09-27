@@ -18,7 +18,8 @@ typedef struct GameState {
     uint32 hovered_object_id;
     uint32 width, height;
 
-    Camera* world_camera; 
+    Camera* world_camera;
+    Math::Frustum camera_frustum;
 
     Skybox skybox;
 

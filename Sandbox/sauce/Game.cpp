@@ -81,7 +81,7 @@ static bool32 game_on_debug_event(uint16 code, void* sender, void* listener_inst
 {
 
 	Game* game_inst = (Game*)listener_inst;
-	GameState* state = (GameState*)game_inst->app_state;
+	GameState* state = (GameState*)game_inst->state;
 
 	if (code == SystemEventCode::DEBUG0)
 	{
@@ -449,6 +449,8 @@ bool32 game_init(Game* game_inst)
 	Event::event_register(SystemEventCode::KEY_PRESSED, game_inst, game_on_key);
 	Event::event_register(SystemEventCode::KEY_RELEASED, game_inst, game_on_key);
 
+	game_inst->frame_data.world_geometries.init(512, 0);
+
     return true;
 }
 
@@ -497,6 +499,8 @@ bool32 game_update(Game* game_inst, float64 delta_time)
 {
 
     GameState* state = (GameState*)game_inst->state;
+
+	game_inst->frame_data.world_geometries.clear();
 
 	Memory::linear_allocator_free_all_data(&game_inst->frame_allocator);
 
@@ -615,10 +619,43 @@ bool32 game_update(Game* game_inst, float64 delta_time)
 
 	float64 last_frametime = metrics_last_frametime();
 
-	char ui_text_buffer[256];
-	CString::safe_print_s<uint32, int32, int32, float32, float32, float32, float32, float32, float32>
-		(ui_text_buffer, 256, "Object Hovered ID: %u\nMouse Pos : [%i, %i]\nCamera Pos : [%f3, %f3, %f3]\nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms",
-			state->hovered_object_id, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0);
+	Math::Vec3f fwd = state->world_camera->get_forward();
+	Math::Vec3f right = state->world_camera->get_right();
+	Math::Vec3f up = state->world_camera->get_up();
+	state->camera_frustum = Math::frustum_create(state->world_camera->get_position(), fwd, right, up, (float32)state->width / (float32)state->height, Math::deg_to_rad(45.0f), 0.1f, 1000.0f);
+
+	for (uint32 i = 0; i < state->world_meshes.count; i++)
+	{
+		Mesh* m = &state->world_meshes[i];
+		if (m->generation == INVALID_ID8)
+			continue;
+
+		Math::Mat4 model = Math::transform_get_world(m->transform);
+		for (uint32 j = 0; j < m->geometries.count; j++)
+		{
+			Geometry* g = m->geometries[j];
+
+			{
+				Math::Vec3f extents_max = Math::vec_mul_mat(g->extents.max, model);
+
+				Math::Vec3f center = Math::vec_mul_mat(g->center, model);
+				Math::Vec3f half_extents = { Math::abs(extents_max.x - center.x), Math::abs(extents_max.y - center.y), Math::abs(extents_max.z - center.z) };
+
+				if (Math::frustum_intersects_aabb(state->camera_frustum, center, half_extents))
+				{
+					Renderer::GeometryRenderData* render_data = game_inst->frame_data.world_geometries.push({});
+					render_data->model = model;
+					render_data->geometry = g;
+					render_data->unique_id = m->unique_id;
+				}
+			}
+		}
+	}
+
+	char ui_text_buffer[512];
+	CString::safe_print_s<uint32, uint32, int32, int32, float32, float32, float32, float32, float32, float32>
+		(ui_text_buffer, 512, "Object Hovered ID: %u\nWorld geometry count: %u\nMouse Pos : [%i, %i]\tCamera Pos : [%f3, %f3, %f3]\nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms",
+			state->hovered_object_id, game_inst->frame_data.world_geometries.count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0);
 
 	ui_text_set_text(&state->test_truetype_text, ui_text_buffer);
 
@@ -642,22 +679,11 @@ bool32 game_render(Game* game_inst, Renderer::RenderPacket* packet, float64 delt
 		return false;
 	}
 
-	Mesh** world_meshes_ptr = (Mesh**)Memory::linear_allocator_allocate(&game_inst->frame_allocator, state->world_meshes.count * sizeof(Mesh*));
-	Sarray<Mesh*> world_meshes(state->world_meshes.count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, world_meshes_ptr);
+	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)Memory::linear_allocator_allocate(&game_inst->frame_allocator, sizeof(Renderer::WorldPacketData));
+	world_packet->geometries = game_inst->frame_data.world_geometries.data;
+	world_packet->geometries_count = game_inst->frame_data.world_geometries.count;
 
-	Renderer::MeshPacketData* world_mesh_data = (Renderer::MeshPacketData*)Memory::linear_allocator_allocate(&game_inst->frame_allocator, sizeof(Renderer::MeshPacketData));
-	world_mesh_data->mesh_count = 0;
-	for (uint32 i = 0; i < state->world_meshes.count; i++)
-	{
-		if (state->world_meshes[i].generation != INVALID_ID8)
-		{
-			world_meshes[world_mesh_data->mesh_count] = &state->world_meshes[i];
-			world_mesh_data->mesh_count++;
-		}
-	}
-	world_mesh_data->meshes = world_meshes.data;
-
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), &game_inst->frame_allocator, world_mesh_data, &packet->views[1]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), &game_inst->frame_allocator, world_packet, &packet->views[1]))
 	{
 		SHMERROR("Failed to build packet for view 'world'.");
 		return false;
@@ -695,7 +721,8 @@ bool32 game_render(Game* game_inst, Renderer::RenderPacket* packet, float64 delt
 
 	/*Renderer::PickPacketData* pick_packet = (Renderer::PickPacketData*)Memory::linear_allocator_allocate(&game_inst->frame_allocator, sizeof(Renderer::PickPacketData));
 	pick_packet->ui_mesh_data = ui_mesh_data->mesh_data;
-	pick_packet->world_mesh_data = *world_mesh_data;
+	pick_packet->world_geometries = game_inst->frame_data.world_geometries.data;
+	pick_packet->world_geometries_count = game_inst->frame_data.world_geometries.count;
 	pick_packet->texts = ui_mesh_data->texts;
 	pick_packet->text_count = ui_mesh_data->text_count;
 

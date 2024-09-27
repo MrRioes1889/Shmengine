@@ -3,6 +3,11 @@
 #include "core/Application.hpp"
 #include "memory/LinearAllocator.hpp"
 
+struct GameFrameData
+{
+	Darray<Renderer::GeometryRenderData> world_geometries;
+};
+
 struct Game
 {
 	Application::Config config;
@@ -15,6 +20,7 @@ struct Game
 	void (*shutdown)(Game* game_inst);
 
 	Memory::LinearAllocator frame_allocator;
+	GameFrameData frame_data;
 
 	uint64 state_size;
 	void* state;

@@ -281,21 +281,18 @@ namespace Application
 		Renderer::RenderPacket render_packet = {};
 
 		float64 last_frametime = 0.0;
-		TimerPool last_frame_timerpool;
 
 		while (app_state->is_running)
 		{
 
 			OPTICK_FRAME("MainThread");
 
-			last_frame_timerpool = global_timerpool;
-			global_timerpool.reset();
 			clock_update(&app_state->clock);
 			float64 current_time = app_state->clock.elapsed;
 			float64 delta_time = current_time - app_state->last_time;
-			float64 frame_start_time = Platform::get_absolute_time();
 			app_state->last_time = current_time;
-
+			float64 frame_start_time = Platform::get_absolute_time();
+			
 			metrics_update(last_frametime);
 
 			JobSystem::update();
@@ -323,8 +320,7 @@ namespace Application
 					SHMFATAL("Failed to render application.");
 					app_state->is_running = false;
 					break;
-				}
-				global_timerpool.timer_stop();				
+				}		
 
 				Renderer::draw_frame(&render_packet);
 

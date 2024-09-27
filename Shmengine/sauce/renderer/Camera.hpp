@@ -17,10 +17,11 @@ public:
 
 	Math::Mat4 get_view();
 
-	Math::Vec3f get_forward();
-	Math::Vec3f get_backward();
-	Math::Vec3f get_left();
-	Math::Vec3f get_right();
+	SHMINLINE Math::Vec3f get_forward();
+	SHMINLINE Math::Vec3f get_backward();
+	SHMINLINE Math::Vec3f get_left();
+	SHMINLINE Math::Vec3f get_right();
+	SHMINLINE Math::Vec3f get_up();
 
 	void move_forward(float32 velocity);
 	void move_backward(float32 velocity);

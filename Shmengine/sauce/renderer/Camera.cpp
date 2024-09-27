@@ -58,6 +58,11 @@ Math::Vec3f Camera::get_right()
 	return Math::mat_right(view);
 }
 
+Math::Vec3f Camera::get_up()
+{
+	return Math::mat_up(view);
+}
+
 void Camera::move_forward(float32 velocity)
 {
 	Math::Vec3f dir = get_forward();

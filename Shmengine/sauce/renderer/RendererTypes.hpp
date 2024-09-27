@@ -360,13 +360,6 @@ namespace Renderer
 		const char* application_name;
 	};
 
-	struct GeometryRenderData
-	{
-		Math::Mat4 model;
-		Geometry* geometry;
-		UniqueId unique_id;
-	};
-
 	struct Vertex3D
 	{
 		Math::Vec3f position;
@@ -380,6 +373,131 @@ namespace Renderer
 	{
 		Math::Vec2f position;
 		Math::Vec2f tex_coordinates;
+	};
+
+	enum class RenderViewType
+	{
+		WORLD = 1,
+		UI = 2,
+		SKYBOX = 3,
+		PICK = 4
+	};
+
+	enum class RenderViewViewMatrixSource
+	{
+		SCENE_CAMERA = 1,
+		UI_CAMERA = 2,
+		LIGHT_CAMERA = 3
+	};
+
+	enum class RenderViewProjMatrixSource
+	{
+		DEFAULT_PERSPECTIVE = 1,
+		DEFAULT_ORTHOGRAPHIC = 2
+	};
+
+
+	struct RenderViewConfig
+	{
+		const char* name;
+		const char* custom_shader_name;
+
+		uint16 width;
+		uint16 height;
+		RenderViewType type;
+		RenderViewViewMatrixSource view_matrix_source;
+		RenderViewProjMatrixSource proj_matrix_source;
+
+		Sarray<RenderpassConfig> pass_configs;
+	};
+
+	struct RenderViewPacket;
+
+	struct RenderView
+	{
+		const char* name;
+		uint32 id;
+		uint16 width;
+		uint16 height;
+		RenderViewType type;
+
+		Sarray<Renderpass> renderpasses;
+
+		const char* custom_shader_name;
+		Buffer internal_data;
+
+		bool32(*on_create)(RenderView* self);
+		void (*on_destroy)(RenderView* self);
+		void (*on_resize)(RenderView* self, uint32 width, uint32 height);
+		bool32(*on_build_packet)(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet);
+		void (*on_destroy_packet)(const RenderView* self, RenderViewPacket* packet);
+		bool32(*on_render)(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
+		bool32(*regenerate_attachment_target)(const RenderView* self, uint32 pass_index, RenderTargetAttachment* attachment);
+	};
+
+	struct GeometryRenderData
+	{
+		Math::Mat4 model;
+		Geometry* geometry;
+		UniqueId unique_id;
+	};
+
+	struct RenderViewPacket
+	{
+		RenderView* view;
+		Math::Mat4 view_matrix;
+		Math::Mat4 projection_matrix;
+		Math::Vec3f view_position;
+		Math::Vec4f ambient_color;
+		Darray<GeometryRenderData> geometries;
+		const char* custom_shader_name;
+		void* extended_data;
+	};
+
+	struct MeshPacketData
+	{
+		uint32 mesh_count;
+		Mesh** meshes;
+	};
+
+	struct WorldPacketData
+	{
+		uint32 geometries_count;
+		GeometryRenderData* geometries;
+	};
+
+	struct SkyboxPacketData
+	{
+		Skybox* skybox;
+	};
+
+	struct UIPacketData {
+		MeshPacketData mesh_data;
+		// TODO: temp
+		uint32 text_count;
+		UIText** texts;
+		// end
+	};
+
+	struct PickPacketData {
+		uint32 world_geometries_count;
+		uint32 ui_geometries_count;
+		uint32 text_count;
+
+		MeshPacketData ui_mesh_data;
+
+		GeometryRenderData* world_geometries;
+		// TODO: temp
+
+		UIText** texts;
+		// end
+	};
+
+	struct RenderPacket
+	{
+		float64 delta_time;
+
+		Sarray<RenderViewPacket> views;
 	};
 
 	struct Backend
@@ -458,113 +576,5 @@ namespace Renderer
 		bool8 (*is_multithreaded)();
 	};
 
-	enum class RenderViewType
-	{
-		WORLD = 1,
-		UI = 2,
-		SKYBOX = 3,
-		PICK = 4
-	};
-
-	enum class RenderViewViewMatrixSource
-	{
-		SCENE_CAMERA = 1,
-		UI_CAMERA = 2,
-		LIGHT_CAMERA = 3
-	};
-
-	enum class RenderViewProjMatrixSource
-	{
-		DEFAULT_PERSPECTIVE = 1,
-		DEFAULT_ORTHOGRAPHIC = 2
-	};
-
-
-	struct RenderViewConfig
-	{
-		const char* name;
-		const char* custom_shader_name;
-
-		uint16 width;
-		uint16 height;
-		RenderViewType type;
-		RenderViewViewMatrixSource view_matrix_source;
-		RenderViewProjMatrixSource proj_matrix_source;
-
-		Sarray<RenderpassConfig> pass_configs;
-	};
-
-	struct RenderViewPacket;
-
-	struct RenderView
-	{
-		const char* name;
-		uint32 id;
-		uint16 width;
-		uint16 height;
-		RenderViewType type;
-
-		Sarray<Renderpass> renderpasses;
-
-		const char* custom_shader_name;
-		Buffer internal_data;
-
-		bool32 (*on_create)(RenderView* self);
-		void (*on_destroy)(RenderView* self);
-		void (*on_resize)(RenderView* self, uint32 width, uint32 height);
-		bool32 (*on_build_packet)(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet);
-		void (*on_destroy_packet)(const RenderView* self, RenderViewPacket* packet);
-		bool32 (*on_render)(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
-		bool32(*regenerate_attachment_target)(const RenderView* self, uint32 pass_index, RenderTargetAttachment* attachment);
-	};
-
-	struct RenderViewPacket
-	{
-		RenderView* view;
-		Math::Mat4 view_matrix;
-		Math::Mat4 projection_matrix;
-		Math::Vec3f view_position;
-		Math::Vec4f ambient_color;
-		Darray<GeometryRenderData> geometries;
-		const char* custom_shader_name;
-		void* extended_data;
-	};
-
-	struct MeshPacketData
-	{
-		uint32 mesh_count;
-		Mesh** meshes;
-	};
-
-	struct SkyboxPacketData
-	{
-		Skybox* skybox;
-	};
 	
-	struct UIPacketData {
-		MeshPacketData mesh_data;
-		// TODO: temp
-		uint32 text_count;
-		UIText** texts;
-		// end
-	};
-
-	struct PickPacketData {
-		uint32 world_geometry_count;
-		uint32 ui_geometry_count;
-		
-		MeshPacketData world_mesh_data;
-		MeshPacketData ui_mesh_data;
-		// TODO: temp
-		uint32 text_count;
-		UIText** texts;
-		// end
-	};
-
-	struct RenderPacket
-	{
-		float64 delta_time;
-
-		Sarray<RenderViewPacket> views;
-	};
 }
