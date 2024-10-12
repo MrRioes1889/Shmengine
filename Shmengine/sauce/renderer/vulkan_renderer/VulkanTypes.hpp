@@ -261,7 +261,7 @@ namespace Renderer::Vulkan
 
 	struct VulkanContext
 	{
-		int32(*find_memory_index)(uint32 type_filter, uint32 property_flags);
+		int32(*find_memory_index)(uint32 type_filter, uint32 property_flags);	
 
 		VkInstance instance;
 		VkAllocationCallbacks* allocator_callbacks;
@@ -294,14 +294,15 @@ namespace Renderer::Vulkan
 
 		uint32 image_index;
 		uint32 current_frame;
-		bool32 recreating_swapchain;
-
+		
 		uint32 framebuffer_size_generation;
 		uint32 framebuffer_size_last_generation;
 
 		uint32 framebuffer_width;
-		uint32 framebuffer_height;
+		uint32 framebuffer_height;	
 
+		bool8 config_changed;
+		bool8 recreating_swapchain;
 		bool8 is_multithreaded;
 
 		float64 frame_delta_time;

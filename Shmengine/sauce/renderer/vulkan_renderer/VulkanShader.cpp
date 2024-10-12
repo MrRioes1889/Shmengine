@@ -1,7 +1,6 @@
 #include "VulkanBackend.hpp"
 
-#include "VulkanPipeline.hpp"
-#include "VulkanUtils.hpp"
+#include "VulkanInternal.hpp"
 #include "systems/ResourceSystem.hpp"
 #include "systems/TextureSystem.hpp"
 
@@ -220,7 +219,7 @@ namespace Renderer::Vulkan
 		v_shader->mapped_uniform_buffer = 0;	
 
 		// Pipeline
-		pipeline_destroy(&context, &v_shader->pipeline);
+		vk_pipeline_destroy(&v_shader->pipeline);
 
 		// Shader modules
 		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
@@ -295,9 +294,9 @@ namespace Renderer::Vulkan
 
 		// Create descriptor pool.
 		VkResult result = vkCreateDescriptorPool(logical_device, &pool_info, vk_allocator, &v_shader->descriptor_pool);
-		if (!vulkan_result_is_success(result))
+		if (!vk_result_is_success(result))
 		{
-			SHMERRORV("vulkan_shader_initialize failed creating descriptor pool: '%s'", vulkan_result_string(result, true));
+			SHMERRORV("vulkan_shader_initialize failed creating descriptor pool: '%s'", vk_result_string(result, true));
 			return false;
 		}
 
@@ -308,9 +307,9 @@ namespace Renderer::Vulkan
 			layout_info.bindingCount = v_shader->config.descriptor_sets[i].binding_count;
 			layout_info.pBindings = v_shader->config.descriptor_sets[i].bindings;
 			result = vkCreateDescriptorSetLayout(logical_device, &layout_info, vk_allocator, &v_shader->descriptor_set_layouts[i]);
-			if (!vulkan_result_is_success(result))
+			if (!vk_result_is_success(result))
 			{
-				SHMERRORV("vulkan_shader_initialize failed creating descriptor pool: '%s'", vulkan_result_string(result, true));
+				SHMERRORV("vulkan_shader_initialize failed creating descriptor pool: '%s'", vk_result_string(result, true));
 				return false;
 			}
 		}
@@ -356,7 +355,7 @@ namespace Renderer::Vulkan
 		p_config.push_constant_range_count = shader->push_constant_range_count;
 		p_config.push_constant_ranges = shader->push_constant_ranges;
 
-		bool32 pipeline_result = pipeline_create(&context, &p_config, &v_shader->pipeline);
+		bool32 pipeline_result = vk_pipeline_create(&p_config, &v_shader->pipeline);
 
 		if (!pipeline_result)
 		{
@@ -388,7 +387,7 @@ namespace Renderer::Vulkan
 	bool32 vk_shader_use(Shader* s)
 	{
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
-		pipeline_bind(&context.graphics_command_buffers[context.image_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &v_shader->pipeline);
+		vk_pipeline_bind(&context.graphics_command_buffers[context.image_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &v_shader->pipeline);
 		return true;
 	}
 
@@ -672,7 +671,7 @@ namespace Renderer::Vulkan
 			instance_state->descriptor_set_state.descriptor_sets);
 		if (result != VK_SUCCESS)
 		{
-			SHMERRORV("Error allocating instance descriptor sets in shader: '%s'.", vulkan_result_string(result, true));
+			SHMERRORV("Error allocating instance descriptor sets in shader: '%s'.", vk_result_string(result, true));
 			return false;
 		}
 
@@ -832,8 +831,8 @@ namespace Renderer::Vulkan
 		sampler_info.maxLod = 0.0f;
 
 		VkResult result = vkCreateSampler(context.device.logical_device, &sampler_info, context.allocator_callbacks, (VkSampler*)&out_map->internal_data);
-		if (!vulkan_result_is_success(VK_SUCCESS)) {
-			SHMERRORV("Error creating texture sampler: %s", vulkan_result_string(result, true));
+		if (!vk_result_is_success(VK_SUCCESS)) {
+			SHMERRORV("Error creating texture sampler: %s", vk_result_string(result, true));
 			return false;
 		}
 

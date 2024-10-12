@@ -218,19 +218,19 @@ namespace ResourceSystem
             {
                 Math::Vec3f pos;
                 CString::parse(values.c_str(), pos);
-                positions.push(pos);
+                positions.emplace(pos);
             }
             else if (identifier == "vn")
             {
                 Math::Vec3f norm;
                 CString::parse(values.c_str(), norm);
-                normals.push(norm);
+                normals.emplace(norm);
             }
             else if (identifier == "vt")
             {
                 Math::Vec2f tex_c;
                 CString::parse(values.c_str(), tex_c);
-                tex_coords.push(tex_c);
+                tex_coords.emplace(tex_c);
             }
             else if (identifier == "s")
             {
@@ -261,7 +261,7 @@ namespace ResourceSystem
                 }
 
                 uint32 group_index = groups.count - 1;
-                groups[group_index].faces.push(face);
+                groups[group_index].faces.emplace(face);
             }
             else if (identifier == "mtllib")
             {
@@ -271,7 +271,7 @@ namespace ResourceSystem
             {
                 for (uint32 i = 0; i < groups.count; i++)
                 {
-                    GeometrySystem::GeometryConfig* new_data = out_geometries_darray.push({});
+                    GeometrySystem::GeometryConfig* new_data = out_geometries_darray.emplace();
                     if (!name[0])
                     {
                         name = mesh_name;
@@ -292,10 +292,10 @@ namespace ResourceSystem
             }
             else if (identifier == "usemtl")
             {
-                MeshGroupData* new_group = groups.push({});
+                MeshGroupData* new_group = groups.emplace();
                 new_group->faces.init(0xF000, 0);      
 
-                material_names.push(values);
+                material_names.emplace(values);
             }
 
             line_number++;
@@ -304,7 +304,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < groups.count; i++)
         {
             
-            GeometrySystem::GeometryConfig* new_data = out_geometries_darray.push({});
+            GeometrySystem::GeometryConfig* new_data = out_geometries_darray.emplace();
             CString::copy(Geometry::max_name_length, new_data->name, name.c_str());
             if (!name[0])
             {
@@ -434,7 +434,7 @@ namespace ResourceSystem
                 // TODO: Color. Hardcode to white for now.
                 vert.color = VEC4F_ONE;
 
-                vertices.push(vert);
+                vertices.emplace(vert);
             }
 
         }
@@ -757,7 +757,7 @@ namespace ResourceSystem
 
         for (uint32 i = 0; i < file_header->geometry_count; i++)
         {
-            GeometrySystem::GeometryConfig* g = out_geometries_darray.push({});
+            GeometrySystem::GeometryConfig* g = out_geometries_darray.emplace();
 
             check_buffer_size(sizeof(ShmeshFileGeometryHeader));
             ShmeshFileGeometryHeader* geo_header = (ShmeshFileGeometryHeader*)&read_ptr[read_bytes];

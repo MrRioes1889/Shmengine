@@ -1,8 +1,11 @@
-#include "VulkanCommandBuffer.hpp"
+#include "VulkanInternal.hpp"
 
 namespace Renderer::Vulkan
 {
-	void vulkan_command_buffer_allocate(VulkanContext* context, VkCommandPool pool, bool32 primary, VulkanCommandBuffer* out_buffer)
+
+	extern VulkanContext context;
+
+	void vk_command_buffer_allocate(VkCommandPool pool, bool32 primary, VulkanCommandBuffer* out_buffer)
 	{
 
 		*out_buffer = {};
@@ -14,19 +17,19 @@ namespace Renderer::Vulkan
 		all_info.pNext = 0;
 
 		out_buffer->state = VulkanCommandBufferState::NOT_ALLOCATED;
-		VK_CHECK(vkAllocateCommandBuffers(context->device.logical_device, &all_info, &out_buffer->handle));
+		VK_CHECK(vkAllocateCommandBuffers(context.device.logical_device, &all_info, &out_buffer->handle));
 		out_buffer->state = VulkanCommandBufferState::READY;
 
 	}
 
-	void vulkan_command_buffer_free(VulkanContext* context, VkCommandPool pool, VulkanCommandBuffer* buffer)
+	void vk_command_buffer_free(VkCommandPool pool, VulkanCommandBuffer* buffer)
 	{
-		vkFreeCommandBuffers(context->device.logical_device, pool, 1, &buffer->handle);
+		vkFreeCommandBuffers(context.device.logical_device, pool, 1, &buffer->handle);
 		buffer->handle = 0;
 		buffer->state = VulkanCommandBufferState::NOT_ALLOCATED;
 	}
 
-	void vulkan_command_buffer_begin(VulkanCommandBuffer* buffer, bool32 single_use, bool32 renderpass_continue, bool32 simultaneous_use)
+	void vk_command_buffer_begin(VulkanCommandBuffer* buffer, bool32 single_use, bool32 renderpass_continue, bool32 simultaneous_use)
 	{
 
 		VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
@@ -42,32 +45,32 @@ namespace Renderer::Vulkan
 		buffer->state = VulkanCommandBufferState::RECORDING;
 	}
 
-	void vulkan_command_buffer_end(VulkanCommandBuffer* buffer)
+	void vk_command_buffer_end(VulkanCommandBuffer* buffer)
 	{
 		VK_CHECK(vkEndCommandBuffer(buffer->handle));
 		buffer->state = VulkanCommandBufferState::RECORDING_ENDED;
 	}
 
-	void vulkan_command_update_submitted(VulkanCommandBuffer* buffer)
+	void vk_command_buffer_update_submitted(VulkanCommandBuffer* buffer)
 	{
 		buffer->state = VulkanCommandBufferState::SUBMITTED;
 	}
 
-	void vulkan_command_reset(VulkanCommandBuffer* buffer)
+	void vk_command_buffer_reset(VulkanCommandBuffer* buffer)
 	{
 		buffer->state = VulkanCommandBufferState::READY;
 	}
 
-	void vulkan_command_buffer_reserve_and_begin_single_use(VulkanContext* context, VkCommandPool pool, VulkanCommandBuffer* out_buffer)
+	void vk_command_buffer_reserve_and_begin_single_use(VkCommandPool pool, VulkanCommandBuffer* out_buffer)
 	{
-		vulkan_command_buffer_allocate(context, pool, true, out_buffer);
-		vulkan_command_buffer_begin(out_buffer, true, false, false);
+		vk_command_buffer_allocate(pool, true, out_buffer);
+		vk_command_buffer_begin(out_buffer, true, false, false);
 	}
 
-	void vulkan_command_buffer_end_single_use(VulkanContext* context, VkCommandPool pool, VulkanCommandBuffer* buffer, VkQueue queue)
+	void vk_command_buffer_end_single_use(VkCommandPool pool, VulkanCommandBuffer* buffer, VkQueue queue)
 	{
 
-		vulkan_command_buffer_end(buffer);
+		vk_command_buffer_end(buffer);
 
 		VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 		submit_info.commandBufferCount = 1;
@@ -75,7 +78,7 @@ namespace Renderer::Vulkan
 		VK_CHECK(vkQueueSubmit(queue, 1, &submit_info, 0));
 		VK_CHECK(vkQueueWaitIdle(queue));
 
-		vulkan_command_buffer_free(context, pool, buffer);
+		vk_command_buffer_free(pool, buffer);
 
 	}
 }

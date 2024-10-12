@@ -22,6 +22,16 @@ namespace Memory
 namespace Renderer
 {
 
+	namespace RendererConfigFlags
+	{
+		enum
+		{
+			VSYNC = 1 << 0,
+			POWER_SAVING = 1 << 1,
+		};
+		typedef uint32 Value;
+	}
+
 	struct RendererConfig
 	{
 		static inline const char* builtin_shader_name_material = "Shader.Builtin.Material";
@@ -43,6 +53,8 @@ namespace Renderer
 		inline static const uint32 shader_max_uniforms = 128;
 		inline static const uint32 shader_max_bindings = 2;
 		inline static const uint32 shader_max_push_const_ranges = 32;
+
+		static RendererConfigFlags::Value flags;
 	};
 
 	namespace ViewMode
@@ -507,6 +519,8 @@ namespace Renderer
 
 		bool32(*init)(const BackendConfig& config, uint32* out_window_render_target_count);
 		void (*shutdown)();
+
+		void(*on_config_changed)();
 
 		void (*on_resized)(uint32 width, uint32 height);
 

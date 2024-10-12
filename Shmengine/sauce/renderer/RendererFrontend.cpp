@@ -35,13 +35,17 @@ namespace Renderer
 		
 	};
 
+	RendererConfigFlags::Value RendererConfig::flags = 0;
+
 	static SystemState* system_state;
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name)
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name)
 	{
 
 		out_state = allocator_callback(sizeof(SystemState));
 		system_state = (SystemState*)out_state;
+
+		RendererConfig::flags = RendererConfigFlags::VSYNC; //| RendererConfigFlags::POWER_SAVING;
 
 		backend_create(VULKAN, &system_state->backend);
 		system_state->backend.frame_count = 0;
@@ -70,6 +74,17 @@ namespace Renderer
 
 		system_state->backend.shutdown();	
 		system_state = 0;
+	}
+
+	bool32 flags_enabled(RendererConfigFlags::Value flags)
+	{
+		return (flags & RendererConfig::flags);
+	}
+
+	void set_flags(RendererConfigFlags::Value flags, bool32 enabled)
+	{
+		RendererConfig::flags = (enabled ? RendererConfig::flags | flags : RendererConfig::flags & ~flags);
+		system_state->backend.on_config_changed();
 	}
 
 	bool32 draw_frame(RenderPacket* data)

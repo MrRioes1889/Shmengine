@@ -13,7 +13,7 @@ namespace CameraSystem
 		inline static const char* default_name = "default";
 	};
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
 	void system_shutdown();
 
 	Camera* acquire(const char* name);

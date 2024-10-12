@@ -2,12 +2,7 @@
 
 #include "VulkanTypes.hpp"
 #include "VulkanInternal.hpp"
-#include "VulkanDevice.hpp"
 #include "VulkanPlatform.hpp"
-#include "VulkanSwapchain.hpp"
-#include "VulkanCommandBuffer.hpp"
-#include "VulkanUtils.hpp"
-#include "VulkanImage.hpp"
 
 #include "core/Logging.hpp"
 #include "core/Event.hpp"
@@ -48,6 +43,7 @@ namespace Renderer::Vulkan
 		context.find_memory_index = find_memory_index;
 
 		context.is_multithreaded = false;
+		context.config_changed = false;
 
 		create_vulkan_allocator(context.allocator_callbacks);
 
@@ -192,14 +188,14 @@ namespace Renderer::Vulkan
 		SHMDEBUG("Vulkan surface created.");
 
 		SHMDEBUG("Creating vulkan device...");
-		if (!vulkan_device_create(&context))
+		if (!vk_device_create())
 		{
 			SHMERROR("Failed to create vulkan device.");
 			return false;
 		}
 		SHMDEBUG("Vulkan device created.");
 
-		vulkan_swapchain_create(&context, context.framebuffer_width, context.framebuffer_height, &context.swapchain);
+		vk_swapchain_create(context.framebuffer_width, context.framebuffer_height, &context.swapchain);
 
 		*out_window_render_target_count = context.swapchain.render_textures.capacity;
 
@@ -273,20 +269,13 @@ namespace Renderer::Vulkan
 		}
 
 		context.image_available_semaphores.free_data();
-		context.queue_complete_semaphores.free_data();
-
-		/*SHMDEBUG("Destroying vulkan framebuffers...");
-		for (uint32 i = 0; i < VulkanConfig::frames_count; i++)
-		{
-			render_target_destroy(&context.world_render_targets[i], true);
-			render_target_destroy(&context.swapchain.render_targets[i], true);
-		}	*/		
+		context.queue_complete_semaphores.free_data();	
 
 		SHMDEBUG("Destroying vulkan swapchain...");
-		vulkan_swapchain_destroy(&context, &context.swapchain);
+		vk_swapchain_destroy(&context.swapchain);
 
 		SHMDEBUG("Destroying vulkan device...");
-		vulkan_device_destroy(&context);
+		vk_device_destroy();
 
 		SHMDEBUG("Destroying vulkan surface...");
 		if (context.surface)
@@ -315,6 +304,12 @@ namespace Renderer::Vulkan
 		}
 	}
 
+
+	void on_config_changed()
+	{
+		context.config_changed = true;
+	}
+
 	void on_resized(uint32 width, uint32 height)
 	{
 		context.framebuffer_width = width;
@@ -334,23 +329,25 @@ namespace Renderer::Vulkan
 		if (context.recreating_swapchain)
 		{
 			VkResult res = vkDeviceWaitIdle(device->logical_device);
-			if (!vulkan_result_is_success(res))
+			if (!vk_result_is_success(res))
 			{
-				SHMERRORV("vulkan_begin_frame vkDeviceWaitIdle (1) failed: '%s'", vulkan_result_string(res, true));
+				SHMERRORV("vulkan_begin_frame vkDeviceWaitIdle (1) failed: '%s'", vk_result_string(res, true));
 				return false;
 			}
 			SHMINFO("Recreated swapchain, booting.");
 			return false;
 		}
 
-		if (context.framebuffer_size_generation != context.framebuffer_size_last_generation)
+		if (context.framebuffer_size_generation != context.framebuffer_size_last_generation || context.config_changed)
 		{
 			VkResult res = vkDeviceWaitIdle(device->logical_device);
-			if (!vulkan_result_is_success(res))
+			if (!vk_result_is_success(res))
 			{
-				SHMERRORV("vulkan_begin_frame vkDeviceWaitIdle (2) failed: '%s'", vulkan_result_string(res, true));
+				SHMERRORV("vulkan_begin_frame vkDeviceWaitIdle (2) failed: '%s'", vk_result_string(res, true));
 				return false;
 			}
+
+			context.config_changed = false;
 
 			if (!recreate_swapchain())
 				return false;
@@ -360,14 +357,14 @@ namespace Renderer::Vulkan
 		}
 
 		VkResult res = vkWaitForFences(context.device.logical_device, 1, &context.fences_in_flight[context.current_frame], true, UINT64_MAX);
-		if (!vulkan_result_is_success(res))
+		if (!vk_result_is_success(res))
 		{
-			SHMERRORV("In-flight fence wait failure! Error: %s", vulkan_result_string(res, true));
+			SHMERRORV("In-flight fence wait failure! Error: %s", vk_result_string(res, true));
 			return false;
 		}
 		
-		if (!vulkan_swapchain_acquire_next_image_index(
-			&context, &context.swapchain, UINT64_MAX, context.image_available_semaphores[context.current_frame], 0, &context.image_index))
+		if (!vk_swapchain_acquire_next_image_index(
+			&context.swapchain, UINT64_MAX, context.image_available_semaphores[context.current_frame], 0, &context.image_index))
 		{
 			SHMERROR("begin_frame - Failed to acquire next image!");
 			return false;
@@ -375,8 +372,8 @@ namespace Renderer::Vulkan
 			
 
 		VulkanCommandBuffer* cmd = &context.graphics_command_buffers[context.image_index];
-		vulkan_command_reset(cmd);
-		vulkan_command_buffer_begin(cmd, false, false, false);
+		vk_command_buffer_reset(cmd);
+		vk_command_buffer_begin(cmd, false, false, false);
 
 		context.viewport_rect = { 0.0f, (float32)context.framebuffer_height, (float32)context.framebuffer_width, -(float32)context.framebuffer_height };
 		vk_set_viewport(context.viewport_rect);
@@ -393,14 +390,14 @@ namespace Renderer::Vulkan
 		OPTICK_EVENT();
 		VulkanCommandBuffer* cmd = &context.graphics_command_buffers[context.image_index];
 
-		vulkan_command_buffer_end(cmd);
+		vk_command_buffer_end(cmd);
 
 		if (context.images_in_flight[context.image_index])
 		{
 			VkResult res = vkWaitForFences(context.device.logical_device, 1, &context.images_in_flight[context.image_index], true, UINT64_MAX);
-			if (!vulkan_result_is_success(res))
+			if (!vk_result_is_success(res))
 			{
-				SHMFATALV("In-flight fence wait failure! Error: %s", vulkan_result_string(res, true));
+				SHMFATALV("In-flight fence wait failure! Error: %s", vk_result_string(res, true));
 			}
 		}
 
@@ -422,14 +419,13 @@ namespace Renderer::Vulkan
 		VkResult res = vkQueueSubmit(context.device.graphics_queue, 1, &submit_info, context.fences_in_flight[context.current_frame]);
 		if (res != VK_SUCCESS)
 		{
-			SHMERRORV("vkQueueSubmit failed width result: %s", vulkan_result_string(res, true));
+			SHMERRORV("vkQueueSubmit failed width result: %s", vk_result_string(res, true));
 			return false;
 		}
 
-		vulkan_command_update_submitted(cmd);
+		vk_command_buffer_update_submitted(cmd);
 
-		vulkan_swapchain_present(
-			&context,
+		vk_swapchain_present(
 			&context.swapchain,
 			context.device.present_queue,
 			context.queue_complete_semaphores[context.current_frame],
@@ -509,8 +505,7 @@ namespace Renderer::Vulkan
 			aspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		}
 
-		vulkan_image_create(
-			&context,
+		vk_image_create(
 			texture->type,
 			texture->width,
 			texture->height,
@@ -559,7 +554,7 @@ namespace Renderer::Vulkan
 		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 		if (image)
 		{
-			vulkan_image_destroy(&context, image);
+			vk_image_destroy(image);
 
 			VkFormat image_format;
 			texture->width = width;
@@ -593,11 +588,11 @@ namespace Renderer::Vulkan
 		VkCommandPool pool = context.device.graphics_command_pool;
 		VkQueue queue = context.device.graphics_queue;
 
-		vulkan_command_buffer_reserve_and_begin_single_use(&context, pool, &temp_buffer);
-		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		vulkan_image_copy_from_buffer(&context, t->type, image, staging.handle, &temp_buffer);
-		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		vulkan_command_buffer_end_single_use(&context, pool, &temp_buffer, queue);
+		vk_command_buffer_reserve_and_begin_single_use(pool, &temp_buffer);
+		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		vk_image_copy_from_buffer(t->type, image, staging.handle, &temp_buffer);
+		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		vk_command_buffer_end_single_use(pool, &temp_buffer, queue);
 
 		vk_buffer_unbind_internal(&staging);
 		vk_buffer_destroy_internal(&staging);
@@ -624,11 +619,11 @@ namespace Renderer::Vulkan
 		VkCommandPool pool = context.device.graphics_command_pool;
 		VkQueue queue = context.device.graphics_queue;
 
-		vulkan_command_buffer_reserve_and_begin_single_use(&context, pool, &temp_buffer);
-		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-		vulkan_image_copy_to_buffer(&context, t->type, image, read.handle, &temp_buffer);
-		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		vulkan_command_buffer_end_single_use(&context, pool, &temp_buffer, queue);
+		vk_command_buffer_reserve_and_begin_single_use(pool, &temp_buffer);
+		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		vk_image_copy_to_buffer(t->type, image, read.handle, &temp_buffer);
+		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		vk_command_buffer_end_single_use(pool, &temp_buffer, queue);
 
 		if (!vk_buffer_read_internal(&read, offset, size, out_memory))
 			SHMERROR("Failed to read data from dedicated buffer.");
@@ -659,11 +654,11 @@ namespace Renderer::Vulkan
 		VkCommandPool pool = context.device.graphics_command_pool;
 		VkQueue queue = context.device.graphics_queue;
 
-		vulkan_command_buffer_reserve_and_begin_single_use(&context, pool, &temp_buffer);
-		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-		vulkan_image_copy_pixel_to_buffer(&context, t->type, image, read.handle, x, y, &temp_buffer);
-		vulkan_image_transition_layout(&context, t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		vulkan_command_buffer_end_single_use(&context, pool, &temp_buffer, queue);
+		vk_command_buffer_reserve_and_begin_single_use(pool, &temp_buffer);
+		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		vk_image_copy_pixel_to_buffer(t->type, image, read.handle, x, y, &temp_buffer);
+		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		vk_command_buffer_end_single_use(pool, &temp_buffer, queue);
 
 		if (!vk_buffer_read_internal(&read, 0, sizeof(uint32), (void*)out_rgba))
 			SHMERROR("Failed to read data from dedicated buffer.");
@@ -682,7 +677,7 @@ namespace Renderer::Vulkan
 
 		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 		if (image)
-			vulkan_image_destroy(&context, image);			
+			vk_image_destroy(image);			
 	}
 
 
@@ -878,9 +873,9 @@ namespace Renderer::Vulkan
 		for (uint32 i = 0; i < context.graphics_command_buffers.capacity; i++)
 		{
 			if (context.graphics_command_buffers[i].handle)
-				vulkan_command_buffer_free(&context, context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
+				vk_command_buffer_free(context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
 			context.graphics_command_buffers[i] = {};
-			vulkan_command_buffer_allocate(&context, context.device.graphics_command_pool, true, &context.graphics_command_buffers[i]);
+			vk_command_buffer_allocate(context.device.graphics_command_pool, true, &context.graphics_command_buffers[i]);
 		}
 			
 		SHMDEBUG("Command buffers created.");
@@ -907,15 +902,15 @@ namespace Renderer::Vulkan
 		for (uint32 i = 0; i < context.swapchain.render_textures.capacity; i++)
 			context.images_in_flight[i] = 0;
 
-		vulkan_device_query_swapchain_support(context.device.physical_device, context.surface, &context.device.swapchain_support);
-		vulkan_device_detect_depth_format(&context.device);
+		vk_device_query_swapchain_support(context.device.physical_device, context.surface, &context.device.swapchain_support);
+		vk_device_detect_depth_format(&context.device);
 
-		vulkan_swapchain_recreate(&context, context.framebuffer_width, context.framebuffer_height, &context.swapchain);
+		vk_swapchain_recreate(context.framebuffer_width, context.framebuffer_height, &context.swapchain);
 
 		context.framebuffer_size_last_generation = context.framebuffer_size_generation;
 
 		for (uint32 i = 0; i < context.swapchain.render_textures.capacity; i++)
-			vulkan_command_buffer_free(&context, context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
+			vk_command_buffer_free(context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
 
 		Event::event_fire(SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, 0, {});
 

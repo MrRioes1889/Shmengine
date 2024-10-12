@@ -390,7 +390,7 @@ namespace Renderer
 
             if (!found)
             {
-                new_vertices.push(old_vertices[o]);
+                new_vertices.emplace(old_vertices[o]);
             }
         }
 

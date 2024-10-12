@@ -48,11 +48,11 @@ static bool32 game_on_key(uint16 code, void* sender, void* listener_inst, EventD
 
 		switch (key_code)
 		{
-		case Keys::KEY_ESCAPE:
+		case KeyCode::ESCAPE:
 			Event::event_fire(SystemEventCode::APPLICATION_QUIT, 0, {});
 			return true;
 			break;
-		case Keys::KEY_A:
+		case KeyCode::A:
 			SHMDEBUG("A key pressed!");
 			break;
 		default:
@@ -66,7 +66,7 @@ static bool32 game_on_key(uint16 code, void* sender, void* listener_inst, EventD
 
 		switch (key_code)
 		{
-		case Keys::KEY_B:
+		case KeyCode::B:
 			SHMDEBUG("B key released!");
 			break;
 		default:
@@ -346,9 +346,9 @@ bool32 game_init(Game* game_inst)
 	}
 
 	// Meshes
-	state->world_meshes.init(5, DarrayFlag::NON_RESIZABLE);
+	state->world_meshes.init(5, DarrayFlags::NON_RESIZABLE);
 
-	Mesh* cube_mesh = state->world_meshes.push({});
+	Mesh* cube_mesh = state->world_meshes.emplace();
 	cube_mesh->geometries.init(1, 0);
 	GeometrySystem::GeometryConfig g_config = {};
 	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
@@ -357,7 +357,7 @@ bool32 game_init(Game* game_inst)
 	cube_mesh->unique_id = identifier_acquire_new_id(cube_mesh);
 	cube_mesh->generation = 0;
 
-	Mesh* cube_mesh2 = state->world_meshes.push({});
+	Mesh* cube_mesh2 = state->world_meshes.emplace();
 	cube_mesh2->geometries.init(1, 0);
 	GeometrySystem::GeometryConfig g_config2 = {};
 	Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
@@ -366,7 +366,7 @@ bool32 game_init(Game* game_inst)
 	cube_mesh2->unique_id = identifier_acquire_new_id(cube_mesh);
 	cube_mesh2->generation = 0;
 
-	Mesh* cube_mesh3 = state->world_meshes.push({});
+	Mesh* cube_mesh3 = state->world_meshes.emplace();
 	cube_mesh3->geometries.init(1, 0);
 	GeometrySystem::GeometryConfig g_config3 = {};
 	Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);
@@ -378,12 +378,12 @@ bool32 game_init(Game* game_inst)
 	state->world_meshes[1].transform.parent = &state->world_meshes[0].transform;
 	state->world_meshes[2].transform.parent = &state->world_meshes[0].transform;
 
-	state->car_mesh = state->world_meshes.push({});
+	state->car_mesh = state->world_meshes.emplace();
 	state->car_mesh->unique_id = identifier_acquire_new_id(state->car_mesh);
 	state->car_mesh->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
 	state->car_mesh->generation = INVALID_ID8;
 
-	state->sponza_mesh = state->world_meshes.push({});
+	state->sponza_mesh = state->world_meshes.emplace();
 	state->sponza_mesh->unique_id = identifier_acquire_new_id(state->car_mesh);
 	state->sponza_mesh->transform = Math::transform_from_position_rotation_scale({ 15.0f, 0.0f, 1.0f }, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
 	state->sponza_mesh->generation = INVALID_ID8;
@@ -431,7 +431,7 @@ bool32 game_init(Game* game_inst)
 
 	// Get UI geometry from config.
 	state->ui_meshes.init(1, 0);
-	Mesh* ui_mesh = state->ui_meshes.push({});
+	Mesh* ui_mesh = state->ui_meshes.emplace();
 	ui_mesh->unique_id = identifier_acquire_new_id(ui_mesh);
 	ui_mesh->geometries.init(1, 0);
 	ui_mesh->geometries.push(0);
@@ -505,47 +505,47 @@ bool32 game_update(Game* game_inst, float64 delta_time)
 	Memory::linear_allocator_free_all_data(&game_inst->frame_allocator);
 
     uint32 allocation_count = Memory::get_current_allocation_count();
-    if (Input::key_pressed(Keys::KEY_M))
+    if (Input::key_pressed(KeyCode::M))
     {
         SHMDEBUGV("Memory Stats: Current Allocation Count: %u, This frame: %u", allocation_count, allocation_count - state->allocation_count);
     }
     state->allocation_count = allocation_count;
 
-    if (Input::key_pressed(Keys::KEY_C))
+    if (Input::key_pressed(KeyCode::C))
     {
         SHMDEBUG("Clipping/Unclipping cursor!");
         Input::clip_cursor();
     }
 
-    if (Input::key_pressed(Keys::KEY_T))
+    if (Input::key_pressed(KeyCode::T))
     {
         SHMDEBUG("Swapping Texture!");
         Event::event_fire(SystemEventCode::DEBUG0, 0, {});
     }    
 
-    if (Input::key_pressed(Keys::KEY_L))
+    if (Input::key_pressed(KeyCode::L))
     {
         Event::event_fire(SystemEventCode::DEBUG1, 0, {});
     }
 
-    if (Input::key_pressed(Keys::KEY_P))
+    if (Input::key_pressed(KeyCode::P))
     {
         Event::event_fire(SystemEventCode::DEBUG2, 0, {});
     }
 
-    if (Input::key_pressed(Keys::KEY_1)) {
+    if (Input::key_pressed(KeyCode::NUM_1)) {
         EventData data = {};
         data.i32[0] = Renderer::ViewMode::DEFAULT;
         Event::event_fire(SystemEventCode::SET_RENDER_MODE, game_inst, data);
     }
 
-    if (Input::key_pressed(Keys::KEY_2)) {
+    if (Input::key_pressed(KeyCode::NUM_2)) {
         EventData data = {};
         data.i32[0] = Renderer::ViewMode::LIGHTING;
         Event::event_fire(SystemEventCode::SET_RENDER_MODE, game_inst, data);
     }
 
-    if (Input::key_pressed(Keys::KEY_3)) {
+    if (Input::key_pressed(KeyCode::NUM_3)) {
         EventData data = {};
         data.i32[0] = Renderer::ViewMode::NORMALS;
         Event::event_fire(SystemEventCode::SET_RENDER_MODE, game_inst, data);
@@ -554,19 +554,19 @@ bool32 game_update(Game* game_inst, float64 delta_time)
     if (!Input::is_cursor_clipped())
     {
         const static float32 cam_speed = 1.0f / 120.0f;
-        if (Input::is_key_down(Keys::KEY_LEFT))
+        if (Input::is_key_down(KeyCode::LEFT))
         {
             state->world_camera->yaw(1.0f * cam_speed);
         }
-        if (Input::is_key_down(Keys::KEY_RIGHT))
+        if (Input::is_key_down(KeyCode::RIGHT))
         {
             state->world_camera->yaw(-1.0f * cam_speed);
         }
-        if (Input::is_key_down(Keys::KEY_UP))
+        if (Input::is_key_down(KeyCode::UP))
         {
             state->world_camera->pitch(1.0f * cam_speed);
         }
-        if (Input::is_key_down(Keys::KEY_DOWN))
+        if (Input::is_key_down(KeyCode::DOWN))
         {
             state->world_camera->pitch(-1.0f * cam_speed);
         }
@@ -575,33 +575,35 @@ bool32 game_update(Game* game_inst, float64 delta_time)
     {
         Math::Vec2i mouse_offset = Input::get_internal_mouse_offset();
         float32 mouse_sensitivity = 3.0f;
-        state->world_camera->yaw(-mouse_offset.x * (float32)delta_time * mouse_sensitivity);
-        state->world_camera->pitch(-mouse_offset.y * (float32)delta_time * mouse_sensitivity);
+		float32 yaw = -mouse_offset.x * (float32)delta_time * mouse_sensitivity;
+		float32 pitch = -mouse_offset.y * (float32)delta_time * mouse_sensitivity;
+        state->world_camera->yaw(yaw);
+        state->world_camera->pitch(pitch);
     }
     
     float32 temp_move_speed = 50.0f;
 
-    if (Input::is_key_down(Keys::KEY_W))
+    if (Input::is_key_down(KeyCode::W))
     {
         state->world_camera->move_forward(temp_move_speed * (float32)delta_time);
     }
-    if (Input::is_key_down(Keys::KEY_S))
+    if (Input::is_key_down(KeyCode::S))
     {
         state->world_camera->move_backward(temp_move_speed * (float32)delta_time);
     }
-    if (Input::is_key_down(Keys::KEY_D))
+    if (Input::is_key_down(KeyCode::D))
     {
         state->world_camera->move_right(temp_move_speed * (float32)delta_time);
     }
-    if (Input::is_key_down(Keys::KEY_A))
+    if (Input::is_key_down(KeyCode::A))
     {
         state->world_camera->move_left(temp_move_speed * (float32)delta_time);
     }
-    if (Input::is_key_down(Keys::KEY_SPACE))
+    if (Input::is_key_down(KeyCode::SPACE))
     {
         state->world_camera->move_up(temp_move_speed * (float32)delta_time);
     }
-    if (Input::is_key_down(Keys::KEY_SHIFT))
+    if (Input::is_key_down(KeyCode::SHIFT))
     {
         state->world_camera->move_down(temp_move_speed * (float32)delta_time);
     }
@@ -617,7 +619,19 @@ bool32 game_update(Game* game_inst, float64 delta_time)
 	Math::Vec3f pos = world_camera->get_position();
 	Math::Vec3f rot = world_camera->get_rotation();
 
-	float64 last_frametime = metrics_last_frametime();
+	static float64 last_frametime = 0.0;
+	static float64 last_logictime = 0.0;
+	static float64 last_rendertime = 0.0;
+
+	static float64 times_update_timer = 0;
+	times_update_timer += metrics_last_frametime();
+	if (times_update_timer > 1.0)
+	{
+		last_frametime = metrics_last_frametime();
+		last_logictime = metrics_logic_time();
+		last_rendertime = metrics_render_time();
+		times_update_timer = 0.0;
+	}
 
 	Math::Vec3f fwd = state->world_camera->get_forward();
 	Math::Vec3f right = state->world_camera->get_right();
@@ -643,7 +657,7 @@ bool32 game_update(Game* game_inst, float64 delta_time)
 
 				if (Math::frustum_intersects_aabb(state->camera_frustum, center, half_extents))
 				{
-					Renderer::GeometryRenderData* render_data = game_inst->frame_data.world_geometries.push({});
+					Renderer::GeometryRenderData* render_data = game_inst->frame_data.world_geometries.emplace();
 					render_data->model = model;
 					render_data->geometry = g;
 					render_data->unique_id = m->unique_id;
@@ -653,9 +667,9 @@ bool32 game_update(Game* game_inst, float64 delta_time)
 	}
 
 	char ui_text_buffer[512];
-	CString::safe_print_s<uint32, uint32, int32, int32, float32, float32, float32, float32, float32, float32>
-		(ui_text_buffer, 512, "Object Hovered ID: %u\nWorld geometry count: %u\nMouse Pos : [%i, %i]\tCamera Pos : [%f3, %f3, %f3]\nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms",
-			state->hovered_object_id, game_inst->frame_data.world_geometries.count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0);
+	CString::safe_print_s<uint32, uint32, int32, int32, float32, float32, float32, float32, float32, float32, float64, float64, float64>
+		(ui_text_buffer, 512, "Object Hovered ID: %u\nWorld geometry count: %u\nMouse Pos : [%i, %i]\tCamera Pos : [%f3, %f3, %f3]\nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms\nLogic: %lf4 / Render: %lf4",
+			state->hovered_object_id, game_inst->frame_data.world_geometries.count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
 
 	ui_text_set_text(&state->test_truetype_text, ui_text_buffer);
 

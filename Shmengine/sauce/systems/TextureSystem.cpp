@@ -52,7 +52,7 @@ namespace TextureSystem
 	static bool32 add_texture_reference(const char* name, TextureType type, bool32 auto_release, bool32 skip_load, uint32* out_texture_id);
 	static bool32 remove_texture_reference(const char* name, uint32* out_texture_id);
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
 	{
 
 		out_state = allocator_callback(sizeof(SystemState));

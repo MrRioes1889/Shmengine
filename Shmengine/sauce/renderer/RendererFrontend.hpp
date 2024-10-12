@@ -8,8 +8,11 @@
 namespace Renderer
 {
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name);
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name);
 	void system_shutdown();
+
+	SHMAPI bool32 flags_enabled(RendererConfigFlags::Value flags);
+	SHMAPI void set_flags(RendererConfigFlags::Value flags, bool32 enabled);
 
 	void on_resized(uint32 width, uint32 height);
 

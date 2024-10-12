@@ -236,7 +236,7 @@ namespace Renderer
 		int32 max_instance_id = 0;
 		for (uint32 i = 0; i < packet_data->world_geometries_count; i++)
 		{
-			out_packet->geometries.push(packet_data->world_geometries[i]);
+			out_packet->geometries.emplace(packet_data->world_geometries[i]);
 
 			if ((int32)packet_data->world_geometries[i].unique_id > max_instance_id)
 				max_instance_id = packet_data->world_geometries[i].unique_id;
@@ -247,7 +247,7 @@ namespace Renderer
 			Mesh* m = packet_data->ui_mesh_data.meshes[i];
 			for (uint32 j = 0; j < m->geometries.count; j++)
 			{
-				GeometryRenderData* render_data = out_packet->geometries.push({});
+				GeometryRenderData* render_data = out_packet->geometries.emplace();
 				render_data->geometry = m->geometries[j];
 				render_data->model = Math::transform_get_world(m->transform);
 				render_data->unique_id = m->unique_id;

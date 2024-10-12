@@ -25,7 +25,7 @@ namespace JobSystem
 		uint32 params_size;
 
 		void* params;
-		fp_job_on_complete on_complete;
+		FP_job_on_complete on_complete;
 	};
 
 	struct SystemState
@@ -49,11 +49,11 @@ namespace JobSystem
 
 	static SystemState* system_state = 0;
 
-	static void store_result(fp_job_on_complete callback, uint32 param_size, void* params);
+	static void store_result(FP_job_on_complete callback, uint32 param_size, void* params);
 	static uint32 job_thread_run(void* params);
 	static void process_queue(RingQueue<JobInfo>& queue, Threading::Mutex* queue_mutex);
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config, uint32 type_masks[])
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config, uint32 type_masks[])
 	{
 
 		out_state = allocator_callback(sizeof(SystemState));
@@ -217,7 +217,7 @@ namespace JobSystem
 
 	}
 
-	JobInfo job_create(fp_job_start entry_point, fp_job_on_complete on_success, fp_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobType::Value type, JobPriority priority)
+	JobInfo job_create(FP_job_start entry_point, FP_job_on_complete on_success, FP_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobType::Value type, JobPriority priority)
 	{
 
 		JobInfo info = {};
@@ -247,7 +247,7 @@ namespace JobSystem
 
 	}
 
-	static void store_result(fp_job_on_complete callback, uint32 param_size, void* params)
+	static void store_result(FP_job_on_complete callback, uint32 param_size, void* params)
 	{
 
 		JobResultEntry entry;

@@ -289,6 +289,7 @@ namespace Memory
     static void* platform_reallocate(uint64 size, void* block, uint16 alignment)
     {
         void* new_block = Platform::allocate(size, alignment);
+        zero_memory(new_block, size);
         copy_memory(block, new_block, size);
         Platform::free_memory(block, alignment > 1);
         return new_block;

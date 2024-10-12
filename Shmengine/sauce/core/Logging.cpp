@@ -20,7 +20,7 @@ namespace Log
     static const char* level_strings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: " };
     static SystemState* system_state;
 
-    bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state)
+    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state)
     {
         out_state = allocator_callback(sizeof(SystemState));
         system_state = (SystemState*)out_state;

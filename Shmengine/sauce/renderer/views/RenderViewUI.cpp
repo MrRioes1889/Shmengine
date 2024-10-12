@@ -130,7 +130,7 @@ namespace Renderer
 			Mesh* m = packet_data->mesh_data.meshes[i];
 			for (uint32 g = 0; g < m->geometries.count; g++)
 			{
-				GeometryRenderData* render_data = out_packet->geometries.push({});
+				GeometryRenderData* render_data = out_packet->geometries.emplace();
 				render_data->geometry = m->geometries[g];
 				render_data->model = Math::transform_get_world(m->transform);
 			}

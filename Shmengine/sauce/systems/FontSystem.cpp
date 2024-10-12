@@ -62,7 +62,7 @@ namespace FontSystem
 
 	static SystemState* system_state = 0;
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, const Config& config)
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const Config& config)
 	{
 		out_state = allocator_callback(sizeof(SystemState));
 		system_state = (SystemState*)out_state;
@@ -189,7 +189,7 @@ namespace FontSystem
 		for (uint32 i = 0; i < 95; i++)
 			lookup->codepoints.push(i + 32);
 
-		FontAtlas* variant = lookup->size_variants.push({});
+		FontAtlas* variant = lookup->size_variants.emplace();
 		if (!create_truetype_font_variant(lookup, config.default_size, config.name, variant)) 
 		{
 			SHMERRORV("load_truetype_font - Failed to create variant: %s", lookup->resource_data.face);
@@ -296,7 +296,7 @@ namespace FontSystem
 				return true;
 			}
 			
-			variant = lookup->size_variants.push({});
+			variant = lookup->size_variants.emplace();
 			if (!create_truetype_font_variant(lookup, font_size, font_name, variant)) {
 				SHMERRORV("Failed to create variant: %s", font_name);
 				return false;
@@ -366,7 +366,7 @@ namespace FontSystem
 					}
 				}
 				if (!found) {
-					lookup->codepoints.push(codepoint);
+					lookup->codepoints.emplace(codepoint);
 					added_codepoint_count++;
 				}
 			}
@@ -521,7 +521,7 @@ namespace FontSystem
 
 			for (uint32 i = 0; i < kerning_count; i++)
 			{
-				FontKerning* k = variant->kernings.push({});
+				FontKerning* k = variant->kernings.emplace();
 				k->codepoint_0 = kerning_entries[i].glyph1;
 				k->codepoint_1 = kerning_entries[i].glyph2;
 				k->advance = (int16)kerning_entries[i].advance;

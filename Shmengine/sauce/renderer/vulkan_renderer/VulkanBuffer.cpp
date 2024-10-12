@@ -1,7 +1,4 @@
 #include "VulkanBackend.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanCommandBuffer.hpp"
-#include "VulkanUtils.hpp"
 #include "VulkanInternal.hpp"
 
 #include "core/Memory.hpp"
@@ -425,7 +422,7 @@ namespace Renderer::Vulkan
 		vkQueueWaitIdle(queue);
 		// Create a one-time-use command buffer.
 		VulkanCommandBuffer temp_command_buffer;
-		vulkan_command_buffer_reserve_and_begin_single_use(&context, context.device.graphics_command_pool, &temp_command_buffer);
+		vk_command_buffer_reserve_and_begin_single_use(context.device.graphics_command_pool, &temp_command_buffer);
 
 		// Prepare the copy command and add it to the command buffer.
 		VkBufferCopy copy_region;
@@ -435,7 +432,7 @@ namespace Renderer::Vulkan
 		vkCmdCopyBuffer(temp_command_buffer.handle, source, dest, 1, &copy_region);
 
 		// Submit the buffer for execution and wait for it to complete.
-		vulkan_command_buffer_end_single_use(&context, context.device.graphics_command_pool, &temp_command_buffer, queue);
+		vk_command_buffer_end_single_use(context.device.graphics_command_pool, &temp_command_buffer, queue);
 
 		return true;
 

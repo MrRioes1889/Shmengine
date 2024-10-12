@@ -80,7 +80,7 @@ namespace Renderer::Vulkan
 				att_desc.initialLayout = att_config->load_op == RenderTargetAttachmentLoadOp::LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 				att_desc.finalLayout = att_config->present_after ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-				color_att_descriptions.push(att_desc);
+				color_att_descriptions.emplace(att_desc);
 			}
 			if (att_config->type == RenderTargetAttachmentType::DEPTH)
 			{
@@ -132,10 +132,10 @@ namespace Renderer::Vulkan
 				att_desc.initialLayout = att_config->load_op == RenderTargetAttachmentLoadOp::LOAD ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 				att_desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-				depth_att_descriptions.push(att_desc);
+				depth_att_descriptions.emplace(att_desc);
 			}
 
-			attachment_descriptions.push(att_desc);
+			attachment_descriptions.emplace(att_desc);
 		}
 
 		uint32 att_added = 0;

@@ -24,7 +24,7 @@ namespace ResourceSystem
 
 	static bool32 load(const char* name, ResourceLoader* loader, void* params, Resource* out_resource);
 
-    bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
     {
         out_state = allocator_callback(sizeof(SystemState));
         system_state = (SystemState*)out_state;

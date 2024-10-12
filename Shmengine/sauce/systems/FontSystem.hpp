@@ -38,7 +38,7 @@ namespace FontSystem
 		BitmapFontConfig* bitmap_font_configs;
 	};	
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, const Config& config);
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const Config& config);
 	void system_shutdown();
 
 	bool32 load_truetype_font(const TruetypeFontConfig& config);

@@ -33,7 +33,7 @@ namespace Platform
 
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param);
 
-    bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name, int32 x, int32 y, int32 width, int32 height)
+    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name, int32 x, int32 y, int32 width, int32 height)
     {
 
         out_state = allocator_callback(sizeof(PlatformState));
@@ -361,7 +361,7 @@ namespace Platform
         {
             // Key pressed/released
             bool8 pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
-            Keys key = (Keys)w_param;
+            KeyCode::Value key = (KeyCode::Value)w_param;
 
             Input::process_key(key, pressed);
             break;
@@ -393,20 +393,20 @@ namespace Platform
         case WM_RBUTTONUP: 
         {
             bool8 pressed = msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN;
-            Mousebuttons button = Mousebuttons::BUTTON_MAX_BUTTONS;
+            MouseButton::Value button = MouseButton::BUTTON_MAX_BUTTONS;
             switch (msg)
             {
             case WM_LBUTTONDOWN:
             case WM_LBUTTONUP:
-                button = Mousebuttons::LMB;
+                button = MouseButton::LMB;
                 break;
             case WM_RBUTTONDOWN:
             case WM_RBUTTONUP:
-                button = Mousebuttons::RMB;
+                button = MouseButton::RMB;
                 break;
             case WM_MBUTTONDOWN:
             case WM_MBUTTONUP:
-                button = Mousebuttons::MMB;
+                button = MouseButton::MMB;
                 break;
             }       
 

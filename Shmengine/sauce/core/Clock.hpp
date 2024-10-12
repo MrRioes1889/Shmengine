@@ -28,8 +28,13 @@ struct TimerPool
 
 extern TimerPool global_timerpool;
 
-SHMAPI void metrics_update(float64 elapsed_time);
+SHMAPI void metrics_update_frame();
+SHMAPI void metrics_update_logic();
+SHMAPI void metrics_update_render();
 SHMAPI float64 metrics_fps();
 SHMAPI float64 metrics_frametime_avg();
 SHMAPI float64 metrics_last_frametime();
+SHMAPI float64 metrics_logic_time();
+SHMAPI float64 metrics_render_time();
 SHMAPI void metrics_frame_time(float64* out_fps, float64* out_frametime);
+SHMAPI float64 metrics_mid_frame_time();

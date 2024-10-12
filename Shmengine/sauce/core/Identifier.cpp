@@ -21,7 +21,7 @@ UniqueId identifier_acquire_new_id(void* owner)
 		}
 	}
 
-	owners.push(owner);
+	owners.emplace(owner);
 	return owners.count - 1;
 		
 }

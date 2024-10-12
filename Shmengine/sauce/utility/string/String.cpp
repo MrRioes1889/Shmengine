@@ -13,7 +13,7 @@ String::String(uint32 reserve_size)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, DarrayFlag::IS_STRING, AllocationTag::STRING);
+	arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
 }
 
 String::String(const char* s, uint32 length)
@@ -26,7 +26,7 @@ String::String(const char* s, uint32 length)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, DarrayFlag::IS_STRING, AllocationTag::STRING);
+	arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
 	CString::copy(arr.capacity, arr.data, s, length);
 	arr.count = length;
 }
@@ -38,7 +38,7 @@ String::String(const char* s)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, DarrayFlag::IS_STRING, AllocationTag::STRING);
+	arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
 	CString::copy(arr.capacity, arr.data, s);
 	arr.count = s_length;
 }
@@ -54,7 +54,7 @@ String::String(const String& other)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, DarrayFlag::IS_STRING, AllocationTag::STRING);
+	arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
 	CString::copy(arr.capacity, arr.data, other.c_str());
 	arr.count = other.len();
 }
@@ -68,7 +68,7 @@ String& String::operator=(const String& other)
 		reserve_size = String::min_reserve_size;
 
 	if (!arr.data)
-		arr.init(reserve_size, DarrayFlag::IS_STRING, AllocationTag::STRING);
+		arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
 	else if (arr.capacity < reserve_size)
 		arr.resize(reserve_size);
 
@@ -113,7 +113,7 @@ String& String::operator=(const char* s)
 
 	if (!arr.data)
 	{
-		arr.init(reserve_size, DarrayFlag::IS_STRING, AllocationTag::STRING);
+		arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
 	}
 	else if (arr.capacity < reserve_size)
 	{				
@@ -133,7 +133,7 @@ void String::copy_n(const char* s, uint32 length)
 
 	if (!arr.data)
 	{
-		arr.init(reserve_size, DarrayFlag::IS_STRING, AllocationTag::STRING);
+		arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
 	}
 	else if (arr.capacity < reserve_size)
 	{

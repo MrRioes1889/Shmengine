@@ -8,6 +8,7 @@
 #include "core/Clock.hpp"
 #include "core/Event.hpp"
 #include "core/Input.hpp"
+#include "core/Console.hpp"
 #include "utility/CString.hpp"
 
 #include "renderer/RendererFrontend.hpp"
@@ -33,13 +34,13 @@ namespace Application
 		bool32 is_running;
 		bool32 is_suspended;
 		uint32 width, height;
-		float64 last_time;
-		Clock clock;
+		//Clock clock;
 
 		Memory::LinearAllocator systems_allocator;
 
 		void* logging_system_state;
 		void* input_system_state;
+		void* console_state;
 		void* event_system_state;
 		void* platform_system_state;
 		void* resource_system_state;
@@ -98,6 +99,12 @@ namespace Application
 		if (!Input::system_init(allocate_subsystem_callback, app_state->input_system_state))
 		{
 			SHMFATAL("Failed to initialize input subsystem!");
+			return false;
+		}
+
+		if (!Console::system_init(allocate_subsystem_callback, app_state->console_state))
+		{
+			SHMFATAL("Failed to initialize console subsystem!");
 			return false;
 		}
 
@@ -260,7 +267,7 @@ namespace Application
 		}
 
 		Renderer::on_resized(app_state->width, app_state->height);
-		game_inst->on_resize(app_state->game_inst, app_state->width, app_state->height);
+		game_inst->on_resize(app_state->game_inst, app_state->width, app_state->height);	
 
 		initialized = true;
 		return true;
@@ -270,13 +277,8 @@ namespace Application
 	bool32 run()
 	{
 
-		clock_start(&app_state->clock);
-		clock_update(&app_state->clock);
-		app_state->last_time = app_state->clock.elapsed;
-
-		float64 running_time = 0;
 		uint32 frame_count = 0;
-		float64 target_frame_seconds = 1.0f / 120.0f;
+		float64 target_frame_seconds = 1.0f / 240.0f;
 
 		Renderer::RenderPacket render_packet = {};
 
@@ -285,15 +287,10 @@ namespace Application
 		while (app_state->is_running)
 		{
 
-			OPTICK_FRAME("MainThread");
+			metrics_update_frame();
+			last_frametime = metrics_last_frametime();
 
-			clock_update(&app_state->clock);
-			float64 current_time = app_state->clock.elapsed;
-			float64 delta_time = current_time - app_state->last_time;
-			app_state->last_time = current_time;
-			float64 frame_start_time = Platform::get_absolute_time();
-			
-			metrics_update(last_frametime);
+			OPTICK_FRAME("MainThread");	
 
 			JobSystem::update();
 
@@ -307,15 +304,17 @@ namespace Application
 			if (!app_state->is_suspended)
 			{
 
-				if (!app_state->game_inst->update(app_state->game_inst, delta_time))
+				if (!app_state->game_inst->update(app_state->game_inst, last_frametime))
 				{
 					SHMFATAL("Failed to update application.");
 					app_state->is_running = false;
 					break;
 				}
 
-				render_packet.delta_time = delta_time;
-				if (!app_state->game_inst->render(app_state->game_inst, &render_packet, delta_time))
+				metrics_update_logic();
+
+				render_packet.delta_time = last_frametime;
+				if (!app_state->game_inst->render(app_state->game_inst, &render_packet, last_frametime))
 				{
 					SHMFATAL("Failed to render application.");
 					app_state->is_running = false;
@@ -328,9 +327,14 @@ namespace Application
 				{
 					render_packet.views[i].view->on_destroy_packet(render_packet.views[i].view, &render_packet.views[i]);
 				}
+
+				metrics_update_render();
+
 			}
 
-			float64 frame_elapsed_time = Platform::get_absolute_time() - frame_start_time;
+			Input::frame_end(last_frametime);
+
+			float64 frame_elapsed_time = metrics_mid_frame_time();
 			float64 remaining_s = target_frame_seconds - frame_elapsed_time;
 
 			bool32 limit_frames = false;
@@ -340,17 +344,10 @@ namespace Application
 				Platform::sleep(remaining_ms);
 
 				while (frame_elapsed_time < target_frame_seconds)
-					frame_elapsed_time = Platform::get_absolute_time() - frame_start_time;
+					frame_elapsed_time = metrics_mid_frame_time();
 			}
 
-			float64 frame_end_time = Platform::get_absolute_time();
-			frame_elapsed_time = frame_end_time - frame_start_time;
-			last_frametime = frame_elapsed_time;
-			running_time += frame_elapsed_time;
-
-			frame_count++;
-
-			Input::frame_end(delta_time);	
+			frame_count++;			
 		}
 
 		app_state->is_running = false;
@@ -368,6 +365,7 @@ namespace Application
 		ResourceSystem::system_shutdown();
 		Platform::system_shutdown();
 		Event::system_shutdown();
+		Console::system_shutdown();
 		Input::system_shutdown();
 		Memory::system_shutdown();
 		Log::system_shutdown();	

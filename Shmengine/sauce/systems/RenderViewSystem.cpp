@@ -25,7 +25,7 @@ namespace RenderViewSystem
 	static SystemState* system_state = 0;
 	static void destroy(Renderer::RenderView* view);
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
 	{
 		out_state = allocator_callback(sizeof(SystemState));
 		system_state = (SystemState*)out_state;

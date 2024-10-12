@@ -1,5 +1,4 @@
-#include "VulkanPipeline.hpp"
-#include "VulkanUtils.hpp"
+#include "VulkanInternal.hpp"
 
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
@@ -7,7 +6,9 @@
 namespace Renderer::Vulkan
 {
 
-    bool32 pipeline_create(VulkanContext* context, const VulkanPipelineConfig* config, VulkanPipeline* out_pipeline)
+    extern VulkanContext context;
+
+    bool32 vk_pipeline_create(const VulkanPipelineConfig* config, VulkanPipeline* out_pipeline)
     {
 
         VkPipelineViewportStateCreateInfo vp_state_create_info = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
@@ -145,9 +146,9 @@ namespace Renderer::Vulkan
 
         // Create the pipeline layout.
         VK_CHECK(vkCreatePipelineLayout(
-            context->device.logical_device,
+            context.device.logical_device,
             &pipeline_layout_create_info,
-            context->allocator_callbacks,
+            context.allocator_callbacks,
             &out_pipeline->layout));
 
         // Pipeline create
@@ -173,39 +174,39 @@ namespace Renderer::Vulkan
         pipeline_create_info.basePipelineIndex = -1;
 
         VkResult result = vkCreateGraphicsPipelines(
-            context->device.logical_device,
+            context.device.logical_device,
             VK_NULL_HANDLE,
             1,
             &pipeline_create_info,
-            context->allocator_callbacks,
+            context.allocator_callbacks,
             &out_pipeline->handle);
 
-        if (vulkan_result_is_success(result)) {
+        if (vk_result_is_success(result)) {
             SHMDEBUG("Graphics pipeline created!");
             return true;
         }
 
-        SHMERRORV("vkCreateGraphicsPipelines failed with %s.", vulkan_result_string(result, true));
+        SHMERRORV("vkCreateGraphicsPipelines failed with %s.", vk_result_string(result, true));
         return false;
 
     }
 
-    void pipeline_destroy(VulkanContext* context, VulkanPipeline* pipeline)
+    void vk_pipeline_destroy(VulkanPipeline* pipeline)
     {
         // Destroy pipeline
         if (pipeline->handle) {
-            vkDestroyPipeline(context->device.logical_device, pipeline->handle, context->allocator_callbacks);
+            vkDestroyPipeline(context.device.logical_device, pipeline->handle, context.allocator_callbacks);
             pipeline->handle = 0;
         }
 
         // Destroy layout
         if (pipeline->layout) {
-            vkDestroyPipelineLayout(context->device.logical_device, pipeline->layout, context->allocator_callbacks);
+            vkDestroyPipelineLayout(context.device.logical_device, pipeline->layout, context.allocator_callbacks);
             pipeline->layout = 0;
         }
     }
 
-    void pipeline_bind(VulkanCommandBuffer* command_buffer, VkPipelineBindPoint bind_point, VulkanPipeline* pipeline)
+    void vk_pipeline_bind(VulkanCommandBuffer* command_buffer, VkPipelineBindPoint bind_point, VulkanPipeline* pipeline)
     {
         vkCmdBindPipeline(command_buffer->handle, bind_point, pipeline->handle);
     }

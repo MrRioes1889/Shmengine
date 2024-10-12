@@ -21,7 +21,7 @@ namespace ResourceSystem
 		void(*unload)(ResourceLoader* self, Resource* resource);
 	};
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
 	void system_shutdown();
 
 	SHMAPI bool32 register_loader(ResourceLoader loader);

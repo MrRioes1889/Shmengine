@@ -5,9 +5,9 @@
 namespace JobSystem
 {
 
-	typedef bool32 (*fp_job_start)(void*, void*);
+	typedef bool32 (*FP_job_start)(void*, void*);
 
-	typedef void (*fp_job_on_complete)(void*);
+	typedef void (*FP_job_on_complete)(void*);
 
 	namespace JobType
 	{
@@ -31,10 +31,10 @@ namespace JobSystem
 		JobType::Value type;
 		JobPriority priority;
 
-		fp_job_start entry_point;
+		FP_job_start entry_point;
 
-		fp_job_on_complete on_success;
-		fp_job_on_complete on_failure;
+		FP_job_on_complete on_success;
+		FP_job_on_complete on_failure;
 
 		uint32 params_size;
 		uint32 results_size;
@@ -49,13 +49,13 @@ namespace JobSystem
 		uint32 job_thread_count;
 	};
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config, uint32 type_masks[]);
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config, uint32 type_masks[]);
 	void system_shutdown();
 
 	void update();
 
 	SHMAPI void submit(JobInfo info);
 
-	SHMAPI JobInfo job_create(fp_job_start entry_point, fp_job_on_complete on_success, fp_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobType::Value type = JobType::GENERAL, JobPriority priority = JobPriority::NORMAL);
+	SHMAPI JobInfo job_create(FP_job_start entry_point, FP_job_on_complete on_success, FP_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobType::Value type = JobType::GENERAL, JobPriority priority = JobPriority::NORMAL);
 
 }

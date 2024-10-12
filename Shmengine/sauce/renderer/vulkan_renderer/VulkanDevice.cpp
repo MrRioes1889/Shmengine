@@ -1,4 +1,4 @@
-#include "VulkanDevice.hpp"
+#include "VulkanInternal.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/CString.hpp"
@@ -6,6 +6,8 @@
 
 namespace Renderer::Vulkan
 {
+
+	extern VulkanContext context;
 
 	struct VulkanPhysicalDeviceRequirements
 	{
@@ -27,7 +29,7 @@ namespace Renderer::Vulkan
 		int32 transfer_family_index;
 	};
 
-	static bool32 select_physical_device(VulkanContext* context);
+	static bool32 select_physical_device();
 	static bool32 physical_device_meets_requirements(
 		VkPhysicalDevice device,
 		VkSurfaceKHR surface,
@@ -38,15 +40,15 @@ namespace Renderer::Vulkan
 		VulkanSwapchainSupportInfo* out_swapchain_support
 	);
 
-	bool32 vulkan_device_create(VulkanContext* context)
+	bool32 vk_device_create()
 	{
-		if (!select_physical_device(context))
+		if (!select_physical_device())
 			return false;
 
 		SHMINFO("Creating logical device...");
 		// NOTE: Do not create additional queues for shared indices
-		bool32 present_shares_graphics_queue = context->device.graphics_queue_index == context->device.present_queue_index;
-		bool32 transfer_shares_graphics_queue = context->device.graphics_queue_index == context->device.transfer_queue_index;
+		bool32 present_shares_graphics_queue = context.device.graphics_queue_index == context.device.present_queue_index;
+		bool32 transfer_shares_graphics_queue = context.device.graphics_queue_index == context.device.transfer_queue_index;
 		uint32 index_count = 1;
 		if (!present_shares_graphics_queue)
 			index_count++;
@@ -55,11 +57,11 @@ namespace Renderer::Vulkan
 
 		Sarray<uint32> indices(index_count, 0);
 		uint32 index = 0;
-		indices[index++] = context->device.graphics_queue_index;
+		indices[index++] = context.device.graphics_queue_index;
 		if (!present_shares_graphics_queue)
-			indices[index++] = context->device.present_queue_index;
+			indices[index++] = context.device.present_queue_index;
 		if (!transfer_shares_graphics_queue)
-			indices[index++] = context->device.transfer_queue_index;
+			indices[index++] = context.device.transfer_queue_index;
 
 		// TODO: Figure out what queue priority is used for. Declaring static queue priority for now, since pointers to it are needed.  
 		static float32 queue_priority = 1.0f;
@@ -68,7 +70,7 @@ namespace Renderer::Vulkan
 		{
 			queue_create_infos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			queue_create_infos[i].queueFamilyIndex = indices[i];
-			queue_create_infos[i].queueCount = 1 + (indices[i] == (uint32)context->device.graphics_queue_index);
+			queue_create_infos[i].queueCount = 1 + (indices[i] == (uint32)context.device.graphics_queue_index);
 			queue_create_infos[i].flags = 0;
 			queue_create_infos[i].pNext = 0;
 			queue_create_infos[i].pQueuePriorities = &queue_priority;
@@ -91,71 +93,71 @@ namespace Renderer::Vulkan
 		device_create_info.enabledLayerCount = 0;
 		device_create_info.ppEnabledLayerNames = 0;
 
-		VK_CHECK(vkCreateDevice(context->device.physical_device, &device_create_info, context->allocator_callbacks, &context->device.logical_device));
+		VK_CHECK(vkCreateDevice(context.device.physical_device, &device_create_info, context.allocator_callbacks, &context.device.logical_device));
 		SHMINFO("Logical device created");
 
 		// NOTE: Retrieving queues
-		vkGetDeviceQueue(context->device.logical_device, context->device.graphics_queue_index, 0, &context->device.graphics_queue);
-		vkGetDeviceQueue(context->device.logical_device, context->device.present_queue_index, 0, &context->device.present_queue);
-		vkGetDeviceQueue(context->device.logical_device, context->device.transfer_queue_index, 0, &context->device.transfer_queue);
+		vkGetDeviceQueue(context.device.logical_device, context.device.graphics_queue_index, 0, &context.device.graphics_queue);
+		vkGetDeviceQueue(context.device.logical_device, context.device.present_queue_index, 0, &context.device.present_queue);
+		vkGetDeviceQueue(context.device.logical_device, context.device.transfer_queue_index, 0, &context.device.transfer_queue);
 		SHMINFO("Queues retrieved.");
 
 		VkCommandPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-		pool_create_info.queueFamilyIndex = context->device.graphics_queue_index;
+		pool_create_info.queueFamilyIndex = context.device.graphics_queue_index;
 		pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-		VK_CHECK(vkCreateCommandPool(context->device.logical_device, &pool_create_info, context->allocator_callbacks, &context->device.graphics_command_pool));
+		VK_CHECK(vkCreateCommandPool(context.device.logical_device, &pool_create_info, context.allocator_callbacks, &context.device.graphics_command_pool));
 		SHMINFO("Graphics command pool created.");
 
 		return true;
 	}
 
-	void vulkan_device_destroy(VulkanContext* context)
+	void vk_device_destroy()
 	{
 
-		context->device.graphics_queue = 0;
-		context->device.present_queue = 0;
-		context->device.transfer_queue = 0;
+		context.device.graphics_queue = 0;
+		context.device.present_queue = 0;
+		context.device.transfer_queue = 0;
 
 		SHMDEBUG("Destroying graphics command pool...");
-		if (context->device.graphics_command_pool)
+		if (context.device.graphics_command_pool)
 		{
-			vkDestroyCommandPool(context->device.logical_device, context->device.graphics_command_pool, context->allocator_callbacks);
-			context->device.graphics_command_pool = 0;
+			vkDestroyCommandPool(context.device.logical_device, context.device.graphics_command_pool, context.allocator_callbacks);
+			context.device.graphics_command_pool = 0;
 		}
 
 		SHMDEBUG("Destroying logical device...");
-		if (context->device.logical_device)
+		if (context.device.logical_device)
 		{
-			vkDestroyDevice(context->device.logical_device, context->allocator_callbacks);
-			context->device.logical_device = 0;
+			vkDestroyDevice(context.device.logical_device, context.allocator_callbacks);
+			context.device.logical_device = 0;
 		}
 
 		SHMDEBUG("Releasing physical device resources...");
-		context->device.physical_device = 0;
+		context.device.physical_device = 0;
 
-		if (context->device.swapchain_support.formats)
+		if (context.device.swapchain_support.formats)
 		{
-			Memory::free_memory(context->device.swapchain_support.formats);
-			context->device.swapchain_support.formats = 0;
-			context->device.swapchain_support.format_count = 0;
+			Memory::free_memory(context.device.swapchain_support.formats);
+			context.device.swapchain_support.formats = 0;
+			context.device.swapchain_support.format_count = 0;
 		}
 
-		if (context->device.swapchain_support.present_modes)
+		if (context.device.swapchain_support.present_modes)
 		{
-			Memory::free_memory(context->device.swapchain_support.present_modes);
-			context->device.swapchain_support.present_modes = 0;
-			context->device.swapchain_support.present_mode_count = 0;
+			Memory::free_memory(context.device.swapchain_support.present_modes);
+			context.device.swapchain_support.present_modes = 0;
+			context.device.swapchain_support.present_mode_count = 0;
 		}
 
-		context->device.swapchain_support.capabilities = {};
-		context->device.graphics_queue_index = -1;
-		context->device.present_queue_index = -1;
-		context->device.transfer_queue_index = -1;
+		context.device.swapchain_support.capabilities = {};
+		context.device.graphics_queue_index = -1;
+		context.device.present_queue_index = -1;
+		context.device.transfer_queue_index = -1;
 
 	}
 
-	void vulkan_device_query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR surface, VulkanSwapchainSupportInfo* out_support_info)
+	void vk_device_query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR surface, VulkanSwapchainSupportInfo* out_support_info)
 	{
 
 		VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &out_support_info->capabilities));
@@ -183,7 +185,7 @@ namespace Renderer::Vulkan
 		}
 	}
 
-	bool32 vulkan_device_detect_depth_format(VulkanDevice* device)
+	bool32 vk_device_detect_depth_format(VulkanDevice* device)
 	{
 		const uint32 candidate_count = 3;
 		VkFormat candidates[candidate_count] =
@@ -218,10 +220,10 @@ namespace Renderer::Vulkan
 		return false;
 	}
 
-	static bool32 select_physical_device(VulkanContext* context)
+	static bool32 select_physical_device()
 	{
 		uint32 physical_device_count = 0;
-		VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, 0));
+		VK_CHECK(vkEnumeratePhysicalDevices(context.instance, &physical_device_count, 0));
 		if (!physical_device_count)
 		{
 			SHMFATAL("No physical devices which support Vulkan were found.");
@@ -243,7 +245,7 @@ namespace Renderer::Vulkan
 		darray_push(requirements.device_extension_names, swapchain_extension_name);*/
 
 		Sarray<VkPhysicalDevice> physical_devices(physical_device_count, 0);
-		VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, physical_devices.data));
+		VK_CHECK(vkEnumeratePhysicalDevices(context.instance, &physical_device_count, physical_devices.data));
 		for (uint32 i = 0; i < physical_device_count; i++)
 		{
 			VkPhysicalDeviceProperties properties;
@@ -255,12 +257,12 @@ namespace Renderer::Vulkan
 			VkPhysicalDeviceMemoryProperties memory_properties;
 			vkGetPhysicalDeviceMemoryProperties(physical_devices[i], &memory_properties);
 
-			context->device.supports_device_local_host_visible = false;
+			context.device.supports_device_local_host_visible = false;
 			for (uint32 j = 0; j < memory_properties.memoryTypeCount; j++)
 			{
 				if ((memory_properties.memoryTypes[j].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && (memory_properties.memoryTypes[j].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
 				{
-					context->device.supports_device_local_host_visible = true;
+					context.device.supports_device_local_host_visible = true;
 					break;
 				}
 			}
@@ -268,12 +270,12 @@ namespace Renderer::Vulkan
 			VulkanPhysicalDeviceQueueFamilyInfo queue_info = {};
 			bool32 meets_requirements = physical_device_meets_requirements(
 				physical_devices[i],
-				context->surface,
+				context.surface,
 				&properties,
 				&features,
 				&requirements,
 				&queue_info,
-				&context->device.swapchain_support);
+				&context.device.swapchain_support);
 
 			if (meets_requirements)
 			{
@@ -317,21 +319,21 @@ namespace Renderer::Vulkan
 						SHMINFOV("Shared system memory: %f GiB", memory_size_gib);
 				}
 
-				context->device.physical_device = physical_devices[i];
-				context->device.graphics_queue_index = queue_info.graphics_family_index;
-				context->device.present_queue_index = queue_info.present_family_index;
-				context->device.transfer_queue_index = queue_info.transfer_family_index;
+				context.device.physical_device = physical_devices[i];
+				context.device.graphics_queue_index = queue_info.graphics_family_index;
+				context.device.present_queue_index = queue_info.present_family_index;
+				context.device.transfer_queue_index = queue_info.transfer_family_index;
 
-				context->device.properties = properties;
-				context->device.features = features;
-				context->device.memory = memory_properties;
+				context.device.properties = properties;
+				context.device.features = features;
+				context.device.memory = memory_properties;
 
 				break;
 			}
 
 		}
 
-		if (!context->device.physical_device)
+		if (!context.device.physical_device)
 		{
 			SHMERROR("No physical device meeting the requirements found.");
 			return false;
@@ -439,7 +441,7 @@ namespace Renderer::Vulkan
 			SHMTRACEV("Compute Family index: %i", out_queue_info->compute_family_index);
 			SHMTRACEV("Transfer Family index: %i", out_queue_info->transfer_family_index);
 
-			vulkan_device_query_swapchain_support(device, surface, out_swapchain_support);
+			vk_device_query_swapchain_support(device, surface, out_swapchain_support);
 
 			if (!out_swapchain_support->format_count || !out_swapchain_support->present_mode_count)
 			{

@@ -24,7 +24,7 @@ namespace Platform
 namespace Threading
 {
 
-	bool32 thread_create(fp_thread_start start_function, void* params, bool32 auto_detach, Thread* out_thread)
+	bool32 thread_create(FP_thread_start start_function, void* params, bool32 auto_detach, Thread* out_thread)
 	{
 
 		out_thread->internal_data = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)start_function, params, 0, (DWORD*)&out_thread->thread_id);

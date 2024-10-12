@@ -175,14 +175,14 @@ namespace Renderer
 
 			if (!(g_data->geometry->material->diffuse_map.texture->flags & TextureFlags::HAS_TRANSPARENCY))
 			{
-				out_packet->geometries.push(*g_data);
+				out_packet->geometries.emplace(*g_data);
 			}
 			else
 			{
 				Math::Vec3f center = Math::vec_transform(g_data->geometry->center, g_data->model);
 				float32 distance = Math::vec_distance(center, internal_data->camera->get_position());
 
-				GeometryDistance* g_dist = transparent_geometries.push({});
+				GeometryDistance* g_dist = transparent_geometries.emplace();
 				g_dist->dist = Math::abs(distance);
 				g_dist->g = *g_data;
 			}
@@ -191,7 +191,7 @@ namespace Renderer
 		quick_sort(transparent_geometries.data, 0, transparent_geometries.count - 1, false);
 		for (uint32 i = 0; i < transparent_geometries.count; i++)
 		{
-			GeometryRenderData* render_data = out_packet->geometries.push({});
+			GeometryRenderData* render_data = out_packet->geometries.emplace();
 			*render_data = transparent_geometries[i].g;
 		}
 

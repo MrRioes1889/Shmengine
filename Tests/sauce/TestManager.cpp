@@ -20,7 +20,7 @@ void test_manager_register_test(uint8(*PFN_test)(), const char* desc) {
     TestEntry e;
     e.func = PFN_test;
     e.desc = desc;
-    tests.push(e);
+    tests.emplace(e);
 }
 
 void test_manager_run_tests() {

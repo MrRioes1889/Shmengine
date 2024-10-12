@@ -33,7 +33,7 @@ namespace ShaderSystem
 	static void destroy_shader(Renderer::Shader* shader);
 	static bool32 create_default_texture_map();
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
 	{
 
 		// This is to help avoid hashtable collisions.
@@ -353,7 +353,7 @@ namespace ShaderSystem
 		attrib.name = config.name;
 		attrib.size = size;
 		attrib.type = config.type;
-		shader->attributes.push(attrib);
+		shader->attributes.emplace(attrib);
 
 		return true;
 
@@ -472,7 +472,7 @@ namespace ShaderSystem
 		}
 
 		shader->uniform_lookup.set_value(uniform_name, entry.index);
-		shader->uniforms.push(entry);
+		shader->uniforms.emplace(entry);
 
 		if (is_sampler)
 			return true;

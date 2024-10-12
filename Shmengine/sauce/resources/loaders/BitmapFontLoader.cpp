@@ -242,7 +242,7 @@ namespace ResourceSystem
                     return false;
                 }
 
-                out_data->data.kernings.init(kerning_count, DarrayFlag::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
+                out_data->data.kernings.init(kerning_count, DarrayFlags::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
             }
             else if (line_identifier == "char")
             {
@@ -284,7 +284,7 @@ namespace ResourceSystem
                 if (first_char_id < 256 && second_char_id < 256)
                 {
                     FontKerning k = { .codepoint_0 = (int32)first_char_id, .codepoint_1 = (int32)second_char_id, .advance = amount };
-                    out_data->data.kernings.push(k);
+                    out_data->data.kernings.emplace(k);
                 }
             }
 
@@ -413,7 +413,7 @@ namespace ResourceSystem
             out_data->data.glyphs.init(file_header->glyphs_count, 0, AllocationTag::BITMAP_FONT);
 
         if (file_header->kernings_count)
-            out_data->data.kernings.init(file_header->kernings_count, DarrayFlag::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
+            out_data->data.kernings.init(file_header->kernings_count, DarrayFlags::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
 
         uint64 glyphs_size = file_header->glyphs_count * sizeof(FontGlyph);
         check_buffer_size(glyphs_size);

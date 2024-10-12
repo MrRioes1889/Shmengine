@@ -27,7 +27,7 @@ namespace Event
 
 	static SystemState* system_state;
 
-	bool32 system_init(PFN_allocator_allocate_callback allocator_callback, void*& out_state)
+	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state)
 	{
 		out_state = allocator_callback(sizeof(SystemState));
 		system_state = (SystemState*)out_state;
@@ -67,7 +67,7 @@ namespace Event
 		Listener l1;
 		l1.ptr = listener;
 		l1.callback = on_event;
-		e_listeners.push(l1);
+		e_listeners.emplace(l1);
 
 		return true;
 	}

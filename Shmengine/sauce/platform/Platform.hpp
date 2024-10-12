@@ -7,7 +7,7 @@ namespace Platform
 {
 
 	bool32 system_init(
-		PFN_allocator_allocate_callback allocator_callback,
+		FP_allocator_allocate_callback allocator_callback,
 		void*& out_state,
 		const char* application_name,
 		int32 x, int32 y,

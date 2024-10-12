@@ -126,17 +126,22 @@ void ui_text_set_text(UIText* ui_text, const char* text)
 void ui_text_draw(UIText* ui_text)
 {
 
-    if (!Renderer::renderbuffer_draw(&ui_text->vertex_buffer, 0, ui_text->text.len() * quad_vertex_count, true))
+    uint32 text_length = ui_text->text.len();
+    if (text_length > 0)
     {
-        SHMERROR("ui_text_draw - failed to draw vertex renderbuffer");
-        return;
-    }
+        if (!Renderer::renderbuffer_draw(&ui_text->vertex_buffer, 0, text_length * quad_vertex_count, true))
+        {
+            SHMERROR("ui_text_draw - failed to draw vertex renderbuffer");
+            return;
+        }
 
-    if (!Renderer::renderbuffer_draw(&ui_text->index_buffer, 0, ui_text->text.len() * quad_index_count, false))
-    {
-        SHMERROR("ui_text_draw - failed to draw index renderbuffer");
-        return;
+        if (!Renderer::renderbuffer_draw(&ui_text->index_buffer, 0, text_length * quad_index_count, false))
+        {
+            SHMERROR("ui_text_draw - failed to draw index renderbuffer");
+            return;
+        }
     }
+    
 
 }
 
@@ -146,6 +151,9 @@ static void regenerate_geometry(UIText* ui_text)
     OPTICK_EVENT();
     uint32 char_length = ui_text->text.len();
     uint32 utf8_length = FontSystem::utf8_string_length(ui_text->text.c_str());
+
+    if (utf8_length < 1)
+        return;
 
     uint32 vertices_count = quad_vertex_count * utf8_length;
     uint32 indices_count = quad_index_count * utf8_length;

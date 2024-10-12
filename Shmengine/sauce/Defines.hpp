@@ -22,7 +22,7 @@ typedef bool bool8;
 
 typedef unsigned char byte;
 
-typedef void* (*PFN_allocator_allocate_callback)(uint64 size);
+typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
 #define PI 3.14159265358979323846f
 #define DOUBLE_PI 2.0f * PI
