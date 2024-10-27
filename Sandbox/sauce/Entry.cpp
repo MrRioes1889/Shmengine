@@ -1,26 +1,26 @@
-#include "game.hpp"
+#include "Application.hpp"
 
 #include <entry.hpp>
 #include <core/Memory.hpp>
 
 // Define the function to create a game
-bool32 create_game(Game* out_game) {
+bool32 create_game(Application* out_app) {
     // Application configuration.
-    out_game->config.start_pos_x = 100;
-    out_game->config.start_pos_y = 100;
-    out_game->config.start_width = 1600;
-    out_game->config.start_height = 900;
-    out_game->config.name = (char*)"Shmengine Sandbox";
-    out_game->init = game_init;
-    out_game->boot = game_boot;
-    out_game->update = game_update;
-    out_game->render = game_render; 
-    out_game->on_resize = game_on_resize;
-    out_game->shutdown = game_shutdown;
+    out_app->config.start_pos_x = 100;
+    out_app->config.start_pos_y = 100;
+    out_app->config.start_width = 1600;
+    out_app->config.start_height = 900;
+    out_app->config.name = (char*)"Shmengine Sandbox";
+    out_app->init = application_init;
+    out_app->boot = application_boot;
+    out_app->update = application_update;
+    out_app->render = application_render;
+    out_app->on_resize = application_on_resize;
+    out_app->shutdown = application_shutdown;
 
     // Create the game state.
-    out_game->state_size = sizeof(GameState);
-    out_game->state = 0;
+    out_app->state_size = sizeof(ApplicationState);
+    out_app->state = 0;
 
     return true;
 }

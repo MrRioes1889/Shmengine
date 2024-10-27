@@ -1,7 +1,9 @@
-#include "Game.hpp"
+#include "Application.hpp"
 #include "Defines.hpp"
-#include "containers/Darray.hpp"
+#include "Keybinds.hpp"
+#include "DebugConsole.hpp"
 
+#include <containers/Darray.hpp>
 #include <core/Logging.hpp>
 #include <core/Input.hpp>
 #include <core/Event.hpp>
@@ -10,7 +12,6 @@
 #include <utility/String.hpp>
 #include <renderer/RendererFrontend.hpp>
 #include <utility/Sort.hpp>
-#include <string>
 
 // TODO: temp
 #include <renderer/RendererGeometry.hpp>
@@ -21,67 +22,17 @@
 #include <resources/Mesh.hpp>
 // end
 
-
-
-static bool32 game_on_event(uint16 code, void* sender, void* listener_inst, EventData data)
+static bool32 application_on_key_pressed(uint16 code, void* sender, void* listener_inst, EventData data)
 {
-	Game* game_inst = (Game*)listener_inst;
-	GameState* state = (GameState*)game_inst->app_state;
-
-	switch (code)
-	{
-	case SystemEventCode::OBJECT_HOVER_ID_CHANGED:
-	{
-		state->hovered_object_id = data.ui32[0];
-		return true;
-	}
-	}
-
+	//SHMDEBUGV("Key pressed, Code: %u", data.ui32[0]);
 	return false;
 }
 
-static bool32 game_on_key(uint16 code, void* sender, void* listener_inst, EventData data)
-{
-	if (code == SystemEventCode::KEY_PRESSED)
-	{
-		uint32 key_code = data.ui32[0];
-
-		switch (key_code)
-		{
-		case KeyCode::ESCAPE:
-			Event::event_fire(SystemEventCode::APPLICATION_QUIT, 0, {});
-			return true;
-			break;
-		case KeyCode::A:
-			SHMDEBUG("A key pressed!");
-			break;
-		default:
-			SHMDEBUGV("'%c' key pressed!", key_code);
-			break;
-		}
-	}
-	else if (code == SystemEventCode::KEY_RELEASED)
-	{
-		uint32 key_code = data.ui32[0];
-
-		switch (key_code)
-		{
-		case KeyCode::B:
-			SHMDEBUG("B key released!");
-			break;
-		default:
-			SHMDEBUGV("'%c' key released!", key_code);
-			break;
-		}
-	}
-	return false;
-}
-
-static bool32 game_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
+static bool32 application_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 
-	Game* game_inst = (Game*)listener_inst;
-	GameState* state = (GameState*)game_inst->state;
+	Application* app_inst = (Application*)listener_inst;
+	ApplicationState* state = (ApplicationState*)app_inst->state;
 
 	if (code == SystemEventCode::DEBUG0)
 	{
@@ -126,19 +77,19 @@ static bool32 game_on_debug_event(uint16 code, void* sender, void* listener_inst
 	return true;
 }
 
-bool32 game_boot(Game* game_inst)
+bool32 application_boot(Application* app_inst)
 {
 
-	Memory::linear_allocator_create(Mebibytes(64), &game_inst->frame_allocator);
+	Memory::linear_allocator_create(Mebibytes(64), &app_inst->frame_allocator);
 
-	FontSystem::Config* font_sys_config = &game_inst->config.fontsystem_config;
+	FontSystem::Config* font_sys_config = &app_inst->config.fontsystem_config;
 	font_sys_config->auto_release = false;
 	font_sys_config->max_bitmap_font_config_count = 15;
 	font_sys_config->max_truetype_font_config_count = 15;
 
 	font_sys_config->default_bitmap_font_count = 2;
-	game_inst->config.bitmap_font_configs.init(font_sys_config->default_bitmap_font_count, 0);
-	font_sys_config->bitmap_font_configs = game_inst->config.bitmap_font_configs.data;
+	app_inst->config.bitmap_font_configs.init(font_sys_config->default_bitmap_font_count, 0);
+	font_sys_config->bitmap_font_configs = app_inst->config.bitmap_font_configs.data;
 
 	font_sys_config->bitmap_font_configs[0].name = "Noto Serif 21px";
 	font_sys_config->bitmap_font_configs[0].resource_name = "NotoSerif_21";
@@ -149,19 +100,19 @@ bool32 game_boot(Game* game_inst)
 	font_sys_config->bitmap_font_configs[1].size = 21;
 
 	font_sys_config->default_truetype_font_count = 1;
-	game_inst->config.truetype_font_configs.init(font_sys_config->default_truetype_font_count, 0);
-	font_sys_config->truetype_font_configs = game_inst->config.truetype_font_configs.data;
+	app_inst->config.truetype_font_configs.init(font_sys_config->default_truetype_font_count, 0);
+	font_sys_config->truetype_font_configs = app_inst->config.truetype_font_configs.data;
 
 	font_sys_config->truetype_font_configs[0].name = "Martian Mono";
 	font_sys_config->truetype_font_configs[0].resource_name = "MartianMono";
 	font_sys_config->truetype_font_configs[0].default_size = 21;
 
 
-	game_inst->config.render_view_configs.init(4, 0);
-	Renderer::RenderViewConfig* skybox_view_config = &game_inst->config.render_view_configs[0];
-	Renderer::RenderViewConfig* world_view_config = &game_inst->config.render_view_configs[1];
-	Renderer::RenderViewConfig* ui_view_config = &game_inst->config.render_view_configs[2];
-	Renderer::RenderViewConfig* pick_view_config = &game_inst->config.render_view_configs[3];
+	app_inst->config.render_view_configs.init(4, 0);
+	Renderer::RenderViewConfig* skybox_view_config = &app_inst->config.render_view_configs[0];
+	Renderer::RenderViewConfig* world_view_config = &app_inst->config.render_view_configs[1];
+	Renderer::RenderViewConfig* ui_view_config = &app_inst->config.render_view_configs[2];
+	Renderer::RenderViewConfig* pick_view_config = &app_inst->config.render_view_configs[3];
 
 	const uint32 skybox_pass_count = 1;
 	const uint32 world_pass_count = 1;
@@ -309,14 +260,21 @@ bool32 game_boot(Game* game_inst)
 
 	ui_pick_pass->render_target_count = 1;
 
+	setup_keymaps(app_inst);
+	DebugConsole::init();
+
+	Event::event_register(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
+
 	return true;
 
 }
 
-bool32 game_init(Game* game_inst) 
+bool32 application_init(Application* app_inst) 
 {
-    GameState* state = (GameState*)game_inst->state;
+    ApplicationState* state = (ApplicationState*)app_inst->state;
 	
+	DebugConsole::load();
+
     state->world_camera = CameraSystem::get_default_camera();
     state->world_camera->set_position({ 10.5f, 5.0f, 9.5f });
     state->allocation_count = 0;
@@ -335,8 +293,7 @@ bool32 game_init(Game* game_inst)
 		SHMERROR("Failed to load basic ui truetype text.");
 		return false;
 	}
-	ui_text_set_position(&state->test_truetype_text, { 50, 100, 0 });
-
+	ui_text_set_position(&state->test_truetype_text, { 500, 550, 0 });
 
 	// Skybox
 	if (!skybox_create("skybox_cube", &state->skybox))
@@ -431,39 +388,32 @@ bool32 game_init(Game* game_inst)
 
 	// Get UI geometry from config.
 	state->ui_meshes.init(1, 0);
-	Mesh* ui_mesh = state->ui_meshes.emplace();
+	/*Mesh* ui_mesh = state->ui_meshes.emplace();
 	ui_mesh->unique_id = identifier_acquire_new_id(ui_mesh);
 	ui_mesh->geometries.init(1, 0);
 	ui_mesh->geometries.push(0);
 	ui_mesh->geometries[0] = GeometrySystem::acquire_from_config(ui_config, true);
 	ui_mesh->transform = Math::transform_create();
-	ui_mesh->generation = 0;
+	ui_mesh->generation = 0;*/
 
-	Event::event_register(SystemEventCode::DEBUG0, game_inst, game_on_debug_event);
-	Event::event_register(SystemEventCode::DEBUG1, game_inst, game_on_debug_event);
-	Event::event_register(SystemEventCode::DEBUG2, game_inst, game_on_debug_event);
+	Event::event_register(SystemEventCode::DEBUG0, app_inst, application_on_debug_event);
+	Event::event_register(SystemEventCode::DEBUG1, app_inst, application_on_debug_event);
 
-	Event::event_register(SystemEventCode::OBJECT_HOVER_ID_CHANGED, game_inst, game_on_event);
-	// end
-
-	Event::event_register(SystemEventCode::KEY_PRESSED, game_inst, game_on_key);
-	Event::event_register(SystemEventCode::KEY_RELEASED, game_inst, game_on_key);
-
-	game_inst->frame_data.world_geometries.init(512, 0);
+	app_inst->frame_data.world_geometries.init(512, 0);
 
     return true;
 }
 
-void game_shutdown(Game* game_inst)
+void application_shutdown(Application* app_inst)
 {
-	GameState* state = (GameState*)game_inst->state;
+	ApplicationState* state = (ApplicationState*)app_inst->state;
 	
-	game_inst->config.bitmap_font_configs.free_data();
-	game_inst->config.truetype_font_configs.free_data();
+	app_inst->config.bitmap_font_configs.free_data();
+	app_inst->config.truetype_font_configs.free_data();
 
-	for (uint32 i = 0; i < game_inst->config.render_view_configs.capacity; i++)
+	for (uint32 i = 0; i < app_inst->config.render_view_configs.capacity; i++)
 	{
-		Renderer::RenderViewConfig* view_config = &game_inst->config.render_view_configs[i];
+		Renderer::RenderViewConfig* view_config = &app_inst->config.render_view_configs[i];
 		for (uint32 j = 0; j < view_config->pass_configs.capacity; j++)
 		{
 			Renderer::RenderpassConfig* pass_config = &view_config->pass_configs[j];
@@ -471,7 +421,7 @@ void game_shutdown(Game* game_inst)
 		}
 		view_config->pass_configs.free_data();
 	}
-	game_inst->config.render_view_configs.free_data();
+	app_inst->config.render_view_configs.free_data();
 
 
 	// TODO: temp
@@ -479,99 +429,34 @@ void game_shutdown(Game* game_inst)
 	ui_text_destroy(&state->test_bitmap_text);
 	ui_text_destroy(&state->test_truetype_text);
 
+	DebugConsole::destroy();
+
 	state->world_meshes.free_data();
 	state->ui_meshes.free_data();
 	state->car_mesh = 0;
 	state->sponza_mesh = 0;
 
-	Event::event_unregister(SystemEventCode::DEBUG0, game_inst, game_on_debug_event);
-	Event::event_unregister(SystemEventCode::DEBUG1, game_inst, game_on_debug_event);
-	Event::event_unregister(SystemEventCode::DEBUG2, game_inst, game_on_debug_event);
-	Event::event_unregister(SystemEventCode::OBJECT_HOVER_ID_CHANGED, game_inst, game_on_event);
+	Event::event_unregister(SystemEventCode::DEBUG0, app_inst, application_on_debug_event);
+	Event::event_unregister(SystemEventCode::DEBUG1, app_inst, application_on_debug_event);
+	Event::event_unregister(SystemEventCode::DEBUG2, app_inst, application_on_debug_event);
 	// end
-
-	Event::event_unregister(SystemEventCode::KEY_PRESSED, game_inst, game_on_key);
-	Event::event_unregister(SystemEventCode::KEY_RELEASED, game_inst, game_on_key);
 
 }
 
-bool32 game_update(Game* game_inst, float64 delta_time) 
+bool32 application_update(Application* app_inst, float64 delta_time) 
 {
 
-    GameState* state = (GameState*)game_inst->state;
+    ApplicationState* state = (ApplicationState*)app_inst->state;
+	state->delta_time = delta_time;
 
-	game_inst->frame_data.world_geometries.clear();
+	app_inst->frame_data.world_geometries.clear();
 
-	Memory::linear_allocator_free_all_data(&game_inst->frame_allocator);
+	Memory::linear_allocator_free_all_data(&app_inst->frame_allocator);
 
     uint32 allocation_count = Memory::get_current_allocation_count();
-    if (Input::key_pressed(KeyCode::M))
-    {
-        SHMDEBUGV("Memory Stats: Current Allocation Count: %u, This frame: %u", allocation_count, allocation_count - state->allocation_count);
-    }
     state->allocation_count = allocation_count;
 
-    if (Input::key_pressed(KeyCode::C))
-    {
-        SHMDEBUG("Clipping/Unclipping cursor!");
-        Input::clip_cursor();
-    }
-
-    if (Input::key_pressed(KeyCode::T))
-    {
-        SHMDEBUG("Swapping Texture!");
-        Event::event_fire(SystemEventCode::DEBUG0, 0, {});
-    }    
-
-    if (Input::key_pressed(KeyCode::L))
-    {
-        Event::event_fire(SystemEventCode::DEBUG1, 0, {});
-    }
-
-    if (Input::key_pressed(KeyCode::P))
-    {
-        Event::event_fire(SystemEventCode::DEBUG2, 0, {});
-    }
-
-    if (Input::key_pressed(KeyCode::NUM_1)) {
-        EventData data = {};
-        data.i32[0] = Renderer::ViewMode::DEFAULT;
-        Event::event_fire(SystemEventCode::SET_RENDER_MODE, game_inst, data);
-    }
-
-    if (Input::key_pressed(KeyCode::NUM_2)) {
-        EventData data = {};
-        data.i32[0] = Renderer::ViewMode::LIGHTING;
-        Event::event_fire(SystemEventCode::SET_RENDER_MODE, game_inst, data);
-    }
-
-    if (Input::key_pressed(KeyCode::NUM_3)) {
-        EventData data = {};
-        data.i32[0] = Renderer::ViewMode::NORMALS;
-        Event::event_fire(SystemEventCode::SET_RENDER_MODE, game_inst, data);
-    } 
-
-    if (!Input::is_cursor_clipped())
-    {
-        const static float32 cam_speed = 1.0f / 120.0f;
-        if (Input::is_key_down(KeyCode::LEFT))
-        {
-            state->world_camera->yaw(1.0f * cam_speed);
-        }
-        if (Input::is_key_down(KeyCode::RIGHT))
-        {
-            state->world_camera->yaw(-1.0f * cam_speed);
-        }
-        if (Input::is_key_down(KeyCode::UP))
-        {
-            state->world_camera->pitch(1.0f * cam_speed);
-        }
-        if (Input::is_key_down(KeyCode::DOWN))
-        {
-            state->world_camera->pitch(-1.0f * cam_speed);
-        }
-    }
-    else
+    if (Input::is_cursor_clipped())
     {
         Math::Vec2i mouse_offset = Input::get_internal_mouse_offset();
         float32 mouse_sensitivity = 3.0f;
@@ -579,33 +464,6 @@ bool32 game_update(Game* game_inst, float64 delta_time)
 		float32 pitch = -mouse_offset.y * (float32)delta_time * mouse_sensitivity;
         state->world_camera->yaw(yaw);
         state->world_camera->pitch(pitch);
-    }
-    
-    float32 temp_move_speed = 50.0f;
-
-    if (Input::is_key_down(KeyCode::W))
-    {
-        state->world_camera->move_forward(temp_move_speed * (float32)delta_time);
-    }
-    if (Input::is_key_down(KeyCode::S))
-    {
-        state->world_camera->move_backward(temp_move_speed * (float32)delta_time);
-    }
-    if (Input::is_key_down(KeyCode::D))
-    {
-        state->world_camera->move_right(temp_move_speed * (float32)delta_time);
-    }
-    if (Input::is_key_down(KeyCode::A))
-    {
-        state->world_camera->move_left(temp_move_speed * (float32)delta_time);
-    }
-    if (Input::is_key_down(KeyCode::SPACE))
-    {
-        state->world_camera->move_up(temp_move_speed * (float32)delta_time);
-    }
-    if (Input::is_key_down(KeyCode::SHIFT))
-    {
-        state->world_camera->move_down(temp_move_speed * (float32)delta_time);
     }
 
 	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * (float32)delta_time, true);
@@ -657,7 +515,7 @@ bool32 game_update(Game* game_inst, float64 delta_time)
 
 				if (Math::frustum_intersects_aabb(state->camera_frustum, center, half_extents))
 				{
-					Renderer::GeometryRenderData* render_data = game_inst->frame_data.world_geometries.emplace();
+					Renderer::GeometryRenderData* render_data = app_inst->frame_data.world_geometries.emplace();
 					render_data->model = model;
 					render_data->geometry = g;
 					render_data->unique_id = m->unique_id;
@@ -669,44 +527,46 @@ bool32 game_update(Game* game_inst, float64 delta_time)
 	char ui_text_buffer[512];
 	CString::safe_print_s<uint32, uint32, int32, int32, float32, float32, float32, float32, float32, float32, float64, float64, float64>
 		(ui_text_buffer, 512, "Object Hovered ID: %u\nWorld geometry count: %u\nMouse Pos : [%i, %i]\tCamera Pos : [%f3, %f3, %f3]\nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms\nLogic: %lf4 / Render: %lf4",
-			state->hovered_object_id, game_inst->frame_data.world_geometries.count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
+			state->hovered_object_id, app_inst->frame_data.world_geometries.count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
 
 	ui_text_set_text(&state->test_truetype_text, ui_text_buffer);
+
+	DebugConsole::update();
 
     return true;
 }
 
-bool32 game_render(Game* game_inst, Renderer::RenderPacket* packet, float64 delta_time)
+bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet, float64 delta_time)
 {
 
-	GameState* state = (GameState*)game_inst->state;
+	ApplicationState* state = (ApplicationState*)app_inst->state;
 
 	const uint32 view_count = 3;
-	Renderer::RenderViewPacket* render_view_packets = (Renderer::RenderViewPacket*)Memory::linear_allocator_allocate(&game_inst->frame_allocator, view_count * sizeof(Renderer::RenderViewPacket));
+	Renderer::RenderViewPacket* render_view_packets = (Renderer::RenderViewPacket*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, view_count * sizeof(Renderer::RenderViewPacket));
 	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_view_packets);
 
-	Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)Memory::linear_allocator_allocate(&game_inst->frame_allocator, sizeof(Renderer::SkyboxPacketData));
+	Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, sizeof(Renderer::SkyboxPacketData));
 	skybox_data->skybox = &state->skybox;
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), &game_inst->frame_allocator, skybox_data, &packet->views[0]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), &app_inst->frame_allocator, skybox_data, &packet->views[0]))
 	{
 		SHMERROR("Failed to build packet for view 'skybox'.");
 		return false;
 	}
 
-	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)Memory::linear_allocator_allocate(&game_inst->frame_allocator, sizeof(Renderer::WorldPacketData));
-	world_packet->geometries = game_inst->frame_data.world_geometries.data;
-	world_packet->geometries_count = game_inst->frame_data.world_geometries.count;
+	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, sizeof(Renderer::WorldPacketData));
+	world_packet->geometries = app_inst->frame_data.world_geometries.data;
+	world_packet->geometries_count = app_inst->frame_data.world_geometries.count;
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), &game_inst->frame_allocator, world_packet, &packet->views[1]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), &app_inst->frame_allocator, world_packet, &packet->views[1]))
 	{
 		SHMERROR("Failed to build packet for view 'world'.");
 		return false;
 	}
 
-	Mesh** ui_meshes_ptr = (Mesh**)Memory::linear_allocator_allocate(&game_inst->frame_allocator, state->ui_meshes.count * sizeof(Mesh*));
+	Mesh** ui_meshes_ptr = (Mesh**)Memory::linear_allocator_allocate(&app_inst->frame_allocator, state->ui_meshes.count * sizeof(Mesh*));
 	Sarray<Mesh*> ui_meshes(state->ui_meshes.count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, ui_meshes_ptr);
 
-	Renderer::UIPacketData* ui_mesh_data = (Renderer::UIPacketData*)Memory::linear_allocator_allocate(&game_inst->frame_allocator, sizeof(Renderer::UIPacketData));
+	Renderer::UIPacketData* ui_mesh_data = (Renderer::UIPacketData*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, sizeof(Renderer::UIPacketData));
 	ui_mesh_data->mesh_data.mesh_count = 0;
 	for (uint32 i = 0; i < state->ui_meshes.count; i++)
 	{
@@ -718,29 +578,36 @@ bool32 game_render(Game* game_inst, Renderer::RenderPacket* packet, float64 delt
 	}
 	ui_mesh_data->mesh_data.meshes = ui_meshes.data;
 
-	ui_mesh_data->text_count = 2;
-	UIText** ui_texts_ptr = (UIText**)Memory::linear_allocator_allocate(&game_inst->frame_allocator, ui_mesh_data->text_count * sizeof(UIText*));
-	Sarray<UIText*> ui_texts(ui_mesh_data->text_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, ui_texts_ptr);
+	const uint32 max_text_count = 3;
+	UIText** ui_texts_ptr = (UIText**)Memory::linear_allocator_allocate(&app_inst->frame_allocator, max_text_count * sizeof(UIText*));
+	Sarray<UIText*> ui_texts(max_text_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, ui_texts_ptr);
 	ui_texts[0] = &state->test_truetype_text;
 	ui_texts[1] = &state->test_bitmap_text;
 
 	ui_mesh_data->text_count = 1;		
 	ui_mesh_data->texts = ui_texts.data;
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &game_inst->frame_allocator, ui_mesh_data, &packet->views[2]))
+	if (DebugConsole::is_visible())
+	{
+		ui_mesh_data->text_count += 2;
+		ui_texts[1] = DebugConsole::get_text();
+		ui_texts[2] = DebugConsole::get_entry_text();
+	}
+
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &app_inst->frame_allocator, ui_mesh_data, &packet->views[2]))
 	{
 		SHMERROR("Failed to build packet for view 'ui'.");
 		return false;
 	}
 
-	/*Renderer::PickPacketData* pick_packet = (Renderer::PickPacketData*)Memory::linear_allocator_allocate(&game_inst->frame_allocator, sizeof(Renderer::PickPacketData));
+	/*Renderer::PickPacketData* pick_packet = (Renderer::PickPacketData*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, sizeof(Renderer::PickPacketData));
 	pick_packet->ui_mesh_data = ui_mesh_data->mesh_data;
-	pick_packet->world_geometries = game_inst->frame_data.world_geometries.data;
-	pick_packet->world_geometries_count = game_inst->frame_data.world_geometries.count;
+	pick_packet->world_geometries = app_inst->frame_data.world_geometries.data;
+	pick_packet->world_geometries_count = app_inst->frame_data.world_geometries.count;
 	pick_packet->texts = ui_mesh_data->texts;
 	pick_packet->text_count = ui_mesh_data->text_count;
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), &game_inst->frame_allocator, pick_packet, &packet->views[3]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), &app_inst->frame_allocator, pick_packet, &packet->views[3]))
 	{
 		SHMERROR("Failed to build packet for view 'pick'.");
 		return false;
@@ -749,10 +616,10 @@ bool32 game_render(Game* game_inst, Renderer::RenderPacket* packet, float64 delt
     return true;
 }
 
-void game_on_resize(Game* game_inst, uint32 width, uint32 height) 
+void application_on_resize(Application* app_inst, uint32 width, uint32 height) 
 {
 
-	GameState* state = (GameState*)game_inst->state;
+	ApplicationState* state = (ApplicationState*)app_inst->state;
 
 	state->width = width;
 	state->height = height;

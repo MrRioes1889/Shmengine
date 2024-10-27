@@ -1,9 +1,9 @@
 #include "Input.hpp"
 #include "Event.hpp"
 #include "Logging.hpp"
+#include "Keymap.hpp"
 #include "platform/Platform.hpp"
 #include "memory/LinearAllocator.hpp"
-#include "Keymap.hpp"
 #include "containers/Stack.hpp"
 
 namespace Input

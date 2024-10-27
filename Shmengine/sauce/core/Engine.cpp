@@ -1,4 +1,4 @@
-#include "Application.hpp"
+#include "Engine.hpp"
 #include "platform/Platform.hpp"
 #include "ApplicationTypes.hpp"
 #include "core/Memory.hpp"
@@ -24,13 +24,13 @@
 
 #include "optick.h"
 
-namespace Application
+namespace Engine
 {
 
-	struct ApplicationState
+	struct EngineState
 	{
 
-		Game* game_inst;
+		Application* game_inst;
 		bool32 is_running;
 		bool32 is_suspended;
 		uint32 width, height;
@@ -56,19 +56,19 @@ namespace Application
 	};
 
 	static bool32 initialized = false;
-	static ApplicationState* app_state;
+	static EngineState* engine_state;
 
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
 	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data);
 
 	void* allocate_subsystem_callback (uint64 size)
 	{
-		void* ptr = Memory::linear_allocator_allocate(&app_state->systems_allocator, size);
+		void* ptr = Memory::linear_allocator_allocate(&engine_state->systems_allocator, size);
 		Memory::zero_memory(ptr, size);
 		return ptr;
 	};
 
-	bool32 init_primitive_subsystems(Game* game_inst)
+	bool32 init_primitive_subsystems(Application* game_inst)
 	{
 
 		Memory::SystemConfig mem_config;
@@ -80,35 +80,35 @@ namespace Application
 		}
 
 		*game_inst = {};
-		game_inst->app_state = Memory::allocate(sizeof(ApplicationState), AllocationTag::APPLICATION);
-		app_state = (ApplicationState*)game_inst->app_state;
+		game_inst->app_state = Memory::allocate(sizeof(EngineState), AllocationTag::ENGINE);
+		engine_state = (EngineState*)game_inst->app_state;
 
-		app_state->game_inst = game_inst;
-		app_state->is_running = true;
-		app_state->is_suspended = false;
-		Memory::linear_allocator_create(Mebibytes(64), &app_state->systems_allocator);
+		engine_state->game_inst = game_inst;
+		engine_state->is_running = true;
+		engine_state->is_suspended = false;
+		Memory::linear_allocator_create(Mebibytes(64), &engine_state->systems_allocator);
 
 		Platform::init_console();
 
-		if (!Log::system_init(allocate_subsystem_callback, app_state->logging_system_state))
-		{
-			SHMFATAL("Failed to initialize logging subsytem!");
-			return false;
-		}
-
-		if (!Input::system_init(allocate_subsystem_callback, app_state->input_system_state))
-		{
-			SHMFATAL("Failed to initialize input subsystem!");
-			return false;
-		}
-
-		if (!Console::system_init(allocate_subsystem_callback, app_state->console_state))
+		if (!Console::system_init(allocate_subsystem_callback, engine_state->console_state))
 		{
 			SHMFATAL("Failed to initialize console subsystem!");
 			return false;
 		}
 
-		if (!Event::system_init(allocate_subsystem_callback, app_state->event_system_state))
+		if (!Log::system_init(allocate_subsystem_callback, engine_state->logging_system_state))
+		{
+			SHMFATAL("Failed to initialize logging subsytem!");
+			return false;
+		}
+
+		if (!Input::system_init(allocate_subsystem_callback, engine_state->input_system_state))
+		{
+			SHMFATAL("Failed to initialize input subsystem!");
+			return false;
+		}
+
+		if (!Event::system_init(allocate_subsystem_callback, engine_state->event_system_state))
 		{
 			SHMFATAL("Failed to initialize event subsystem!");
 			return false;
@@ -117,13 +117,13 @@ namespace Application
 		return true;
 	}
 
-	bool32 create(Game* game_inst)
+	bool32 create(Application* game_inst)
 	{
 
 		if (initialized)
 			return false;
 
-		game_inst->state = Memory::allocate(game_inst->state_size, AllocationTag::APPLICATION);
+		game_inst->state = Memory::allocate(game_inst->state_size, AllocationTag::ENGINE);
 
 		Event::event_register(SystemEventCode::APPLICATION_QUIT, 0, on_event);
 		Event::event_register(SystemEventCode::WINDOW_RESIZED, 0, on_resized);
@@ -131,7 +131,7 @@ namespace Application
 
 		if (!Platform::system_init(
 			allocate_subsystem_callback,
-			app_state->platform_system_state,
+			engine_state->platform_system_state,
 			game_inst->config.name,
 			game_inst->config.start_pos_x,
 			game_inst->config.start_pos_y,
@@ -145,7 +145,7 @@ namespace Application
 		ResourceSystem::Config resource_sys_config;
 		resource_sys_config.asset_base_path = "../assets/";
 		resource_sys_config.max_loader_count = 32;
-		if (!ResourceSystem::system_init(allocate_subsystem_callback, app_state->resource_system_state, resource_sys_config))
+		if (!ResourceSystem::system_init(allocate_subsystem_callback, engine_state->resource_system_state, resource_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize resource system. Application shutting down..");
 			return false;
@@ -156,13 +156,13 @@ namespace Application
 		shader_sys_config.max_uniform_count = 128;
 		shader_sys_config.max_global_textures = 31;
 		shader_sys_config.max_instance_textures = 31;
-		if (!ShaderSystem::system_init(allocate_subsystem_callback, app_state->shader_system_state, shader_sys_config))
+		if (!ShaderSystem::system_init(allocate_subsystem_callback, engine_state->shader_system_state, shader_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize shader system. Application shutting down..");
 			return false;
 		}
 
-		if (!Renderer::system_init(allocate_subsystem_callback, app_state->renderer_system_state, game_inst->config.name))
+		if (!Renderer::system_init(allocate_subsystem_callback, engine_state->renderer_system_state, game_inst->config.name))
 		{
 			SHMFATAL("ERROR: Failed to initialize renderer. Application shutting down..");
 			return false;
@@ -176,7 +176,7 @@ namespace Application
 
 		RenderViewSystem::Config render_view_sys_config;
 		render_view_sys_config.max_view_count = 251;
-		if (!RenderViewSystem::system_init(allocate_subsystem_callback, app_state->texture_system_state, render_view_sys_config))
+		if (!RenderViewSystem::system_init(allocate_subsystem_callback, engine_state->texture_system_state, render_view_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize render view system. Application shutting down..");
 			return false;
@@ -207,7 +207,7 @@ namespace Application
 
 		JobSystem::Config job_system_config;
 		job_system_config.job_thread_count = thread_count;
-		if (!JobSystem::system_init(allocate_subsystem_callback, app_state->job_system_state, job_system_config, job_thread_types))
+		if (!JobSystem::system_init(allocate_subsystem_callback, engine_state->job_system_state, job_system_config, job_thread_types))
 		{
 			SHMFATAL("ERROR: Failed to initialize job system. Application shutting down..");
 			return false;
@@ -215,13 +215,13 @@ namespace Application
 
 		TextureSystem::Config texture_sys_config;
 		texture_sys_config.max_texture_count = 0x10000;
-		if (!TextureSystem::system_init(allocate_subsystem_callback, app_state->texture_system_state, texture_sys_config))
+		if (!TextureSystem::system_init(allocate_subsystem_callback, engine_state->texture_system_state, texture_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize texture system. Application shutting down..");
 			return false;
 		}
 
-		if (!FontSystem::system_init(allocate_subsystem_callback, app_state->font_system_state, app_state->game_inst->config.fontsystem_config))
+		if (!FontSystem::system_init(allocate_subsystem_callback, engine_state->font_system_state, engine_state->game_inst->config.fontsystem_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize font system. Application shutting down..");
 			return false;
@@ -229,7 +229,7 @@ namespace Application
 
 		CameraSystem::Config camera_sys_config;
 		camera_sys_config.max_camera_count = 61;
-		if (!CameraSystem::system_init(allocate_subsystem_callback, app_state->camera_system_state, camera_sys_config))
+		if (!CameraSystem::system_init(allocate_subsystem_callback, engine_state->camera_system_state, camera_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize camera system. Application shutting down..");
 			return false;
@@ -246,7 +246,7 @@ namespace Application
 
 		MaterialSystem::Config material_sys_config;
 		material_sys_config.max_material_count = 0x1000;
-		if (!MaterialSystem::system_init(allocate_subsystem_callback, app_state->material_system_state, material_sys_config))
+		if (!MaterialSystem::system_init(allocate_subsystem_callback, engine_state->material_system_state, material_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize material system. Application shutting down..");
 			return false;
@@ -254,7 +254,7 @@ namespace Application
 
 		GeometrySystem::Config geometry_sys_config;
 		geometry_sys_config.max_geometry_count = 0x1000;
-		if (!GeometrySystem::system_init(allocate_subsystem_callback, app_state->geometry_system_state, geometry_sys_config))
+		if (!GeometrySystem::system_init(allocate_subsystem_callback, engine_state->geometry_system_state, geometry_sys_config))
 		{
 			SHMFATAL("ERROR: Failed to initialize geometry system. Application shutting down..");
 			return false;
@@ -266,8 +266,8 @@ namespace Application
 			return false;
 		}
 
-		Renderer::on_resized(app_state->width, app_state->height);
-		game_inst->on_resize(app_state->game_inst, app_state->width, app_state->height);	
+		Renderer::on_resized(engine_state->width, engine_state->height);
+		game_inst->on_resize(engine_state->game_inst, engine_state->width, engine_state->height);	
 
 		initialized = true;
 		return true;
@@ -284,7 +284,7 @@ namespace Application
 
 		float64 last_frametime = 0.0;
 
-		while (app_state->is_running)
+		while (engine_state->is_running)
 		{
 
 			metrics_update_frame();
@@ -296,28 +296,28 @@ namespace Application
 
 			if (!Platform::pump_messages())
 			{
-				app_state->is_running = false;
+				engine_state->is_running = false;
 			}
 
 			Input::frame_start();
 
-			if (!app_state->is_suspended)
+			if (!engine_state->is_suspended)
 			{
 
-				if (!app_state->game_inst->update(app_state->game_inst, last_frametime))
+				if (!engine_state->game_inst->update(engine_state->game_inst, last_frametime))
 				{
 					SHMFATAL("Failed to update application.");
-					app_state->is_running = false;
+					engine_state->is_running = false;
 					break;
 				}
 
 				metrics_update_logic();
 
 				render_packet.delta_time = last_frametime;
-				if (!app_state->game_inst->render(app_state->game_inst, &render_packet, last_frametime))
+				if (!engine_state->game_inst->render(engine_state->game_inst, &render_packet, last_frametime))
 				{
 					SHMFATAL("Failed to render application.");
-					app_state->is_running = false;
+					engine_state->is_running = false;
 					break;
 				}		
 
@@ -350,8 +350,8 @@ namespace Application
 			frame_count++;			
 		}
 
-		app_state->is_running = false;
-		app_state->game_inst->shutdown(app_state->game_inst);
+		engine_state->is_running = false;
+		engine_state->game_inst->shutdown(engine_state->game_inst);
 	
 		GeometrySystem::system_shutdown();
 		MaterialSystem::system_shutdown();
@@ -364,20 +364,14 @@ namespace Application
 		Renderer::system_shutdown();	
 		ResourceSystem::system_shutdown();
 		Platform::system_shutdown();
-		Event::system_shutdown();
-		Console::system_shutdown();
+		Event::system_shutdown();	
 		Input::system_shutdown();
 		Memory::system_shutdown();
 		Log::system_shutdown();	
+		Console::system_shutdown();
 
 		return true;
 
-	}
-
-	void get_framebuffer_size(uint32* width, uint32* height)
-	{
-		*width = app_state->width;
-		*height = app_state->height;
 	}
 
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
@@ -387,7 +381,7 @@ namespace Application
 		case SystemEventCode::APPLICATION_QUIT:
 		{
 			SHMINFO("Application Quit event received. Shutting down.");
-			app_state->is_running = false;
+			engine_state->is_running = false;
 			return true;
 		}
 		}
@@ -402,27 +396,27 @@ namespace Application
 			uint32 width = data.ui32[0];
 			uint32 height = data.ui32[1];
 
-			if (width != app_state->width || height != app_state->height)
+			if (width != engine_state->width || height != engine_state->height)
 			{
-				app_state->width = width;
-				app_state->height = height;
+				engine_state->width = width;
+				engine_state->height = height;
 
 				SHMDEBUGV("Window resize occured: %u, %u", width, height);
 
 				if (!width || !height)
 				{
 					SHMDEBUG("Window minimized. Suspending application.");
-					app_state->is_suspended = true;
+					engine_state->is_suspended = true;
 					return true;
 				}
 				else
 				{
-					if (app_state->is_suspended)
+					if (engine_state->is_suspended)
 					{
 						SHMDEBUG("Window restores. Continuing application.");
-						app_state->is_suspended = false;
+						engine_state->is_suspended = false;
 					}
-					app_state->game_inst->on_resize(app_state->game_inst, width, height);
+					engine_state->game_inst->on_resize(engine_state->game_inst, width, height);
 					Renderer::on_resized(width, height);
 				}
 				

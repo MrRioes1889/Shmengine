@@ -302,7 +302,7 @@ namespace TextureSystem
 		else
 			texture_params->out_texture->generation = texture_params->current_generation + 1;
 
-		SHMTRACEV("Successfully loaded texture '%s'.", texture_params->resource_name);
+		//SHMTRACEV("Successfully loaded texture '%s'.", texture_params->resource_name);
 
 		ResourceSystem::unload(&texture_params->image_resource);
 		Memory::free_memory(texture_params->resource_name);
@@ -629,12 +629,12 @@ namespace TextureSystem
 			}		
 
 			t->id = ref.handle;
-			SHMTRACEV("Texture '%s' did not exist yet. Created and ref count is now %i.", name, ref.reference_count);
+			//SHMTRACEV("Texture '%s' did not exist yet. Created and ref count is now %i.", name, ref.reference_count);
 		}
 		else
 		{
 			*out_texture_id = ref.handle;
-			SHMTRACEV("Texture '%s' already existed. ref count is now %i.", name, ref.reference_count);
+			//SHMTRACEV("Texture '%s' already existed. ref count is now %i.", name, ref.reference_count);
 		}
 
 		return true;
@@ -671,11 +671,11 @@ namespace TextureSystem
 			ref.handle = INVALID_ID;
 			ref.auto_release = false;
 
-			SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count == 0 and auto_release enabled.", name, ref.reference_count);
+			//SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count == 0 and auto_release enabled.", name, ref.reference_count);
 		}
 		else
 		{
-			SHMTRACEV("Released Texture '%s'. ref count is now %i.", name, ref.reference_count);
+			//SHMTRACEV("Released Texture '%s'. ref count is now %i.", name, ref.reference_count);
 		}
 
 		return true;

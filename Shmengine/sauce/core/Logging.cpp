@@ -1,6 +1,7 @@
-#include "Application.hpp"
+#include "Engine.hpp"
 #include "Logging.hpp"
 #include "Assert.hpp"
+#include "Console.hpp"
 #include "platform/Platform.hpp"
 #include "platform/FileSystem.hpp"
 
@@ -72,6 +73,8 @@ namespace Log
         va_start(arg_ptr, message);
         CString::print_s(out_message + (sizeof(level_strings[level])), msg_length - (sizeof(level_strings[level])), message, arg_ptr);
         va_end(arg_ptr);
+
+        Console::write_line(level, out_message);
 
         CString::append(msg_length, out_message, "\n");
 

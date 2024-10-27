@@ -112,15 +112,19 @@ void ui_text_set_text(UIText* ui_text, const char* text)
     if (ui_text->text == text)
         return;  
 
-    if (!FontSystem::verify_atlas(ui_text->font_atlas, text))
+    ui_text->text = text;
+    ui_text_refresh(ui_text);
+}
+
+void ui_text_refresh(UIText* ui_text)
+{
+    if (!FontSystem::verify_atlas(ui_text->font_atlas, ui_text->text.c_str()))
     {
         SHMERROR("ui_text_set_text - font atlas verification failed");
         return;
     }
 
-    ui_text->text = text;
     regenerate_geometry(ui_text);
-
 }
 
 void ui_text_draw(UIText* ui_text)

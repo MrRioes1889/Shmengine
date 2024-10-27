@@ -66,6 +66,7 @@ bool32 DynamicAllocator::free(void* data_ptr, AllocationTag* out_tag, uint64* by
 
 void* DynamicAllocator::reallocate(uint64 requested_size, void* data_ptr, AllocationTag* out_tag, uint16 alignment, uint64* bytes_freed, uint64* bytes_allocated)
 {
+	requested_size += (alignment > 1 ? alignment : 0) + sizeof(AllocHeader);
 	uint8* ptr = PTR_BYTES_OFFSET(data_ptr, -(int32)sizeof(AllocHeader));	
 	uint16 old_alignment_offset = ((AllocHeader*)ptr)->alignment_offset;
 	*out_tag = (AllocationTag)((AllocHeader*)ptr)->allocation_tag;

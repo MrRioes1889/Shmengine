@@ -14,30 +14,6 @@
 namespace MaterialSystem
 {
 
-    struct MaterialShaderUniformLocations
-    {
-        uint16 projection;
-        uint16 view;
-        uint16 ambient_color;
-        uint16 camera_position;
-        uint16 shininess;
-        uint16 diffuse_color;
-        uint16 diffuse_texture;
-        uint16 specular_texture;
-        uint16 normal_texture;
-        uint16 model;
-        uint16 render_mode;
-    };
-
-    struct UIShaderUniformLocations
-    {
-        uint16 projection;
-        uint16 view;
-        uint16 diffuse_color;
-        uint16 diffuse_texture;
-        uint16 model;
-    };
-
 	struct MaterialReference
 	{
 		uint32 reference_count;
@@ -53,12 +29,6 @@ namespace MaterialSystem
 
 		Material* registered_materials;
 		Hashtable<MaterialReference> registered_material_table;
-
-        MaterialShaderUniformLocations material_locations;
-        uint32 material_shader_id;
-
-        UIShaderUniformLocations ui_locations;
-        uint32 ui_shader_id;
 	};
 
 	static SystemState* system_state = 0;
@@ -74,26 +44,6 @@ namespace MaterialSystem
         system_state = (SystemState*)out_state;
 
         system_state->config = config;
-
-        system_state->material_shader_id = INVALID_ID;
-        system_state->material_locations.view = INVALID_ID16;
-        system_state->material_locations.projection = INVALID_ID16;
-        system_state->material_locations.diffuse_color = INVALID_ID16;
-        system_state->material_locations.diffuse_texture = INVALID_ID16;
-        system_state->material_locations.specular_texture = INVALID_ID16;
-        system_state->material_locations.normal_texture = INVALID_ID16;
-        system_state->material_locations.camera_position = INVALID_ID16;
-        system_state->material_locations.ambient_color = INVALID_ID16;
-        system_state->material_locations.shininess = INVALID_ID16;
-        system_state->material_locations.model = INVALID_ID16;
-        system_state->material_locations.render_mode = INVALID_ID16;
-
-        system_state->ui_shader_id = INVALID_ID;
-        system_state->ui_locations.diffuse_color = INVALID_ID16;
-        system_state->ui_locations.diffuse_texture = INVALID_ID16;
-        system_state->ui_locations.view = INVALID_ID16;
-        system_state->ui_locations.projection = INVALID_ID16;
-        system_state->ui_locations.model = INVALID_ID16;
 
         uint64 texture_array_size = sizeof(Material) * config.max_material_count;
         system_state->registered_materials = (Material*)allocator_callback(texture_array_size);
@@ -202,30 +152,6 @@ namespace MaterialSystem
                 return 0;
             }
 
-            Renderer::Shader* s = ShaderSystem::get_shader(m->shader_id);
-            if (system_state->material_shader_id == INVALID_ID && CString::equal(config.shader_name.c_str(), Renderer::RendererConfig::builtin_shader_name_material)) {
-                system_state->material_shader_id = s->id;
-                system_state->material_locations.projection = ShaderSystem::get_uniform_index(s, "projection");
-                system_state->material_locations.view = ShaderSystem::get_uniform_index(s, "view");
-                system_state->material_locations.ambient_color = ShaderSystem::get_uniform_index(s, "ambient_color");
-                system_state->material_locations.camera_position = ShaderSystem::get_uniform_index(s, "camera_position");
-                system_state->material_locations.diffuse_color = ShaderSystem::get_uniform_index(s, "diffuse_color");
-                system_state->material_locations.diffuse_texture = ShaderSystem::get_uniform_index(s, "diffuse_texture");
-                system_state->material_locations.specular_texture = ShaderSystem::get_uniform_index(s, "specular_texture");
-                system_state->material_locations.normal_texture = ShaderSystem::get_uniform_index(s, "normal_texture");
-                system_state->material_locations.shininess = ShaderSystem::get_uniform_index(s, "shininess");
-                system_state->material_locations.model = ShaderSystem::get_uniform_index(s, "model");
-                system_state->material_locations.render_mode = ShaderSystem::get_uniform_index(s, "mode");
-            }
-            else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config.shader_name.c_str(), Renderer::RendererConfig::builtin_shader_name_ui)) {
-                system_state->ui_shader_id = s->id;
-                system_state->ui_locations.projection = ShaderSystem::get_uniform_index(s, "projection");
-                system_state->ui_locations.view = ShaderSystem::get_uniform_index(s, "view");
-                system_state->ui_locations.diffuse_color = ShaderSystem::get_uniform_index(s, "diffuse_color");
-                system_state->ui_locations.diffuse_texture = ShaderSystem::get_uniform_index(s, "diffuse_texture");
-                system_state->ui_locations.model = ShaderSystem::get_uniform_index(s, "model");
-            }
-
             if (m->generation == INVALID_ID) {
                 m->generation = 0;
             }
@@ -289,16 +215,18 @@ namespace MaterialSystem
         if (s->renderer_frame_number == renderer_frame_number)
             return true;
 
-        if (shader_id == system_state->material_shader_id) {
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.projection, projection));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.view, view));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.ambient_color, ambient_color));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.camera_position, camera_position));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.render_mode, &render_mode));
+        if (shader_id == ShaderSystem::get_material_shader_id()) {
+            ShaderSystem::MaterialShaderUniformLocations u_locations = ShaderSystem::get_material_shader_uniform_locations();
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, projection));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, view));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.ambient_color, ambient_color));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.camera_position, camera_position));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.render_mode, &render_mode));
         }
-        else if (shader_id == system_state->ui_shader_id) {
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.projection, projection));
-            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.view, view));
+        else if (shader_id == ShaderSystem::get_ui_shader_id()) {
+            ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, projection));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, view));
         }
         else {
             SHMERRORV("material_system_apply_global - Unrecognized shader id '%i' ", shader_id);
@@ -315,18 +243,18 @@ namespace MaterialSystem
         MATERIAL_APPLY_OR_FAIL(ShaderSystem::bind_instance(m->internal_id));
         if (needs_update)
         {
-            if (m->shader_id == system_state->material_shader_id) {
-                // Material shader
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_color, &m->diffuse_color));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.diffuse_texture, &m->diffuse_map));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.specular_texture, &m->specular_map));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.normal_texture, &m->normal_map));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->material_locations.shininess, &m->shininess));
+            if (m->shader_id == ShaderSystem::get_material_shader_id()) {
+                ShaderSystem::MaterialShaderUniformLocations u_locations = ShaderSystem::get_material_shader_uniform_locations();
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_color, &m->diffuse_color));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &m->diffuse_map));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.specular_texture, &m->specular_map));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.normal_texture, &m->normal_map));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.shininess, &m->shininess));
             }
-            else if (m->shader_id == system_state->ui_shader_id) {
-                // UI shader
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.diffuse_color, &m->diffuse_color));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(system_state->ui_locations.diffuse_texture, &m->diffuse_map));
+            else if (m->shader_id == ShaderSystem::get_ui_shader_id()) {
+                ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_color, &m->diffuse_color));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &m->diffuse_map));
             }
             else {
                 SHMERRORV("material_system_apply_instance - Unrecognized shader id '%i' on shader '%s'.", m->shader_id, m->name);
@@ -340,11 +268,11 @@ namespace MaterialSystem
 
     bool32 apply_local(Material* m, const Math::Mat4& model)
     {
-        if (m->shader_id == system_state->material_shader_id) {
-            return ShaderSystem::set_uniform(system_state->material_locations.model, &model);
+        if (m->shader_id == ShaderSystem::get_material_shader_id()) {
+            return ShaderSystem::set_uniform(ShaderSystem::get_material_shader_uniform_locations().model, &model);
         }
-        else if (m->shader_id == system_state->ui_shader_id) {
-            return ShaderSystem::set_uniform(system_state->ui_locations.model, &model);
+        else if (m->shader_id == ShaderSystem::get_ui_shader_id()) {
+            return ShaderSystem::set_uniform(ShaderSystem::get_ui_shader_uniform_locations().model, &model);
         }
 
         SHMERRORV("Unrecognized shader id '%i'", m->shader_id);

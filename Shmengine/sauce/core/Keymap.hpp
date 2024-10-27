@@ -49,10 +49,10 @@ namespace Input
 		bool32 overrides_all;
 		KeymapEntry entries[KeyCode::MAX_KEYS];
 
-		void init();
-		void destroy();
-		void add_binding(KeyCode::Value key, KeymapBindingType type, KeymapModifierFlags::Value modifiers, void* user_data, FP_keybind_callback callback);
-		void remove_binding(KeyCode::Value key, KeymapBindingType type, KeymapModifierFlags::Value modifiers, FP_keybind_callback callback);
+		SHMAPI void init();
+		SHMAPI void destroy();
+		SHMAPI void add_binding(KeyCode::Value key, KeymapBindingType type, KeymapModifierFlags::Value modifiers, void* user_data, FP_keybind_callback callback);
+		SHMAPI void remove_binding(KeyCode::Value key, KeymapBindingType type, KeymapModifierFlags::Value modifiers, FP_keybind_callback callback);
 	};
 
 }

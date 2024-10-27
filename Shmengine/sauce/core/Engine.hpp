@@ -4,9 +4,9 @@
 #include "renderer/RendererTypes.hpp"
 #include "systems/FontSystem.hpp"
 
-struct Game;
+struct Application;
 
-namespace Application
+namespace Engine
 {
 
 	struct Config {
@@ -22,12 +22,11 @@ namespace Application
 		Sarray<Renderer::RenderViewConfig> render_view_configs;
 	};
 
-	SHMAPI bool32 init_primitive_subsystems(Game* game_inst);
+	SHMAPI bool32 init_primitive_subsystems(Application* game_inst);
 
-	SHMAPI bool32 create(Game* game_inst);
+	SHMAPI bool32 create(Application* game_inst);
 
 	SHMAPI bool32 run();
 
-	void get_framebuffer_size(uint32* width, uint32* height);
 }
 

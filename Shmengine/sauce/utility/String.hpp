@@ -9,22 +9,22 @@ struct String
 
 	static const uint32 min_reserve_size = 16;
 
-	String();
-	String(uint32 reserve_size);
-	String(const char* s);
-	String(const char* s, uint32 length);
-	~String();
+	SHMAPI String();
+	SHMAPI String(uint32 reserve_size);
+	SHMAPI String(const char* s);
+	SHMAPI String(const char* s, uint32 length);
+	SHMAPI ~String();
 
-	String(const String& other);
-	String& operator=(const String& other);
+	SHMAPI String(const String& other);
+	SHMAPI String& operator=(const String& other);
 
-	String(String&& other) noexcept;
-	String& operator=(String&& other) noexcept;
+	SHMAPI String(String&& other) noexcept;
+	SHMAPI String& operator=(String&& other) noexcept;
 
-	String& operator=(const char* s);
-	void copy_n(const char* s, uint32 length);
+	SHMAPI String& operator=(const char* s);
+	SHMAPI void copy_n(const char* s, uint32 length);
 
-	void free_data();
+	SHMAPI void free_data();
 
 	SHMINLINE char& operator[](uint32 index) { return arr.data[index]; }
 
@@ -40,9 +40,9 @@ struct String
 	SHMINLINE bool32 nequal_i(const char* other, uint32 length) { return CString::nequal_i(arr.data, other, length); }
 	SHMINLINE bool32 nequal_i(const String& other, uint32 length) { return CString::nequal_i(arr.data, other.c_str(), length); }
 
-	void append(char appendage);
-	void append(const char* appendage, int32 length = -1);
-	void append(const String& appendage, int32 length = -1);
+	SHMAPI void append(char appendage);
+	SHMAPI void append(const char* appendage, int32 length = -1);
+	SHMAPI void append(const String& appendage, int32 length = -1);
 	SHMINLINE void operator+=(char appendage) { append(appendage); }
 	SHMINLINE void operator+=(const char* appendage) { append(appendage); }
 	SHMINLINE void operator+=(const String& appendage) { append(appendage); }
@@ -50,6 +50,7 @@ struct String
 	SHMINLINE String operator+(const char* appendage) { String s = *this; s.append(appendage); return s; }
 	SHMINLINE String operator+(const String& appendage) { String s = *this; s.append(appendage); return s; }
 
+	SHMINLINE void pop() { if (!arr.count) return; arr[arr.count - 1] = 0; arr.pop(); }
 	SHMINLINE void trim() { arr.count = CString::trim(arr.data); }
 	SHMINLINE void mid(uint32 start, int32 length = -1) { arr.count = CString::mid(arr.data, arr.count, start, length); }
 	SHMINLINE void left_of_last(char c) { arr.count = CString::left_of_last(arr.data, arr.count, c); }

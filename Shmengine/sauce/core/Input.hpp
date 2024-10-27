@@ -33,6 +33,8 @@ namespace KeyCode
         SHIFT = 0x10,
         /** @brief The Control/Ctrl key. */
         CONTROL = 0x11,
+        /** @brief The Alt key. */
+        ALT = 0x12,
 
         /** @brief The pause key. */
         PAUSE = 0x13,
@@ -264,35 +266,28 @@ namespace KeyCode
         /** @brief The right alt key. */
         RALT = 0xA5,
 
-        /** @brief The semicolon key. */
-        SEMICOLON = 0x3B,
-
-        /** @brief The apostrophe/single-quote key */
-        APOSTROPHE = 0xDE,
-        /** @brief An alias for APOSTROPHE, apostrophe/single-quote key */
-        QUOTE = APOSTROPHE,
-        /** @brief The equal/plus key. */
-        EQUAL = 0xBB,
+        /** @brief The plus key. */
+        PLUS = 0xBB,
         /** @brief The comma key. */
         COMMA = 0xBC,
         /** @brief The minus key. */
         MINUS = 0xBD,
-        /** @brief The period key. */
-        PERIOD = 0xBE,
-        /** @brief The slash key. */
-        SLASH = 0xBF,
+        /** @brief The dot key. */
+        DOT = 0xBE,  
+        /** @brief The dot key. */
+        POUND = 0xBF,    
 
+        /** @brief The question mark / ß key. */
+        QUESTION_MARK = 0xDB,
         /** @brief The grave key. */
-        GRAVE = 0xC0,
+        GRAVE = 0xDC,
+        /** @brief The accent key. */
+        ACCENT = 0xDD,
 
-        /** @brief The left (square) bracket key e.g. [{ */
-        LBRACKET = 0xDB,
-        /** @brief The pipe/backslash key */
-        PIPE = 0xDC,
-        /** @brief An alias for the pipe/backslash key */
-        BACKSLASH = PIPE,
-        /** @brief The right (square) bracket key e.g. ]} */
-        RBRACKET = 0xDD,
+        /** @brief The less than key. */
+        LESS_THAN = 0xE2,
+        /** @brief The pipe key. */
+        PIPE = LESS_THAN,
 
         MAX_KEYS
     };

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "core/Application.hpp"
+#include "core/Engine.hpp"
 #include "ApplicationTypes.hpp"
 #include "core/Logging.hpp"
 #include "core/Assert.hpp"
 
-extern bool32 create_game(Game* out_game);
+extern bool32 create_game(Application* out_game);
 
 #ifdef _WIN32
 
@@ -16,8 +16,8 @@ int WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev_instance, _In_ LPST
 
     try
     {
-        Game game_inst;
-        if (!Application::init_primitive_subsystems(&game_inst))
+        Application game_inst;
+        if (!Engine::init_primitive_subsystems(&game_inst))
         {
             SHMFATAL("Failed to initialize vital subsystems. Shutting down.");
             return -1;
@@ -38,13 +38,13 @@ int WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev_instance, _In_ LPST
         }
 
         // Initialization.
-        if (!Application::create(&game_inst)) {
+        if (!Engine::create(&game_inst)) {
             SHMERROR("Failed to create_application!");
             return -4;
         }
 
         // Begin the game loop.
-        if (!Application::run()) {
+        if (!Engine::run()) {
             return 1;
         }
 

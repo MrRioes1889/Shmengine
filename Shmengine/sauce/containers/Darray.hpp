@@ -252,10 +252,11 @@ template<typename T>
 inline SHMINLINE T* Darray<T>::push(const T& obj)
 {
 
+	if (!capacity)
+		init(1, 0);
+
 	if (count + 1 > capacity)
-	{
 		resize();
-	}
 
 	data[count] = obj;
 	count++;
@@ -267,10 +268,11 @@ template<typename T>
 inline SHMINLINE T* Darray<T>::push(T&& obj)
 {
 
+	if (!capacity)
+		init(1, 0);
+
 	if (count + 1 > capacity)
-	{
 		resize();
-	}
 
 	data[count] = std::move(obj);
 	count++;
@@ -282,10 +284,11 @@ template<typename T>
 inline SHMINLINE T* Darray<T>::push_steal(T& obj)
 {
 
+	if (!capacity)
+		init(1, 0);
+
 	if (count + 1 > capacity)
-	{
 		resize();
-	}
 
 	Memory::copy_memory(&obj, &data[count], sizeof(T));
 	Memory::zero_memory(&obj, sizeof(T));

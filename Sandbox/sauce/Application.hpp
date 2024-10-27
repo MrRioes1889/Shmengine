@@ -3,6 +3,7 @@
 #include <defines.hpp>
 #include <ApplicationTypes.hpp>
 
+#include <core/Keymap.hpp>
 #include <utility/MathTypes.hpp>
 #include <systems/CameraSystem.hpp>
 
@@ -11,8 +12,9 @@
 #include "resources/Skybox.hpp"
 // end
 
-typedef struct GameState {
-    float32 delta_time;
+struct ApplicationState 
+{
+    float64 delta_time;
     uint32 allocation_count;
     bool32 world_meshes_loaded;
     uint32 hovered_object_id;
@@ -31,16 +33,18 @@ typedef struct GameState {
     UIText test_bitmap_text;
     UIText test_truetype_text;
 
-} game_state;
+    Input::Keymap console_keymap;
 
-bool32 game_boot(Game* game_inst);
+};
 
-bool32 game_init(Game* game_inst);
+bool32 application_boot(Application* app_inst);
 
-bool32 game_update(Game* game_inst, float64 delta_time);
+bool32 application_init(Application* app_inst);
 
-bool32 game_render(Game* game_inst, Renderer::RenderPacket* packet, float64 delta_time);
+bool32 application_update(Application* app_inst, float64 delta_time);
 
-void game_on_resize(Game* game_inst, uint32 width, uint32 height);
+bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet, float64 delta_time);
 
-void game_shutdown(Game* game_inst);
+void application_on_resize(Application* app_inst, uint32 width, uint32 height);
+
+void application_shutdown(Application* app_inst);

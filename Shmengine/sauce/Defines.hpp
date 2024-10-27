@@ -106,5 +106,5 @@ STATIC_ASSERT(sizeof(float64) == 8, "Expected f64 to be 8 bytes.");
 #define SHMNOINLINE
 #endif
 
-#define SHMIN(x, y) (y < x : y ? x)
-#define SHMAX(x, y) (y > x : y ? x)
+#define SHMIN(x, y) (y < x ? y : x)
+#define SHMAX(x, y) (y > x ? y : x)

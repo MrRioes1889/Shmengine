@@ -59,6 +59,9 @@ namespace Console
 
 	void write_line(Log::LogLevel level, const char* message)
 	{
+		if (!system_state)
+			return;
+
 		for (uint32 i = 0; i < system_state->consumer_count; i++)
 			system_state->consumers[i].callback(system_state->consumers[i].instance, level, message);
 	}
@@ -86,7 +89,7 @@ namespace Console
 
 		uint32 parts_count = 1;
 		const char* c = command;
-		while (c)
+		while (*c)
 		{
 			if (*c == ' ')
 				parts_count++;

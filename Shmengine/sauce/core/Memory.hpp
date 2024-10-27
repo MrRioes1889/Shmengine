@@ -15,7 +15,7 @@ enum class AllocationTag
 	RING_QUEUE,
 	BST,
 	STRING,
-	APPLICATION,
+	ENGINE,
 	JOB,
 	TEXTURE,
 	BITMAP_FONT,

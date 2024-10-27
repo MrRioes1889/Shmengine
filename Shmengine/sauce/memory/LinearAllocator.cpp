@@ -28,12 +28,10 @@ namespace Memory
 
 	void* linear_allocator_allocate(LinearAllocator* allocator, uint64 size)
 	{	
-		//SHMASSERT_MSG(allocator->allocated + size <= allocator->size, "Linear allocator ran out of memory!");
-		if (allocator->allocated + size > allocator->size)
-		{
-			SHMERROR("Linear allocator ran out of memory!");
+		SHMASSERT_MSG(allocator->allocated + size <= allocator->size, "Linear allocator ran out of memory!");
+
+		if (size == 0)
 			return 0;
-		}
 
 		void* mem = PTR_BYTES_OFFSET(allocator->memory, allocator->allocated);
 		allocator->allocated += size;

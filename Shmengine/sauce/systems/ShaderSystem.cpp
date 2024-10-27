@@ -17,6 +17,12 @@ namespace ShaderSystem
 		uint32 bound_shader_id;
 		Sarray<Renderer::Shader> shaders;
 		TextureMap default_texture_map;
+
+		ShaderSystem::MaterialShaderUniformLocations material_locations;
+		uint32 material_shader_id;
+
+		ShaderSystem::UIShaderUniformLocations ui_locations;
+		uint32 ui_shader_id;
 	};
 
 	static SystemState* system_state = 0;
@@ -45,6 +51,29 @@ namespace ShaderSystem
 
 		system_state->config = config;
 		system_state->bound_shader_id = INVALID_ID;
+
+		system_state->material_shader_id = INVALID_ID;
+		system_state->ui_shader_id = INVALID_ID;
+
+		system_state->material_shader_id = INVALID_ID;
+		system_state->material_locations.view = INVALID_ID16;
+		system_state->material_locations.projection = INVALID_ID16;
+		system_state->material_locations.diffuse_color = INVALID_ID16;
+		system_state->material_locations.diffuse_texture = INVALID_ID16;
+		system_state->material_locations.specular_texture = INVALID_ID16;
+		system_state->material_locations.normal_texture = INVALID_ID16;
+		system_state->material_locations.camera_position = INVALID_ID16;
+		system_state->material_locations.ambient_color = INVALID_ID16;
+		system_state->material_locations.shininess = INVALID_ID16;
+		system_state->material_locations.model = INVALID_ID16;
+		system_state->material_locations.render_mode = INVALID_ID16;
+
+		system_state->ui_shader_id = INVALID_ID;
+		system_state->ui_locations.diffuse_color = INVALID_ID16;
+		system_state->ui_locations.diffuse_texture = INVALID_ID16;
+		system_state->ui_locations.view = INVALID_ID16;
+		system_state->ui_locations.projection = INVALID_ID16;
+		system_state->ui_locations.model = INVALID_ID16;
 
 		uint64 hashtable_data_size = sizeof(uint32) * config.max_shader_count;
 		void* hashtable_data = allocator_callback(hashtable_data_size);
@@ -150,6 +179,29 @@ namespace ShaderSystem
 		{
 			Renderer::shader_destroy(shader);
 			return false;
+		}
+
+		if (system_state->material_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_material)) {
+			system_state->material_shader_id = shader->id;
+			system_state->material_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
+			system_state->material_locations.view = ShaderSystem::get_uniform_index(shader, "view");
+			system_state->material_locations.ambient_color = ShaderSystem::get_uniform_index(shader, "ambient_color");
+			system_state->material_locations.camera_position = ShaderSystem::get_uniform_index(shader, "camera_position");
+			system_state->material_locations.diffuse_color = ShaderSystem::get_uniform_index(shader, "diffuse_color");
+			system_state->material_locations.diffuse_texture = ShaderSystem::get_uniform_index(shader, "diffuse_texture");
+			system_state->material_locations.specular_texture = ShaderSystem::get_uniform_index(shader, "specular_texture");
+			system_state->material_locations.normal_texture = ShaderSystem::get_uniform_index(shader, "normal_texture");
+			system_state->material_locations.shininess = ShaderSystem::get_uniform_index(shader, "shininess");
+			system_state->material_locations.model = ShaderSystem::get_uniform_index(shader, "model");
+			system_state->material_locations.render_mode = ShaderSystem::get_uniform_index(shader, "mode");
+		}
+		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_ui)) {
+			system_state->ui_shader_id = shader->id;
+			system_state->ui_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
+			system_state->ui_locations.view = ShaderSystem::get_uniform_index(shader, "view");
+			system_state->ui_locations.diffuse_color = ShaderSystem::get_uniform_index(shader, "diffuse_color");
+			system_state->ui_locations.diffuse_texture = ShaderSystem::get_uniform_index(shader, "diffuse_texture");
+			system_state->ui_locations.model = ShaderSystem::get_uniform_index(shader, "model");
 		}
 
 		return true;
@@ -306,6 +358,26 @@ namespace ShaderSystem
 		shader->bound_instance_id = instance_id;
 		return Renderer::shader_bind_instance(shader, instance_id);
 
+	}
+
+	uint32 get_material_shader_id()
+	{
+		return system_state->material_shader_id;
+	}
+
+	uint32 get_ui_shader_id()
+	{
+		return system_state->ui_shader_id;
+	}
+
+	MaterialShaderUniformLocations get_material_shader_uniform_locations()
+	{
+		return system_state->material_locations;
+	}
+
+	UIShaderUniformLocations get_ui_shader_uniform_locations()
+	{
+		return system_state->ui_locations;
 	}
 
 	static bool32 add_attribute(Renderer::Shader* shader, const Renderer::ShaderAttributeConfig& config)

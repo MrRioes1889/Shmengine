@@ -30,5 +30,6 @@ SHMAPI void ui_text_destroy(UIText* text);
 
 SHMAPI void ui_text_set_position(UIText* ui_text, Math::Vec3f position);
 SHMAPI void ui_text_set_text(UIText* ui_text, const char* text);
+SHMAPI void ui_text_refresh(UIText* ui_text);
 
 void ui_text_draw(UIText* ui_text);

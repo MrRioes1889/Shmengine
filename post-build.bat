@@ -11,6 +11,8 @@ IF %ERRORLEVEL% GEQ 2 (echo Error: %ERRORLEVEL% && exit)
 echo %wd%
 echo "Compiling shaders..."
 
+IF NOT EXIST "%wd%assets\shaders\bin\" mkdir "%wd%assets\shaders\bin"
+
 echo "assets\shaders\sauce\Builtin.MaterialShader.vert.glsl -> assets\shaders\bin\Builtin.MaterialShader.vert.spv"
 %VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.MaterialShader.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.MaterialShader.vert.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit)

@@ -65,21 +65,20 @@ namespace Memory
         zero_memory(system_state, sizeof(SystemState));
         system_state->config = config;
 
-        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, 0, config.total_allocation_size, AllocatorPageSize::TINY, AllocationTag::MAIN_MEMORY, 10000, 64);
+        if (!Threading::mutex_create(&system_state->allocation_mutex))
+        {
+            SHMFATAL("Failed creating general allocation mutex!");
+            return false;
+        }
 
+        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, 0, config.total_allocation_size, AllocatorPageSize::TINY, AllocationTag::MAIN_MEMORY, 10000, 64);
         init_buffer_and_allocator_pair(&system_state->string_memory, &system_state->string_allocator, &system_state->main_allocator, Mebibytes(64), AllocatorPageSize::MINIMAL, AllocationTag::ALLOCATORS, 100000);
 
         system_state->allocated_size = 0;
         system_state->allocation_count = 0;
 
         system_state->external_allocation_size = 0;
-        system_state->external_allocation_count = 0;
-
-        if (!Threading::mutex_create(&system_state->allocation_mutex))
-        {
-            SHMFATAL("Failed creating general allocation mutex!");
-            return false;
-        }
+        system_state->external_allocation_count = 0;       
 
         system_initialized = true;
         return system_initialized;
