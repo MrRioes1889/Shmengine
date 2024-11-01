@@ -85,7 +85,7 @@ namespace Memory
 
     }
 
-    void system_shutdown()
+    void system_shutdown(void* state)
     {
         system_state->string_memory.free_data();
         system_state->main_memory.free_data();

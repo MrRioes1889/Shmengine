@@ -3,6 +3,7 @@
 #include "Defines.hpp"
 #include "resources/ResourceTypes.hpp"
 #include "renderer/RendererTypes.hpp"
+#include "core/Subsystems.hpp"
 
 namespace ShaderSystem
 {
@@ -31,7 +32,7 @@ namespace ShaderSystem
 		uint16 model;
 	};
 
-	struct Config
+	struct SystemConfig
 	{
 		uint16 max_shader_count;
 		uint16 max_uniform_count;
@@ -39,8 +40,8 @@ namespace ShaderSystem
 		uint16 max_instance_textures;
 	};
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	SHMAPI bool32 create_shader(const Renderer::Renderpass* renderpass,const Renderer::ShaderConfig* config);
 

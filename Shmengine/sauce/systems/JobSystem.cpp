@@ -30,7 +30,7 @@ namespace JobSystem
 
 	struct SystemState
 	{
-		Config config;
+		SystemConfig config;
 		bool32 is_running;
 
 		JobThread job_threads[16];
@@ -43,7 +43,7 @@ namespace JobSystem
 		Threading::Mutex normal_prio_queue_mutex;
 		Threading::Mutex high_prio_queue_mutex;
 
-		JobResultEntry pending_results[Config::max_job_results_count];
+		JobResultEntry pending_results[SystemConfig::max_job_results_count];
 		Threading::Mutex results_mutex;
 	};
 
@@ -53,20 +53,20 @@ namespace JobSystem
 	static uint32 job_thread_run(void* params);
 	static void process_queue(RingQueue<JobInfo>& queue, Threading::Mutex* queue_mutex);
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config, uint32 type_masks[])
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 
-		out_state = allocator_callback(sizeof(SystemState));
-		system_state = (SystemState*)out_state;
+		SystemConfig* sys_config = (SystemConfig*)config;
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		system_state->config = config;
+		system_state->config = *sys_config;
 		system_state->is_running = true;
 
 		system_state->low_prio_queue.init(1024, 0);
 		system_state->normal_prio_queue.init(1024, 0);
 		system_state->high_prio_queue.init(1024, 0);
 
-		for (uint32 i = 0; i < Config::max_job_results_count; i++)
+		for (uint32 i = 0; i < SystemConfig::max_job_results_count; i++)
 			system_state->pending_results[i].id = INVALID_ID;
 
 		SHMDEBUGV("Main thread id is: %u", Threading::get_thread_id());
@@ -75,7 +75,7 @@ namespace JobSystem
 		for (uint32 i = 0; i < system_state->config.job_thread_count; i++)
 		{
 			system_state->job_threads[i].index = i;
-			system_state->job_threads[i].type_mask = type_masks[i];
+			system_state->job_threads[i].type_mask = sys_config->type_masks[i];
 			if (!Threading::thread_create(job_thread_run, &system_state->job_threads[i].index, false, &system_state->job_threads[i].thread))
 			{
 				SHMFATAL("Failed creating requested count of job threads!");
@@ -96,7 +96,7 @@ namespace JobSystem
 
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 
 		system_state->is_running = false;
@@ -120,17 +120,17 @@ namespace JobSystem
 	}
 
 
-	void update()
+	bool32 update(void* state, float64 delta_time)
 	{
 
 		if (!system_state->is_running)
-			return;
+			return true;
 
 		process_queue(system_state->low_prio_queue, &system_state->low_prio_queue_mutex);
 		process_queue(system_state->normal_prio_queue, &system_state->normal_prio_queue_mutex);
 		process_queue(system_state->high_prio_queue, &system_state->high_prio_queue_mutex);
 
-		for (uint32 i = 0; i < Config::max_job_results_count; i++)
+		for (uint32 i = 0; i < SystemConfig::max_job_results_count; i++)
 		{
 
 			Threading::mutex_lock(&system_state->results_mutex);
@@ -150,6 +150,8 @@ namespace JobSystem
 			}
 
 		}
+
+		return true;
 
 	}
 
@@ -262,7 +264,7 @@ namespace JobSystem
 		}
 
 		Threading::mutex_lock(&system_state->results_mutex);
-		for (uint32 i = 0; i < Config::max_job_results_count; i++)
+		for (uint32 i = 0; i < SystemConfig::max_job_results_count; i++)
 		{
 			if (system_state->pending_results[i].id == INVALID_ID)
 			{

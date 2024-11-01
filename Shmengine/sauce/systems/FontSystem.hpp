@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 #include "resources/ResourceTypes.hpp"
+#include "core/Subsystems.hpp"
 
 struct UIText;
 
@@ -22,7 +23,7 @@ namespace FontSystem
 		uint16 size;
 	};
 
-	struct Config
+	struct SystemConfig
 	{
 		bool8 auto_release;
 
@@ -38,8 +39,8 @@ namespace FontSystem
 		BitmapFontConfig* bitmap_font_configs;
 	};	
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const Config& config);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	bool32 load_truetype_font(const TruetypeFontConfig& config);
 	bool32 load_bitmap_font(const BitmapFontConfig& config);

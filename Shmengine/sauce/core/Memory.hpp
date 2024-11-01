@@ -48,7 +48,7 @@ namespace Memory
 	};
 
 	bool32 system_init(SystemConfig config);
-	void system_shutdown();
+	void system_shutdown(void* state);
 
 	SHMAPI void* allocate(uint64 size, AllocationTag tag, uint16 alignment = 1);
 	SHMAPI void* reallocate(uint64 size, void* block, uint16 alignment = 1);

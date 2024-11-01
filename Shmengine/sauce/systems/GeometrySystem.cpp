@@ -18,7 +18,7 @@ namespace GeometrySystem
 
 	struct SystemState
 	{
-		GeometrySystem::Config config;
+		GeometrySystem::SystemConfig config;
 
 		Geometry default_geometry;
 		Geometry default_geometry_2d;
@@ -33,15 +33,16 @@ namespace GeometrySystem
 	bool32 create_default_geometries();
 	
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
-        out_state = allocator_callback(sizeof(SystemState));
-        system_state = (SystemState*)out_state;
 
-        system_state->config = config;
+		SystemConfig* sys_config = (SystemConfig*)config;
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-        uint64 geometry_array_size = sizeof(GeometryReference) * config.max_geometry_count;
-        system_state->registered_geometries = (GeometryReference*)allocator_callback(geometry_array_size);
+        system_state->config = *sys_config;
+
+        uint64 geometry_array_size = sizeof(GeometryReference) * sys_config->max_geometry_count;
+        system_state->registered_geometries = (GeometryReference*)allocator_callback(allocator, geometry_array_size);
 
         // Invalidate all geometries in the array.
         uint32 count = system_state->config.max_geometry_count;
@@ -60,7 +61,7 @@ namespace GeometrySystem
 
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 		system_state = 0;
 	}

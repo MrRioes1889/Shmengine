@@ -15,7 +15,7 @@ namespace RenderViewSystem
 
 	struct SystemState
 	{
-		Config config;
+		SystemConfig config;
 
 		Renderer::RenderView* registered_views;
 		Hashtable<uint32> lookup_table;
@@ -25,30 +25,31 @@ namespace RenderViewSystem
 	static SystemState* system_state = 0;
 	static void destroy(Renderer::RenderView* view);
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
-		out_state = allocator_callback(sizeof(SystemState));
-		system_state = (SystemState*)out_state;
 
-		system_state->config = config;
+		SystemConfig* sys_config = (SystemConfig*)config;
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		uint64 view_array_size = sizeof(Renderer::RenderView) * config.max_view_count;
-		system_state->registered_views = (Renderer::RenderView*)allocator_callback(view_array_size);
+		system_state->config = *sys_config;
 
-		uint64 hashtable_data_size = sizeof(uint32) * config.max_view_count;
-		void* hashtable_data = allocator_callback(hashtable_data_size);
-		system_state->lookup_table.init(config.max_view_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+		uint64 view_array_size = sizeof(Renderer::RenderView) * sys_config->max_view_count;
+		system_state->registered_views = (Renderer::RenderView*)allocator_callback(allocator, view_array_size);
+
+		uint64 hashtable_data_size = sizeof(uint32) * sys_config->max_view_count;
+		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
+		system_state->lookup_table.init(sys_config->max_view_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
 		system_state->lookup_table.floodfill(INVALID_ID);
 
-		for (uint32 i = 0; i < config.max_view_count; ++i) {
+		for (uint32 i = 0; i < sys_config->max_view_count; ++i) {
 			system_state->registered_views[i].id = INVALID_ID;
 		}
 
 		return true;
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 		system_state->lookup_table.floodfill(INVALID_ID);
 		for (uint32 i = 0; i < system_state->config.max_view_count; i++)

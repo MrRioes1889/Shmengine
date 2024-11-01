@@ -4,19 +4,20 @@
 #include "utility/MathTypes.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "memory/LinearAllocator.hpp"
+#include "core/Subsystems.hpp"
 
 namespace RenderViewSystem
 {
 
-	struct Config
+	struct SystemConfig
 	{
 		uint32 max_view_count;
 
 		inline static const char* default_name = "default";
 	};
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	bool32 create(const Renderer::RenderViewConfig& config);
 

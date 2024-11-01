@@ -19,12 +19,12 @@ namespace Log
     };
 
     static const char* level_strings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: " };
-    static SystemState* system_state;
+    static SystemState* system_state = 0;
 
-    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state)
+    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
-        out_state = allocator_callback(sizeof(SystemState));
-        system_state = (SystemState*)out_state;
+
+        system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
         //D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log
         if (!FileSystem::file_open("../bin/console.log", FILE_MODE_WRITE, &system_state->log_file))
@@ -37,7 +37,7 @@ namespace Log
 
     }
 
-    void system_shutdown() 
+    void system_shutdown(void* state) 
     {
         // TODO: cleanup logging/write queued entries.
 
@@ -79,14 +79,13 @@ namespace Log
         CString::append(msg_length, out_message, "\n");
 
         // Platform-specific output.
-        if (is_error) {
+        if (is_error)
             Platform::console_write_error(out_message, (uint8)level);
-        }
-        else {
+        else
             Platform::console_write(out_message, (uint8)level);
-        }
 
-        append_to_log_file(out_message);
+        if (system_state)
+            append_to_log_file(out_message);
     }
 
 }

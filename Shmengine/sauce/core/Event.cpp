@@ -3,6 +3,7 @@
 #include "containers/Darray.hpp"
 #include "Logging.hpp"
 #include "memory/LinearAllocator.hpp"
+#include "Engine.hpp"
 
 namespace Event
 {
@@ -27,16 +28,17 @@ namespace Event
 
 	static SystemState* system_state;
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state)
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
-		out_state = allocator_callback(sizeof(SystemState));
-		system_state = (SystemState*)out_state;
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
 		SHMINFO("Event subsystem initialized!");
+		Engine::on_event_system_initialized();
+
 		return true;
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 		for (uint32 i = 0; i < MAX_MESSAGE_CODES; i++)
 		{

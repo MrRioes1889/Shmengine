@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 #include "Logging.hpp"
+#include "Subsystems.hpp"
 
 namespace Console
 {
@@ -22,8 +23,8 @@ namespace Console
         CommandArg* arguments;
     };
 
-    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state);
-    void system_shutdown();
+    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+    void system_shutdown(void* state);
 
     SHMAPI void register_consumer(void* inst, FP_consumer_write callback);
     void write_line(Log::LogLevel level, const char* message);

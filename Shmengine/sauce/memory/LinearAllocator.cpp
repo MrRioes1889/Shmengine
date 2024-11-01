@@ -7,40 +7,43 @@
 namespace Memory
 {
 
-	void linear_allocator_create(uint64 size, LinearAllocator* out_allocator, void* memory)
+	void LinearAllocator::init(uint64 memory_size, void* memory_ptr)
 	{
-		out_allocator->size = size;
-		out_allocator->allocated = 0;
-		out_allocator->memory = memory;
-		out_allocator->owns_memory = memory == 0;
+		size = memory_size;
+		allocated = 0;
+		memory = memory_ptr;
+		owns_memory = memory == 0;
 
-		if (out_allocator->owns_memory)
-			out_allocator->memory = allocate_platform(size, AllocationTag::LINEAR_ALLOCATOR);
+		if (owns_memory)
+			memory = allocate_platform(size, AllocationTag::LINEAR_ALLOCATOR);
 	}
 
-	void linear_allocator_destroy(LinearAllocator* allocator)
+	void LinearAllocator::destroy()
 	{
-		if (allocator->owns_memory)
-			free_memory_platform(allocator->memory);
+		if (owns_memory)
+			free_memory_platform(memory);
 
-		*allocator = {};
+		size = 0;
+		allocated = 0;
+		memory = 0;
+		owns_memory = 0;
 	}
 
-	void* linear_allocator_allocate(LinearAllocator* allocator, uint64 size)
+	void* LinearAllocator::allocate(uint64 alloc_size)
 	{	
-		SHMASSERT_MSG(allocator->allocated + size <= allocator->size, "Linear allocator ran out of memory!");
+		SHMASSERT_MSG(allocated + alloc_size <= size, "Linear allocator ran out of memory!");
 
-		if (size == 0)
+		if (alloc_size == 0)
 			return 0;
 
-		void* mem = PTR_BYTES_OFFSET(allocator->memory, allocator->allocated);
-		allocator->allocated += size;
+		void* mem = PTR_BYTES_OFFSET(memory, allocated);
+		allocated += alloc_size;
 		return mem;
 	}
 
-	void linear_allocator_free_all_data(LinearAllocator* allocator)
+	void LinearAllocator::free_all_data()
 	{
-		allocator->allocated = 0;
+		allocated = 0;
 	}
 
 }

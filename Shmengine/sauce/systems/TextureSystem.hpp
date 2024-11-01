@@ -2,10 +2,11 @@
 
 #include "Defines.hpp"
 #include "renderer/RendererTypes.hpp"
+#include "core/Subsystems.hpp"
 
 namespace TextureSystem
 {
-	struct Config
+	struct SystemConfig
 	{
 		uint32 max_texture_count;
 
@@ -15,8 +16,8 @@ namespace TextureSystem
 		inline static const char* default_normal_name = "default_NORM";
 	};
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	Texture* acquire(const char* name, bool32 auto_release);
 	Texture* acquire_cube(const char* name, bool32 auto_release);

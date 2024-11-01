@@ -4,12 +4,18 @@
 
 #include "utility/Math.hpp"
 #include "utility/String.hpp"
+#include "core/Subsystems.hpp"
 
 namespace Renderer
 {
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name);
-	void system_shutdown();
+	struct SystemConfig
+	{
+		const char* application_name;
+	};
+
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	SHMAPI bool32 flags_enabled(RendererConfigFlags::Value flags);
 	SHMAPI void set_flags(RendererConfigFlags::Value flags, bool32 enabled);

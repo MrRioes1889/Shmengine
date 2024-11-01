@@ -22,6 +22,8 @@
 #include "systems/JobSystem.hpp"
 #include "systems/FontSystem.hpp"
 
+#include "core/Subsystems.hpp"
+
 #include "optick.h"
 
 namespace Engine
@@ -53,6 +55,8 @@ namespace Engine
 		void* camera_system_state;
 		void* job_system_state;
 		void* font_system_state;
+
+		SubsystemManager subsystem_manager;
 	};
 
 	static bool32 initialized = false;
@@ -61,15 +65,18 @@ namespace Engine
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
 	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data);
 
-	void* allocate_subsystem_callback (uint64 size)
+	void* allocate_subsystem_callback (void* allocator, uint64 size)
 	{
-		void* ptr = Memory::linear_allocator_allocate(&engine_state->systems_allocator, size);
-		Memory::zero_memory(ptr, size);
+		Memory::LinearAllocator* lin_allocator = (Memory::LinearAllocator*)allocator;
+		void* ptr = lin_allocator->allocate(size);
 		return ptr;
 	};
 
-	bool32 init_primitive_subsystems(Application* game_inst)
+	bool32 init(Application* game_inst)
 	{
+
+		if (initialized)
+			return false;
 
 		Memory::SystemConfig mem_config;
 		mem_config.total_allocation_size = Gibibytes(1);
@@ -79,92 +86,18 @@ namespace Engine
 			return false;
 		}
 
-		*game_inst = {};
-		game_inst->app_state = Memory::allocate(sizeof(EngineState), AllocationTag::ENGINE);
-		engine_state = (EngineState*)game_inst->app_state;
+		game_inst->state = Memory::allocate(game_inst->state_size, AllocationTag::ENGINE);
+
+		game_inst->engine_state = Memory::allocate(sizeof(EngineState), AllocationTag::ENGINE);
+		engine_state = (EngineState*)game_inst->engine_state;
 
 		engine_state->game_inst = game_inst;
 		engine_state->is_running = true;
 		engine_state->is_suspended = false;
-		Memory::linear_allocator_create(Mebibytes(64), &engine_state->systems_allocator);
 
-		Platform::init_console();
-
-		if (!Console::system_init(allocate_subsystem_callback, engine_state->console_state))
+		if (!engine_state->subsystem_manager.init(&game_inst->config))
 		{
-			SHMFATAL("Failed to initialize console subsystem!");
-			return false;
-		}
-
-		if (!Log::system_init(allocate_subsystem_callback, engine_state->logging_system_state))
-		{
-			SHMFATAL("Failed to initialize logging subsytem!");
-			return false;
-		}
-
-		if (!Input::system_init(allocate_subsystem_callback, engine_state->input_system_state))
-		{
-			SHMFATAL("Failed to initialize input subsystem!");
-			return false;
-		}
-
-		if (!Event::system_init(allocate_subsystem_callback, engine_state->event_system_state))
-		{
-			SHMFATAL("Failed to initialize event subsystem!");
-			return false;
-		}
-
-		return true;
-	}
-
-	bool32 create(Application* game_inst)
-	{
-
-		if (initialized)
-			return false;
-
-		game_inst->state = Memory::allocate(game_inst->state_size, AllocationTag::ENGINE);
-
-		Event::event_register(SystemEventCode::APPLICATION_QUIT, 0, on_event);
-		Event::event_register(SystemEventCode::WINDOW_RESIZED, 0, on_resized);
-		Event::event_register(SystemEventCode::OBJECT_HOVER_ID_CHANGED, 0, on_event);
-
-		if (!Platform::system_init(
-			allocate_subsystem_callback,
-			engine_state->platform_system_state,
-			game_inst->config.name,
-			game_inst->config.start_pos_x,
-			game_inst->config.start_pos_y,
-			game_inst->config.start_width,
-			game_inst->config.start_height))
-		{
-			SHMFATAL("ERROR: Failed to startup platform layer!");
-			return false;
-		}
-
-		ResourceSystem::Config resource_sys_config;
-		resource_sys_config.asset_base_path = "../assets/";
-		resource_sys_config.max_loader_count = 32;
-		if (!ResourceSystem::system_init(allocate_subsystem_callback, engine_state->resource_system_state, resource_sys_config))
-		{
-			SHMFATAL("ERROR: Failed to initialize resource system. Application shutting down..");
-			return false;
-		}
-
-		ShaderSystem::Config shader_sys_config;
-		shader_sys_config.max_shader_count = 1024;
-		shader_sys_config.max_uniform_count = 128;
-		shader_sys_config.max_global_textures = 31;
-		shader_sys_config.max_instance_textures = 31;
-		if (!ShaderSystem::system_init(allocate_subsystem_callback, engine_state->shader_system_state, shader_sys_config))
-		{
-			SHMFATAL("ERROR: Failed to initialize shader system. Application shutting down..");
-			return false;
-		}
-
-		if (!Renderer::system_init(allocate_subsystem_callback, engine_state->renderer_system_state, game_inst->config.name))
-		{
-			SHMFATAL("ERROR: Failed to initialize renderer. Application shutting down..");
+			SHMFATAL("Failed to initialize subsystem manager!");
 			return false;
 		}
 
@@ -174,89 +107,9 @@ namespace Engine
 			return false;
 		}
 
-		RenderViewSystem::Config render_view_sys_config;
-		render_view_sys_config.max_view_count = 251;
-		if (!RenderViewSystem::system_init(allocate_subsystem_callback, engine_state->texture_system_state, render_view_sys_config))
+		if (!engine_state->subsystem_manager.post_boot_init(&game_inst->config))
 		{
-			SHMFATAL("ERROR: Failed to initialize render view system. Application shutting down..");
-			return false;
-		}
-
-		const int32 max_thread_count = 15;
-		int32 thread_count = Platform::get_processor_count() - 1;
-		if (thread_count < 1)
-		{
-			SHMFATAL("Platform reported no additional free threads other than the main one. At least 2 threads needed for job system!");
-			return false;
-		}
-		thread_count = clamp(thread_count, 1, max_thread_count);
-
-		uint32 job_thread_types[max_thread_count];
-		for (uint32 i = 0; i < max_thread_count; i++)
-			job_thread_types[i] = JobSystem::JobType::GENERAL;
-
-		if (thread_count == 1 || !Renderer::is_multithreaded())
-		{
-			job_thread_types[0] |= (JobSystem::JobType::GPU_RESOURCE | JobSystem::JobType::RESOURCE_LOAD);
-		}
-		else
-		{
-			job_thread_types[0] |= JobSystem::JobType::GPU_RESOURCE;
-			job_thread_types[1] |= JobSystem::JobType::RESOURCE_LOAD;
-		}
-
-		JobSystem::Config job_system_config;
-		job_system_config.job_thread_count = thread_count;
-		if (!JobSystem::system_init(allocate_subsystem_callback, engine_state->job_system_state, job_system_config, job_thread_types))
-		{
-			SHMFATAL("ERROR: Failed to initialize job system. Application shutting down..");
-			return false;
-		}
-
-		TextureSystem::Config texture_sys_config;
-		texture_sys_config.max_texture_count = 0x10000;
-		if (!TextureSystem::system_init(allocate_subsystem_callback, engine_state->texture_system_state, texture_sys_config))
-		{
-			SHMFATAL("ERROR: Failed to initialize texture system. Application shutting down..");
-			return false;
-		}
-
-		if (!FontSystem::system_init(allocate_subsystem_callback, engine_state->font_system_state, engine_state->game_inst->config.fontsystem_config))
-		{
-			SHMFATAL("ERROR: Failed to initialize font system. Application shutting down..");
-			return false;
-		}
-
-		CameraSystem::Config camera_sys_config;
-		camera_sys_config.max_camera_count = 61;
-		if (!CameraSystem::system_init(allocate_subsystem_callback, engine_state->camera_system_state, camera_sys_config))
-		{
-			SHMFATAL("ERROR: Failed to initialize camera system. Application shutting down..");
-			return false;
-		}
-
-		for (uint32 i = 0; i < game_inst->config.render_view_configs.capacity; i++)
-		{
-			if (!RenderViewSystem::create(game_inst->config.render_view_configs[i]))
-			{
-				SHMFATALV("Failed to create render view: %s", game_inst->config.render_view_configs[i].name);
-				return false;
-			}
-		}
-
-		MaterialSystem::Config material_sys_config;
-		material_sys_config.max_material_count = 0x1000;
-		if (!MaterialSystem::system_init(allocate_subsystem_callback, engine_state->material_system_state, material_sys_config))
-		{
-			SHMFATAL("ERROR: Failed to initialize material system. Application shutting down..");
-			return false;
-		}
-
-		GeometrySystem::Config geometry_sys_config;
-		geometry_sys_config.max_geometry_count = 0x1000;
-		if (!GeometrySystem::system_init(allocate_subsystem_callback, engine_state->geometry_system_state, geometry_sys_config))
-		{
-			SHMFATAL("ERROR: Failed to initialize geometry system. Application shutting down..");
+			SHMFATAL("Failed to initialize subsystem manager!");
 			return false;
 		}
 
@@ -292,7 +145,7 @@ namespace Engine
 
 			OPTICK_FRAME("MainThread");	
 
-			JobSystem::update();
+			engine_state->subsystem_manager.update(last_frametime);
 
 			if (!Platform::pump_messages())
 			{
@@ -351,27 +204,19 @@ namespace Engine
 		}
 
 		engine_state->is_running = false;
-		engine_state->game_inst->shutdown(engine_state->game_inst);
-	
-		GeometrySystem::system_shutdown();
-		MaterialSystem::system_shutdown();
-		RenderViewSystem::system_shutdown();
-		CameraSystem::system_shutdown();
-		FontSystem::system_shutdown();	
-		TextureSystem::system_shutdown();
-		JobSystem::system_shutdown();
-		ShaderSystem::system_shutdown();
-		Renderer::system_shutdown();	
-		ResourceSystem::system_shutdown();
-		Platform::system_shutdown();
-		Event::system_shutdown();	
-		Input::system_shutdown();
-		Memory::system_shutdown();
-		Log::system_shutdown();	
-		Console::system_shutdown();
+		engine_state->game_inst->shutdown(engine_state->game_inst);	
+
+		engine_state->subsystem_manager.shutdown();
 
 		return true;
 
+	}
+
+	void on_event_system_initialized()
+	{
+		Event::event_register(SystemEventCode::APPLICATION_QUIT, 0, on_event);
+		Event::event_register(SystemEventCode::WINDOW_RESIZED, 0, on_resized);
+		Event::event_register(SystemEventCode::OBJECT_HOVER_ID_CHANGED, 0, on_event);
 	}
 
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)

@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 #include "utility/Math.hpp"
+#include "Subsystems.hpp"
 
 namespace MouseButton
 {
@@ -24,11 +25,11 @@ namespace KeyCode
     enum
     {
         /** @brief The backspace key. */
-        BACKSPACE = 0x08,
-        /** @brief The enter key. */
-        ENTER = 0x0D,
+        BACKSPACE = 0x08,      
         /** @brief The tab key. */
         TAB = 0x09,
+        /** @brief The enter key. */
+        ENTER = 0x0D,
         /** @brief The shift key. */
         SHIFT = 0x10,
         /** @brief The Control/Ctrl key. */
@@ -299,8 +300,8 @@ namespace KeyCode
 
 namespace Input
 {
-    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state);
-    void system_shutdown();
+    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* confige);
+    void system_shutdown(void* state);
 
     struct Keymap;
     SHMAPI void push_keymap(const Keymap* map);

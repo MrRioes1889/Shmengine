@@ -17,7 +17,7 @@ namespace CameraSystem
 
 	struct SystemState
 	{
-		Config config;
+		SystemConfig config;
 
 		Camera default_camera;
 
@@ -28,23 +28,24 @@ namespace CameraSystem
 
 	static SystemState* system_state = 0;
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
-		out_state = allocator_callback(sizeof(SystemState));
-		system_state = (SystemState*)out_state;
 
-		system_state->config = config;
 
-		uint64 camera_array_size = sizeof(CameraLookup) * config.max_camera_count;
-		system_state->registered_cameras = (CameraLookup*)allocator_callback(camera_array_size);
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		uint64 hashtable_data_size = sizeof(uint16) * config.max_camera_count;
-		void* hashtable_data = allocator_callback(hashtable_data_size);
-		system_state->registered_camera_table.init(config.max_camera_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->config = *(SystemConfig*)config;
+
+		uint64 camera_array_size = sizeof(CameraLookup) * system_state->config.max_camera_count;
+		system_state->registered_cameras = (CameraLookup*)allocator_callback(allocator, camera_array_size);
+
+		uint64 hashtable_data_size = sizeof(uint16) * system_state->config.max_camera_count;
+		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
+		system_state->registered_camera_table.init(system_state->config.max_camera_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
 		system_state->registered_camera_table.floodfill(INVALID_ID16);
 
-		for (uint32 i = 0; i < config.max_camera_count; ++i) 
+		for (uint32 i = 0; i < system_state->config.max_camera_count; ++i)
 		{
 			system_state->registered_cameras[i].id = INVALID_ID16;
 			system_state->registered_cameras[i].reference_count = 0;
@@ -55,7 +56,7 @@ namespace CameraSystem
 		return true;
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 		system_state = 0;
 	}
@@ -63,7 +64,7 @@ namespace CameraSystem
 	Camera* acquire(const char* name)
 	{
 		
-		if (CString::equal_i(name, Config::default_name))
+		if (CString::equal_i(name, SystemConfig::default_name))
 			return get_default_camera();
 
 		uint16& ref_id = system_state->registered_camera_table.get_ref(name);
@@ -94,7 +95,7 @@ namespace CameraSystem
 	void release(const char* name)
 	{
 
-		if (CString::equal_i(name, Config::default_name))
+		if (CString::equal_i(name, SystemConfig::default_name))
 			return;
 
 		uint16& ref_id = system_state->registered_camera_table.get_ref(name);

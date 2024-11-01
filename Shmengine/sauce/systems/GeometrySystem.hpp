@@ -1,11 +1,12 @@
 #pragma once
 
 #include "renderer/RendererTypes.hpp"
+#include "core/Subsystems.hpp"
 
 namespace GeometrySystem
 {
 
-	struct Config
+	struct SystemConfig
 	{
 		uint32 max_geometry_count;
 
@@ -26,8 +27,8 @@ namespace GeometrySystem
 		Math::Vec3f max_extents;
 	};
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	SHMAPI Geometry* acquire_by_id(uint32 id);
 	SHMAPI Geometry* acquire_from_config(const GeometryConfig& config, bool32 auto_release);

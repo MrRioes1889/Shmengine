@@ -4,8 +4,9 @@
 #include "ApplicationTypes.hpp"
 #include "core/Logging.hpp"
 #include "core/Assert.hpp"
+#include "platform/Platform.hpp"
 
-extern bool32 create_game(Application* out_game);
+extern bool32 create_application(Application* out_game);
 
 #ifdef _WIN32
 
@@ -17,16 +18,13 @@ int WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev_instance, _In_ LPST
     try
     {
         Application game_inst;
-        if (!Engine::init_primitive_subsystems(&game_inst))
-        {
-            SHMFATAL("Failed to initialize vital subsystems. Shutting down.");
-            return -1;
-        }
 
+        Platform::init_console();
+        
         SHMINFOV("Shmengine Engine Version: %s", "0.001a");
-        SHMINFO("Starting the engines :)");
+        SHMINFO("Starting the engines :)");    
 
-        if (!create_game(&game_inst)) {
+        if (!create_application(&game_inst)) {
             SHMERROR("Failed to create game!");
             return -2;
         }
@@ -38,7 +36,7 @@ int WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev_instance, _In_ LPST
         }
 
         // Initialization.
-        if (!Engine::create(&game_inst)) {
+        if (!Engine::init(&game_inst)) {
             SHMERROR("Failed to create_application!");
             return -4;
         }

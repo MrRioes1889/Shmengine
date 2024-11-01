@@ -33,17 +33,16 @@ namespace Console
 
 	static SystemState* system_state = 0;
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state)
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
-		out_state = allocator_callback(sizeof(SystemState));
-		system_state = (SystemState*)out_state;
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
 		system_state->registered_commands.init(8, 0);
 
 		return true;
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 		system_state->registered_commands.free_data();
 	}

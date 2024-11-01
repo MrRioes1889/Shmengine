@@ -31,7 +31,7 @@ namespace TextureSystem
 
 	struct SystemState
 	{
-		Config config;
+		SystemConfig config;
 		Texture default_texture;
 		Texture default_diffuse;
 		Texture default_specular;
@@ -52,20 +52,20 @@ namespace TextureSystem
 	static bool32 add_texture_reference(const char* name, TextureType type, bool32 auto_release, bool32 skip_load, uint32* out_texture_id);
 	static bool32 remove_texture_reference(const char* name, uint32* out_texture_id);
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 
-		out_state = allocator_callback(sizeof(SystemState));
-		system_state = (SystemState*)out_state;
+		SystemConfig* sys_config = (SystemConfig*)config;
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		system_state->config = config;
+		system_state->config = *sys_config;
 
-		uint64 texture_array_size = sizeof(Texture) * config.max_texture_count;
-		system_state->registered_textures = (Texture*)allocator_callback(texture_array_size);
+		uint64 texture_array_size = sizeof(Texture) * sys_config->max_texture_count;
+		system_state->registered_textures = (Texture*)allocator_callback(allocator, texture_array_size);
 
-		uint64 hashtable_data_size = sizeof(TextureReference) * config.max_texture_count;
-		void* hashtable_data = allocator_callback(hashtable_data_size);
-		system_state->registered_texture_table.init(config.max_texture_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+		uint64 hashtable_data_size = sizeof(TextureReference) * sys_config->max_texture_count;
+		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
+		system_state->registered_texture_table.init(sys_config->max_texture_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
 		TextureReference invalid_ref;
 		invalid_ref.auto_release = false;
@@ -73,7 +73,7 @@ namespace TextureSystem
 		invalid_ref.reference_count = 0;
 		system_state->registered_texture_table.floodfill(invalid_ref);
 
-		for (uint32 i = 0; i < config.max_texture_count; i++)
+		for (uint32 i = 0; i < sys_config->max_texture_count; i++)
 		{
 			system_state->registered_textures[i].id = INVALID_ID;
 			system_state->registered_textures[i].generation = INVALID_ID;
@@ -85,7 +85,7 @@ namespace TextureSystem
 
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 		if (system_state)
 		{
@@ -103,7 +103,7 @@ namespace TextureSystem
 	Texture* acquire(const char* name, bool32 auto_release)
 	{
 		
-		if (CString::equal_i(name, Config::default_diffuse_name))
+		if (CString::equal_i(name, SystemConfig::default_diffuse_name))
 		{
 			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
 			return &system_state->default_diffuse;
@@ -123,7 +123,7 @@ namespace TextureSystem
 	Texture* acquire_cube(const char* name, bool32 auto_release)
 	{
 
-		if (CString::equal_i(name, Config::default_diffuse_name))
+		if (CString::equal_i(name, SystemConfig::default_diffuse_name))
 		{
 			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
 			return &system_state->default_diffuse;
@@ -249,10 +249,10 @@ namespace TextureSystem
 	void release(const char* name)
 	{
 
-		if (CString::equal_i(name, Config::default_name) ||
-			CString::equal_i(name, Config::default_diffuse_name) || 
-			CString::equal_i(name, Config::default_specular_name) || 
-			CString::equal_i(name, Config::default_normal_name))
+		if (CString::equal_i(name, SystemConfig::default_name) ||
+			CString::equal_i(name, SystemConfig::default_diffuse_name) || 
+			CString::equal_i(name, SystemConfig::default_specular_name) || 
+			CString::equal_i(name, SystemConfig::default_normal_name))
 			return;
 
 
@@ -471,7 +471,7 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(Texture::max_name_length, system_state->default_texture.name, Config::default_name);
+		CString::copy(Texture::max_name_length, system_state->default_texture.name, SystemConfig::default_name);
 		system_state->default_texture.width = tex_dim;
 		system_state->default_texture.height = tex_dim;
 		system_state->default_texture.channel_count = 4;
@@ -487,7 +487,7 @@ namespace TextureSystem
 		SHMTRACE("Creating default diffuse texture...");
 		uint8 diff_pixels[16 * 16 * 4];
 		Memory::set_memory(diff_pixels, 0xFF, sizeof(diff_pixels));
-		CString::copy(Texture::max_name_length, system_state->default_diffuse.name, Config::default_diffuse_name);
+		CString::copy(Texture::max_name_length, system_state->default_diffuse.name, SystemConfig::default_diffuse_name);
 		system_state->default_diffuse.width = 16;
 		system_state->default_diffuse.height = 16;
 		system_state->default_diffuse.channel_count = 4;
@@ -503,7 +503,7 @@ namespace TextureSystem
 		uint8 spec_pixels[16 * 16 * 4];
 		// Default spec map is black (no specular)
 		Memory::zero_memory(spec_pixels, sizeof(spec_pixels));
-		CString::copy(Texture::max_name_length, system_state->default_specular.name, Config::default_specular_name);
+		CString::copy(Texture::max_name_length, system_state->default_specular.name, SystemConfig::default_specular_name);
 		system_state->default_specular.width = 16;
 		system_state->default_specular.height = 16;
 		system_state->default_specular.channel_count = 4;
@@ -532,7 +532,7 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(Texture::max_name_length, system_state->default_normal.name, Config::default_normal_name);
+		CString::copy(Texture::max_name_length, system_state->default_normal.name, SystemConfig::default_normal_name);
 		system_state->default_normal.width = 16;
 		system_state->default_normal.height = 16;
 		system_state->default_normal.channel_count = 4;

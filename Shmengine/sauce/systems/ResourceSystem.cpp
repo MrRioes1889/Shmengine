@@ -16,7 +16,7 @@ namespace ResourceSystem
 
 	struct SystemState
 	{
-		Config config;
+		SystemConfig config;
 		ResourceLoader* registered_loaders;
 	};
 
@@ -24,15 +24,16 @@ namespace ResourceSystem
 
 	static bool32 load(const char* name, ResourceLoader* loader, void* params, Resource* out_resource);
 
-    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
-        out_state = allocator_callback(sizeof(SystemState));
-        system_state = (SystemState*)out_state;
 
-        system_state->config = config;
+        SystemConfig* sys_config = (SystemConfig*)config;
+        system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-        uint64 loader_array_size = sizeof(ResourceLoader) * config.max_loader_count;
-        system_state->registered_loaders = (ResourceLoader*)allocator_callback(loader_array_size);
+        system_state->config = *sys_config;
+
+        uint64 loader_array_size = sizeof(ResourceLoader) * sys_config->max_loader_count;
+        system_state->registered_loaders = (ResourceLoader*)allocator_callback(allocator, loader_array_size);
 
         // Invalidate all geometries in the array.
         for (uint32 i = 0; i < system_state->config.max_loader_count; ++i) {
@@ -46,13 +47,13 @@ namespace ResourceSystem
         register_loader(mesh_resource_loader_create());     
         register_loader(bitmap_font_resource_loader_create());     
 
-        SHMINFOV("Resource system initialized with base path: %s", config.asset_base_path);
+        SHMINFOV("Resource system initialized with base path: %s", sys_config->asset_base_path);
 
         return true;
 
     }
 
-    void system_shutdown()
+    void system_shutdown(void* state)
     {
         system_state = 0;
     }

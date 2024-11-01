@@ -39,11 +39,11 @@ namespace Renderer
 
 	static SystemState* system_state;
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name)
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 
-		out_state = allocator_callback(sizeof(SystemState));
-		system_state = (SystemState*)out_state;
+		SystemConfig* sys_config = (SystemConfig*)config;
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
 		RendererConfig::flags = RendererConfigFlags::VSYNC; //| RendererConfigFlags::POWER_SAVING;
 
@@ -55,10 +55,10 @@ namespace Renderer
 		system_state->resizing = false;
 		system_state->frames_since_resize = 0;
 
-		BackendConfig config = {};
-		config.application_name = application_name;
+		BackendConfig backend_config = {};
+		backend_config.application_name = sys_config->application_name;
 
-		if (!system_state->backend.init(config, &system_state->window_render_target_count))
+		if (!system_state->backend.init(backend_config, &system_state->window_render_target_count))
 		{
 			SHMERROR("Failed to initialize renderer backend!");
 			return false;
@@ -67,7 +67,7 @@ namespace Renderer
 		return true;
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 		if (!system_state)
 			return;

@@ -80,9 +80,9 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 bool32 application_boot(Application* app_inst)
 {
 
-	Memory::linear_allocator_create(Mebibytes(64), &app_inst->frame_allocator);
+	app_inst->frame_allocator.init(Mebibytes(64));
 
-	FontSystem::Config* font_sys_config = &app_inst->config.fontsystem_config;
+	FontSystem::SystemConfig* font_sys_config = &app_inst->config.fontsystem_config;
 	font_sys_config->auto_release = false;
 	font_sys_config->max_bitmap_font_config_count = 15;
 	font_sys_config->max_truetype_font_config_count = 15;
@@ -451,7 +451,7 @@ bool32 application_update(Application* app_inst, float64 delta_time)
 
 	app_inst->frame_data.world_geometries.clear();
 
-	Memory::linear_allocator_free_all_data(&app_inst->frame_allocator);
+	app_inst->frame_allocator.free_all_data();
 
     uint32 allocation_count = Memory::get_current_allocation_count();
     state->allocation_count = allocation_count;
@@ -542,10 +542,10 @@ bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet,
 	ApplicationState* state = (ApplicationState*)app_inst->state;
 
 	const uint32 view_count = 3;
-	Renderer::RenderViewPacket* render_view_packets = (Renderer::RenderViewPacket*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, view_count * sizeof(Renderer::RenderViewPacket));
+	Renderer::RenderViewPacket* render_view_packets = (Renderer::RenderViewPacket*)app_inst->frame_allocator.allocate(view_count * sizeof(Renderer::RenderViewPacket));
 	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_view_packets);
 
-	Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, sizeof(Renderer::SkyboxPacketData));
+	Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)app_inst->frame_allocator.allocate(sizeof(Renderer::SkyboxPacketData));
 	skybox_data->skybox = &state->skybox;
 	if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), &app_inst->frame_allocator, skybox_data, &packet->views[0]))
 	{
@@ -553,7 +553,7 @@ bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet,
 		return false;
 	}
 
-	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, sizeof(Renderer::WorldPacketData));
+	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)app_inst->frame_allocator.allocate(sizeof(Renderer::WorldPacketData));
 	world_packet->geometries = app_inst->frame_data.world_geometries.data;
 	world_packet->geometries_count = app_inst->frame_data.world_geometries.count;
 
@@ -563,10 +563,10 @@ bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet,
 		return false;
 	}
 
-	Mesh** ui_meshes_ptr = (Mesh**)Memory::linear_allocator_allocate(&app_inst->frame_allocator, state->ui_meshes.count * sizeof(Mesh*));
+	Mesh** ui_meshes_ptr = (Mesh**)app_inst->frame_allocator.allocate(state->ui_meshes.count * sizeof(Mesh*));
 	Sarray<Mesh*> ui_meshes(state->ui_meshes.count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, ui_meshes_ptr);
 
-	Renderer::UIPacketData* ui_mesh_data = (Renderer::UIPacketData*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, sizeof(Renderer::UIPacketData));
+	Renderer::UIPacketData* ui_mesh_data = (Renderer::UIPacketData*)app_inst->frame_allocator.allocate(sizeof(Renderer::UIPacketData));
 	ui_mesh_data->mesh_data.mesh_count = 0;
 	for (uint32 i = 0; i < state->ui_meshes.count; i++)
 	{
@@ -579,7 +579,7 @@ bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet,
 	ui_mesh_data->mesh_data.meshes = ui_meshes.data;
 
 	const uint32 max_text_count = 3;
-	UIText** ui_texts_ptr = (UIText**)Memory::linear_allocator_allocate(&app_inst->frame_allocator, max_text_count * sizeof(UIText*));
+	UIText** ui_texts_ptr = (UIText**)app_inst->frame_allocator.allocate(max_text_count * sizeof(UIText*));
 	Sarray<UIText*> ui_texts(max_text_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, ui_texts_ptr);
 	ui_texts[0] = &state->test_truetype_text;
 	ui_texts[1] = &state->test_bitmap_text;

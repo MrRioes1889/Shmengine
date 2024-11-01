@@ -43,7 +43,7 @@ namespace FontSystem
 
 	struct SystemState
 	{
-		Config config;
+		SystemConfig config;
 
 		BitmapFontLookup* registered_bitmap_fonts;
 		Hashtable<uint16> registered_bitmap_font_table;
@@ -62,38 +62,39 @@ namespace FontSystem
 
 	static SystemState* system_state = 0;
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const Config& config)
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
-		out_state = allocator_callback(sizeof(SystemState));
-		system_state = (SystemState*)out_state;
+		
+		SystemConfig* sys_config = (SystemConfig*)config;
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		system_state->config = config;
+		system_state->config = *sys_config;
 
-		uint64 bitmap_font_array_size = sizeof(BitmapFontLookup) * config.max_bitmap_font_config_count;
-		system_state->registered_bitmap_fonts = (BitmapFontLookup*)allocator_callback(bitmap_font_array_size);
+		uint64 bitmap_font_array_size = sizeof(BitmapFontLookup) * sys_config->max_bitmap_font_config_count;
+		system_state->registered_bitmap_fonts = (BitmapFontLookup*)allocator_callback(allocator, bitmap_font_array_size);
 
-		uint64 bitmap_hashtable_data_size = sizeof(uint16) * config.max_bitmap_font_config_count;
-		void* bitmap_hashtable_data = allocator_callback(bitmap_hashtable_data_size);
-		system_state->registered_bitmap_font_table.init(config.max_bitmap_font_config_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, bitmap_hashtable_data);
+		uint64 bitmap_hashtable_data_size = sizeof(uint16) * sys_config->max_bitmap_font_config_count;
+		void* bitmap_hashtable_data = allocator_callback(allocator, bitmap_hashtable_data_size);
+		system_state->registered_bitmap_font_table.init(sys_config->max_bitmap_font_config_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, bitmap_hashtable_data);
 
 		system_state->registered_bitmap_font_table.floodfill(INVALID_ID16);
 
-		for (uint32 i = 0; i < config.max_bitmap_font_config_count; ++i) 
+		for (uint32 i = 0; i < sys_config->max_bitmap_font_config_count; ++i)
 		{
 			system_state->registered_bitmap_fonts[i].id = INVALID_ID16;
 			system_state->registered_bitmap_fonts[i].reference_count = 0;
 		}
 
-		uint64 truetype_font_array_size = sizeof(TruetypeFontLookup) * config.max_truetype_font_config_count;
-		system_state->registered_truetype_fonts = (TruetypeFontLookup*)allocator_callback(truetype_font_array_size);
+		uint64 truetype_font_array_size = sizeof(TruetypeFontLookup) * sys_config->max_truetype_font_config_count;
+		system_state->registered_truetype_fonts = (TruetypeFontLookup*)allocator_callback(allocator, truetype_font_array_size);
 
-		uint64 truetype_hashtable_data_size = sizeof(uint16) * config.max_truetype_font_config_count;
-		void* truetype_hashtable_data = allocator_callback(truetype_hashtable_data_size);
-		system_state->registered_truetype_font_table.init(config.max_truetype_font_config_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, truetype_hashtable_data);
+		uint64 truetype_hashtable_data_size = sizeof(uint16) * sys_config->max_truetype_font_config_count;
+		void* truetype_hashtable_data = allocator_callback(allocator, truetype_hashtable_data_size);
+		system_state->registered_truetype_font_table.init(sys_config->max_truetype_font_config_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, truetype_hashtable_data);
 
 		system_state->registered_truetype_font_table.floodfill(INVALID_ID16);
 
-		for (uint32 i = 0; i < config.max_truetype_font_config_count; ++i)
+		for (uint32 i = 0; i < sys_config->max_truetype_font_config_count; ++i)
 		{
 			system_state->registered_truetype_fonts[i].id = INVALID_ID16;
 			system_state->registered_truetype_fonts[i].reference_count = 0;
@@ -115,7 +116,7 @@ namespace FontSystem
 		return true;
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 		for (uint16 i = 0; i < system_state->config.max_bitmap_font_config_count; i++)
 		{

@@ -2,18 +2,23 @@
 
 #include "Defines.hpp"
 #include "utility/Math.hpp"
+#include "core/Subsystems.hpp"
 
 namespace Platform
 {
 
-	bool32 system_init(
-		FP_allocator_allocate_callback allocator_callback,
-		void*& out_state,
-		const char* application_name,
-		int32 x, int32 y,
-		int32 width, int32 height);
+	struct SystemConfig 
+	{
+		const char* application_name;
+		uint32 x;
+		uint32 y;
+		uint32 width;
+		uint32 height;
+	};
 
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
+
 	bool32 pump_messages();
 
 	void* allocate(uint64 size, uint16 alignment);
@@ -23,7 +28,7 @@ namespace Platform
 	void* copy_memory(const void* source, void* dest, uint64 size);
 	void* set_memory(void* dest, int32 value, uint64 size);
 
-	void init_console();
+	SHMAPI void init_console();
 	void console_write(const char* message, uint8 color);
 	void console_write_error(const char* message, uint8 color);
 

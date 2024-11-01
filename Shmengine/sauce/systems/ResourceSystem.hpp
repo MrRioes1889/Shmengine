@@ -1,11 +1,12 @@
 #pragma once
 
 #include "resources/ResourceTypes.hpp"
+#include "core/Subsystems.hpp"
 
 namespace ResourceSystem
 {
 
-	struct Config
+	struct SystemConfig
 	{
 		uint32 max_loader_count;
 		const char* asset_base_path;
@@ -21,8 +22,8 @@ namespace ResourceSystem
 		void(*unload)(ResourceLoader* self, Resource* resource);
 	};
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	SHMAPI bool32 register_loader(ResourceLoader loader);
 

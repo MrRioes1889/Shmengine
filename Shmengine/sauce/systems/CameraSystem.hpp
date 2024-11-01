@@ -2,19 +2,20 @@
 
 #include "Defines.hpp"
 #include "renderer/Camera.hpp"
+#include "core/Subsystems.hpp"
 
 namespace CameraSystem
 {
 
-	struct Config
+	struct SystemConfig
 	{
 		uint32 max_camera_count;
 
 		inline static const char* default_name = "default";
 	};
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	Camera* acquire(const char* name);
 	void release(const char* name);

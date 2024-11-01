@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Subsystems.hpp"
 
 struct EventData
 {
@@ -57,8 +58,8 @@ namespace Event
 
 	typedef bool32(*FP_OnEvent)(uint16 code, void* sender, void* listener_inst, EventData data);
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	SHMAPI bool32 event_register(uint16 code, void* listener, FP_OnEvent on_event);
 	SHMAPI bool32 event_unregister(uint16 code, void* listener, FP_OnEvent on_event);

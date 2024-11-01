@@ -215,7 +215,7 @@ namespace Renderer
 	{
 		RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 
-		out_packet->extended_data = Memory::linear_allocator_allocate(frame_allocator, sizeof(PickPacketData));
+		out_packet->extended_data = frame_allocator->allocate(sizeof(PickPacketData));
 		Memory::copy_memory(data, out_packet->extended_data, sizeof(PickPacketData));
 		PickPacketData* packet_data = (PickPacketData*)out_packet->extended_data;
 

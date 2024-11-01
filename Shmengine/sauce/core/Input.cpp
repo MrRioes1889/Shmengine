@@ -40,11 +40,10 @@ namespace Input
 
     static InputState* system_state;
 
-    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state)
+    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
 
-        out_state = allocator_callback(sizeof(InputState));
-        system_state = (InputState*)out_state;
+        system_state = (InputState*)allocator_callback(allocator, sizeof(InputState));
 
         system_state->keymap_stack.init(2, 0);
 
@@ -57,7 +56,7 @@ namespace Input
 
     }
 
-    void system_shutdown()
+    void system_shutdown(void* state)
     {
         system_state->initialized = false;
     }

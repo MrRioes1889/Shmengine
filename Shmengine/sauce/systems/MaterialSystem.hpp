@@ -2,18 +2,19 @@
 
 #include "Defines.hpp"
 #include "resources/ResourceTypes.hpp"
+#include "core/Subsystems.hpp"
 
 namespace MaterialSystem
 {
-	struct Config
+	struct SystemConfig
 	{
 		uint32 max_material_count;
 
 		inline static const char* default_name = "default";
 	};
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
 	SHMAPI Material* acquire(const char* name);
 	SHMAPI Material* acquire_from_config(const MaterialConfig& config);

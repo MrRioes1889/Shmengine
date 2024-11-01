@@ -99,14 +99,14 @@ namespace Renderer
 			CString::copy(Geometry::max_name_length, out_config.name, name);
 		}
 		else {
-			CString::copy(Geometry::max_name_length, out_config.name, GeometrySystem::Config::default_name);
+			CString::copy(Geometry::max_name_length, out_config.name, GeometrySystem::SystemConfig::default_name);
 		}
 
 		if (material_name && CString::length(material_name) > 0) {
 			CString::copy(Material::max_name_length, out_config.material_name, material_name);
 		}
 		else {
-			CString::copy(Material::max_name_length, out_config.material_name, MaterialSystem::Config::default_name);
+			CString::copy(Material::max_name_length, out_config.material_name, MaterialSystem::SystemConfig::default_name);
 		}
 
 	}
@@ -270,14 +270,14 @@ namespace Renderer
 			CString::copy(Geometry::max_name_length, out_config.name, name);
 		}
 		else {
-			CString::copy(Geometry::max_name_length, out_config.name, GeometrySystem::Config::default_name);
+			CString::copy(Geometry::max_name_length, out_config.name, GeometrySystem::SystemConfig::default_name);
 		}
 
 		if (material_name && CString::length(material_name) > 0) {
 			CString::copy(Material::max_name_length, out_config.material_name, material_name);
 		}
 		else {
-			CString::copy(Material::max_name_length, out_config.material_name, MaterialSystem::Config::default_name);
+			CString::copy(Material::max_name_length, out_config.material_name, MaterialSystem::SystemConfig::default_name);
 		}
 
 	}

@@ -111,7 +111,7 @@ namespace Renderer
 	{		
 		RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
 
-		out_packet->extended_data = Memory::linear_allocator_allocate(frame_allocator, sizeof(UIPacketData));
+		out_packet->extended_data = frame_allocator->allocate(sizeof(UIPacketData));
 		Memory::copy_memory(data, out_packet->extended_data, sizeof(UIPacketData));
 		UIPacketData* packet_data = (UIPacketData*)out_packet->extended_data;
 

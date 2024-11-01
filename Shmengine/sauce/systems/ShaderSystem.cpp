@@ -12,7 +12,7 @@ namespace ShaderSystem
 
 	struct SystemState
 	{
-		Config config;
+		SystemConfig config;
 		Hashtable<uint32> lookup;
 		uint32 bound_shader_id;
 		Sarray<Renderer::Shader> shaders;
@@ -39,17 +39,17 @@ namespace ShaderSystem
 	static void destroy_shader(Renderer::Shader* shader);
 	static bool32 create_default_texture_map();
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config)
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 
 		// This is to help avoid hashtable collisions.
-		if (config.max_shader_count < 512)
+		SystemConfig* sys_config = (SystemConfig*)config;
+		if (sys_config->max_shader_count < 512)
 			SHMWARN("shader_system_initialize - config.max_shader_count is recommended to be at least 512.");
 
-		out_state = allocator_callback(sizeof(SystemState));
-		system_state = (SystemState*)out_state;
+		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		system_state->config = config;
+		system_state->config = *sys_config;
 		system_state->bound_shader_id = INVALID_ID;
 
 		system_state->material_shader_id = INVALID_ID;
@@ -75,15 +75,15 @@ namespace ShaderSystem
 		system_state->ui_locations.projection = INVALID_ID16;
 		system_state->ui_locations.model = INVALID_ID16;
 
-		uint64 hashtable_data_size = sizeof(uint32) * config.max_shader_count;
-		void* hashtable_data = allocator_callback(hashtable_data_size);
-		system_state->lookup.init(config.max_shader_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+		uint64 hashtable_data_size = sizeof(uint32) * sys_config->max_shader_count;
+		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
+		system_state->lookup.init(sys_config->max_shader_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
 		system_state->lookup.floodfill(INVALID_ID);
 
-		uint64 shader_array_size = sizeof(Renderer::Shader) * config.max_shader_count;
-		void* shader_array = allocator_callback(shader_array_size);
-		system_state->shaders.init(config.max_shader_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, shader_array);
+		uint64 shader_array_size = sizeof(Renderer::Shader) * sys_config->max_shader_count;
+		void* shader_array = allocator_callback(allocator, shader_array_size);
+		system_state->shaders.init(sys_config->max_shader_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, shader_array);
 
 		for (uint32 i = 0; i < system_state->shaders.capacity; i++)
 		{
@@ -94,7 +94,7 @@ namespace ShaderSystem
 
 	}
 
-	void system_shutdown()
+	void system_shutdown(void* state)
 	{
 		if (!system_state)
 			return;

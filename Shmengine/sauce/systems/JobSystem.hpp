@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "core/Subsystems.hpp"
 
 namespace JobSystem
 {
@@ -43,16 +44,17 @@ namespace JobSystem
 		void* results;
 	};
 
-	struct Config
+	struct SystemConfig
 	{
 		static const uint32 max_job_results_count = 512;
 		uint32 job_thread_count;
+		uint32* type_masks;
 	};
 
-	bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config, uint32 type_masks[]);
-	void system_shutdown();
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	void system_shutdown(void* state);
 
-	void update();
+	bool32 update(void* state, float64 delta_time);
 
 	SHMAPI void submit(JobInfo info);
 

@@ -4,7 +4,7 @@
 #include <core/Memory.hpp>
 
 // Define the function to create a game
-bool32 create_game(Application* out_app) {
+bool32 create_application(Application* out_app) {
     // Application configuration.
     out_app->config.start_pos_x = 100;
     out_app->config.start_pos_y = 100;

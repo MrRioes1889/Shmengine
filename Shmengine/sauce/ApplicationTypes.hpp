@@ -8,9 +8,22 @@ struct ApplicationFrameData
 	Darray<Renderer::GeometryRenderData> world_geometries;
 };
 
+struct ApplicationConfig {
+
+	int32 start_pos_x, start_pos_y;
+	int32 start_width, start_height;
+
+	char* name;
+
+	FontSystem::SystemConfig fontsystem_config;
+	Sarray<FontSystem::BitmapFontConfig> bitmap_font_configs;
+	Sarray<FontSystem::TruetypeFontConfig> truetype_font_configs;
+	Sarray<Renderer::RenderViewConfig> render_view_configs;
+};
+
 struct Application
 {
-	Engine::Config config;
+	ApplicationConfig config;
 	
 	bool32 (*boot)(Application* game_inst);
 	bool32(*init)(Application* game_inst);
@@ -25,5 +38,5 @@ struct Application
 	uint64 state_size;
 	void* state;
 
-	void* app_state;
+	void* engine_state;
 };

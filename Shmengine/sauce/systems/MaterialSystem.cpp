@@ -23,7 +23,7 @@ namespace MaterialSystem
 
 	struct SystemState
 	{
-		Config config;
+		SystemConfig config;
 
 		Material default_material;
 
@@ -38,19 +38,19 @@ namespace MaterialSystem
 
 	static bool32 create_default_material();
 
-    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, Config config) {
+    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config) {
 
-        out_state = allocator_callback(sizeof(SystemState));
-        system_state = (SystemState*)out_state;
+        SystemConfig* sys_config = (SystemConfig*)config;
+        system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-        system_state->config = config;
+        system_state->config = *sys_config;
 
-        uint64 texture_array_size = sizeof(Material) * config.max_material_count;
-        system_state->registered_materials = (Material*)allocator_callback(texture_array_size);
+        uint64 texture_array_size = sizeof(Material) * sys_config->max_material_count;
+        system_state->registered_materials = (Material*)allocator_callback(allocator, texture_array_size);
 
-        uint64 hashtable_data_size = sizeof(MaterialReference) * config.max_material_count;
-        void* hashtable_data = allocator_callback(hashtable_data_size);
-        system_state->registered_material_table.init(config.max_material_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+        uint64 hashtable_data_size = sizeof(MaterialReference) * sys_config->max_material_count;
+        void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
+        system_state->registered_material_table.init(sys_config->max_material_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
         // Fill the hashtable with invalid references to use as a default.
         MaterialReference invalid_ref;
@@ -76,15 +76,17 @@ namespace MaterialSystem
         return true;
     }
 
-    void system_shutdown() {
+    void system_shutdown(void* state) 
+    {
 
-        if (system_state) {
+        if (system_state) 
+        {
             // Invalidate all materials in the array.
             uint32 count = system_state->config.max_material_count;
-            for (uint32 i = 0; i < count; ++i) {
-                if (system_state->registered_materials[i].id != INVALID_ID) {
+            for (uint32 i = 0; i < count; ++i) 
+            {
+                if (system_state->registered_materials[i].id != INVALID_ID) 
                     destroy_material(&system_state->registered_materials[i]);
-                }
             }
 
             // Destroy the default material.
@@ -115,7 +117,7 @@ namespace MaterialSystem
 
     Material* acquire_from_config(const MaterialConfig& config) {
         // Return default material.
-        if (CString::equal_i(config.name, Config::default_name)) {
+        if (CString::equal_i(config.name, SystemConfig::default_name)) {
             return &system_state->default_material;
         }
 
@@ -173,7 +175,7 @@ namespace MaterialSystem
 
     void release(const char* name) {
         // Ignore release requests for the default material.
-        if (CString::equal_i(name, Config::default_name)) {
+        if (CString::equal_i(name, SystemConfig::default_name)) {
             return;
         }
         MaterialReference& ref = system_state->registered_material_table.get_ref(name);
@@ -381,7 +383,7 @@ namespace MaterialSystem
         Memory::zero_memory(&system_state->default_material, sizeof(Material));
         system_state->default_material.id = INVALID_ID;
         system_state->default_material.generation = INVALID_ID;
-        CString::copy(Material::max_name_length, system_state->default_material.name, Config::default_name);
+        CString::copy(Material::max_name_length, system_state->default_material.name, SystemConfig::default_name);
         system_state->default_material.diffuse_color = VEC4F_ONE;  // white
 
         system_state->default_material.diffuse_map.use = TextureUse::MAP_DIFFUSE;

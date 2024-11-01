@@ -33,11 +33,11 @@ namespace Platform
 
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param);
 
-    bool32 system_init(FP_allocator_allocate_callback allocator_callback, void*& out_state, const char* application_name, int32 x, int32 y, int32 width, int32 height)
+    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
 
-        out_state = allocator_callback(sizeof(PlatformState));
-        plat_state = (PlatformState*)out_state;
+        SystemConfig* sys_config = (SystemConfig*)config;
+        plat_state = (PlatformState*)allocator_callback(allocator, sizeof(PlatformState));
 
         plat_state->h_instance = GetModuleHandleA(0);
 
@@ -63,10 +63,10 @@ namespace Platform
         }
 
         // Create window
-        plat_state->client_x = x;
-        plat_state->client_y = y;
-        plat_state->client_width = width;
-        plat_state->client_height = height;
+        plat_state->client_x = sys_config->x;
+        plat_state->client_y = sys_config->y;
+        plat_state->client_width = sys_config->width;
+        plat_state->client_height = sys_config->height;
 
         uint32 window_x = plat_state->client_x;
         uint32 window_y = plat_state->client_y;
@@ -95,7 +95,7 @@ namespace Platform
         //console_write("Hallo :)", 3);
 
         HWND handle = CreateWindowExA(
-            window_ex_style, "shmengine_window_class", application_name,
+            window_ex_style, "shmengine_window_class", sys_config->application_name,
             window_style, window_x, window_y, window_width, window_height,
             0, 0, plat_state->h_instance, 0);
 
@@ -134,7 +134,7 @@ namespace Platform
         return TRUE;
     }
 
-    void system_shutdown() {
+    void system_shutdown(void* state) {
 
         if (plat_state) {
             DestroyWindow(plat_state->hwnd);
@@ -221,8 +221,8 @@ namespace Platform
         SetConsoleTextAttribute(console_handle, levels[color]);
         OutputDebugStringA(message);
         uint64 length = strlen(message);
-        LPDWORD number_written = 0;
-        WriteConsoleA(console_handle, message, (DWORD)length, number_written, 0);
+        DWORD number_written = 0;
+        WriteConsoleA(console_handle, message, (DWORD)length, &number_written, 0);
     }
 
     void console_write_error(const char* message, uint8 color)
@@ -234,8 +234,8 @@ namespace Platform
         SetConsoleTextAttribute(console_handle, levels[color]);
         OutputDebugStringA(message);
         uint64 length = strlen(message);
-        LPDWORD number_written = 0;
-        WriteConsoleA(console_handle, message, (DWORD)length, number_written, 0);
+        DWORD number_written = 0;
+        WriteConsoleA(console_handle, message, (DWORD)length, &number_written, 0);
     }
 
     float64 get_absolute_time() {
