@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../RendererBackend.hpp"
-#include "utility/Math.hpp"
-#include "resources/ResourceTypes.hpp"
+#include <renderer/RendererTypes.hpp>
+#include <utility/Math.hpp>
+#include <resources/ResourceTypes.hpp>
 
 struct VulkanContext;
 
 namespace Renderer::Vulkan
 {
-	bool32 init(const BackendConfig& config, uint32* out_window_render_target_count);
+	bool32 init(const ModuleConfig& config, uint32* out_window_render_target_count);
 	void shutdown();
 
 	void on_config_changed();

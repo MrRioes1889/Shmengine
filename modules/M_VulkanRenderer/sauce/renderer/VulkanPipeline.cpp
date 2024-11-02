@@ -1,7 +1,7 @@
 #include "VulkanInternal.hpp"
 
-#include "core/Memory.hpp"
-#include "core/Logging.hpp"
+#include <core/Memory.hpp>
+#include <core/Logging.hpp>
 
 namespace Renderer::Vulkan
 {

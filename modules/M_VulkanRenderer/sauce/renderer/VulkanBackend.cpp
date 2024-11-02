@@ -2,21 +2,21 @@
 
 #include "VulkanTypes.hpp"
 #include "VulkanInternal.hpp"
-#include "VulkanPlatform.hpp"
+#include "platform/VulkanPlatform.hpp"
 
-#include "core/Logging.hpp"
-#include "core/Event.hpp"
-#include "containers/Darray.hpp"
-#include "utility/CString.hpp"
+#include <core/Logging.hpp>
+#include <core/Event.hpp>
+#include <containers/Darray.hpp>
+#include <utility/CString.hpp>
 
-#include "systems/ShaderSystem.hpp"
-#include "systems/MaterialSystem.hpp"
-#include "systems/TextureSystem.hpp"
-#include "systems/ResourceSystem.hpp"
+#include <systems/ShaderSystem.hpp>
+#include <systems/MaterialSystem.hpp>
+#include <systems/TextureSystem.hpp>
+#include <systems/ResourceSystem.hpp>
 
 // TODO: Get rid of frontend include
-#include "renderer/RendererFrontend.hpp"
-#include "optick.h"
+#include <renderer/RendererFrontend.hpp>
+#include <optick.h>
 
 #define VULKAN_USE_CUSTOM_ALLOCATOR 1
 
@@ -37,7 +37,7 @@ namespace Renderer::Vulkan
 
 	VulkanContext context = {};
 
-	bool32 init(const BackendConfig& config, uint32* out_window_render_target_count)
+	bool32 init(const ModuleConfig& config, uint32* out_window_render_target_count)
 	{
 
 		context.find_memory_index = find_memory_index;
@@ -180,7 +180,7 @@ namespace Renderer::Vulkan
 #endif
 
 		SHMDEBUG("Creating vulkan surface...");
-		if (!Platform::create_vulkan_surface(&context))
+		if (!create_vulkan_surface())
 		{
 			SHMERROR("Failed to create vulkan surface");
 			return false;

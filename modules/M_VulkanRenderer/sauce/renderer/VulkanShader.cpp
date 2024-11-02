@@ -1,11 +1,11 @@
 #include "VulkanBackend.hpp"
 
 #include "VulkanInternal.hpp"
-#include "systems/ResourceSystem.hpp"
-#include "systems/TextureSystem.hpp"
+#include <systems/ResourceSystem.hpp>
+#include <systems/TextureSystem.hpp>
 
 // TODO: Get rid of frontend include
-#include "renderer/RendererFrontend.hpp"
+#include <renderer/RendererFrontend.hpp>
 
 namespace Renderer::Vulkan
 {
@@ -576,6 +576,7 @@ namespace Renderer::Vulkan
 				descriptor_count++;
 			}
 
+			
 			if (descriptor_count > 0)
 			{
 				vkUpdateDescriptorSets(context.device.logical_device, descriptor_count, descriptor_writes, 0, 0);

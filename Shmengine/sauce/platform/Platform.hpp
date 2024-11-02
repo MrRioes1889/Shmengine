@@ -7,6 +7,14 @@
 namespace Platform
 {
 
+	struct SHMAPI WindowHandle
+	{	
+#if _WIN32
+		void* h_instance;
+		void* h_wnd;
+#endif
+	};
+
 	struct SystemConfig 
 	{
 		const char* application_name;
@@ -41,6 +49,8 @@ namespace Platform
 	Math::Vec2i get_cursor_pos();
 	void set_cursor_pos(int32 x, int32 y);
 	bool32 clip_cursor(bool32 clip);
+
+	SHMAPI WindowHandle get_window_handle();
 
 }
 

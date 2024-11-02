@@ -1,11 +1,13 @@
 #include "VulkanInternal.hpp"
 
-#include "core/Logging.hpp"
-#include "core/Memory.hpp"
+#include <renderer/RendererUtils.hpp>
 
-#include "utility/Utility.hpp"
-
-#include "systems/TextureSystem.hpp"
+#include <core/Logging.hpp>
+#include <core/Memory.hpp>
+		 
+#include <utility/Utility.hpp>
+		 
+#include <systems/TextureSystem.hpp>
 
 namespace Renderer::Vulkan
 {
@@ -34,12 +36,11 @@ namespace Renderer::Vulkan
 			out_swapchain->image_format = context.device.swapchain_support.formats[0];
 
 		VkPresentModeKHR present_mode;
-		RendererConfigFlags::Value flags = RendererConfig::flags;
-		if (flags & RendererConfigFlags::VSYNC)
+		if (flags_enabled(RendererConfigFlags::VSYNC))
 		{
 			present_mode = VK_PRESENT_MODE_FIFO_KHR;
 
-			if (!(flags & RendererConfigFlags::POWER_SAVING))
+			if (!(flags_enabled(RendererConfigFlags::POWER_SAVING)))
 			{
 				for (uint32 i = 0; i < context.device.swapchain_support.present_mode_count; i++)
 				{
@@ -50,7 +51,7 @@ namespace Renderer::Vulkan
 						break;
 					}
 				}
-			}		
+			}
 		}
 		else
 		{

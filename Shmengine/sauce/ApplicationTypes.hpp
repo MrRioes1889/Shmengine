@@ -19,6 +19,8 @@ struct ApplicationConfig {
 	Sarray<FontSystem::BitmapFontConfig> bitmap_font_configs;
 	Sarray<FontSystem::TruetypeFontConfig> truetype_font_configs;
 	Sarray<Renderer::RenderViewConfig> render_view_configs;
+
+	Renderer::Module renderer_module;
 };
 
 struct Application

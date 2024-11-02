@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Defines.hpp"
-#include "core/Assert.hpp"
-#include "containers/Sarray.hpp"
-#include "containers/Buffer.hpp"
-#include "utility/Math.hpp"
-#include "memory/DynamicAllocator.hpp"
-#include "containers/Hashtable.hpp"
-
-#include "renderer/RendererTypes.hpp"
+#include <Defines.hpp>
+#include <core/Assert.hpp>
+#include <containers/Sarray.hpp>
+#include <containers/Buffer.hpp>
+#include <utility/Math.hpp>
+#include <memory/DynamicAllocator.hpp>
+#include <containers/Hashtable.hpp>
+		 
+#include <renderer/RendererTypes.hpp>
 
 #include <vulkan/vulkan.h>
 

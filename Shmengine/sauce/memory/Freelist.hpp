@@ -13,7 +13,7 @@ enum class AllocatorPageSize
 	LARGE = 0x100
 };
 
-struct Freelist
+struct SHMAPI Freelist
 {
 
 	struct Node

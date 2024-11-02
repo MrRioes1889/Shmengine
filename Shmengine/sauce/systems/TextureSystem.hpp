@@ -19,21 +19,21 @@ namespace TextureSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	Texture* acquire(const char* name, bool32 auto_release);
-	Texture* acquire_cube(const char* name, bool32 auto_release);
-	Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency);
+	SHMAPI Texture* acquire(const char* name, bool32 auto_release);
+	SHMAPI Texture* acquire_cube(const char* name, bool32 auto_release);
+	SHMAPI Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency);
 
-	bool32 wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture);
-	bool32 set_internal(Texture* t, void* internal_data, uint64 internal_data_size);
-	bool32 resize(Texture* t, uint32 width, uint32 height, bool32 regenerate_internal_data);
-	void write_to_texture(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
+	SHMAPI bool32 wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture);
+	SHMAPI bool32 set_internal(Texture* t, void* internal_data, uint64 internal_data_size);
+	SHMAPI bool32 resize(Texture* t, uint32 width, uint32 height, bool32 regenerate_internal_data);
+	SHMAPI void write_to_texture(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
 
-	void release(const char* name);
+	SHMAPI void release(const char* name);
 
-	Texture* get_default_texture();
-	Texture* get_default_diffuse_texture();
-	Texture* get_default_specular_texture();
-	Texture* get_default_normal_texture();
+	SHMAPI Texture* get_default_texture();
+	SHMAPI Texture* get_default_diffuse_texture();
+	SHMAPI Texture* get_default_specular_texture();
+	SHMAPI Texture* get_default_normal_texture();
 }
 
 

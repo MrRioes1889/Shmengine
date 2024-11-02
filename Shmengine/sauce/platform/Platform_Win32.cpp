@@ -1,5 +1,4 @@
 #include "platform/Platform.hpp"
-#include "renderer/vulkan_renderer/VulkanPlatform.hpp"
 #include "core/Event.hpp"
 #include "core/Input.hpp"
 #include "core/Logging.hpp"
@@ -9,7 +8,6 @@
 
 #include <windows.h>
 #include <hidusage.h>
-#include <vulkan/vulkan_win32.h>
 
 namespace Platform
 {
@@ -17,7 +15,6 @@ namespace Platform
     struct PlatformState {
         HINSTANCE h_instance;
         HWND hwnd;
-        VkSurfaceKHR surface;
         bool32 cursor_clipped;
         uint32 client_x;
         uint32 client_y;
@@ -287,22 +284,13 @@ namespace Platform
         return true;
     }
 
-    bool32 create_vulkan_surface(Renderer::Vulkan::VulkanContext* context)
+    WindowHandle get_window_handle()
     {
-
-        VkWin32SurfaceCreateInfoKHR create_info = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-        create_info.hinstance = plat_state->h_instance;
-        create_info.hwnd = plat_state->hwnd;
-
-        if (vkCreateWin32SurfaceKHR(context->instance, &create_info, context->allocator_callbacks, &plat_state->surface) != VK_SUCCESS)
-        {
-            SHMFATAL("Failed to create vulkan surface");
-            return false;
-        }
-
-        context->surface = plat_state->surface;
-        return true;
-    }  
+        WindowHandle ret;
+        ret.h_instance = plat_state->h_instance;
+        ret.h_wnd = plat_state->hwnd;
+        return ret;
+    }
 
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param) {
         switch (msg) {

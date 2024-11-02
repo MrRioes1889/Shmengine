@@ -244,7 +244,7 @@ namespace Renderer
 				}
 
 				// Apply the material
-				bool32 needs_update = (m->render_frame_number != frame_number);
+				bool32 needs_update = (m->render_frame_number != (uint32)frame_number);
 				if (!MaterialSystem::apply_instance(m, needs_update))
 				{
 					SHMWARNV("render_view_world_on_render - Failed to apply material '%s'. Skipping draw.", m->name);

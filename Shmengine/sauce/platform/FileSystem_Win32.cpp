@@ -7,12 +7,13 @@
 
 #if _WIN32
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 namespace FileSystem
 {
 
-	SHMAPI bool32 file_exists(const char* path)
+	bool32 file_exists(const char* path)
 	{
 		DWORD dwAttrib = GetFileAttributesA(path);
 
@@ -30,7 +31,7 @@ namespace FileSystem
 		return (int64)file_size.QuadPart;
 	}
 
-	SHMAPI uint32 get_file_size32(FileHandle* file)
+	uint32 get_file_size32(FileHandle* file)
 	{
 
 		int64 file_size = get_file_size(file);
@@ -44,7 +45,7 @@ namespace FileSystem
 
 	}
 
-	SHMAPI bool32 file_open(const char* path, FileMode mode, FileHandle* out_file)
+	bool32 file_open(const char* path, FileMode mode, FileHandle* out_file)
 	{
 
 		out_file->handle = 0;
@@ -81,7 +82,7 @@ namespace FileSystem
 		return true;
 	}
 
-	SHMAPI void file_close(FileHandle* file)
+	void file_close(FileHandle* file)
 	{		
 
 		CloseHandle(file->handle);
@@ -111,7 +112,7 @@ namespace FileSystem
 
 	}
 
-	SHMAPI bool32 read_all_bytes(FileHandle* file, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read)
+	bool32 read_all_bytes(FileHandle* file, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read)
 	{
 
 		uint32 file_size = get_file_size32(file);
@@ -123,7 +124,7 @@ namespace FileSystem
 
 	}
 
-	SHMAPI int32 read_line(const char* file_buffer, char* line_buffer, uint32 line_buffer_size, const char** out_continue_ptr)
+	int32 read_line(const char* file_buffer, char* line_buffer, uint32 line_buffer_size, const char** out_continue_ptr)
 	{
 
 		if (!file_buffer || !line_buffer)
@@ -152,7 +153,7 @@ namespace FileSystem
 
 	}
 
-	SHMAPI bool32 write(FileHandle* file, uint32 size, const void* data, uint32* out_bytes_written)
+	bool32 write(FileHandle* file, uint32 size, const void* data, uint32* out_bytes_written)
 	{
 		if (!file)
 			return true;
@@ -219,7 +220,7 @@ namespace FileSystem
 
 		return true;
 
-	}
+	}	
 
 }
 

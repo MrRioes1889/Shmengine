@@ -32,7 +32,7 @@ namespace Renderer
 		typedef uint32 Value;
 	}
 
-	struct RendererConfig
+	struct SHMAPI RendererConfig
 	{
 		static inline const char* builtin_shader_name_material = "Shader.Builtin.Material";
 		static inline const char* builtin_shader_name_ui = "Shader.Builtin.UI";
@@ -53,8 +53,6 @@ namespace Renderer
 		inline static const uint32 shader_max_uniforms = 128;
 		inline static const uint32 shader_max_bindings = 2;
 		inline static const uint32 shader_max_push_const_ranges = 32;
-
-		static RendererConfigFlags::Value flags;
 	};
 
 	namespace ViewMode
@@ -360,18 +358,6 @@ namespace Renderer
 
 	};
 
-	enum BackendType
-	{
-		VULKAN,
-		OPENGL,
-		DIRECTX,
-	};
-
-	struct BackendConfig
-	{
-		const char* application_name;
-	};
-
 	struct Vertex3D
 	{
 		Math::Vec3f position;
@@ -512,12 +498,17 @@ namespace Renderer
 		Sarray<RenderViewPacket> views;
 	};
 
-	struct Backend
+	struct ModuleConfig
+	{
+		const char* application_name;
+	};
+
+	struct Module
 	{
 
 		uint64 frame_count;
 
-		bool32(*init)(const BackendConfig& config, uint32* out_window_render_target_count);
+		bool32(*init)(const ModuleConfig& config, uint32* out_window_render_target_count);
 		void (*shutdown)();
 
 		void(*on_config_changed)();
@@ -590,5 +581,4 @@ namespace Renderer
 		bool8 (*is_multithreaded)();
 	};
 
-	
 }

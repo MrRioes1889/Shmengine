@@ -140,6 +140,8 @@ bool32 SubsystemManager::register_known_systems_pre_boot(ApplicationConfig* app_
 
 	Renderer::SystemConfig renderer_sys_config;
 	renderer_sys_config.application_name = app_config->name;
+	renderer_sys_config.flags = 0;
+	renderer_sys_config.renderer_module = app_config->renderer_module;
 	
 	if (!register_system(SubsystemType::RENDERER, Renderer::system_init, Renderer::system_shutdown, 0, &renderer_sys_config))
 	{

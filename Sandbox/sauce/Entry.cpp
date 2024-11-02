@@ -1,7 +1,7 @@
 #include "Application.hpp"
 
 #include <entry.hpp>
-#include <core/Memory.hpp>
+#include <VulkanRendererModule.hpp>
 
 // Define the function to create a game
 bool32 create_application(Application* out_app) {
@@ -17,6 +17,9 @@ bool32 create_application(Application* out_app) {
     out_app->render = application_render;
     out_app->on_resize = application_on_resize;
     out_app->shutdown = application_shutdown;
+
+    if (!Renderer::Vulkan::create_module(&out_app->config.renderer_module))
+        return false;
 
     // Create the game state.
     out_app->state_size = sizeof(ApplicationState);
