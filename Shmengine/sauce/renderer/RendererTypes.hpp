@@ -508,7 +508,9 @@ namespace Renderer
 
 		uint64 frame_count;
 
-		bool32(*init)(const ModuleConfig& config, uint32* out_window_render_target_count);
+		uint64(*get_context_size_requirement)();
+
+		bool32(*init)(void* context, const ModuleConfig& config, uint32* out_window_render_target_count);
 		void (*shutdown)();
 
 		void(*on_config_changed)();

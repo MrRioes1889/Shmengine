@@ -2,6 +2,7 @@
 
 #include "core/Engine.hpp"
 #include "memory/LinearAllocator.hpp"
+#include "platform/Platform.hpp"
 
 struct ApplicationFrameData
 {
@@ -21,18 +22,26 @@ struct ApplicationConfig {
 	Sarray<Renderer::RenderViewConfig> render_view_configs;
 
 	Renderer::Module renderer_module;
+	
 };
 
 struct Application
 {
 	ApplicationConfig config;
-	
-	bool32 (*boot)(Application* game_inst);
-	bool32(*init)(Application* game_inst);
-	bool32 (*update)(Application* game_inst, float64 delta_time);
-	bool32 (*render)(Application* game_inst, Renderer::RenderPacket* packet, float64 delta_time);
-	void (*on_resize)(Application* game_inst, uint32 width, uint32 height);
-	void (*shutdown)(Application* game_inst);
+
+	typedef bool32(*FP_boot)(Application* game_inst);
+	typedef bool32(*FP_init)(Application* game_inst);
+	typedef void(*FP_shutdown)(Application* game_inst);
+	typedef bool32(*FP_update)(Application* app_inst, float64 delta_time);
+	typedef bool32(*FP_render)(Application* app_inst, Renderer::RenderPacket* packet, float64 delta_time);
+	typedef void(*FP_on_resize)(Application* game_inst, uint32 width, uint32 height);
+		
+	FP_boot boot;
+	FP_init init;
+	FP_shutdown shutdown;
+	FP_update update;
+	FP_render render;
+	FP_on_resize on_resize;
 
 	Memory::LinearAllocator frame_allocator;
 	ApplicationFrameData frame_data;
@@ -41,4 +50,7 @@ struct Application
 	void* state;
 
 	void* engine_state;
+
+	Platform::DynamicLibrary renderer_lib;
+	Platform::DynamicLibrary application_lib;
 };

@@ -6,9 +6,10 @@ workspace "Shmengine"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}/Sandbox/"
 engine_name = "Shmengine"
-app_name = "Sandbox"
+app_name = "Application"
 tests_name = "Tests"
 vulkan_renderer_module_name = "M_VulkanRenderer"
+sandbox_app_module_name = "A_Sandbox"
 
 IncludeDir = {}
 
@@ -35,8 +36,7 @@ project  (engine_name)
 
     includedirs
 	{
-        "%{wks.location}/" .. engine_name .. "/sauce",        
-        "$(VULKAN_SDK)/Include",
+        "%{wks.location}/" .. engine_name .. "/sauce",
         "%{wks.location}/vendor/Optick/include", 
 	}
 
@@ -84,7 +84,7 @@ project  (vulkan_renderer_module_name)
     dependson (engine_name)
     kind "SharedLib"
     language "C++"
-    location ("%{wks.location}/modules/" .. vulkan_renderer_module_name)
+    location ("%{wks.location}/modules/renderer/" .. vulkan_renderer_module_name)
 
     targetdir ("%{wks.location}/bin/" .. outputdir)
 	objdir    ("%{wks.location}/bin-int/" .. outputdir)
@@ -94,10 +94,10 @@ project  (vulkan_renderer_module_name)
 
     files
 	{
-		"%{wks.location}/modules/" .. vulkan_renderer_module_name .. "/sauce/**.h",
-		"%{wks.location}/modules/" .. vulkan_renderer_module_name .. "/sauce/**.hpp",
-        "%{wks.location}/modules/" .. vulkan_renderer_module_name .. "/sauce/**.c",
-		"%{wks.location}/modules/" .. vulkan_renderer_module_name .. "/sauce/**.cpp",
+		"%{wks.location}/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.h",
+		"%{wks.location}/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.hpp",
+        "%{wks.location}/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.c",
+		"%{wks.location}/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.cpp",
 	}
 
     includedirs
@@ -141,9 +141,69 @@ project  (vulkan_renderer_module_name)
 
 --------------------------------------------------------------------------------------------------------------------------------
 
+project  (sandbox_app_module_name)
+    dependson (engine_name)
+    kind "SharedLib"
+    language "C++"
+    location ("%{wks.location}/modules/app/" .. sandbox_app_module_name)
+
+    targetdir ("%{wks.location}/bin/" .. outputdir)
+	objdir    ("%{wks.location}/bin-int/" .. outputdir)
+
+    -- pchheader "mpch.hpp"
+    -- pchsource "%{wks.location}/%{prj.name}/sauce/mpch.cpp"
+
+    files
+	{
+		"%{wks.location}/modules/app/" .. sandbox_app_module_name .. "/sauce/**.h",
+		"%{wks.location}/modules/app/" .. sandbox_app_module_name .. "/sauce/**.hpp",
+        "%{wks.location}/modules/app/" .. sandbox_app_module_name .. "/sauce/**.c",
+		"%{wks.location}/modules/app/" .. sandbox_app_module_name .. "/sauce/**.cpp",
+	}
+
+    includedirs
+	{
+        "%{wks.location}/" .. engine_name .. "/sauce",
+        "%{wks.location}/vendor/Optick/include", 
+	}
+
+    links
+    {
+        "Winmm.lib",
+        "%{wks.location}/bin/" .. outputdir .. "Shmengine.lib",
+        "%{wks.location}/vendor/Optick/lib/x64/release/OptickCore.lib",   
+    } 
+
+    flags("FatalWarnings")
+
+    filter "system:windows"
+        defines {"LIB_COMPILE", "PLATFORM_WINDOWS", "_WIN32", "SHMEXPORT"}
+        warnings "High"
+        inlining ("Explicit")
+        buildoptions {"/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011"}
+        systemversion "latest"
+		cppdialect "C++20"
+        staticruntime "on"
+
+    filter "configurations:Debug"
+        defines {"DEBUG"}
+        symbols "On"
+
+    filter "configurations:ODebug"
+        defines {"DEBUG"}
+        symbols "On"
+        optimize "On"
+
+    filter "configurations:Release"
+        defines {"NDEBUG"}
+        optimize "On"
+
+--------------------------------------------------------------------------------------------------------------------------------
+
 project (app_name)
     dependson (engine_name)
     dependson (vulkan_renderer_module_name)
+    dependson (sandbox_app_module_name)
     kind "WindowedApp"
     language "C++"
     location "%{wks.location}/%{prj.name}"
@@ -166,7 +226,7 @@ project (app_name)
 	{
 		"%{wks.location}/" .. app_name .. "/sauce",
         "%{wks.location}/" .. engine_name .. "/sauce",
-        "%{wks.location}/modules/" .. vulkan_renderer_module_name .. "/sauce",
+        "%{wks.location}/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce",
         "%{wks.location}/vendor/Optick/include", 
 	}
 
@@ -177,70 +237,6 @@ project (app_name)
         "Winmm.lib",
         "%{wks.location}/vendor/Optick/lib/x64/release/OptickCore.lib",   
         "%{wks.location}/bin/" .. outputdir .. "Shmengine.lib",   
-        "%{wks.location}/bin/" .. outputdir .. vulkan_renderer_module_name .. ".lib",
-    }
-
-    flags("FatalWarnings")
-
-    filter "system:windows"
-        defines {"PLATFORM_WINDOWS", "_WIN32"}
-        warnings "High"
-        inlining ("Explicit")
-        buildoptions {"/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011"}
-        systemversion "latest"
-		cppdialect "C++20"
-        staticruntime "on"
-
-    filter "configurations:Debug"
-        defines {"DEBUG"}
-        symbols "On"
-
-    filter "configurations:ODebug"
-        defines {"DEBUG"}
-        symbols "On"
-        optimize "On"
-
-    filter "configurations:Release"
-        defines {"NDEBUG"}
-        optimize "On"
-
-----------------------------------------------------------------------------------------------------------------------------------------------
-
-project (tests_name)
-    dependson (engine_name)
-    dependson (vulkan_renderer_module_name)
-    kind "ConsoleApp"
-    language "C++"
-    location "%{wks.location}/%{prj.name}"
-
-    targetdir ("%{wks.location}/bin/" .. outputdir)
-	objdir    ("%{wks.location}/bin-int/" .. outputdir)
-
-    -- pchheader "mpch.hpp"
-    -- pchsource "%{wks.location}/%{prj.name}/sauce/mpch.cpp"
-
-    files
-	{
-		"%{wks.location}/" .. tests_name .. "/sauce/**.h",
-		"%{wks.location}/" .. tests_name .. "/sauce/**.hpp",
-        "%{wks.location}/" .. tests_name .. "/sauce/**.c",
-		"%{wks.location}/" .. tests_name .. "/sauce/**.cpp",
-	}
-
-    includedirs
-	{
-		"%{wks.location}/" .. tests_name .. "/sauce",
-        "%{wks.location}/" .. engine_name .. "/sauce",
-        "%{wks.location}/modules/" .. vulkan_renderer_module_name .. "/sauce",
-	}
-
-    links
-    {
-        "user32.lib",
-        "Gdi32.lib",
-        "Winmm.lib",
-        "%{wks.location}/bin/" .. outputdir .. "Shmengine.lib",   
-        "%{wks.location}/bin/" .. outputdir .. vulkan_renderer_module_name .. ".lib",
     }
 
     flags("FatalWarnings")

@@ -127,7 +127,8 @@ namespace Renderer
 		out_packet->view_matrix = internal_data->camera->get_view();
 		out_packet->view_position = internal_data->camera->get_position();
 
-		out_packet->extended_data = skybox_data;
+		out_packet->extended_data = frame_allocator->allocate(sizeof(SkyboxPacketData));
+		Memory::copy_memory(skybox_data, out_packet->extended_data, sizeof(SkyboxPacketData));
 		return true;
 
 	}

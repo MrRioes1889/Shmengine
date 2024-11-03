@@ -4,6 +4,7 @@
 #include "core/Logging.hpp"
 #include "memory/LinearAllocator.hpp"
 
+
 #if _WIN32
 
 #include <windows.h>
@@ -290,6 +291,60 @@ namespace Platform
         ret.h_instance = plat_state->h_instance;
         ret.h_wnd = plat_state->hwnd;
         return ret;
+    }
+
+    bool32 load_dynamic_library(const char* name, DynamicLibrary* out_lib)
+    {
+
+        char filename[MAX_PATH] = {};
+        CString::print_s(filename, MAX_PATH, "%s.dll", name);
+
+        HMODULE lib = LoadLibraryA(filename);
+        if (!lib)
+            return false;
+
+        out_lib->name = name;
+        out_lib->filename = filename;
+        out_lib->handle = lib;
+
+        out_lib->functions.init(8, 0, AllocationTag::PLATFORM);
+
+        SHMINFOV("Loaded dynamic library '%s'", name);
+
+        return true;
+
+    }
+
+    bool32 unload_dynamic_library(DynamicLibrary* lib)
+    {
+      
+        if (!FreeLibrary((HMODULE)lib->handle))
+            return false;
+
+        SHMINFOV("Unloading dynamic library '%s'", lib->name.c_str());
+
+        lib->name.free_data();
+        lib->filename.free_data();
+
+        for (uint32 i = 0; i < lib->functions.count; i++)
+            lib->functions[i].name.free_data();
+        lib->functions.free_data();    
+
+        return true;
+
+    }
+
+    bool32 load_dynamic_library_function(DynamicLibrary* lib, const char* name)
+    {
+        FARPROC fp = GetProcAddress((HMODULE)lib->handle, name);
+        if (!fp)
+            return false;
+
+        DynamicLibFunction* function = lib->functions.emplace();
+        function->function_ptr = fp;
+        function->name = name;
+
+        return true;
     }
 
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param) {

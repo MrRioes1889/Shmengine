@@ -24,6 +24,7 @@ namespace Renderer
 	struct SystemState
 	{
 		Renderer::Module module;
+		void* module_context;
 
 		uint32 framebuffer_width;
 		uint32 framebuffer_height;
@@ -57,10 +58,13 @@ namespace Renderer
 		system_state->resizing = false;
 		system_state->frames_since_resize = 0;
 
+		uint64 context_size_req = system_state->module.get_context_size_requirement();
+		system_state->module_context = Memory::allocate(context_size_req, AllocationTag::RENDERER);
+
 		ModuleConfig backend_config = {};
 		backend_config.application_name = sys_config->application_name;
 
-		if (!system_state->module.init(backend_config, &system_state->window_render_target_count))
+		if (!system_state->module.init(system_state->module_context, backend_config, &system_state->window_render_target_count))
 		{
 			SHMERROR("Failed to initialize renderer backend!");
 			return false;
@@ -74,7 +78,10 @@ namespace Renderer
 		if (!system_state)
 			return;
 
-		system_state->module.shutdown();	
+		system_state->module.shutdown();
+		if (system_state->module_context)
+			Memory::free_memory(system_state->module_context);
+
 		system_state = 0;
 	}
 

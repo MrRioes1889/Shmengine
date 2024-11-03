@@ -178,13 +178,7 @@ namespace Memory
         void* ret = 0;
 
         if (!system_state && system_initialized)
-            return 0;
-
-        if (!Threading::mutex_lock(&system_state->allocation_mutex))
-        {
-            SHMFATAL("Failed obtaining lock for general allocation mutex!");
-            return 0;
-        }
+            return 0;   
     
         /*uint64 bytes_allocated = 0;
         ret = system_state->string_allocator.allocate(size, &bytes_allocated);
@@ -197,12 +191,18 @@ namespace Memory
         }         
         else
         {
+            if (!Threading::mutex_lock(&system_state->allocation_mutex))
+            {
+                SHMFATAL("Failed obtaining lock for general allocation mutex!");
+                return 0;
+            }
+
             ret = allocator->allocate(size, tag, alignment);
+
+            system_state->allocation_count++;
+
+            Threading::mutex_unlock(&system_state->allocation_mutex);
         }     
-
-        system_state->allocation_count++;
-
-        Threading::mutex_unlock(&system_state->allocation_mutex);       
 
         zero_memory(ret, size);
         return ret;
@@ -215,13 +215,7 @@ namespace Memory
         if (!system_state && system_initialized)
             return 0;
 
-        void* ret = 0;
-
-        if (!Threading::mutex_lock(&system_state->allocation_mutex))
-        {
-            SHMFATAL("Failed obtaining lock for general allocation mutex!");
-            return 0;
-        }
+        void* ret = 0;    
 
         /*uint64 bytes_freed = 0;
         uint64 bytes_allocated = 0;
@@ -237,12 +231,17 @@ namespace Memory
         }        
         else
         {
+            if (!Threading::mutex_lock(&system_state->allocation_mutex))
+            {
+                SHMFATAL("Failed obtaining lock for general allocation mutex!");
+                return 0;
+            }
+
             ret = allocator->reallocate(size, block, &tag, alignment);
+
+            Threading::mutex_unlock(&system_state->allocation_mutex);
         }
             
-
-        Threading::mutex_unlock(&system_state->allocation_mutex);
-
         return ret;
    
     }
@@ -272,11 +271,11 @@ namespace Memory
         else
         {
             allocator->free(block, &tag);
-        }
 
-        system_state->allocation_count--;
+            system_state->allocation_count--;
 
-        Threading::mutex_unlock(&system_state->allocation_mutex);
+            Threading::mutex_unlock(&system_state->allocation_mutex);
+        }   
         
     }
 
