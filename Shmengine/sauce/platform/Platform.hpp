@@ -41,12 +41,12 @@ namespace Platform
 		uint32 height;
 	};
 
-	
-
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
 	bool32 pump_messages();
+
+	void get_path_of_executable(char* buffer, uint32 buffer_size);
 
 	void* allocate(uint64 size, uint16 alignment);
 	void free_memory(void* mem, bool32 aligned);

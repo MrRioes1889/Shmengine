@@ -667,6 +667,8 @@ namespace CString
 				*(args[i].uint64_ptr) = arg_copies[i].uint64_value;
 				break;
 			}
+			default:
+				break;
 			}
 		}
 

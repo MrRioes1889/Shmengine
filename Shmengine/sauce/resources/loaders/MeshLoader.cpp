@@ -130,6 +130,10 @@ namespace ResourceSystem
             res = load_shmesh_file(&f, full_filepath.c_str(), resource_data);
             break;
         }
+        default:
+        {
+            return false;
+        }
         }
 
         FileSystem::file_close(&f);

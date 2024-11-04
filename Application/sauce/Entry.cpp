@@ -1,12 +1,12 @@
-#include <entry.hpp>
-#include <VulkanRendererModule.hpp>
+#include <Entry.hpp>
 
 #include <platform/Platform.hpp>
 
 typedef bool32(*FP_create_renderer_module)(Renderer::Module* out_module);
 typedef uint64(*FP_get_module_state_size)();
 
-bool32 create_application(Application* out_app) {
+bool32 create_application(Application* out_app) 
+{
 
     out_app->config.start_pos_x = 100;
     out_app->config.start_pos_y = 100;

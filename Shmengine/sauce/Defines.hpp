@@ -45,7 +45,7 @@ typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
 #define PTR_BYTES_OFFSET(ptr, bytes) (((uint8*)ptr) + (bytes))
 
-#define MAX_FILEPATH_LENGTH 512
+#define MAX_FILEPATH_LENGTH 256
 
 #define INVALID_ID64 0xFFFFFFFFFFFFFFFFU
 #define INVALID_ID 0xFFFFFFFFU

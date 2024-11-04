@@ -472,7 +472,7 @@ bool32 application_update(Application* app_inst, float64 delta_time)
         state->world_camera->pitch(pitch);
     }
 
-	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * (float32)delta_time, true);
+	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, -0.5f * (float32)delta_time, true);
 	Math::transform_rotate(state->world_meshes[0].transform, rotation);
 	Math::transform_rotate(state->world_meshes[1].transform, rotation);
 	Math::transform_rotate(state->world_meshes[2].transform, rotation);

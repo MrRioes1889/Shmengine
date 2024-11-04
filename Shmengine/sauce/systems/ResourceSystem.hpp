@@ -9,7 +9,7 @@ namespace ResourceSystem
 	struct SystemConfig
 	{
 		uint32 max_loader_count;
-		const char* asset_base_path;
+		char asset_base_path[MAX_FILEPATH_LENGTH];
 	};
 
 	struct ResourceLoader

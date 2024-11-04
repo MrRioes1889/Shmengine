@@ -102,7 +102,7 @@ namespace DebugConsole
 				case KeyCode::NUM_0:		  char_code = '='; break;
 				case KeyCode::NUM_1:		  char_code = '!'; break;
 				case KeyCode::NUM_2:		  char_code = '"'; break;
-				case KeyCode::NUM_3:		  char_code = '§'; break;
+				case KeyCode::NUM_3:		  char_code = ' '; break;
 				case KeyCode::NUM_4:		  char_code = '$'; break;
 				case KeyCode::NUM_5:		  char_code = '%'; break;
 				case KeyCode::NUM_6:		  char_code = '&'; break;

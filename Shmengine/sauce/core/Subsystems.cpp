@@ -129,7 +129,11 @@ bool32 SubsystemManager::register_known_systems_pre_boot(ApplicationConfig* app_
 	}
 
 	ResourceSystem::SystemConfig resource_sys_config;
-	resource_sys_config.asset_base_path = "../assets/";
+	char dir[MAX_FILEPATH_LENGTH];
+	Platform::get_path_of_executable(dir, MAX_FILEPATH_LENGTH);
+	CString::left_of_last(dir, MAX_FILEPATH_LENGTH, '/');
+	CString::append(MAX_FILEPATH_LENGTH, dir, "/../../../assets/");
+	CString::copy(MAX_FILEPATH_LENGTH, resource_sys_config.asset_base_path, dir);
 	resource_sys_config.max_loader_count = 32;
 	
 	if (!register_system(SubsystemType::RESOURCE_SYSTEM, ResourceSystem::system_init, ResourceSystem::system_shutdown, 0, &resource_sys_config))

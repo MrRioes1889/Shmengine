@@ -16,7 +16,7 @@ namespace Math
 		t.is_dirty = false;
 	}
 
-	Transform Math::transform_create()
+	Transform transform_create()
 	{
 		Transform t;
 		t.position = VEC3_ZERO;
@@ -28,7 +28,7 @@ namespace Math
 		return t;
 	}
 
-	Transform Math::transform_from_position(Vec3f position)
+	Transform transform_from_position(Vec3f position)
 	{
 		Transform t;
 		t.position = position;
@@ -40,7 +40,7 @@ namespace Math
 		return t;
 	}
 
-	Transform Math::transform_from_rotation(Quat rotation)
+	Transform transform_from_rotation(Quat rotation)
 	{
 		Transform t;
 		t.position = VEC3_ZERO;
@@ -52,7 +52,7 @@ namespace Math
 		return t;
 	}
 
-	Transform Math::transform_from_position_rotation(Vec3f position, Quat rotation)
+	Transform transform_from_position_rotation(Vec3f position, Quat rotation)
 	{
 		Transform t;
 		t.position = position;

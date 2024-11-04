@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma once
-
 #include "Defines.hpp"
 #include "core/Assert.hpp"
 #include "utility/Math.hpp"
@@ -101,6 +99,16 @@ namespace CString
 		return mid(buffer_output, buffer_length, i + 1);
 	}
 
+	SHMINLINE void replace(char* buffer, char old_char, char new_char)
+	{
+		while (*buffer)
+		{
+			if (*buffer == old_char)
+				*buffer = new_char;
+			buffer++;
+		}
+	}
+
 	SHMAPI bool32 parse_f32(const char* s, float32& out);
 	SHMAPI bool32 parse_f64(const char* s, float64& out);
 	SHMAPI bool32 parse_i8(const char* s, int8& out);
@@ -146,7 +154,7 @@ namespace CString
 			uint64* uint64_ptr;
 		};
 
-		Arg() : int64_value(0), type(Type::NONE) {}
+		Arg() : type(Type::NONE), int64_value(0){}
 
 		Arg(int8 value) : type(Type::INT8) { int8_value[0] = value; }
 		Arg(int16 value) : type(Type::INT16) { int16_value[0] = value; }

@@ -90,6 +90,10 @@ namespace ResourceSystem
             res = load_shmttf_file(&f, full_filepath.c_str(), out_data);
             break;
         }
+        default:
+        {
+            return false;
+        }
         }
 
         FileSystem::file_close(&f);

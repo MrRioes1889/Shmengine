@@ -154,6 +154,13 @@ namespace Platform
         return TRUE;
     }
 
+    void get_path_of_executable(char* buffer, uint32 buffer_size)
+    {
+       GetModuleFileNameA(0, buffer, (DWORD)buffer_size);
+       CString::replace(buffer, '\\', '/');
+       return;
+    }
+
 #define DEV_SYSTEM 1
 
     void* allocate(uint64 size, uint16 alignment)
@@ -341,7 +348,7 @@ namespace Platform
             return false;
 
         DynamicLibFunction* function = lib->functions.emplace();
-        function->function_ptr = fp;
+        function->function_ptr = (void*)fp;
         function->name = name;
 
         return true;
