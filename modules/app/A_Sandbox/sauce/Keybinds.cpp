@@ -99,9 +99,9 @@ static void on_render_mode_change(KeyCode::Value key, Input::KeymapBindingType t
 	EventData data = {};
 	if (key == KeyCode::NUM_1)
 		data.i32[0] = Renderer::ViewMode::DEFAULT;
-	if (key == KeyCode::NUM_2)
+	else if (key == KeyCode::NUM_2)
 		data.i32[0] = Renderer::ViewMode::LIGHTING;
-	if (key == KeyCode::NUM_3)
+	else if (key == KeyCode::NUM_3)
 		data.i32[0] = Renderer::ViewMode::NORMALS;
 	else
 		return;
@@ -123,9 +123,9 @@ static void on_console_change_visibility(KeyCode::Value key, Input::KeymapBindin
 {
 	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
 
-	bool8 set_visible = !DebugConsole::is_visible();
+	bool8 set_visible = !DebugConsole::is_visible(&state->debug_console);
 
-	DebugConsole::set_visible(set_visible);
+	DebugConsole::set_visible(&state->debug_console, set_visible);
 	if (set_visible)
 		Input::push_keymap(&state->console_keymap);
 	else
@@ -134,10 +134,12 @@ static void on_console_change_visibility(KeyCode::Value key, Input::KeymapBindin
 
 static void on_console_scroll(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
+	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
+
 	if (key == KeyCode::UP)
-		DebugConsole::scroll_up();
+		DebugConsole::scroll_up(&state->debug_console);
 	else
-		DebugConsole::scroll_down();
+		DebugConsole::scroll_down(&state->debug_console);
 }
 
 static void on_console_scroll_hold(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
@@ -149,55 +151,66 @@ static void on_console_scroll_hold(KeyCode::Value key, Input::KeymapBindingType 
 		return;
 
 	if (key == KeyCode::UP)
-		DebugConsole::scroll_up();
+		DebugConsole::scroll_up(&state->debug_console);
 	else
-		DebugConsole::scroll_down();
+		DebugConsole::scroll_down(&state->debug_console);
 	accumulated_time = 0.0f;
 }
 
 
-void setup_keymaps(Application* game_inst)
+void add_keymaps(Application* app_inst)
 {
 
-	ApplicationState* state = (ApplicationState*)game_inst->state;
+	ApplicationState* state = (ApplicationState*)app_inst->state;
 
 	Input::Keymap global_keymap;
 	global_keymap.init();
-	global_keymap.add_binding(KeyCode::ESCAPE, Input::KeymapBindingType::PRESS, 0, game_inst, on_escape);
+	global_keymap.add_binding(KeyCode::ESCAPE, Input::KeymapBindingType::PRESS, 0, app_inst, on_escape);
 
-	global_keymap.add_binding(KeyCode::LEFT, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_yaw);
-	global_keymap.add_binding(KeyCode::RIGHT, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_yaw);
-	global_keymap.add_binding(KeyCode::UP, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_pitch);
-	global_keymap.add_binding(KeyCode::DOWN, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_pitch);
+	global_keymap.add_binding(KeyCode::LEFT, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_yaw);
+	global_keymap.add_binding(KeyCode::RIGHT, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_yaw);
+	global_keymap.add_binding(KeyCode::UP, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_pitch);
+	global_keymap.add_binding(KeyCode::DOWN, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_pitch);
 
-	global_keymap.add_binding(KeyCode::W, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_forward);
-	global_keymap.add_binding(KeyCode::S, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_backward);
-	global_keymap.add_binding(KeyCode::A, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_left);
-	global_keymap.add_binding(KeyCode::D, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_right);
-	global_keymap.add_binding(KeyCode::SPACE, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_up);
-	global_keymap.add_binding(KeyCode::SHIFT, Input::KeymapBindingType::HOLD, 0, game_inst, on_camera_down);
+	global_keymap.add_binding(KeyCode::W, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_forward);
+	global_keymap.add_binding(KeyCode::S, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_backward);
+	global_keymap.add_binding(KeyCode::A, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_left);
+	global_keymap.add_binding(KeyCode::D, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_right);
+	global_keymap.add_binding(KeyCode::SPACE, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_up);
+	global_keymap.add_binding(KeyCode::SHIFT, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_down);
 
-	global_keymap.add_binding(KeyCode::NUM_0, Input::KeymapBindingType::PRESS, 0, game_inst, on_render_mode_change);
-	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, 0, game_inst, on_render_mode_change);
-	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, 0, game_inst, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, 0, app_inst, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, 0, app_inst, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, 0, app_inst, on_render_mode_change);
 
-	global_keymap.add_binding(KeyCode::L, Input::KeymapBindingType::PRESS, 0, game_inst, on_load_scene);
-	global_keymap.add_binding(KeyCode::T, Input::KeymapBindingType::PRESS, 0, game_inst, on_texture_swap);
-	global_keymap.add_binding(KeyCode::C, Input::KeymapBindingType::PRESS, 0, game_inst, on_clip_cursor);
-	global_keymap.add_binding(KeyCode::M, Input::KeymapBindingType::PRESS, 0, game_inst, on_allocation_count_check);
+	global_keymap.add_binding(KeyCode::L, Input::KeymapBindingType::PRESS, 0, app_inst, on_load_scene);
+	global_keymap.add_binding(KeyCode::T, Input::KeymapBindingType::PRESS, 0, app_inst, on_texture_swap);
+	global_keymap.add_binding(KeyCode::C, Input::KeymapBindingType::PRESS, 0, app_inst, on_clip_cursor);
+	global_keymap.add_binding(KeyCode::M, Input::KeymapBindingType::PRESS, 0, app_inst, on_allocation_count_check);
 
-	global_keymap.add_binding(KeyCode::GRAVE, Input::KeymapBindingType::PRESS, 0, game_inst, on_console_change_visibility);
+	global_keymap.add_binding(KeyCode::GRAVE, Input::KeymapBindingType::PRESS, 0, app_inst, on_console_change_visibility);
 
 	Input::push_keymap(&global_keymap);
 
 	state->console_keymap.init();
 	state->console_keymap.overrides_all = true;
 
-	state->console_keymap.add_binding(KeyCode::ESCAPE, Input::KeymapBindingType::PRESS, 0, game_inst, on_console_change_visibility);
+	state->console_keymap.add_binding(KeyCode::ESCAPE, Input::KeymapBindingType::PRESS, 0, app_inst, on_console_change_visibility);
 
-	state->console_keymap.add_binding(KeyCode::UP, Input::KeymapBindingType::PRESS, 0, game_inst, on_console_scroll);
-	state->console_keymap.add_binding(KeyCode::DOWN, Input::KeymapBindingType::PRESS, 0, game_inst, on_console_scroll);
-	state->console_keymap.add_binding(KeyCode::UP, Input::KeymapBindingType::HOLD, 0, game_inst, on_console_scroll_hold);
-	state->console_keymap.add_binding(KeyCode::DOWN, Input::KeymapBindingType::HOLD, 0, game_inst, on_console_scroll_hold);
+	state->console_keymap.add_binding(KeyCode::UP, Input::KeymapBindingType::PRESS, 0, app_inst, on_console_scroll);
+	state->console_keymap.add_binding(KeyCode::DOWN, Input::KeymapBindingType::PRESS, 0, app_inst, on_console_scroll);
+	state->console_keymap.add_binding(KeyCode::UP, Input::KeymapBindingType::HOLD, 0, app_inst, on_console_scroll_hold);
+	state->console_keymap.add_binding(KeyCode::DOWN, Input::KeymapBindingType::HOLD, 0, app_inst, on_console_scroll_hold);
 
+	if (DebugConsole::is_visible(&state->debug_console))
+		Input::push_keymap(&state->console_keymap);
+
+}
+
+void remove_keymaps(Application* app_inst)
+{
+	ApplicationState* state = (ApplicationState*)app_inst->state;
+
+	Input::clear_keymaps();
+	state->console_keymap.clear();
 }

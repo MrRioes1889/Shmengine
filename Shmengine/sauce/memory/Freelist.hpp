@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma once
-
 #include "Defines.hpp"
 
 enum class AllocatorPageSize

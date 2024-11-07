@@ -1,7 +1,6 @@
 #include "DebugConsole.hpp"
 
 #include <utility/String.hpp>
-#include <resources/UIText.hpp>
 #include <core/Input.hpp>
 #include <core/Event.hpp>
 #include <core/Console.hpp>
@@ -9,35 +8,12 @@
 namespace DebugConsole
 {
 
-	struct DConsole
-	{
-
-		uint32 line_display_count;
-		int32 line_offset;
-
-		Darray<String> lines;
-
-		bool8 dirty;
-		bool8 visible;
-		bool8 loaded;
-
-		UIText text_control;
-		UIText entry_control;
-
-		static const char* entry_prefix;
-		static uint32 entry_prefix_length;
-
-	};
-
-	const char* DConsole::entry_prefix = "--> ";
-	uint32 DConsole::entry_prefix_length = sizeof("--> ") - 1;
-
-	static DConsole* console_state = 0;
-
 	static void command_exit(Console::CommandContext context);
 
 	static bool32 consumer_write(void* inst, Log::LogLevel log_level, const char* message)
 	{
+
+		DebugConsole::State* console_state = (DebugConsole::State*)inst;
 
 		Darray<String> parts;
 		CString::split(message, parts, '\n');
@@ -53,6 +29,8 @@ namespace DebugConsole
 	static bool32 on_key(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
 
+		DebugConsole::State* console_state = (DebugConsole::State*)listener_inst;
+
 		if (!console_state->visible)
 			return false;
 
@@ -65,11 +43,11 @@ namespace DebugConsole
 
 		if (key_code == KeyCode::ENTER)
 		{
-			if (console_state->entry_control.text.len() <= DConsole::entry_prefix_length + 1)
+			if (console_state->entry_control.text.len() <= console_state->entry_prefix.len() + 1)
 				return false;
 
 			console_state->entry_control.text.pop();
-			if (!Console::execute_command(console_state->entry_control.text.c_str() + DConsole::entry_prefix_length))
+			if (!Console::execute_command(console_state->entry_control.text.c_str() + console_state->entry_prefix.len()))
 			{
 			
 			}
@@ -80,7 +58,7 @@ namespace DebugConsole
 		}
 		if (key_code == KeyCode::BACKSPACE)
 		{
-			if (console_state->entry_control.text.len() <= DConsole::entry_prefix_length + 1)
+			if (console_state->entry_control.text.len() <= console_state->entry_prefix.len() + 1)
 				return false;
 
 			console_state->entry_control.text.pop();
@@ -156,32 +134,36 @@ namespace DebugConsole
 	}
 
 
-	void init()
+	void init(State* console_state)
 	{
 
-		console_state = (DConsole*)Memory::allocate(sizeof(DConsole), AllocationTag::UNKNOWN);
 		console_state->lines.init(16, 0);
 
 		console_state->line_display_count = 10;
 		console_state->line_offset = 0;
 		console_state->visible = false;
 
-		Console::register_consumer(0, consumer_write);
+		console_state->entry_prefix = "--> ";
+
+		Console::register_consumer(console_state, consumer_write, &console_state->consumer_id);
 
 		Console::register_command("exit", 0, command_exit);
 		Console::register_command("quit", 0, command_exit);
 
+		Event::event_register(SystemEventCode::KEY_PRESSED, console_state, on_key);
+		Event::event_register(SystemEventCode::KEY_RELEASED, console_state, on_key);
+
 	}
 
-	void destroy()
+	void destroy(State* console_state)
 	{
 
-		unload();
-		console_state->lines.free_data();
+		unload(console_state);
+		console_state->lines.free_data();						
 
 	}
 
-	bool32 load()
+	bool32 load(State* console_state)
 	{
 
 		if (!ui_text_create(UITextType::TRUETYPE, "Martian Mono", 21, "", &console_state->text_control))
@@ -201,27 +183,21 @@ namespace DebugConsole
 		entry_prefix.append('_');
 		ui_text_set_text(&console_state->entry_control, entry_prefix.c_str());
 
-		Event::event_register(SystemEventCode::KEY_PRESSED, 0, on_key);
-		Event::event_register(SystemEventCode::KEY_RELEASED, 0, on_key);
-
 		console_state->loaded = true;
 		return true;
 
 	}
 
-	void unload()
+	void unload(State* console_state)
 	{
 		if (!console_state->loaded)
 			return;
 
 		ui_text_destroy(&console_state->text_control);
 		ui_text_destroy(&console_state->entry_control);
-
-		Event::event_unregister(SystemEventCode::KEY_PRESSED, 0, on_key);
-		Event::event_unregister(SystemEventCode::KEY_RELEASED, 0, on_key);
 	}
 
-	void update()
+	void update(State* console_state)
 	{
 
 		if (!console_state->dirty)
@@ -249,27 +225,27 @@ namespace DebugConsole
 
 	}
 
-	UIText* get_text()
+	UIText* get_text(State* console_state)
 	{
 		return &console_state->text_control;
 	}
 
-	UIText* get_entry_text()
+	UIText* get_entry_text(State* console_state)
 	{
 		return &console_state->entry_control;
 	}
 
-	bool32 is_visible()
+	bool32 is_visible(State* console_state)
 	{
 		return console_state->visible;
 	}
 
-	void set_visible(bool8 flag)
+	void set_visible(State* console_state, bool8 flag)
 	{
 		console_state->visible = flag;
 	}
 
-	void scroll_up()
+	void scroll_up(State* console_state)
 	{
 		console_state->dirty = true;
 		
@@ -283,7 +259,7 @@ namespace DebugConsole
 		console_state->line_offset = SHMIN(console_state->line_offset, (int32)console_state->lines.count - (int32)console_state->line_display_count);
 	}
 
-	void scroll_down()
+	void scroll_down(State* console_state)
 	{
 		console_state->dirty = true;
 
@@ -297,7 +273,7 @@ namespace DebugConsole
 		console_state->line_offset = SHMAX(console_state->line_offset, 0);
 	}
 
-	void scroll_to_top()
+	void scroll_to_top(State* console_state)
 	{
 		console_state->dirty = true;
 
@@ -310,10 +286,32 @@ namespace DebugConsole
 		console_state->line_offset = console_state->lines.count - console_state->lines.count;
 	}
 
-	void scroll_to_bottom()
+	void scroll_to_bottom(State* console_state)
 	{
 		console_state->dirty = true;
 		console_state->line_offset = 0;
+	}
+
+	void on_module_reload(State* console_state)
+	{
+		Console::register_consumer(console_state, consumer_write, &console_state->consumer_id);
+
+		Console::register_command("exit", 0, command_exit);
+		Console::register_command("quit", 0, command_exit);
+
+		Event::event_register(SystemEventCode::KEY_PRESSED, console_state, on_key);
+		Event::event_register(SystemEventCode::KEY_RELEASED, console_state, on_key);
+	}
+
+	void on_module_unload(State* console_state)
+	{
+		Console::unregister_consumer(console_state->consumer_id);
+
+		Console::unregister_command("exit");
+		Console::unregister_command("quit");
+
+		Event::event_unregister(SystemEventCode::KEY_PRESSED, console_state, on_key);
+		Event::event_unregister(SystemEventCode::KEY_RELEASED, console_state, on_key);
 	}
 
 	static void command_exit(Console::CommandContext context)
@@ -321,6 +319,5 @@ namespace DebugConsole
 		SHMDEBUG("game exit called!");
 		Event::event_fire(SystemEventCode::APPLICATION_QUIT, 0, {});
 	}
-
 
 }

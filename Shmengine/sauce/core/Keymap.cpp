@@ -17,17 +17,7 @@ namespace Input
 
 	void Keymap::destroy()
 	{
-		for (uint32 i = 0; i < KeyCode::MAX_KEYS; i++)
-		{
-			KeymapBinding* head = entries[i].bindings;
-			while (head)
-			{
-				KeymapBinding* next = head->next;
-				Memory::free_memory(head);
-				head = next;
-			}
-			entries[i].bindings = 0;
-		}
+		clear();
 	}
 
 	void Keymap::add_binding(KeyCode::Value key, KeymapBindingType type, KeymapModifierFlags::Value modifiers, void* user_data, FP_keybind_callback callback)
@@ -77,6 +67,21 @@ namespace Input
 			binding = binding->next;
 		}
 
+	}
+
+	void Keymap::clear()
+	{
+		for (uint32 i = 0; i < KeyCode::MAX_KEYS; i++)
+		{
+			KeymapBinding* head = entries[i].bindings;
+			while (head)
+			{
+				KeymapBinding* next = head->next;
+				Memory::free_memory(head);
+				head = next;
+			}
+			entries[i].bindings = 0;
+		}
 	}
 
 }

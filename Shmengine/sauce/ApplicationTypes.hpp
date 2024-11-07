@@ -4,6 +4,17 @@
 #include "memory/LinearAllocator.hpp"
 #include "platform/Platform.hpp"
 
+enum class ApplicationStage
+{
+	UNINITIALIZED,
+	BOOTING,
+	BOOT_COMPLETE,
+	INITIALIZING,
+	INITIALIZED,
+	RUNNING,
+	SHUTTING_DOWN
+};
+
 struct ApplicationFrameData
 {
 	Darray<Renderer::GeometryRenderData> world_geometries;
@@ -35,6 +46,8 @@ struct Application
 	typedef bool32(*FP_update)(Application* app_inst, float64 delta_time);
 	typedef bool32(*FP_render)(Application* app_inst, Renderer::RenderPacket* packet, float64 delta_time);
 	typedef void(*FP_on_resize)(Application* game_inst, uint32 width, uint32 height);
+	typedef void(*FP_on_module_reload)(Application* game_inst);
+	typedef void(*FP_on_module_unload)(Application* game_inst);
 		
 	FP_boot boot;
 	FP_init init;
@@ -42,6 +55,10 @@ struct Application
 	FP_update update;
 	FP_render render;
 	FP_on_resize on_resize;
+	FP_on_module_reload on_module_reload;
+	FP_on_module_unload on_module_unload;
+
+	ApplicationStage stage;
 
 	Memory::LinearAllocator frame_allocator;
 	ApplicationFrameData frame_data;

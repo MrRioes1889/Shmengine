@@ -72,7 +72,7 @@ namespace Memory
         }
 
         init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, 0, config.total_allocation_size, AllocatorPageSize::TINY, AllocationTag::MAIN_MEMORY, 10000, 64);
-        init_buffer_and_allocator_pair(&system_state->string_memory, &system_state->string_allocator, &system_state->main_allocator, Mebibytes(64), AllocatorPageSize::MINIMAL, AllocationTag::ALLOCATORS, 100000);
+        init_buffer_and_allocator_pair(&system_state->string_memory, &system_state->string_allocator, &system_state->main_allocator, Mebibytes(64), AllocatorPageSize::SMALL, AllocationTag::ALLOCATORS, 100000, 64);
 
         system_state->allocated_size = 0;
         system_state->allocation_count = 0;

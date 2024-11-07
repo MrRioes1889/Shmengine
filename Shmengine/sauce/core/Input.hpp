@@ -306,6 +306,7 @@ namespace Input
     struct Keymap;
     SHMAPI void push_keymap(const Keymap* map);
     SHMAPI void pop_keymap();
+    SHMAPI void clear_keymaps();
 
     void frame_start();
     void frame_end(float64 delta_time);

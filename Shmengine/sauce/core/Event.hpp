@@ -27,14 +27,14 @@ struct EventData
 
 namespace SystemEventCode
 {
-	enum Value
+	enum
 	{
 		APPLICATION_QUIT = 1,
 		KEY_PRESSED = 2,
 		KEY_RELEASED = 3,
 		BUTTON_PRESSED = 4,
 		BUTTON_RELEASED = 5,
-		MOUSE_MOVED = 6,
+		MOUSE_MOVED_ = 6,
 		MOUSE_SCROLL = 7,
 		MOUSE_INTERNAL_MOVED = 8,
 		WINDOW_RESIZED = 9,
@@ -42,6 +42,9 @@ namespace SystemEventCode
 		SET_RENDER_MODE = 10,
 		OBJECT_HOVER_ID_CHANGED = 11,
 		DEFAULT_RENDERTARGET_REFRESH_REQUIRED = 12,
+
+		WATCHED_FILE_WRITTEN = 13,
+		WATCHED_FILE_DELETED = 14,
 
 		DEBUG0 = 0xFA,
 		DEBUG1 = 0xFB,
@@ -51,6 +54,7 @@ namespace SystemEventCode
 
 		MAX_SYSTEM = 0xFF
 	};	
+	typedef uint8 Value;
 };
 
 namespace Event

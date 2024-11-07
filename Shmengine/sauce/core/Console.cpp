@@ -25,9 +25,8 @@ namespace Console
 	struct SystemState
 	{
 		const static uint32 max_consumer_count = 10;
-		uint32 consumer_count;
-		Consumer consumers[max_consumer_count];
 
+		Consumer consumers[max_consumer_count];
 		Darray<Command> registered_commands;
 	};
 
@@ -39,6 +38,12 @@ namespace Console
 
 		system_state->registered_commands.init(8, 0);
 
+		for (uint32 i = 0; i < SystemState::max_consumer_count; i++)
+		{
+			system_state->consumers[i].instance = 0;
+			system_state->consumers[i].callback = 0;
+		}
+
 		return true;
 	}
 
@@ -47,11 +52,52 @@ namespace Console
 		system_state->registered_commands.free_data();
 	}
 
-	void register_consumer(void* inst, FP_consumer_write callback)
+	bool32 register_consumer(void* inst, FP_consumer_write callback, uint32* out_consumer_id)
 	{
-		SHMASSERT_MSG(system_state->consumer_count + 1 <= SystemState::max_consumer_count, "Exceeded max console consumers limit!");
 
-		Consumer* consumer = &system_state->consumers[system_state->consumer_count++];
+		uint32 first_free_index = INVALID_ID;
+		for (uint32 i = 0; i < SystemState::max_consumer_count; i++)
+		{
+			if (!system_state->consumers[i].instance && first_free_index == INVALID_ID)
+			{
+				first_free_index = i;
+			}			
+			else if (system_state->consumers[i].instance == inst)
+			{
+				system_state->consumers[i].callback = callback;
+				*out_consumer_id = i;
+				return true;
+			}
+		}
+
+		*out_consumer_id = first_free_index;
+		if (*out_consumer_id == INVALID_ID)
+		{
+			SHMERROR("Could not find free slot for console consumer.");
+			return false;
+		}
+
+		Consumer* consumer = &system_state->consumers[first_free_index];
+		consumer->instance = inst;
+		consumer->callback = callback;
+		return true;
+
+	}
+
+	void unregister_consumer(uint32 consumer_id)
+	{
+		SHMASSERT_MSG(consumer_id < system_state->max_consumer_count, "Invalid consumer id!");
+
+		Consumer* consumer = &system_state->consumers[consumer_id];
+		consumer->instance = 0;
+		consumer->callback = 0;
+	}
+
+	void update_consumer(uint32 consumer_id, void* inst, FP_consumer_write callback)
+	{
+		SHMASSERT_MSG(consumer_id < system_state->max_consumer_count, "Invalid consumer id!");
+
+		Consumer* consumer = &system_state->consumers[consumer_id];
 		consumer->instance = inst;
 		consumer->callback = callback;
 	}
@@ -61,8 +107,11 @@ namespace Console
 		if (!system_state)
 			return;
 
-		for (uint32 i = 0; i < system_state->consumer_count; i++)
-			system_state->consumers[i].callback(system_state->consumers[i].instance, level, message);
+		for (uint32 i = 0; i < SystemState::max_consumer_count; i++)
+		{
+			if (system_state->consumers[i].instance)
+				system_state->consumers[i].callback(system_state->consumers[i].instance, level, message);
+		}			
 	}
 
 	bool32 register_command(const char* command, uint32 arg_count, FP_command callback)
@@ -81,6 +130,20 @@ namespace Console
 
 		return true;
 
+	}
+
+	bool32 unregister_command(const char* command)
+	{
+		for (uint32 i = 0; i < system_state->registered_commands.count; i++)
+		{
+			if (CString::equal_i(command, system_state->registered_commands[i].name))
+			{
+				system_state->registered_commands.remove_at(i);
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	bool32 execute_command(const char* command)

@@ -23,6 +23,9 @@
 #include <resources/Mesh.hpp>
 // end
 
+static void register_events(Application* app_inst);
+static void unregister_events(Application* app_inst);
+
 static bool32 application_on_key_pressed(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 	//SHMDEBUGV("Key pressed, Code: %u", data.ui32[0]);
@@ -78,15 +81,13 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 	return true;
 }
 
-uint64 get_module_state_size()
-{
-	return sizeof(ApplicationState);
-}
-
 bool32 application_boot(Application* app_inst)
 {
 
 	app_inst->frame_allocator.init(Mebibytes(64));
+
+	app_inst->state_size = sizeof(ApplicationState);
+	app_inst->state = Memory::allocate(app_inst->state_size, AllocationTag::APPLICATION);
 
 	FontSystem::SystemConfig* font_sys_config = &app_inst->config.fontsystem_config;
 	font_sys_config->auto_release = false;
@@ -113,7 +114,6 @@ bool32 application_boot(Application* app_inst)
 	font_sys_config->truetype_font_configs[0].resource_name = "MartianMono";
 	font_sys_config->truetype_font_configs[0].default_size = 21;
 
-
 	app_inst->config.render_view_configs.init(4, 0);
 	Renderer::RenderViewConfig* skybox_view_config = &app_inst->config.render_view_configs[0];
 	Renderer::RenderViewConfig* world_view_config = &app_inst->config.render_view_configs[1];
@@ -129,7 +129,6 @@ bool32 application_boot(Application* app_inst)
 	world_view_config->pass_configs.init(world_pass_count, 0);
 	ui_view_config->pass_configs.init(ui_pass_count, 0);
 	pick_view_config->pass_configs.init(pick_pass_count, 0);
-
 
 	skybox_view_config->type = Renderer::RenderViewType::SKYBOX;
 	skybox_view_config->width = 0;
@@ -155,7 +154,6 @@ bool32 application_boot(Application* app_inst)
 	skybox_pass->target_config.attachment_configs[0].present_after = false;
 
 	skybox_pass->render_target_count = Renderer::get_window_attachment_count();
-
 
 	world_view_config->type = Renderer::RenderViewType::WORLD;
 	world_view_config->width = 0;
@@ -265,12 +263,7 @@ bool32 application_boot(Application* app_inst)
 	ui_pick_pass->target_config.attachment_configs[0].present_after = false;
 
 	ui_pick_pass->render_target_count = 1;
-
-	setup_keymaps(app_inst);
-	DebugConsole::init();
-
-	Event::event_register(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
-
+	
 	return true;
 
 }
@@ -278,8 +271,12 @@ bool32 application_boot(Application* app_inst)
 bool32 application_init(Application* app_inst) 
 {
     ApplicationState* state = (ApplicationState*)app_inst->state;
+
+	register_events(app_inst);
+	add_keymaps(app_inst);
 	
-	DebugConsole::load();
+	DebugConsole::init(&state->debug_console);
+	DebugConsole::load(&state->debug_console);
 
     state->world_camera = CameraSystem::get_default_camera();
     state->world_camera->set_position({ 10.5f, 5.0f, 9.5f });
@@ -402,9 +399,6 @@ bool32 application_init(Application* app_inst)
 	ui_mesh->transform = Math::transform_create();
 	ui_mesh->generation = 0;*/
 
-	Event::event_register(SystemEventCode::DEBUG0, app_inst, application_on_debug_event);
-	Event::event_register(SystemEventCode::DEBUG1, app_inst, application_on_debug_event);
-
 	app_inst->frame_data.world_geometries.init(512, 0);
 
     return true;
@@ -434,7 +428,7 @@ void application_shutdown(Application* app_inst)
 	ui_text_destroy(&state->test_bitmap_text);
 	ui_text_destroy(&state->test_truetype_text);
 
-	DebugConsole::destroy();
+	DebugConsole::destroy(&state->debug_console);
 
 	state->world_meshes.free_data();
 	state->ui_meshes.free_data();
@@ -472,7 +466,7 @@ bool32 application_update(Application* app_inst, float64 delta_time)
         state->world_camera->pitch(pitch);
     }
 
-	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, -0.5f * (float32)delta_time, true);
+	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, -10.5f * (float32)delta_time, true);
 	Math::transform_rotate(state->world_meshes[0].transform, rotation);
 	Math::transform_rotate(state->world_meshes[1].transform, rotation);
 	Math::transform_rotate(state->world_meshes[2].transform, rotation);
@@ -537,7 +531,7 @@ bool32 application_update(Application* app_inst, float64 delta_time)
 
 	ui_text_set_text(&state->test_truetype_text, ui_text_buffer);
 
-	DebugConsole::update();
+	DebugConsole::update(&state->debug_console);
 
     return true;
 }
@@ -593,11 +587,11 @@ bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet,
 	ui_mesh_data->text_count = 1;		
 	ui_mesh_data->texts = ui_texts.data;
 
-	if (DebugConsole::is_visible())
+	if (DebugConsole::is_visible(&state->debug_console))
 	{
 		ui_mesh_data->text_count += 2;
-		ui_texts[1] = DebugConsole::get_text();
-		ui_texts[2] = DebugConsole::get_entry_text();
+		ui_texts[1] = DebugConsole::get_text(&state->debug_console);
+		ui_texts[2] = DebugConsole::get_entry_text(&state->debug_console);
 	}
 
 	if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &app_inst->frame_allocator, ui_mesh_data, &packet->views[2]))
@@ -626,6 +620,8 @@ void application_on_resize(Application* app_inst, uint32 width, uint32 height)
 {
 
 	ApplicationState* state = (ApplicationState*)app_inst->state;
+	if (!state)
+		return;
 
 	state->width = width;
 	state->height = height;
@@ -633,3 +629,38 @@ void application_on_resize(Application* app_inst, uint32 width, uint32 height)
 	ui_text_set_position(&state->test_truetype_text, { 20.0f, (float32)state->height - 150.0f, 0.0f });
 
 }
+
+void application_on_module_reload(Application* app_inst)
+{
+	ApplicationState* state = (ApplicationState*)app_inst->state;	
+
+	register_events(app_inst);
+	DebugConsole::on_module_reload(&state->debug_console);
+	add_keymaps(app_inst);
+}
+
+void application_on_module_unload(Application* app_inst)
+{
+	ApplicationState* state = (ApplicationState*)app_inst->state;
+
+	unregister_events(app_inst);
+	DebugConsole::on_module_unload(&state->debug_console);
+	remove_keymaps(app_inst);
+}
+
+static void register_events(Application* app_inst)
+{
+	Event::event_register(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
+
+	Event::event_register(SystemEventCode::DEBUG0, app_inst, application_on_debug_event);
+	Event::event_register(SystemEventCode::DEBUG1, app_inst, application_on_debug_event);
+}
+
+static void unregister_events(Application* app_inst)
+{
+	Event::event_unregister(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
+
+	Event::event_unregister(SystemEventCode::DEBUG0, app_inst, application_on_debug_event);
+	Event::event_unregister(SystemEventCode::DEBUG1, app_inst, application_on_debug_event);
+}
+

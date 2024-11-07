@@ -73,8 +73,7 @@ String& String::operator=(const String& other)
 		arr.resize(reserve_size);
 
 	CString::copy(arr.capacity, arr.data, other.c_str());
-	arr.count = other.len();
-	arr.push(0);
+	arr.count = other.len();	
 	return *this;
 
 }

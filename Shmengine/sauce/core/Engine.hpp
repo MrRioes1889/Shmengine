@@ -10,7 +10,7 @@ namespace Engine
 {
 
 	SHMAPI bool32 init(Application* game_inst);
-	SHMAPI bool32 run();
+	SHMAPI bool32 run(Application* game_inst);
 
 	void on_event_system_initialized();	
 

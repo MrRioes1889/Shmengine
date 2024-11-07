@@ -28,9 +28,8 @@ namespace Log
 
         //D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log
         char dir[MAX_FILEPATH_LENGTH];
-        Platform::get_path_of_executable(dir, MAX_FILEPATH_LENGTH);
-        CString::left_of_last(dir, MAX_FILEPATH_LENGTH, '/');
-        CString::append(MAX_FILEPATH_LENGTH, dir, "/console.log");
+        CString::copy(MAX_FILEPATH_LENGTH, dir, Platform::get_root_dir());
+        CString::append(MAX_FILEPATH_LENGTH, dir, "console.log");
         if (!FileSystem::file_open(dir, FILE_MODE_WRITE, &system_state->log_file))
         {
             Platform::console_write_error("Error: Unable to open console.log file for writing", LOG_LEVEL_ERROR);

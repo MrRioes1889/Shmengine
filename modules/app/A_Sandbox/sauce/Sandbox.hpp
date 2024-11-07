@@ -10,7 +10,6 @@ namespace Renderer
 
 extern "C"
 {
-    SHMAPI uint64 get_module_state_size();
 
     SHMAPI bool32 application_boot(Application* app_inst);
 
@@ -23,4 +22,8 @@ extern "C"
     SHMAPI bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet, float64 delta_time);
 
     SHMAPI void application_on_resize(Application* app_inst, uint32 width, uint32 height);
+
+    SHMAPI void application_on_module_reload(Application* app_inst);
+    SHMAPI void application_on_module_unload(Application* app_inst);
+
 }

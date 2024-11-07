@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 
+#include "platform/Platform.hpp"
 #include "utility/String.hpp"
 
 enum FileMode
@@ -23,6 +24,8 @@ namespace FileSystem
 
 	SHMAPI bool32 file_open(const char* path, FileMode mode, FileHandle* out_file);
 	SHMAPI void file_close(FileHandle* file);
+
+	SHMAPI Platform::ReturnCode file_copy(const char* source, const char* dest, bool32 overwrite);
 
 	SHMAPI bool32 read_bytes(FileHandle* file, uint32 size, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read);
 	SHMAPI bool32 read_all_bytes(FileHandle* file, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read);

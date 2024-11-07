@@ -13,6 +13,12 @@
 namespace Platform
 {
 
+    struct FileWatch
+    {
+        String file_path;
+        FILETIME last_write_timestamp;
+    };
+
     struct PlatformState {
         HINSTANCE h_instance;
         HWND hwnd;
@@ -20,7 +26,9 @@ namespace Platform
         uint32 client_x;
         uint32 client_y;
         uint32 client_width;
-        uint32 client_height;
+        uint32 client_height;        
+
+        Darray<FileWatch> file_watches;
     };
 
     static PlatformState* plat_state = 0;
@@ -28,6 +36,8 @@ namespace Platform
     // Clock
     static float64 clock_frequency;
     static LARGE_INTEGER start_time;
+
+    static void update_file_watches();
 
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param);
 
@@ -129,6 +139,8 @@ namespace Platform
 
         timeBeginPeriod(1);
 
+        plat_state->file_watches.init(8, 0);
+
         return TRUE;
     }
 
@@ -143,6 +155,22 @@ namespace Platform
 
     }
 
+    ReturnCode get_last_error()
+    {
+        DWORD err = GetLastError();
+        switch (err)
+        {
+        case ERROR_FILE_NOT_FOUND:
+            return Platform::ReturnCode::FILE_NOT_FOUND;
+        case ERROR_SHARING_VIOLATION:
+            return Platform::ReturnCode::FILE_LOCKED;
+        case ERROR_FILE_EXISTS:
+            return Platform::ReturnCode::FILE_ALREADY_EXISTS;
+        default:
+            return Platform::ReturnCode::UNKNOWN;
+        }
+    }
+
     bool32 pump_messages()
     {
         MSG message;
@@ -151,14 +179,27 @@ namespace Platform
             DispatchMessageA(&message);
         }
 
+        update_file_watches();
         return TRUE;
     }
 
-    void get_path_of_executable(char* buffer, uint32 buffer_size)
+    const char* get_root_dir()
     {
-       GetModuleFileNameA(0, buffer, (DWORD)buffer_size);
-       CString::replace(buffer, '\\', '/');
-       return;
+
+        static char executable_path[256] = {};
+
+        if (!executable_path[0])
+        {
+            char* buffer = executable_path;
+            uint32 buffer_length = sizeof(executable_path);
+
+            GetModuleFileNameA(0, buffer, (DWORD)buffer_length);
+            CString::replace(buffer, '\\', '/');
+            CString::left_of_last(buffer, buffer_length, '/');
+            CString::append(buffer_length, buffer, '/');            
+        }
+
+        return executable_path;   
     }
 
 #define DEV_SYSTEM 1
@@ -209,6 +250,77 @@ namespace Platform
     void* set_memory(void* dest, int32 value, uint64 size)
     {
         return memset(dest, value, size);
+    }
+
+    Platform::ReturnCode register_file_watch(const char* path, uint32* out_watch_id)
+    {
+
+        *out_watch_id = INVALID_ID;
+
+        for (uint32 i = 0; i < plat_state->file_watches.count; i++)
+        {
+            if (CString::equal_i(path, plat_state->file_watches[i].file_path.c_str()))
+            {
+                *out_watch_id = i;
+                return ReturnCode::SUCCESS;
+            }
+        }
+
+        WIN32_FIND_DATAA find_data;
+        HANDLE file_handle = FindFirstFileA(path, &find_data);
+        if (file_handle == INVALID_HANDLE_VALUE)
+            return get_last_error();
+        if (!FindClose(file_handle))
+            return get_last_error();
+
+        FileWatch* watch = plat_state->file_watches.emplace();
+        watch->file_path = path;
+        watch->last_write_timestamp = find_data.ftLastWriteTime;
+
+        return ReturnCode::SUCCESS;
+    }
+
+   bool32 unregister_file_watch(uint32 watch_id)
+   {
+       if (watch_id > plat_state->file_watches.count - 1)
+           return false;
+
+       plat_state->file_watches[watch_id].file_path.free_data();
+       plat_state->file_watches.remove_at(watch_id);
+
+       return true;
+   }
+
+    static void update_file_watches()
+    {
+
+        for (uint32 i = 0; i < plat_state->file_watches.count; i++)
+        {
+            FileWatch* watch = &plat_state->file_watches[i];
+
+            WIN32_FIND_DATAA find_data;
+            HANDLE file_handle = FindFirstFileA(watch->file_path.c_str(), &find_data);
+            if (file_handle == INVALID_HANDLE_VALUE)
+            {
+                EventData e_data = {};
+                e_data.ui32[0] = i;
+                Event::event_fire(SystemEventCode::WATCHED_FILE_DELETED, 0, e_data);
+                SHMINFOV("Watched file %s has been deleted.", watch->file_path.c_str());
+                unregister_file_watch(i);
+                continue;
+            }
+            if (!FindClose(file_handle))
+                continue;
+
+            if (CompareFileTime(&find_data.ftLastWriteTime, &watch->last_write_timestamp) > 0)
+            {
+                watch->last_write_timestamp = find_data.ftLastWriteTime;
+                EventData e_data = {};
+                e_data.ui32[0] = i;
+                Event::event_fire(SystemEventCode::WATCHED_FILE_WRITTEN, 0, e_data);
+            }
+        }
+
     }
 
     void init_console()
@@ -300,21 +412,16 @@ namespace Platform
         return ret;
     }
 
-    bool32 load_dynamic_library(const char* name, DynamicLibrary* out_lib)
+    bool32 load_dynamic_library(const char* name, const char* filename, DynamicLibrary* out_lib)
     {
-
-        char filename[MAX_PATH] = {};
-        CString::print_s(filename, MAX_PATH, "%s.dll", name);
 
         HMODULE lib = LoadLibraryA(filename);
         if (!lib)
             return false;
 
-        out_lib->name = name;
-        out_lib->filename = filename;
+        CString::copy(sizeof(out_lib->name), out_lib->name, name);
+        CString::copy(MAX_FILEPATH_LENGTH, out_lib->filename, name);
         out_lib->handle = lib;
-
-        out_lib->functions.init(8, 0, AllocationTag::PLATFORM);
 
         SHMINFOV("Loaded dynamic library '%s'", name);
 
@@ -328,28 +435,19 @@ namespace Platform
         if (!FreeLibrary((HMODULE)lib->handle))
             return false;
 
-        SHMINFOV("Unloading dynamic library '%s'", lib->name.c_str());
-
-        lib->name.free_data();
-        lib->filename.free_data();
-
-        for (uint32 i = 0; i < lib->functions.count; i++)
-            lib->functions[i].name.free_data();
-        lib->functions.free_data();    
+        SHMINFOV("Unloaded dynamic library '%s'", lib->name); 
 
         return true;
 
     }
 
-    bool32 load_dynamic_library_function(DynamicLibrary* lib, const char* name)
+    bool32 load_dynamic_library_function(DynamicLibrary* lib, const char* name, void** out_function)
     {
         FARPROC fp = GetProcAddress((HMODULE)lib->handle, name);
         if (!fp)
             return false;
 
-        DynamicLibFunction* function = lib->functions.emplace();
-        function->function_ptr = (void*)fp;
-        function->name = name;
+        *out_function = (void*)fp;
 
         return true;
     }

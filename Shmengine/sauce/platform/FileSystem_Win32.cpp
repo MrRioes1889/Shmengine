@@ -90,6 +90,15 @@ namespace FileSystem
 
 	}
 
+	Platform::ReturnCode file_copy(const char* source, const char* dest, bool32 overwrite)
+	{
+		BOOL result = CopyFileA(source, dest, !overwrite);
+		if (result)
+			return Platform::ReturnCode::SUCCESS;
+		else
+			return Platform::get_last_error();	
+	}
+
 	bool32 read_bytes(FileHandle* file, uint32 size, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read)
 	{
 

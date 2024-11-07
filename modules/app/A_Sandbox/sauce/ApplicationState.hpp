@@ -7,6 +7,8 @@
 #include <utility/MathTypes.hpp>
 #include <systems/CameraSystem.hpp>
 
+#include "DebugConsole.hpp"
+
 // TODO: temp
 #include <resources/UIText.hpp>
 #include <resources/Skybox.hpp>
@@ -34,5 +36,7 @@ struct ApplicationState
     UIText test_truetype_text;
 
     Input::Keymap console_keymap;
+
+    DebugConsole::State debug_console;
 
 };

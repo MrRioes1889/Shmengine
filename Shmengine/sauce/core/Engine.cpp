@@ -12,15 +12,6 @@
 #include "utility/CString.hpp"
 
 #include "renderer/RendererFrontend.hpp"
-#include "systems/TextureSystem.hpp"
-#include "systems/MaterialSystem.hpp"
-#include "systems/GeometrySystem.hpp"
-#include "systems/ResourceSystem.hpp"
-#include "systems/ShaderSystem.hpp"
-#include "systems/CameraSystem.hpp"
-#include "systems/RenderViewSystem.hpp"
-#include "systems/JobSystem.hpp"
-#include "systems/FontSystem.hpp"
 
 #include "core/Subsystems.hpp"
 
@@ -78,6 +69,8 @@ namespace Engine
 		if (initialized)
 			return false;
 
+		game_inst->stage = ApplicationStage::UNINITIALIZED;
+
 		Memory::SystemConfig mem_config;
 		mem_config.total_allocation_size = Gibibytes(1);
 		if (!Memory::system_init(mem_config))
@@ -85,8 +78,6 @@ namespace Engine
 			SHMFATAL("Failed to initialize memory subsytem!");
 			return false;
 		}
-
-		game_inst->state = Memory::allocate(game_inst->state_size, AllocationTag::ENGINE);
 
 		game_inst->engine_state = Memory::allocate(sizeof(EngineState), AllocationTag::ENGINE);
 		engine_state = (EngineState*)game_inst->engine_state;
@@ -101,11 +92,13 @@ namespace Engine
 			return false;
 		}
 
+		game_inst->stage = ApplicationStage::BOOTING;
 		if (!game_inst->boot(game_inst))
 		{
 			SHMFATAL("Failed to boot application!");
 			return false;
 		}
+		game_inst->stage = ApplicationStage::BOOT_COMPLETE;
 
 		if (!engine_state->subsystem_manager.post_boot_init(&game_inst->config))
 		{
@@ -113,11 +106,13 @@ namespace Engine
 			return false;
 		}
 
+		game_inst->stage = ApplicationStage::INITIALIZING;
 		if (!game_inst->init(game_inst))
 		{
 			SHMFATAL("ERROR: Failed to initialize game instance!");
 			return false;
 		}
+		game_inst->stage = ApplicationStage::INITIALIZED;
 
 		Renderer::on_resized(engine_state->width, engine_state->height);
 		game_inst->on_resize(engine_state->game_inst, engine_state->width, engine_state->height);	
@@ -127,11 +122,12 @@ namespace Engine
 
 	}
 
-	bool32 run()
+	bool32 run(Application* game_inst)
 	{
 
 		uint32 frame_count = 0;
 		float64 target_frame_seconds = 1.0f / 240.0f;
+		game_inst->stage = ApplicationStage::RUNNING;
 
 		Renderer::RenderPacket render_packet = {};
 
@@ -203,10 +199,12 @@ namespace Engine
 			frame_count++;			
 		}
 
+		game_inst->stage = ApplicationStage::SHUTTING_DOWN;
 		engine_state->is_running = false;
 		engine_state->game_inst->shutdown(engine_state->game_inst);	
 
 		engine_state->subsystem_manager.shutdown();
+		game_inst->stage = ApplicationStage::UNINITIALIZED;
 
 		return true;
 

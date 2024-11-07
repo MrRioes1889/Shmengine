@@ -12,7 +12,7 @@ namespace Renderer::Vulkan
 
 	extern VulkanContext* context;
 
-	static bool32 create_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage);
+	static bool32 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage);
 
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
@@ -243,7 +243,7 @@ namespace Renderer::Vulkan
 		// Create a module for each stage.
 		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
 		{
-			if (!create_module(v_shader, v_shader->config.stages[i], &v_shader->stages[i]))
+			if (!create_shader_module(v_shader, v_shader->config.stages[i], &v_shader->stages[i]))
 			{
 				SHMERRORV("Unable to create %s shader module for '%s'. Shader will be destroyed.", v_shader->config.stages[i].filename, shader->name.c_str());
 				return false;
@@ -744,7 +744,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 create_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage)
+	bool32 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage)
 	{
 		// Read the resource.
 		Resource resource;

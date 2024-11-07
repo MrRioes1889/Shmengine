@@ -71,6 +71,11 @@ namespace Input
         system_state->keymap_stack.pop();
     }
 
+    void clear_keymaps()
+    {
+        system_state->keymap_stack.clear();
+    }
+
     static bool32 check_modifiers(KeymapModifierFlags::Value modifiers)
     {
         if (modifiers & KeymapModifierFlags::SHIFT)
@@ -217,7 +222,7 @@ namespace Input
             EventData e;
             e.i32[0] = x;
             e.i32[1] = y;
-            Event::event_fire(SystemEventCode::MOUSE_MOVED, 0, e);
+            Event::event_fire(SystemEventCode::MOUSE_MOVED_, 0, e);
         }
     }
 
