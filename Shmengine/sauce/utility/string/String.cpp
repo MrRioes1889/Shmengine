@@ -259,3 +259,4 @@ int32 print_s(String& out_s, const char* format, ...)
 
 	return res;
 }
+

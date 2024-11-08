@@ -1,2 +1,3 @@
-devenv Shmengine.sln /Build Debug /Project A_Sandbox
+cd modules\app\A_Sandbox
+@call build init
 pause

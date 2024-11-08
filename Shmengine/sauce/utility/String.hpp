@@ -18,6 +18,7 @@ struct SHMAPI String
 	String(const String& other);
 	String& operator=(const String& other);
 
+	// TODO: clang-cl : For some reason these copy/move constructors mess up debug symbols in importing libraries. Might have something todo with custom allocation(?)
 	String(String&& other) noexcept;
 	String& operator=(String&& other) noexcept;
 

@@ -77,7 +77,7 @@ static bool32 on_watched_file_written(uint16 code, void* sender, void* listener_
     }
 
     // TODO: turn back to loaded filename
-    if (!load_application_library(app, application_module_filename, true))
+    if (!load_application_library(app, application_loaded_module_filename, true))
     {
         SHMERRORV("Failed to load application library '%s'.", application_module_name);
         return false;

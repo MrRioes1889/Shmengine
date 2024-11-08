@@ -12,10 +12,10 @@ app_name = "Application"
 tests_name = "Tests"
 vulkan_renderer_module_name = "M_VulkanRenderer"
 sandbox_app_module_name = "A_Sandbox"
-compiler = "clang"
+compiler = "msc"
 project_location = "%{wks.location}"
 
-global_msvc_build_options = {"/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011"}
+global_msvc_build_options = {"/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011", "/wd4251"}
 global_clang_build_options = {
     "-Wno-missing-braces", 
     "-Wno-reorder-ctor", 
@@ -37,7 +37,7 @@ project  (engine_name)
     location (project_location .. "/" .. engine_name)
 
     targetdir (project_location .. "/bin/" .. outputdir)
-	objdir    (project_location .. "/bin-int/" .. outputdir)
+	objdir    (project_location .. "/bin-int/")
 
     -- pchheader "mpch.hpp"
     -- pchsource project_location .. "/%{prj.name}/sauce/mpch.cpp"
@@ -90,7 +90,6 @@ project  (engine_name)
     filter "configurations:Debug"
         defines {"DEBUG"}
         symbols "On"
-        clangtidy("Off")
 
     filter "configurations:ODebug"
         defines {"DEBUG"}
@@ -111,7 +110,7 @@ project  (vulkan_renderer_module_name)
     location (project_location .. "/modules/renderer/" .. vulkan_renderer_module_name)
 
     targetdir (project_location .. "/bin/" .. outputdir)
-	objdir    (project_location .. "/bin-int/" .. outputdir)
+	objdir    (project_location .. "/bin-int/")
 
     -- pchheader "mpch.hpp"
     -- pchsource project_location .. "/%{prj.name}/sauce/mpch.cpp"
@@ -179,7 +178,7 @@ project  (sandbox_app_module_name)
     location (project_location .. "/modules/app/" .. sandbox_app_module_name)
 
     targetdir (project_location .. "/bin/" .. outputdir)
-	objdir    (project_location .. "/bin-int/" .. outputdir)
+	objdir    (project_location .. "/bin-int/")
 
     -- pchheader "mpch.hpp"
     -- pchsource project_location .. "/%{prj.name}/sauce/mpch.cpp"
@@ -246,7 +245,7 @@ project (app_name)
     location (project_location .. "/%{prj.name}")
 
     targetdir (project_location .. "/bin/" .. outputdir)
-	objdir    (project_location .. "/bin-int/" .. outputdir)
+	objdir    (project_location .. "/bin-int/")
 
     -- pchheader "mpch.hpp"
     -- pchsource project_location .. "/%{prj.name}/sauce/mpch.cpp"
