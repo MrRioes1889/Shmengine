@@ -3,7 +3,7 @@
 #include "core/Event.hpp"
 #include "utility/Math.hpp"
 #include "utility/math/Transform.hpp"
-#include "systems/ResourceSystem.hpp"
+#include "resources/loaders/ShaderLoader.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/CameraSystem.hpp"
@@ -113,21 +113,20 @@ namespace Renderer
 		data->world_shader_info.pass = &self->renderpasses[0];
 		data->ui_shader_info.pass = &self->renderpasses[1];	
 
-		Resource config_resource;
-		if (!ResourceSystem::load(Renderer::RendererConfig::builtin_shader_name_world_pick, ResourceType::SHADER, 0, &config_resource))
+		ShaderConfig world_pick_config = {};
+		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_world_pick, 0, &world_pick_config))
 		{
 			SHMERROR("Failed to load world pick shader config.");
 			return false;
-		}
-		ShaderConfig* config = (ShaderConfig*)config_resource.data;
+		}	
 
-		if (!ShaderSystem::create_shader(&self->renderpasses[0], config))
+		if (!ShaderSystem::create_shader(&self->renderpasses[0], &world_pick_config))
 		{
 			SHMERROR("Failed to create world pick shader.");
-			ResourceSystem::unload(&config_resource);
+			ResourceSystem::shader_loader_unload(&world_pick_config);
 			return false;
 		}
-		ResourceSystem::unload(&config_resource);
+		ResourceSystem::shader_loader_unload(&world_pick_config);
 
 		data->world_shader_info.shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_world_pick);
 
@@ -142,20 +141,21 @@ namespace Renderer
 		data->world_shader_info.projection = Math::mat_perspective(data->world_shader_info.fov, 1280.0f / 720.0f, data->world_shader_info.near_clip, data->world_shader_info.far_clip);
 		data->world_shader_info.view = MAT4_IDENTITY;
 
-		if (!ResourceSystem::load(Renderer::RendererConfig::builtin_shader_name_ui_pick, ResourceType::SHADER, 0, &config_resource))
+
+		ShaderConfig ui_pick_config = {};
+		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_ui_pick, 0, &ui_pick_config))
 		{
 			SHMERROR("Failed to load ui pick shader config.");
 			return false;
 		}
-		config = (ShaderConfig*)config_resource.data;
 
-		if (!ShaderSystem::create_shader(&self->renderpasses[1], config))
+		if (!ShaderSystem::create_shader(&self->renderpasses[1], &ui_pick_config))
 		{
 			SHMERROR("Failed to create ui pick shader.");
-			ResourceSystem::unload(&config_resource);
+			ResourceSystem::shader_loader_unload(&ui_pick_config);
 			return false;
 		}
-		ResourceSystem::unload(&config_resource);
+		ResourceSystem::shader_loader_unload(&ui_pick_config);
 
 		data->ui_shader_info.shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui_pick);
 

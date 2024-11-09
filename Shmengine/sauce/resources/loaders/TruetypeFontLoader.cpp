@@ -1,7 +1,6 @@
 #include "TruetypeFontLoader.hpp"
 
 #include "resources/ResourceTypes.hpp"
-#include "LoaderUtils.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"

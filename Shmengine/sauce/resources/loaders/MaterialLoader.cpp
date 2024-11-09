@@ -1,6 +1,6 @@
 #include "MaterialLoader.hpp"
 
-#include "LoaderUtils.hpp"
+#include "systems/ResourceSystem.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/CString.hpp"
@@ -10,14 +10,16 @@
 namespace ResourceSystem
 {
 
-	static bool32 material_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
+    static const char* loader_type_path = "materials/";
+
+	bool32 material_loader_load(const char* name, void* params, MaterialConfig* out_config)
 	{
 
 		const char* format = "%s%s%s%s";
 		char full_filepath[MAX_FILEPATH_LENGTH];
 
 		CString::safe_print_s<const char*, const char*, const char*, const char*>
-			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader->type_path, name, ".shmt");
+			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name, ".shmt");
 
 		FileSystem::FileHandle f;
 		if (!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f))
@@ -26,15 +28,14 @@ namespace ResourceSystem
 			return false;
 		}
 
-		MaterialConfig tmp_res_data;
-		tmp_res_data.auto_release = true;
-        tmp_res_data.shader_name = "Builtin.Material";
-		tmp_res_data.diffuse_color = VEC4F_ONE;
-		tmp_res_data.shininess = 32.0f;
-		CString::empty(tmp_res_data.diffuse_map_name);
-		CString::empty(tmp_res_data.specular_map_name);
-		CString::empty(tmp_res_data.normal_map_name);
-		CString::copy(Material::max_name_length, tmp_res_data.name, name);
+		out_config->auto_release = true;
+        out_config->shader_name = "Builtin.Material";
+		out_config->diffuse_color = VEC4F_ONE;
+		out_config->shininess = 32.0f;
+		CString::empty(out_config->diffuse_map_name);
+		CString::empty(out_config->specular_map_name);
+		CString::empty(out_config->normal_map_name);
+		CString::copy(Material::max_name_length, out_config->name, name);
 
         uint32 file_size = FileSystem::get_file_size32(&f);
         String file_content(file_size + 1);
@@ -91,28 +92,28 @@ namespace ResourceSystem
             }
             else if (var_name.equal_i("name")) 
             {
-                CString::copy(Material::max_name_length, tmp_res_data.name, value.c_str());
+                CString::copy(Material::max_name_length, out_config->name, value.c_str());
             }
             else if (var_name.equal_i("shader")) 
             {
-                tmp_res_data.shader_name = value;             
+                out_config->shader_name = value;             
             }
             else if (var_name.equal_i("diffuse_map_name")) 
             {
-                CString::copy(Texture::max_name_length, tmp_res_data.diffuse_map_name, value.c_str());
+                CString::copy(Texture::max_name_length, out_config->diffuse_map_name, value.c_str());
             }
             else if (var_name.equal_i("specular_map_name"))
             {
-                CString::copy(Texture::max_name_length, tmp_res_data.specular_map_name, value.c_str());
+                CString::copy(Texture::max_name_length, out_config->specular_map_name, value.c_str());
             }
             else if (var_name.equal_i("normal_map_name"))
             {
-                CString::copy(Texture::max_name_length, tmp_res_data.normal_map_name, value.c_str());
+                CString::copy(Texture::max_name_length, out_config->normal_map_name, value.c_str());
             }
             else if (var_name.equal_i("diffuse_color"))
             {
                 // Parse the colour
-                if (!CString::parse(value.c_str(), tmp_res_data.diffuse_color))
+                if (!CString::parse(value.c_str(), out_config->diffuse_color))
                 {
                     SHMWARNV("Error parsing diffuse_colour in file '%s'. Using default of white instead.", full_filepath);
                 }
@@ -120,54 +121,24 @@ namespace ResourceSystem
             else if (var_name.equal_i("shininess")) 
             {
                 // Parse the colour
-                if (!CString::parse_f32(value.c_str(), tmp_res_data.shininess)) 
+                if (!CString::parse_f32(value.c_str(), out_config->shininess)) 
                 {
                     SHMWARNV("Error parsing shininess in file '%s'. Using default of 32.0 instead.", full_filepath);
                 }
             }
 
-            // TODO: more fields.
-
-            // Clear the line buffer.
             line_number++;
         }
 
         FileSystem::file_close(&f);
 
-		out_resource->full_path = full_filepath;
-
-		MaterialConfig* resource_data = (MaterialConfig*)Memory::allocate(sizeof(MaterialConfig), AllocationTag::RESOURCE);
-        *resource_data = tmp_res_data;
-
-		out_resource->data = resource_data;
-		out_resource->data_size = sizeof(MaterialConfig);
-		out_resource->name = name;
-
 		return true;
 
 	}
 
-	static void material_loader_unload(ResourceLoader* loader, Resource* resource)
+	void material_loader_unload(MaterialConfig* config)
 	{
-        if (resource->data)
-        {
-            MaterialConfig* data = (MaterialConfig*)resource->data;
-            (*data).~MaterialConfig();
-        }
-
-        resource_unload(loader, resource);
-	}
-
-	ResourceLoader material_resource_loader_create()
-	{
-		ResourceLoader loader;
-		loader.type = ResourceType::MATERIAL;
-		loader.custom_type = 0;
-		loader.load = material_loader_load;
-		loader.unload = material_loader_unload;
-		loader.type_path = "materials/";
-
-		return loader;
+        config->shader_name.free_data();
 	}
 
 }

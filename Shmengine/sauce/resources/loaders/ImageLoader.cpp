@@ -1,6 +1,5 @@
 #include "ImageLoader.hpp"
 
-#include "LoaderUtils.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "platform/FileSystem.hpp"
@@ -13,7 +12,9 @@
 namespace ResourceSystem
 {
 
-	static bool32 image_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
+	static const char* loader_type_path = "textures/";
+
+	bool32 image_loader_load(const char* name, void* params, ImageConfig* out_config)
 	{
 
 		ImageResourceParams* load_params = (ImageResourceParams*)params;
@@ -24,7 +25,7 @@ namespace ResourceSystem
 		char full_filepath[MAX_FILEPATH_LENGTH];
 
 		CString::safe_print_s<const char*, const char*, const char*>
-			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader->type_path, name);
+			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name);
 
 		const uint32 valid_extension_count = 4;
 		bool32 found = false;
@@ -85,48 +86,22 @@ namespace ResourceSystem
 			return false;
 		}
 
-		out_resource->full_path = full_filepath;
-
-		ImageConfig* resource_data = (ImageConfig*)Memory::allocate(sizeof(ImageConfig), AllocationTag::RESOURCE);
-		resource_data->pixels = data;
-		resource_data->width = width;
-		resource_data->height = height;
-		resource_data->channel_count = required_channel_count;
-
-		out_resource->data = resource_data;
-		out_resource->data_size = sizeof(ImageConfig);
-		out_resource->name = name;
+		out_config->pixels = data;
+		out_config->width = width;
+		out_config->height = height;
+		out_config->channel_count = required_channel_count;
 
 		return true;
 
 	}
 
-	static void image_loader_unload(ResourceLoader* loader, Resource* resource)
+	void image_loader_unload(ImageConfig* config)
 	{
 	
-		if (resource->data)
-		{
-			uint8* pixels = ((ImageConfig*)resource->data)->pixels;
-			if (pixels)
-				stbi_image_free(pixels);
+		if (config->pixels)
+			stbi_image_free(config->pixels);
+		config->pixels = 0;
 
-			ImageConfig* data = (ImageConfig*)resource->data;
-			(*data).~ImageConfig();
-		}	
-
-		resource_unload(loader, resource);
-	}
-
-	ResourceLoader image_resource_loader_create()
-	{
-		ResourceLoader loader;
-		loader.type = ResourceType::IMAGE;
-		loader.custom_type = 0;
-		loader.load = image_loader_load;
-		loader.unload = image_loader_unload;
-		loader.type_path = "textures/";
-
-		return loader;
 	}
 
 }

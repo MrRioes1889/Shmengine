@@ -8,19 +8,6 @@
 #include "utility/Utility.hpp"
 #include "core/Identifier.hpp"
 
-enum class ResourceType
-{
-	GENERIC,
-	IMAGE,
-	MATERIAL,
-	STATIC_MESH,
-	SHADER,
-	MESH,
-	//BITMAP_FONT,
-	//TRUETYPE_FONT,
-	CUSTOM
-};
-
 struct ResourceHeader {
 	char signature[4];
 	uint8 resource_type;
@@ -229,6 +216,12 @@ struct Geometry
 	char name[max_name_length];
 	Material* material;
 
+};
+
+namespace GeometrySystem{ struct GeometryConfig; }
+struct MeshResourceData
+{
+	Darray<GeometrySystem::GeometryConfig> g_configs;
 };
 
 struct Mesh

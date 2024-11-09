@@ -1,7 +1,6 @@
 #include "BitmapFontLoader.hpp"
 
 #include "resources/ResourceTypes.hpp"
-#include "LoaderUtils.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
@@ -427,17 +426,4 @@ namespace ResourceSystem
 
     }
 
-    
-
-    /*ResourceLoader bitmap_font_resource_loader_create()
-    {
-        ResourceLoader loader;
-        loader.type = ResourceType::BITMAP_FONT;
-        loader.custom_type = 0;
-        loader.load = bitmap_font_loader_load;
-        loader.unload = bitmap_font_loader_unload;
-        loader.type_path = "fonts/";
-
-        return loader;
-    }*/
 }

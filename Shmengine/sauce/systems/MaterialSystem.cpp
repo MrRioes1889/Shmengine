@@ -6,7 +6,7 @@
 #include "utility/Math.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "systems/TextureSystem.hpp"
-#include "systems/ResourceSystem.hpp"
+#include "resources/loaders/MaterialLoader.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "containers/Sarray.hpp"
 
@@ -101,18 +101,16 @@ namespace MaterialSystem
         // Load the given material configuration from disk.
         MaterialConfig config;
 
-        Resource mt_resource;
-        if (!ResourceSystem::load(name, ResourceType::MATERIAL, 0, &mt_resource))
+        if (!ResourceSystem::material_loader_load(name, 0, &config))
         {
             SHMERRORV("load_mt_file - Failed to load material resources for material '%s'", name);
             return 0;
         }
 
-        config = *((MaterialConfig*)mt_resource.data);
-        ResourceSystem::unload(&mt_resource);
-
         // Now acquire from loaded config.
-        return acquire_from_config(config);
+        Material* mat = acquire_from_config(config);
+        ResourceSystem::material_loader_unload(&config);
+        return mat;
     }
 
     Material* acquire_from_config(const MaterialConfig& config) {

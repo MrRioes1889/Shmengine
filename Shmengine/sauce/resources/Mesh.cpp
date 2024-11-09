@@ -3,34 +3,33 @@
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
 #include "renderer/RendererTypes.hpp"
+#include "resources/loaders/MeshLoader.hpp"
 
 #include "systems/JobSystem.hpp"
-#include "systems/ResourceSystem.hpp"
 #include "systems/GeometrySystem.hpp"
 
 struct MeshLoadParams
 {
 	const char* resource_name;
 	Mesh* out_mesh;
-	Resource mesh_resource;
+	MeshResourceData mesh_resource;
 };
 
 static void mesh_load_job_success(void* params) {
     MeshLoadParams* mesh_params = (MeshLoadParams*)params;
 
     // This also handles the GPU upload. Can't be jobified until the renderer is multithreaded.
-    GeometrySystem::GeometryConfig* configs = (GeometrySystem::GeometryConfig*)mesh_params->mesh_resource.data;
-    uint32 geometry_count = mesh_params->mesh_resource.data_size;
-    mesh_params->out_mesh->geometries.init(geometry_count, 0);
-    for (uint32 i = 0; i < geometry_count; ++i) {
+    Darray<GeometrySystem::GeometryConfig>* configs = &mesh_params->mesh_resource.g_configs;
+    mesh_params->out_mesh->geometries.init(configs->count, 0);
+    for (uint32 i = 0; i < configs->count; ++i) {
         Geometry** g = mesh_params->out_mesh->geometries.push(0);
-        *g = GeometrySystem::acquire_from_config(configs[i], true);
+        *g = GeometrySystem::acquire_from_config((*configs)[i], true);
     }
     mesh_params->out_mesh->generation++;
 
     SHMTRACEV("Successfully loaded mesh '%s'.", mesh_params->resource_name);
 
-   ResourceSystem::unload(&mesh_params->mesh_resource);
+    ResourceSystem::mesh_loader_unload(&mesh_params->mesh_resource);
 }
 
 static void mesh_load_job_fail(void* params) {
@@ -38,12 +37,12 @@ static void mesh_load_job_fail(void* params) {
 
     SHMERRORV("Failed to load mesh '%s'.", mesh_params->resource_name);
 
-    ResourceSystem::unload(&mesh_params->mesh_resource);
+    ResourceSystem::mesh_loader_unload(&mesh_params->mesh_resource);
 }
 
 static bool32 mesh_load_job_start(void* params, void* result_data) {
     MeshLoadParams* load_params = (MeshLoadParams*)params;
-    bool32 result = ResourceSystem::load(load_params->resource_name, ResourceType::MESH, 0, &load_params->mesh_resource);
+    bool32 result = ResourceSystem::mesh_loader_load(load_params->resource_name, 0, &load_params->mesh_resource);
 
     // NOTE: The load params are also used as the result data here, only the mesh_resource field is populated now.
     Memory::copy_memory(load_params, result_data, sizeof(MeshLoadParams));

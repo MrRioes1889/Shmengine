@@ -4,5 +4,6 @@
 
 namespace ResourceSystem
 {
-	ResourceLoader mesh_resource_loader_create();
+	bool32 mesh_loader_load(const char* name, void* params, MeshResourceData* out_resource);
+	void mesh_loader_unload(MeshResourceData* resource);
 }

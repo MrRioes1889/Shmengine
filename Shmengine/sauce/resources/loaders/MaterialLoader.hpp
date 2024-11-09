@@ -1,9 +1,12 @@
 #pragma once
 
-#include "systems/ResourceSystem.hpp"
+#include "Defines.hpp"
+
+struct MaterialConfig;
 
 namespace ResourceSystem
 {
-	ResourceLoader material_resource_loader_create();
+	bool32 material_loader_load(const char* name, void* params, MaterialConfig* out_config);
+	void material_loader_unload(MaterialConfig* config);
 }
 

@@ -7,7 +7,7 @@
 
 #include "renderer/RendererFrontend.hpp"
 
-#include "systems/ResourceSystem.hpp"
+#include "resources/loaders/ImageLoader.hpp"
 #include "systems/JobSystem.hpp"
 
 namespace TextureSystem
@@ -19,7 +19,7 @@ namespace TextureSystem
 		Texture* out_texture;
 		Texture temp_texture;
 		uint32 current_generation;
-		Resource image_resource;
+		ImageConfig config;
 	};
 
 	struct TextureReference
@@ -290,8 +290,8 @@ namespace TextureSystem
 		Texture old;
 		Memory::copy_memory(texture_params->out_texture, &old, sizeof(old));
 		
-		ImageConfig* resource_data = (ImageConfig*)texture_params->image_resource.data;
-		Renderer::texture_create(resource_data->pixels, &texture_params->temp_texture);
+		ImageConfig* config = (ImageConfig*)&texture_params->config;
+		Renderer::texture_create(config->pixels, &texture_params->temp_texture);
 
 		Memory::copy_memory(&texture_params->temp_texture, texture_params->out_texture, sizeof(*texture_params->out_texture));
 
@@ -304,7 +304,7 @@ namespace TextureSystem
 
 		//SHMTRACEV("Successfully loaded texture '%s'.", texture_params->resource_name);
 
-		ResourceSystem::unload(&texture_params->image_resource);
+		ResourceSystem::image_loader_unload(config);
 		Memory::free_memory(texture_params->resource_name);
 	}
 
@@ -314,7 +314,7 @@ namespace TextureSystem
 
 		SHMTRACEV("Failed to load texture '%s'.", texture_params->resource_name);
 
-		ResourceSystem::unload(&texture_params->image_resource);
+		ResourceSystem::image_loader_unload(&texture_params->config);
 		if (texture_params->resource_name)
 			Memory::free_memory(texture_params->resource_name);
 	}
@@ -327,24 +327,24 @@ namespace TextureSystem
 		ImageResourceParams resource_params;
 		resource_params.flip_y = true;
 
-		if (!ResourceSystem::load(load_params->resource_name, ResourceType::IMAGE, &resource_params, &load_params->image_resource))
+		ImageConfig* config = &load_params->config;
+		if (!ResourceSystem::image_loader_load(load_params->resource_name, &resource_params, config))
 		{
 			SHMERRORV("load_texture - Failed to load image resources for texture '%s'", load_params->resource_name);
 			return false;
 		}
 
-		ImageConfig* img_resource_data = (ImageConfig*)load_params->image_resource.data;
-		load_params->temp_texture.channel_count = img_resource_data->channel_count;
-		load_params->temp_texture.width = img_resource_data->width;
-		load_params->temp_texture.height = img_resource_data->height;
+		load_params->temp_texture.channel_count = config->channel_count;
+		load_params->temp_texture.width = config->width;
+		load_params->temp_texture.height = config->height;
 
 		load_params->current_generation = load_params->out_texture->generation;
 		load_params->out_texture->generation = INVALID_ID;
 
-		uint8* pixels = img_resource_data->pixels;
+		uint8* pixels = config->pixels;
 		uint64 size = load_params->temp_texture.width * load_params->temp_texture.height * load_params->temp_texture.channel_count;
 		bool32 has_transparency = false;
-		for (uint64 i = 0; i < size; i += img_resource_data->channel_count)
+		for (uint64 i = 0; i < size; i += config->channel_count)
 		{
 			uint8 a = pixels[i + 3];
 			if (a < 255)
@@ -374,7 +374,7 @@ namespace TextureSystem
 		params->resource_name = (char*)Memory::allocate(name_length + 1, AllocationTag::STRING);
 		CString::copy(name_length + 1, params->resource_name, texture_name);
 		params->out_texture = t;
-		params->image_resource = {};
+		params->config = {};
 		params->current_generation = t->generation;
 		JobSystem::submit(job);
 		return true;
@@ -392,19 +392,18 @@ namespace TextureSystem
 			ImageResourceParams params;
 			params.flip_y = false;
 
-			Resource img_resource;
-			if (!ResourceSystem::load(texture_names[i], ResourceType::IMAGE, &params, &img_resource))
+			ImageConfig img_resource_data;
+			if (!ResourceSystem::image_loader_load(texture_names[i], &params, &img_resource_data))
 			{
 				SHMERRORV("load_texture - Failed to load image resources for texture '%s'", texture_names[i]);
 				return false;
-			}			
+			}
 
-			ImageConfig* img_resource_data = (ImageConfig*)img_resource.data;
 			if (!pixels.data)
 			{
-				t->channel_count = img_resource_data->channel_count;
-				t->width = img_resource_data->width;
-				t->height = img_resource_data->height;
+				t->channel_count = img_resource_data.channel_count;
+				t->width = img_resource_data.width;
+				t->height = img_resource_data.height;
 
 				t->generation = INVALID_ID;
 				t->flags = 0;
@@ -415,7 +414,7 @@ namespace TextureSystem
 			}
 			else
 			{
-				if (t->width != img_resource_data->width || t->height != img_resource_data->height || t->channel_count != img_resource_data->channel_count)
+				if (t->width != img_resource_data.width || t->height != img_resource_data.height || t->channel_count != img_resource_data.channel_count)
 				{
 					SHMERROR("load_cube_textures - Cannot load cube textures since dimensions vary between textures!");
 					pixels.free_data();
@@ -423,9 +422,9 @@ namespace TextureSystem
 				}
 			}
 
-			pixels.copy_memory(img_resource_data->pixels, image_size, image_size * i);
+			pixels.copy_memory(img_resource_data.pixels, image_size, image_size * i);
 
-			ResourceSystem::unload(&img_resource);
+			ResourceSystem::image_loader_unload(&img_resource_data);
 
 		}
 

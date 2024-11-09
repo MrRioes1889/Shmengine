@@ -4,6 +4,7 @@
 
 namespace ResourceSystem
 {
-	ResourceLoader image_resource_loader_create();
+	bool32 image_loader_load(const char* name, void* params, ImageConfig* out_config);
+	void image_loader_unload(ImageConfig* config);
 }
 

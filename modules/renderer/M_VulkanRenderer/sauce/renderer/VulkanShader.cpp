@@ -1,7 +1,7 @@
 #include "VulkanBackend.hpp"
 
 #include "VulkanInternal.hpp"
-#include <systems/ResourceSystem.hpp>
+#include <resources/loaders/GenericLoader.hpp>
 #include <systems/TextureSystem.hpp>
 
 // TODO: Get rid of frontend include
@@ -747,8 +747,8 @@ namespace Renderer::Vulkan
 	bool32 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage)
 	{
 		// Read the resource.
-		Resource resource;
-		if (!ResourceSystem::load(config.filename, ResourceType::GENERIC, 0, &resource))
+		Buffer data = {};
+		if (!ResourceSystem::generic_loader_load(config.filename, 0, &data))
 		{
 			SHMERRORV("Unable to read shader module: %s.", config.filename);
 			return false;
@@ -757,8 +757,8 @@ namespace Renderer::Vulkan
 		shader_stage->module_create_info = {};
 		shader_stage->module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 		// Use the resource's size and data directly.
-		shader_stage->module_create_info.codeSize = resource.data_size;
-		shader_stage->module_create_info.pCode = (uint32*)resource.data;
+		shader_stage->module_create_info.codeSize = data.size;
+		shader_stage->module_create_info.pCode = (uint32*)data.data;
 
 		VK_CHECK(vkCreateShaderModule(
 			context->device.logical_device,
@@ -767,7 +767,7 @@ namespace Renderer::Vulkan
 			&shader_stage->handle));
 
 		// Release the resource.
-		ResourceSystem::unload(&resource);
+		ResourceSystem::generic_loader_unload(&data);
 
 		// Shader stage info
 		shader_stage->shader_stage_create_info = {};

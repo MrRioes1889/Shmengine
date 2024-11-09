@@ -3,7 +3,7 @@
 #include "core/Event.hpp"
 #include "utility/Math.hpp"
 #include "utility/math/Transform.hpp"
-#include "systems/ResourceSystem.hpp"
+#include "resources/loaders/ShaderLoader.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/CameraSystem.hpp"
@@ -80,21 +80,20 @@ namespace Renderer
 		self->internal_data.init(sizeof(RenderViewPickInternalData), 0, AllocationTag::RENDERER);
 		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
 
-		Resource config_resource;
-		if (!ResourceSystem::load(Renderer::RendererConfig::builtin_shader_name_material, ResourceType::SHADER, 0, &config_resource))
+		ShaderConfig s_config = {};
+		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_material, 0, &s_config))
 		{
-			SHMERROR("Failed to load world material shader config.");
+			SHMERROR("Failed to load world shader config.");
 			return false;
 		}
-		ShaderConfig* config = (ShaderConfig*)config_resource.data;
 
-		if (!ShaderSystem::create_shader(&self->renderpasses[0], config))
+		if (!ShaderSystem::create_shader(&self->renderpasses[0], &s_config))
 		{
-			SHMERROR("Failed to create world material shader.");
-			ResourceSystem::unload(&config_resource);
+			SHMERROR("Failed to create world shader.");
+			ResourceSystem::shader_loader_unload(&s_config);
 			return false;
 		}
-		ResourceSystem::unload(&config_resource);
+		ResourceSystem::shader_loader_unload(&s_config);
 
 		data->shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_material);
 

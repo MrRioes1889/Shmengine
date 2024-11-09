@@ -1,7 +1,6 @@
-#include "ShaderLoader.hpp"
+#include "MeshLoader.hpp"
 
 #include "resources/ResourceTypes.hpp"
-#include "LoaderUtils.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
@@ -62,6 +61,8 @@ struct ShmeshFileGeometryHeader
 namespace ResourceSystem
 {
 
+    static const char* loader_type_path = "models/";
+
     static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray);
     static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometrySystem::GeometryConfig* out_data);
     static bool32 import_obj_material_library_file(const char* mtl_file_path);
@@ -71,14 +72,14 @@ namespace ResourceSystem
     static bool32 write_shmesh_file(const char* path, const char* name, Darray<GeometrySystem::GeometryConfig>& geometries);
     
 
-    bool32 mesh_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
+    bool32 mesh_loader_load(const char* name, void* params, MeshResourceData* out_resource)
     {
 
         const char* format = "%s%s%s";
         String full_filepath_wo_extension(MAX_FILEPATH_LENGTH);
 
         safe_print_s<const char*, const char*, const char*>
-            (full_filepath_wo_extension, format, get_base_path(), loader->type_path, name);
+            (full_filepath_wo_extension, format, get_base_path(), loader_type_path, name);
 
         const uint32 supported_file_type_count = 2;
         SupportedMeshFileType supported_file_types[supported_file_type_count] = {};
@@ -110,8 +111,7 @@ namespace ResourceSystem
             return false;
         }
 
-        Darray<GeometrySystem::GeometryConfig> resource_data(1, 0, AllocationTag::RESOURCE);
-        out_resource->name = name;
+        out_resource->g_configs.init(1, 0, AllocationTag::RESOURCE);
 
         bool32 res = false;
         switch (file_type)
@@ -121,13 +121,13 @@ namespace ResourceSystem
             String shmesh_filepath(MAX_FILEPATH_LENGTH);
             shmesh_filepath = full_filepath_wo_extension;
             shmesh_filepath.append(".shmesh");
-            res = import_obj_file(&f, full_filepath.c_str(), out_resource->name, shmesh_filepath.c_str(), resource_data);
+            res = import_obj_file(&f, full_filepath.c_str(), name, shmesh_filepath.c_str(), out_resource->g_configs);
             
             break;
         }
         case MeshFileType::SHMESH:
         {
-            res = load_shmesh_file(&f, full_filepath.c_str(), resource_data);
+            res = load_shmesh_file(&f, full_filepath.c_str(), out_resource->g_configs);
             break;
         }
         default:
@@ -141,30 +141,25 @@ namespace ResourceSystem
         if (!res)
         {
             SHMERRORV("Failed to process mesh file '%s'!", full_filepath.c_str());
-            out_resource->data = 0;
-            out_resource->data_size = 0;
+            mesh_loader_unload(out_resource);
             return res;
-        }
-
-        out_resource->data_size = resource_data.count;
-        out_resource->data = resource_data.transfer_data();      
+        }    
 
         return true;
 
     }
 
-    void mesh_loader_unload(ResourceLoader* loader, Resource* resource)
+    void mesh_loader_unload(MeshResourceData* resource)
     {
-        if (resource->data)
-        {
-            for (uint32 i = 0; i < resource->data_size; i++)
-            {
-                GeometrySystem::GeometryConfig& data = ((GeometrySystem::GeometryConfig*)resource->data)[i];
-                data.~GeometryConfig();
-            }       
-        }
 
-        resource_unload(loader, resource);
+        for (uint32 i = 0; i < resource->g_configs.count; i++)
+        {
+            GeometrySystem::GeometryConfig* g_config = &resource->g_configs[i];
+            g_config->indices.free_data();
+            g_config->vertices.free_data();
+        }
+        resource->g_configs.free_data();
+
     }
 
     static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray)
@@ -799,15 +794,4 @@ namespace ResourceSystem
         return true;
     }   
 
-	ResourceLoader mesh_resource_loader_create()
-	{
-        ResourceLoader loader;
-        loader.type = ResourceType::MESH;
-        loader.custom_type = 0;
-        loader.load = mesh_loader_load;
-        loader.unload = mesh_loader_unload;
-        loader.type_path = "models/";
-
-        return loader;
-	}
 }
