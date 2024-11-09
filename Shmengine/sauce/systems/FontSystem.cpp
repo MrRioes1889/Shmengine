@@ -6,6 +6,7 @@
 #include "resources/UIText.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "resources/loaders/TruetypeFontLoader.hpp"
+#include "resources/loaders/BitmapFontLoader.hpp"
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "vendor/stb/stb_truetype.h"
@@ -13,17 +14,11 @@
 namespace FontSystem
 {
 
-	struct BitmapFontInternalData
-	{
-		Resource loaded_resource;
-		BitmapFontResourceData* resource_data;
-	};
-
 	struct BitmapFontLookup
 	{
 		uint16 id;
 		uint16 reference_count;
-		BitmapFontInternalData font_data;
+		BitmapFontResourceData font_data;
 	};
 
 	/*struct TruetypeFontInvariantData
@@ -122,11 +117,11 @@ namespace FontSystem
 		{
 			if (system_state->registered_bitmap_fonts[i].id != INVALID_ID16)
 			{
-				FontAtlas* font = &system_state->registered_bitmap_fonts[i].font_data.resource_data->data;
+				FontAtlas* font = &system_state->registered_bitmap_fonts[i].font_data.atlas;
 				destroy_font_data(font);
 				system_state->registered_bitmap_fonts[i].id = INVALID_ID16;
 
-				ResourceSystem::unload(&system_state->registered_bitmap_fonts[i].font_data.loaded_resource);
+				ResourceSystem::bitmap_font_loader_unload(&system_state->registered_bitmap_fonts[i].font_data);
 			}
 		}
 
@@ -237,19 +232,18 @@ namespace FontSystem
 		}
 
 		BitmapFontLookup* lookup = &system_state->registered_bitmap_fonts[id];
-		if (!ResourceSystem::load(config.resource_name, ResourceType::BITMAP_FONT, 0, &lookup->font_data.loaded_resource))
+		if (!ResourceSystem::bitmap_font_loader_load(config.resource_name, 0, &lookup->font_data))
 		{
 			SHMERROR("load_bitmap_font - Failed to load resource!");
 			return false;
 		}
 
-		lookup->font_data.resource_data = (BitmapFontResourceData*)lookup->font_data.loaded_resource.data;
-		lookup->font_data.resource_data->data.map.texture = TextureSystem::acquire(lookup->font_data.resource_data->pages[0].file, true);
+		lookup->font_data.atlas.map.texture = TextureSystem::acquire(lookup->font_data.pages[0].file, true);
 
 		system_state->registered_bitmap_font_table.set_value(config.name, id);
 		lookup->id = id;
 
-		return create_font_data(&lookup->font_data.resource_data->data);
+		return create_font_data(&lookup->font_data.atlas);
 
 	}
 
@@ -268,7 +262,7 @@ namespace FontSystem
 
 			BitmapFontLookup* lookup = &system_state->registered_bitmap_fonts[id];
 			lookup->reference_count++;
-			text->font_atlas = &lookup->font_data.resource_data->data;		
+			text->font_atlas = &lookup->font_data.atlas;		
 
 			return true;
 		}

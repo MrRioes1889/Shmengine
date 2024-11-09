@@ -1,4 +1,4 @@
-#include "ShaderLoader.hpp"
+#include "TruetypeFontLoader.hpp"
 
 #include "resources/ResourceTypes.hpp"
 #include "LoaderUtils.hpp"
@@ -110,92 +110,8 @@ namespace ResourceSystem
 
    void truetype_font_loader_unload(TruetypeFontResourceData* data)
     {
-        if (data)
-            data->~TruetypeFontResourceData();
+        data->binary_data.free_data();
     }
-
-    /*static bool32 truetype_font_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
-    {
-
-        const char* format = "%s%s%s";
-        String full_filepath_wo_extension(MAX_FILEPATH_LENGTH);
-
-        safe_print_s<const char*, const char*, const char*>
-            (full_filepath_wo_extension, format, get_base_path(), loader->type_path, name);
-
-        const uint32 supported_file_type_count = 2;
-        SupportedTruetypeFontFileType supported_file_types[supported_file_type_count] = {};
-        supported_file_types[0] = { ".shmttf", TruetypeFontFileType::SHMTTF };
-        supported_file_types[1] = { ".ttf", TruetypeFontFileType::TTF };
-
-        String full_filepath(MAX_FILEPATH_LENGTH);
-        TruetypeFontFileType file_type = TruetypeFontFileType::NOT_FOUND;
-        for (uint32 i = 0; i < supported_file_type_count; i++)
-        {
-            full_filepath = full_filepath_wo_extension;
-            full_filepath.append(supported_file_types[i].extension);
-            if (FileSystem::file_exists(full_filepath.c_str()))
-            {
-                file_type = supported_file_types[i].type;
-                break;
-            }
-        }
-
-        if (file_type == TruetypeFontFileType::NOT_FOUND) {
-            SHMERRORV("truetype_font_loader_load - Truetype font resource loader failed to find file '%s' with any valid extensions.", full_filepath_wo_extension.c_str());
-            return false;
-        }
-
-        FileSystem::FileHandle f;
-        if (!FileSystem::file_open(full_filepath.c_str(), FileMode::FILE_MODE_READ, &f))
-        {
-            SHMERRORV("truetype_font_loader_load - Failed to open file for loading truetype font '%s'", full_filepath.c_str());
-            return false;
-        }
-
-        out_resource->data_size = sizeof(TruetypeFontResourceData);
-        out_resource->data = Memory::allocate(out_resource->data_size, AllocationTag::RESOURCE);
-        TruetypeFontResourceData* resource_data = (TruetypeFontResourceData*)out_resource->data;
-        out_resource->name = name;
-
-        bool32 res = false;
-        switch (file_type)
-        {
-        case TruetypeFontFileType::TTF:
-        {
-            String shmttf_filepath(MAX_FILEPATH_LENGTH);
-            shmttf_filepath = full_filepath_wo_extension;
-            shmttf_filepath.append(".shmttf");
-            res = import_ttf_file(&f, name, shmttf_filepath.c_str(), resource_data);
-            break;
-        }
-        case TruetypeFontFileType::SHMTTF:
-        {
-            res = load_shmttf_file(&f, full_filepath.c_str(), resource_data);
-            break;
-        }
-        }
-
-        FileSystem::file_close(&f);
-        
-        if (!res)
-        {
-            SHMERRORV("Failed to process ttf file '%s'!", full_filepath.c_str());
-            truetype_font_loader_unload(loader, out_resource);
-        }
-
-        return res;
-
-    }
-
-    static void truetype_font_loader_unload(ResourceLoader* loader, Resource* resource)
-    {
-        TruetypeFontResourceData* data = (TruetypeFontResourceData*)resource->data;
-        if (data)
-            data->~TruetypeFontResourceData();
-
-        resource_unload(loader, resource);
-    }*/
 
     static bool32 import_ttf_file(FileSystem::FileHandle* ttf_file, const char* resource_name, const char* shmttf_filepath, TruetypeFontResourceData* out_data)
     {
@@ -283,16 +199,4 @@ namespace ResourceSystem
 
     }
 
-
-    /*ResourceLoader truetype_font_resource_loader_create()
-    {
-        ResourceLoader loader;
-        loader.type = ResourceType::TRUETYPE_FONT;
-        loader.custom_type = 0;
-        loader.load = truetype_font_loader_load;
-        loader.unload = truetype_font_loader_unload;
-        loader.type_path = "fonts/";
-
-        return loader;
-    }*/
 }

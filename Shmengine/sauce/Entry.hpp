@@ -57,7 +57,7 @@ int WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev_instance, _In_ LPST
     }
     catch (AssertException& exc)
     {
-        MessageBoxA(0, exc.message, "Fatal Error", 0);
+        Platform::message_box("Fatal Error", exc.message);
         return 1;
     }
 }

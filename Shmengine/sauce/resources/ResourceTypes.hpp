@@ -16,7 +16,7 @@ enum class ResourceType
 	STATIC_MESH,
 	SHADER,
 	MESH,
-	BITMAP_FONT,
+	//BITMAP_FONT,
 	//TRUETYPE_FONT,
 	CUSTOM
 };
@@ -171,7 +171,7 @@ struct BitmapFontPage {
 };
 
 struct BitmapFontResourceData {
-	FontAtlas data;
+	FontAtlas atlas;
 	Sarray<BitmapFontPage> pages;
 };
 

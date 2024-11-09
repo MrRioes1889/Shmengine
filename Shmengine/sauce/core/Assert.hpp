@@ -28,7 +28,7 @@ SHMAPI void report_assertion_failure(const char* expression, const char* message
         } else {                                                     \
             report_assertion_failure(#expr, "", __FILE__, __LINE__); \
             debug_break();                                           \
-            throw AssertException({__LINE__, __FILE__, ""});         \
+            throw AssertException({__LINE__, __FILE__, "Critical assertion failure!"});         \
         }                                                            \
     }
 
@@ -49,7 +49,7 @@ SHMAPI void report_assertion_failure(const char* expression, const char* message
         } else {                                                     \
             report_assertion_failure(#expr, "", __FILE__, __LINE__); \
             debug_break();                                           \
-            throw AssertException({__LINE__, __FILE__, ""});         \
+            throw AssertException({__LINE__, __FILE__, "Critical assertion failure"});         \
         }                                                            \
     }
 #else

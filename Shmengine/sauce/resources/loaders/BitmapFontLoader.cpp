@@ -1,4 +1,4 @@
-#include "ShaderLoader.hpp"
+#include "BitmapFontLoader.hpp"
 
 #include "resources/ResourceTypes.hpp"
 #include "LoaderUtils.hpp"
@@ -42,19 +42,20 @@ struct ShmbmfFileHeader
 namespace ResourceSystem
 {
 
-    static void bitmap_font_loader_unload(ResourceLoader* loader, Resource* resource);
+    static const char* loader_type_path = "fonts/";
+
     static bool32 import_fnt_file(FileSystem::FileHandle* fnt_file, const char* resource_name, const char* shmbmf_filepath, BitmapFontResourceData* out_data);
     static bool32 write_shmbmf_file(const char* shmbmf_filepath, const char* name, const BitmapFontResourceData* out_data);
     static bool32 load_shmbmf_file(FileSystem::FileHandle* shmbmf_file, const char* shmbmf_filepath, BitmapFontResourceData* out_data);
 
-    static bool32 bitmap_font_loader_load(ResourceLoader* loader, const char* name, void* params, Resource* out_resource)
+    bool32 bitmap_font_loader_load(const char* name, void* params, BitmapFontResourceData* out_resource)
     {
 
         const char* format = "%s%s%s";
         String full_filepath_wo_extension(MAX_FILEPATH_LENGTH);
 
         safe_print_s<const char*, const char*, const char*>
-            (full_filepath_wo_extension, format, get_base_path(), loader->type_path, name);
+            (full_filepath_wo_extension, format, get_base_path(), loader_type_path, name);
 
         const uint32 supported_file_type_count = 2;
         SupportedBitmapFontFileType supported_file_types[supported_file_type_count] = {};
@@ -86,11 +87,6 @@ namespace ResourceSystem
             return false;
         }
 
-        out_resource->data_size = sizeof(BitmapFontResourceData);
-        out_resource->data = Memory::allocate(out_resource->data_size, AllocationTag::RESOURCE);
-        BitmapFontResourceData* resource_data = (BitmapFontResourceData*)out_resource->data;
-        out_resource->name = name;
-
         bool32 res = false;
         switch (file_type)
         {
@@ -99,12 +95,12 @@ namespace ResourceSystem
             String shmbmf_filepath(MAX_FILEPATH_LENGTH);
             shmbmf_filepath = full_filepath_wo_extension;
             shmbmf_filepath.append(".shmbmf");
-            res = import_fnt_file(&f, name, shmbmf_filepath.c_str(), resource_data);
+            res = import_fnt_file(&f, name, shmbmf_filepath.c_str(), out_resource);
             break;
         }
         case BitmapFontFileType::SHMBMF:
         {
-            res = load_shmbmf_file(&f, full_filepath.c_str(), resource_data);
+            res = load_shmbmf_file(&f, full_filepath.c_str(), out_resource);
             break;
         }
         default:
@@ -118,20 +114,18 @@ namespace ResourceSystem
         if (!res)
         {
             SHMERRORV("Failed to process mesh file '%s'!", full_filepath.c_str());
-            bitmap_font_loader_unload(loader, out_resource);
+            bitmap_font_loader_unload(out_resource);
         }
 
         return res;
 
     }
 
-    static void bitmap_font_loader_unload(ResourceLoader* loader, Resource* resource)
+    void bitmap_font_loader_unload(BitmapFontResourceData* resource)
     {
-        BitmapFontResourceData* data = (BitmapFontResourceData*)resource->data;
-        if (data)
-            data->~BitmapFontResourceData();
-
-        resource_unload(loader, resource);
+        resource->atlas.glyphs.free_data();
+        resource->atlas.kernings.free_data();
+        resource->pages.free_data();
     }
 
     static bool32 import_fnt_file(FileSystem::FileHandle* fnt_file, const char* resource_name, const char* shmbmf_filepath, BitmapFontResourceData* out_data)
@@ -147,11 +141,11 @@ namespace ResourceSystem
         }
 
         // TODO: Make more configurable. Only supporting UTF-8 codes 0 - 255 for now for quicker lookups.
-        out_data->data.glyphs.init(256, 0, AllocationTag::BITMAP_FONT);
-        for (uint32 i = 0; i < out_data->data.glyphs.capacity; i++)
+        out_data->atlas.glyphs.init(256, 0, AllocationTag::BITMAP_FONT);
+        for (uint32 i = 0; i < out_data->atlas.glyphs.capacity; i++)
         {
-            out_data->data.glyphs[i].codepoint = INVALID_ID;
-            out_data->data.glyphs[i].kernings_offset = INVALID_ID;
+            out_data->atlas.glyphs[i].codepoint = INVALID_ID;
+            out_data->atlas.glyphs[i].kernings_offset = INVALID_ID;
         }
 
         // Read each line of the file.
@@ -188,8 +182,8 @@ namespace ResourceSystem
             {
                 CString::safe_scan<char*, uint32*>(values.c_str(), 
                     "face=\"%s\" size=%u ", 
-                    out_data->data.face, 
-                    &out_data->data.font_size);
+                    out_data->atlas.face, 
+                    &out_data->atlas.font_size);
             }
             else if (line_identifier == "common")
             {
@@ -197,10 +191,10 @@ namespace ResourceSystem
                 uint32 page_count = 0;
                 CString::safe_scan<uint32*, int32*, uint32*, uint32*, uint32*>(values.c_str(), 
                     "lineHeight=%u base=%i scaleW=%u scaleH=%u pages=%u ",
-                    &out_data->data.line_height,
-                    &out_data->data.baseline,
-                    &out_data->data.atlas_size_x,
-                    &out_data->data.atlas_size_y,
+                    &out_data->atlas.line_height,
+                    &out_data->atlas.baseline,
+                    &out_data->atlas.atlas_size_x,
+                    &out_data->atlas.atlas_size_y,
                     &page_count);
 
                 if (page_count == 0)
@@ -246,7 +240,7 @@ namespace ResourceSystem
                     return false;
                 }
 
-                out_data->data.kernings.init(kerning_count, DarrayFlags::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
+                out_data->atlas.kernings.init(kerning_count, DarrayFlags::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
             }
             else if (line_identifier == "char")
             {
@@ -258,7 +252,7 @@ namespace ResourceSystem
 
                 if (char_id < 256)
                 {
-                    FontGlyph& glyph = out_data->data.glyphs[char_id];
+                    FontGlyph& glyph = out_data->atlas.glyphs[char_id];
 
                     CString::safe_scan<int32*, uint16*, uint16*, uint16*, uint16*, int16*, int16*, int16*, uint8*>(values.c_str(),
                         "id=%i x=%hu y=%hu width=%hu height=%hu xoffset=%hi yoffset=%hi xadvance=%hi page=%hhu ",
@@ -288,20 +282,20 @@ namespace ResourceSystem
                 if (first_char_id < 256 && second_char_id < 256)
                 {
                     FontKerning k = { .codepoint_0 = (int32)first_char_id, .codepoint_1 = (int32)second_char_id, .advance = amount };
-                    out_data->data.kernings.emplace(k);
+                    out_data->atlas.kernings.emplace(k);
                 }
             }
 
             line_number++;
         }
 
-        quick_sort(out_data->data.kernings.data, 0, out_data->data.kernings.count - 1);
+        quick_sort(out_data->atlas.kernings.data, 0, out_data->atlas.kernings.count - 1);
         uint32 old_codepoint = INVALID_ID;
-        for (uint32 i = 0; i < out_data->data.kernings.count; i++)
+        for (uint32 i = 0; i < out_data->atlas.kernings.count; i++)
         {
-            uint32 codepoint = out_data->data.kernings[i].codepoint_0;
+            uint32 codepoint = out_data->atlas.kernings[i].codepoint_0;
             if (codepoint != old_codepoint)
-                out_data->data.glyphs[codepoint].kernings_offset = i;
+                out_data->atlas.glyphs[codepoint].kernings_offset = i;
             old_codepoint = codepoint;
         }
 
@@ -328,20 +322,20 @@ namespace ResourceSystem
         file_header.version = 1;
         file_header.name_length = (uint16)CString::length(resource_name);
         file_header.pages_count = out_data->pages.capacity;
-        file_header.glyphs_count = out_data->data.glyphs.capacity;
-        file_header.kernings_count = out_data->data.kernings.count;
+        file_header.glyphs_count = out_data->atlas.glyphs.capacity;
+        file_header.kernings_count = out_data->atlas.kernings.count;
    
         file_header.name_offset = sizeof(ShmbmfFileHeader);
         file_header.pages_offset = file_header.name_offset + file_header.name_length;
         file_header.glyphs_offset = file_header.pages_offset + (file_header.pages_count * sizeof(BitmapFontPage));
         file_header.kernings_offset = file_header.glyphs_offset + (file_header.glyphs_count * sizeof(FontGlyph));
 
-        CString::copy(256, file_header.face, out_data->data.face);
-        file_header.line_height = out_data->data.line_height;
-        file_header.baseline = out_data->data.baseline;
-        file_header.glyph_size = out_data->data.font_size;
-        file_header.atlas_size_x = out_data->data.atlas_size_x;
-        file_header.atlas_size_y = out_data->data.atlas_size_y;
+        CString::copy(256, file_header.face, out_data->atlas.face);
+        file_header.line_height = out_data->atlas.line_height;
+        file_header.baseline = out_data->atlas.baseline;
+        file_header.glyph_size = out_data->atlas.font_size;
+        file_header.atlas_size_x = out_data->atlas.atlas_size_x;
+        file_header.atlas_size_y = out_data->atlas.atlas_size_y;
 
         FileSystem::write(&f, sizeof(file_header), &file_header, &written);
         written_total += written;
@@ -355,10 +349,10 @@ namespace ResourceSystem
             written_total += written;
         }     
 
-        FileSystem::write(&f, file_header.glyphs_count * sizeof(FontGlyph), out_data->data.glyphs.data, &written);
+        FileSystem::write(&f, file_header.glyphs_count * sizeof(FontGlyph), out_data->atlas.glyphs.data, &written);
         written_total += written;
 
-        FileSystem::write(&f, file_header.kernings_count * sizeof(FontKerning), out_data->data.kernings.data, &written);
+        FileSystem::write(&f, file_header.kernings_count * sizeof(FontKerning), out_data->atlas.kernings.data, &written);
         written_total += written;
 
         FileSystem::file_close(&f);
@@ -393,12 +387,12 @@ namespace ResourceSystem
         ShmbmfFileHeader* file_header = (ShmbmfFileHeader*)&read_ptr[read_bytes];
         read_bytes += sizeof(ShmbmfFileHeader);
 
-        CString::copy(256, out_data->data.face, file_header->face);
-        out_data->data.line_height = file_header->line_height;
-        out_data->data.baseline = file_header->baseline;
-        out_data->data.font_size = file_header->glyph_size;
-        out_data->data.atlas_size_x = file_header->atlas_size_x;
-        out_data->data.atlas_size_y = file_header->atlas_size_y;
+        CString::copy(256, out_data->atlas.face, file_header->face);
+        out_data->atlas.line_height = file_header->line_height;
+        out_data->atlas.baseline = file_header->baseline;
+        out_data->atlas.font_size = file_header->glyph_size;
+        out_data->atlas.atlas_size_x = file_header->atlas_size_x;
+        out_data->atlas.atlas_size_y = file_header->atlas_size_y;
 
         check_buffer_size(file_header->name_length);
         String name;
@@ -414,19 +408,19 @@ namespace ResourceSystem
         }
 
         if (file_header->glyphs_count)
-            out_data->data.glyphs.init(file_header->glyphs_count, 0, AllocationTag::BITMAP_FONT);
+            out_data->atlas.glyphs.init(file_header->glyphs_count, 0, AllocationTag::BITMAP_FONT);
 
         if (file_header->kernings_count)
-            out_data->data.kernings.init(file_header->kernings_count, DarrayFlags::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
+            out_data->atlas.kernings.init(file_header->kernings_count, DarrayFlags::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
 
         uint64 glyphs_size = file_header->glyphs_count * sizeof(FontGlyph);
         check_buffer_size(glyphs_size);
-        out_data->data.glyphs.copy_memory(&read_ptr[read_bytes], glyphs_size, 0);
+        out_data->atlas.glyphs.copy_memory(&read_ptr[read_bytes], glyphs_size, 0);
         read_bytes += glyphs_size;
 
         uint64 kernings_size = file_header->kernings_count * sizeof(FontKerning);
         check_buffer_size(kernings_size);
-        out_data->data.kernings.copy_memory(&read_ptr[read_bytes], kernings_size, 0, file_header->kernings_count);
+        out_data->atlas.kernings.copy_memory(&read_ptr[read_bytes], kernings_size, 0, file_header->kernings_count);
         read_bytes += kernings_size;
 
         return true;
@@ -435,7 +429,7 @@ namespace ResourceSystem
 
     
 
-    ResourceLoader bitmap_font_resource_loader_create()
+    /*ResourceLoader bitmap_font_resource_loader_create()
     {
         ResourceLoader loader;
         loader.type = ResourceType::BITMAP_FONT;
@@ -445,5 +439,5 @@ namespace ResourceSystem
         loader.type_path = "fonts/";
 
         return loader;
-    }
+    }*/
 }

@@ -86,5 +86,7 @@ namespace Platform
 	SHMAPI bool32 unload_dynamic_library(DynamicLibrary* lib);
 	SHMAPI bool32 load_dynamic_library_function(DynamicLibrary* lib, const char* name, void** out_function);
 
+	SHMAPI void message_box(const char* prompt, const char* message);
+
 }
 

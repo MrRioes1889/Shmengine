@@ -452,6 +452,11 @@ namespace Platform
         return true;
     }
 
+    void message_box(const char* prompt, const char* message)
+    {
+        MessageBoxA(plat_state->hwnd, message, prompt, MB_OK);
+    }
+
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param) {
         switch (msg) {
         case WM_ERASEBKGND:

@@ -59,10 +59,10 @@ typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 #define STATIC_ASSERT static_assert
 #endif
 
-#define Kibibytes(x) ((x) * 1024LL)
-#define Mebibytes(x) (Kibibytes(x) * 1024LL)
-#define Gibibytes(x) (Mebibytes(x) * 1024LL)
-#define Tebibytes(x) (Gibibytes(x) * 1024LL)
+#define Kibibytes(x) ((x) * 1024ULL)
+#define Mebibytes(x) (Kibibytes(x) * 1024ULL)
+#define Gibibytes(x) (Mebibytes(x) * 1024ULL)
+#define Tebibytes(x) (Gibibytes(x) * 1024ULL)
 
 // Ensure all types are of the correct size.
 STATIC_ASSERT(sizeof(uint8) == 1, "Expected u8 to be 1 byte.");
