@@ -8,6 +8,7 @@
 #include "systems/TextureSystem.hpp"
 #include "resources/loaders/MaterialLoader.hpp"
 #include "systems/ShaderSystem.hpp"
+#include "systems/LightSystem.hpp"
 #include "containers/Sarray.hpp"
 
 
@@ -250,6 +251,13 @@ namespace MaterialSystem
                 MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.specular_texture, &m->specular_map));
                 MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.normal_texture, &m->normal_map));
                 MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.shininess, &m->shininess));
+
+                const LightSystem::DirectionalLight* dir_light = LightSystem::get_directional_light();
+                const Darray<LightSystem::PointLight>* p_lights = LightSystem::get_point_lights();
+
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, dir_light));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &p_lights->count));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, p_lights->data));
             }
             else if (m->shader_id == ShaderSystem::get_ui_shader_id()) {
                 ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();

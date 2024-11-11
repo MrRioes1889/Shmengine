@@ -6,6 +6,7 @@
 #include <core/Keymap.hpp>
 #include <utility/MathTypes.hpp>
 #include <systems/CameraSystem.hpp>
+#include <systems/LightSystem.hpp>
 
 #include "DebugConsole.hpp"
 
@@ -34,6 +35,9 @@ struct ApplicationState
     Darray<Mesh> ui_meshes;
     UIText test_bitmap_text;
     UIText test_truetype_text;
+
+    LightSystem::DirectionalLight* dir_light;
+    uint32 p_lights_i[3];
 
     Input::Keymap console_keymap;
 

@@ -46,8 +46,6 @@ namespace Engine
 		void* camera_system_state;
 		void* job_system_state;
 		void* font_system_state;
-
-		SubsystemManager subsystem_manager;
 	};
 
 	static bool32 initialized = false;
@@ -86,7 +84,7 @@ namespace Engine
 		engine_state->is_running = true;
 		engine_state->is_suspended = false;
 
-		if (!engine_state->subsystem_manager.init(&game_inst->config))
+		if (!SubsystemManager::init(&game_inst->config))
 		{
 			SHMFATAL("Failed to initialize subsystem manager!");
 			return false;
@@ -100,7 +98,7 @@ namespace Engine
 		}
 		game_inst->stage = ApplicationStage::BOOT_COMPLETE;
 
-		if (!engine_state->subsystem_manager.post_boot_init(&game_inst->config))
+		if (!SubsystemManager::post_boot_init(&game_inst->config))
 		{
 			SHMFATAL("Failed to initialize subsystem manager!");
 			return false;
@@ -141,7 +139,7 @@ namespace Engine
 
 			OPTICK_FRAME("MainThread");	
 
-			engine_state->subsystem_manager.update(last_frametime);
+			SubsystemManager::update(last_frametime);
 
 			if (!Platform::pump_messages())
 			{
@@ -203,7 +201,7 @@ namespace Engine
 		engine_state->is_running = false;
 		engine_state->game_inst->shutdown(engine_state->game_inst);	
 
-		engine_state->subsystem_manager.shutdown();
+		SubsystemManager::shutdown();
 		game_inst->stage = ApplicationStage::UNINITIALIZED;
 
 		return true;

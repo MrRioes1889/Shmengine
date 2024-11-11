@@ -139,47 +139,58 @@ namespace ResourceSystem
                     tmp[1].trim();
                     ShaderAttributeConfig attribute;
                     // Parse field type
-                    if (tmp[0].equal_i("float32")) {
+                    if (tmp[0].equal_i("float32")) 
+                    {
                         attribute.type = ShaderAttributeType::FLOAT32;
                         attribute.size = 4;
                     }
-                    else if (tmp[0].equal_i("vec2")) {
+                    else if (tmp[0].equal_i("vec2")) 
+                    {
                         attribute.type = ShaderAttributeType::FLOAT32_2;
                         attribute.size = 8;
                     }
-                    else if (tmp[0].equal_i("vec3")) {
+                    else if (tmp[0].equal_i("vec3")) 
+                    {
                         attribute.type = ShaderAttributeType::FLOAT32_3;
                         attribute.size = 12;
                     }
-                    else if (tmp[0].equal_i("vec4")) {
+                    else if (tmp[0].equal_i("vec4")) 
+                    {
                         attribute.type = ShaderAttributeType::FLOAT32_4;
                         attribute.size = 16;
                     }
-                    else if (tmp[0].equal_i("uint8")) {
+                    else if (tmp[0].equal_i("uint8")) 
+                    {
                         attribute.type = ShaderAttributeType::UINT8;
                         attribute.size = 1;
                     }
-                    else if (tmp[0].equal_i("uint16")) {
+                    else if (tmp[0].equal_i("uint16")) 
+                    {
                         attribute.type = ShaderAttributeType::UINT16;
                         attribute.size = 2;
                     }
-                    else if (tmp[0].equal_i("uint32")) {
+                    else if (tmp[0].equal_i("uint32")) 
+                    {
                         attribute.type = ShaderAttributeType::UINT32;
                         attribute.size = 4;
                     }
-                    else if (tmp[0].equal_i("int8")) {
+                    else if (tmp[0].equal_i("int8")) 
+                    {
                         attribute.type = ShaderAttributeType::INT8;
                         attribute.size = 1;
                     }
-                    else if (tmp[0].equal_i("int16")) {
+                    else if (tmp[0].equal_i("int16")) 
+                    {
                         attribute.type = ShaderAttributeType::INT16;
                         attribute.size = 2;
                     }
-                    else if (tmp[0].equal_i("int32")) {
+                    else if (tmp[0].equal_i("int32")) 
+                    {
                         attribute.type = ShaderAttributeType::INT32;
                         attribute.size = 4;
                     }
-                    else {
+                    else 
+                    {
                         SHMERROR("shader_loader_load - Invalid file layout. Attribute type must be float32, vec2, vec3, vec4, int8, int16, int32, uint8, uint16, or uint32.");
                         attribute.size = 0;
                     }
@@ -205,55 +216,84 @@ namespace ResourceSystem
                     tmp[2].trim();
                     ShaderUniformConfig uniform;
                     // Parse field type
-                    if (tmp[0].equal_i("float32")) {
+                    if (tmp[0].equal_i("float32")) 
+                    {
                         uniform.type = ShaderUniformType::FLOAT32;
                         uniform.size = 4;
                     }
-                    else if (tmp[0].equal_i("vec2")) {
+                    else if (tmp[0].equal_i("vec2")) 
+                    {
                         uniform.type = ShaderUniformType::FLOAT32_2;
                         uniform.size = 8;
                     }
-                    else if (tmp[0].equal_i("vec3")) {
+                    else if (tmp[0].equal_i("vec3")) 
+                    {
                         uniform.type = ShaderUniformType::FLOAT32_3;
                         uniform.size = 12;
                     }
-                    else if (tmp[0].equal_i("vec4")) {
+                    else if (tmp[0].equal_i("vec4")) 
+                    {
                         uniform.type = ShaderUniformType::FLOAT32_4;
                         uniform.size = 16;
                     }
-                    else if (tmp[0].equal_i("uint8")) {
+                    else if (tmp[0].equal_i("uint8")) 
+                    {
                         uniform.type = ShaderUniformType::UINT8;
                         uniform.size = 1;
                     }
-                    else if (tmp[0].equal_i("uint16")) {
+                    else if (tmp[0].equal_i("uint16")) 
+                    {
                         uniform.type = ShaderUniformType::UINT16;
                         uniform.size = 2;
                     }
-                    else if (tmp[0].equal_i("uint32")) {
+                    else if (tmp[0].equal_i("uint32")) 
+                    {
                         uniform.type = ShaderUniformType::UINT32;
                         uniform.size = 4;
                     }
-                    else if (tmp[0].equal_i("int8")) {
+                    else if (tmp[0].equal_i("int8")) 
+                    {
                         uniform.type = ShaderUniformType::INT8;
                         uniform.size = 1;
                     }
-                    else if (tmp[0].equal_i("int16")) {
+                    else if (tmp[0].equal_i("int16")) 
+                    {
                         uniform.type = ShaderUniformType::INT16;
                         uniform.size = 2;
                     }
-                    else if (tmp[0].equal_i("int32")) {
+                    else if (tmp[0].equal_i("int32")) 
+                    {
                         uniform.type = ShaderUniformType::INT32;
                         uniform.size = 4;
                     }
-                    else if (tmp[0].equal_i("mat4")) {
+                    else if (tmp[0].equal_i("mat4")) 
+                    {
                         uniform.type = ShaderUniformType::MAT4;
                         uniform.size = 64;
                     }
-                    else if (tmp[0].equal_i("samp")) {
+                    else if (tmp[0].equal_i("samp")) 
+                    {
                         uniform.type = ShaderUniformType::SAMPLER;
                         uniform.size = 1;
                     }
-                    else {
+                    else if (tmp[0].nequal_i("struct", 6)) 
+                    {
+                        if (tmp[0].len() <= 6)
+                        {
+                            SHMERRORV("Failed to load struct uniform. Size missing.", tmp[0].c_str());
+                            return false;
+                        }
+                        uint32 size = 0;
+                        if (!CString::parse_u32(&tmp[0][6], size))
+                        {
+                            SHMERRORV("Failed to parse uniform struct size: '%s'", tmp[0].c_str());
+                            return false;
+                        }
+                        uniform.type = ShaderUniformType::CUSTOM;
+                        uniform.size = size;
+                    }
+                    else 
+                    {
                         SHMERROR("shader_loader_load - Invalid file layout. Uniform type must be float32, vec2, vec3, vec4, int8, int16, int32, uint8, uint16, uint32, mat4 or samp.");
                         uniform.size = 0;
                     }

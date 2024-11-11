@@ -77,6 +77,16 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 			state->world_meshes_loaded = true;
 		}
 	}
+	else if (code == SystemEventCode::DEBUG2)
+	{
+		if (state->world_meshes_loaded)
+		{
+			SHMDEBUG("Unloading models...");
+			mesh_unload(state->sponza_mesh);
+			mesh_unload(state->car_mesh);
+			state->world_meshes_loaded = false;
+		}
+	}
 
 	return true;
 }
@@ -401,6 +411,33 @@ bool32 application_init(Application* app_inst)
 
 	app_inst->frame_data.world_geometries.init(512, 0);
 
+	state->dir_light = LightSystem::get_directional_light();
+	state->dir_light->color = { 0.4f, 0.4f, 0.2f, 1.0f };
+	state->dir_light->direction = { -0.57735f, -0.57735f, -0.57735f, 0.0f };
+
+	LightSystem::PointLight p_light;
+	p_light.color = { 1.0f, 0.0f, 0.0f, 1.0f };
+	p_light.position = { -5.5f, 0.0f, -5.5f, 0.0f };
+	p_light.constant_f = 1.0f;
+	p_light.linear = 0.35f;
+	p_light.quadratic = 0.44f;
+	state->p_lights_i[0] = LightSystem::add_point_light(p_light);
+
+	p_light.color = { 0.0f, 1.0f, 0.0f, 1.0f };
+	p_light.position = { 5.5f, 0.0f, -5.5f, 0.0f };
+	p_light.constant_f = 1.0f;
+	p_light.linear = 0.35f;
+	p_light.quadratic = 0.44f;
+	state->p_lights_i[1] = LightSystem::add_point_light(p_light);
+
+	p_light.color = { 0.0f, 0.0f, 1.0f, 1.0f };
+	p_light.position = { 5.5f, 0.0f, 5.5f, 0.0f };
+	p_light.constant_f = 1.0f;
+	p_light.linear = 0.35f;
+	p_light.quadratic = 0.44f;
+	state->p_lights_i[2] = LightSystem::add_point_light(p_light);
+
+
     return true;
 }
 
@@ -654,6 +691,7 @@ static void register_events(Application* app_inst)
 
 	Event::event_register(SystemEventCode::DEBUG0, app_inst, application_on_debug_event);
 	Event::event_register(SystemEventCode::DEBUG1, app_inst, application_on_debug_event);
+	Event::event_register(SystemEventCode::DEBUG2, app_inst, application_on_debug_event);
 }
 
 static void unregister_events(Application* app_inst)
@@ -662,5 +700,6 @@ static void unregister_events(Application* app_inst)
 
 	Event::event_unregister(SystemEventCode::DEBUG0, app_inst, application_on_debug_event);
 	Event::event_unregister(SystemEventCode::DEBUG1, app_inst, application_on_debug_event);
+	Event::event_unregister(SystemEventCode::DEBUG2, app_inst, application_on_debug_event);
 }
 

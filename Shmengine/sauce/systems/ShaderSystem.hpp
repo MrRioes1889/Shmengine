@@ -21,6 +21,9 @@ namespace ShaderSystem
 		uint16 normal_texture;
 		uint16 model;
 		uint16 render_mode;
+		uint16 dir_light;
+		uint16 p_lights;
+		uint16 p_lights_count;
 	};
 
 	struct UIShaderUniformLocations

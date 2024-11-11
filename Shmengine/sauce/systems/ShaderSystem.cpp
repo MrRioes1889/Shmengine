@@ -67,6 +67,9 @@ namespace ShaderSystem
 		system_state->material_locations.shininess = INVALID_ID16;
 		system_state->material_locations.model = INVALID_ID16;
 		system_state->material_locations.render_mode = INVALID_ID16;
+		system_state->material_locations.dir_light = INVALID_ID16;
+		system_state->material_locations.p_lights = INVALID_ID16;
+		system_state->material_locations.p_lights_count = INVALID_ID16;
 
 		system_state->ui_shader_id = INVALID_ID;
 		system_state->ui_locations.diffuse_color = INVALID_ID16;
@@ -194,6 +197,9 @@ namespace ShaderSystem
 			system_state->material_locations.shininess = ShaderSystem::get_uniform_index(shader, "shininess");
 			system_state->material_locations.model = ShaderSystem::get_uniform_index(shader, "model");
 			system_state->material_locations.render_mode = ShaderSystem::get_uniform_index(shader, "mode");
+			system_state->material_locations.dir_light = ShaderSystem::get_uniform_index(shader, "dir_light");
+			system_state->material_locations.p_lights = ShaderSystem::get_uniform_index(shader, "p_lights");
+			system_state->material_locations.p_lights_count = ShaderSystem::get_uniform_index(shader, "p_lights_count");
 		}
 		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_ui)) {
 			system_state->ui_shader_id = shader->id;

@@ -119,6 +119,11 @@ static void on_load_scene(KeyCode::Value key, Input::KeymapBindingType type, Inp
 	Event::event_fire(SystemEventCode::DEBUG1, user_data, {});
 }
 
+static void on_unload_scene(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
+{
+	Event::event_fire(SystemEventCode::DEBUG2, user_data, {});
+}
+
 static void on_console_change_visibility(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
@@ -184,6 +189,7 @@ void add_keymaps(Application* app_inst)
 	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, 0, app_inst, on_render_mode_change);
 
 	global_keymap.add_binding(KeyCode::L, Input::KeymapBindingType::PRESS, 0, app_inst, on_load_scene);
+	global_keymap.add_binding(KeyCode::U, Input::KeymapBindingType::PRESS, 0, app_inst, on_unload_scene);
 	global_keymap.add_binding(KeyCode::T, Input::KeymapBindingType::PRESS, 0, app_inst, on_texture_swap);
 	global_keymap.add_binding(KeyCode::C, Input::KeymapBindingType::PRESS, 0, app_inst, on_clip_cursor);
 	global_keymap.add_binding(KeyCode::M, Input::KeymapBindingType::PRESS, 0, app_inst, on_allocation_count_check);

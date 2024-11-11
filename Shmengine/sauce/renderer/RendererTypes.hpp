@@ -249,14 +249,14 @@ namespace Renderer
 	struct ShaderAttributeConfig
 	{
 		String name;
-		uint8 size;
+		uint32 size;
 		ShaderAttributeType type;
 	};
 
 	struct ShaderUniformConfig
 	{
 		String name;
-		uint8 size;
+		uint32 size;
 		uint32 location;
 		ShaderUniformType type;
 		ShaderScope scope;
