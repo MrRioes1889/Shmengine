@@ -12,9 +12,9 @@ namespace Renderer
 extern "C"
 {
 
-    SHMAPI bool32 application_boot(Application* application);
+    SHMAPI bool32 application_boot(Application* app_inst);
 
-    SHMAPI bool32 application_init();
+    SHMAPI bool32 application_init(void* application_state);
 
     SHMAPI void application_shutdown();
 
@@ -24,7 +24,7 @@ extern "C"
 
     SHMAPI void application_on_resize(uint32 width, uint32 height);
 
-    SHMAPI void application_on_module_reload(Application* application);
+    SHMAPI void application_on_module_reload(void* app_state);
     SHMAPI void application_on_module_unload();
 
 }

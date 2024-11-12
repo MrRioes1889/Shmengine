@@ -58,6 +58,8 @@ namespace Engine
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
 	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data);
 
+	static void destroy_application_config(ApplicationConfig* config);
+
 	void* allocate_subsystem_callback (void* allocator, uint64 size)
 	{
 		Memory::LinearAllocator* lin_allocator = (Memory::LinearAllocator*)allocator;
@@ -118,15 +120,15 @@ namespace Engine
 		if (app_inst->config.app_frame_data_size)
 			engine_state->frame_data.app_data = Memory::allocate(app_inst->config.app_frame_data_size, AllocationTag::APPLICATION);
 
+		destroy_application_config(&app_inst->config);
+
 		app_inst->stage = ApplicationStage::INITIALIZING;
-		if (!app_inst->init())
+		if (!app_inst->init(app_inst->state))
 		{
 			SHMFATAL("ERROR: Failed to initialize game instance!");
 			return false;
 		}
-		app_inst->stage = ApplicationStage::INITIALIZED;
-
-		
+		app_inst->stage = ApplicationStage::INITIALIZED;	
 
 		Renderer::on_resized(engine_state->width, engine_state->height);
 		app_inst->on_resize(engine_state->width, engine_state->height);	
@@ -134,6 +136,24 @@ namespace Engine
 		initialized = true;
 		return true;
 
+	}
+
+	void destroy_application_config(ApplicationConfig* config)
+	{
+		config->bitmap_font_configs.free_data();
+		config->truetype_font_configs.free_data();
+
+		for (uint32 i = 0; i < config->render_view_configs.capacity; i++)
+		{
+			Renderer::RenderViewConfig* view_config = &config->render_view_configs[i];
+			for (uint32 j = 0; j < view_config->pass_configs.capacity; j++)
+			{
+				Renderer::RenderpassConfig* pass_config = &view_config->pass_configs[j];
+				pass_config->target_config.attachment_configs.free_data();
+			}
+			view_config->pass_configs.free_data();
+		}
+		config->render_view_configs.free_data();
 	}
 
 	bool32 run(Application* app_inst)

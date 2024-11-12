@@ -261,6 +261,9 @@ namespace DebugConsole
 
 	void scroll_down(ConsoleState* console_state)
 	{
+		if (!console_state->line_offset)
+			return;
+
 		console_state->dirty = true;
 
 		if (console_state->lines.count <= console_state->line_display_count)

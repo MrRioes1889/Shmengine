@@ -34,7 +34,7 @@ static bool32 load_application_library(Application* app, const char* lib_filenam
         return false;
 
     if (reload)
-        app->on_module_reload(app);
+        app->on_module_reload(app->state);
 
     return true;
 

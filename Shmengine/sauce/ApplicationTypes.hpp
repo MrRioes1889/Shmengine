@@ -43,12 +43,12 @@ struct Application
 	ApplicationConfig config;
 
 	typedef bool32(*FP_boot)(Application* app_inst);
-	typedef bool32(*FP_init)();
+	typedef bool32(*FP_init)(void* app_state);
 	typedef void(*FP_shutdown)();
 	typedef bool32(*FP_update)(const FrameData* frame_data);
 	typedef bool32(*FP_render)(Renderer::RenderPacket* packet, const FrameData* frame_data);
 	typedef void(*FP_on_resize)(uint32 width, uint32 height);
-	typedef void(*FP_on_module_reload)(Application* app_inst);
+	typedef void(*FP_on_module_reload)(void* app_state);
 	typedef void(*FP_on_module_unload)();
 		
 	FP_boot boot;
