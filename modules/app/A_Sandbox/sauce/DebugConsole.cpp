@@ -13,7 +13,7 @@ namespace DebugConsole
 	static bool32 consumer_write(void* inst, Log::LogLevel log_level, const char* message)
 	{
 
-		DebugConsole::State* console_state = (DebugConsole::State*)inst;
+		DebugConsole::ConsoleState* console_state = (DebugConsole::ConsoleState*)inst;
 
 		Darray<String> parts;
 		CString::split(message, parts, '\n');
@@ -29,7 +29,7 @@ namespace DebugConsole
 	static bool32 on_key(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
 
-		DebugConsole::State* console_state = (DebugConsole::State*)listener_inst;
+		DebugConsole::ConsoleState* console_state = (DebugConsole::ConsoleState*)listener_inst;
 
 		if (!console_state->visible)
 			return false;
@@ -134,7 +134,7 @@ namespace DebugConsole
 	}
 
 
-	void init(State* console_state)
+	void init(ConsoleState* console_state)
 	{
 
 		console_state->lines.init(16, 0);
@@ -155,7 +155,7 @@ namespace DebugConsole
 
 	}
 
-	void destroy(State* console_state)
+	void destroy(ConsoleState* console_state)
 	{
 
 		unload(console_state);
@@ -163,7 +163,7 @@ namespace DebugConsole
 
 	}
 
-	bool32 load(State* console_state)
+	bool32 load(ConsoleState* console_state)
 	{
 
 		if (!ui_text_create(UITextType::TRUETYPE, "Martian Mono", 21, "", &console_state->text_control))
@@ -188,7 +188,7 @@ namespace DebugConsole
 
 	}
 
-	void unload(State* console_state)
+	void unload(ConsoleState* console_state)
 	{
 		if (!console_state->loaded)
 			return;
@@ -197,7 +197,7 @@ namespace DebugConsole
 		ui_text_destroy(&console_state->entry_control);
 	}
 
-	void update(State* console_state)
+	void update(ConsoleState* console_state)
 	{
 
 		if (!console_state->dirty)
@@ -225,27 +225,27 @@ namespace DebugConsole
 
 	}
 
-	UIText* get_text(State* console_state)
+	UIText* get_text(ConsoleState* console_state)
 	{
 		return &console_state->text_control;
 	}
 
-	UIText* get_entry_text(State* console_state)
+	UIText* get_entry_text(ConsoleState* console_state)
 	{
 		return &console_state->entry_control;
 	}
 
-	bool32 is_visible(State* console_state)
+	bool32 is_visible(ConsoleState* console_state)
 	{
 		return console_state->visible;
 	}
 
-	void set_visible(State* console_state, bool8 flag)
+	void set_visible(ConsoleState* console_state, bool8 flag)
 	{
 		console_state->visible = flag;
 	}
 
-	void scroll_up(State* console_state)
+	void scroll_up(ConsoleState* console_state)
 	{
 		console_state->dirty = true;
 		
@@ -259,7 +259,7 @@ namespace DebugConsole
 		console_state->line_offset = SHMIN(console_state->line_offset, (int32)console_state->lines.count - (int32)console_state->line_display_count);
 	}
 
-	void scroll_down(State* console_state)
+	void scroll_down(ConsoleState* console_state)
 	{
 		console_state->dirty = true;
 
@@ -273,7 +273,7 @@ namespace DebugConsole
 		console_state->line_offset = SHMAX(console_state->line_offset, 0);
 	}
 
-	void scroll_to_top(State* console_state)
+	void scroll_to_top(ConsoleState* console_state)
 	{
 		console_state->dirty = true;
 
@@ -286,13 +286,13 @@ namespace DebugConsole
 		console_state->line_offset = console_state->lines.count - console_state->lines.count;
 	}
 
-	void scroll_to_bottom(State* console_state)
+	void scroll_to_bottom(ConsoleState* console_state)
 	{
 		console_state->dirty = true;
 		console_state->line_offset = 0;
 	}
 
-	void on_module_reload(State* console_state)
+	void on_module_reload(ConsoleState* console_state)
 	{
 		Console::register_consumer(console_state, consumer_write, &console_state->consumer_id);
 
@@ -303,7 +303,7 @@ namespace DebugConsole
 		Event::event_register(SystemEventCode::KEY_RELEASED, console_state, on_key);
 	}
 
-	void on_module_unload(State* console_state)
+	void on_module_unload(ConsoleState* console_state)
 	{
 		Console::unregister_consumer(console_state->consumer_id);
 

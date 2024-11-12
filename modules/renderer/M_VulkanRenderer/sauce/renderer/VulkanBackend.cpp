@@ -320,11 +320,11 @@ namespace Renderer::Vulkan
 		SHMINFOV("Vulkan renderer backend->resize: w/h/gen: %u/%u/%u", width, height, context->framebuffer_size_generation);
 	}
 
-	bool32 begin_frame(float64 delta_time)
+	bool32 begin_frame(const FrameData* frame_data)
 	{
 		
 		OPTICK_EVENT();
-		context->frame_delta_time = delta_time;
+
 		VulkanDevice* device = &context->device;
 
 		if (context->recreating_swapchain)
@@ -385,7 +385,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 end_frame(float64 delta_time)
+	bool32 end_frame(const FrameData* frame_data)
 	{
 		
 		OPTICK_EVENT();

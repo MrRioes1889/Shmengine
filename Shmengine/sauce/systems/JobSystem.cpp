@@ -3,6 +3,7 @@
 #include "core/Thread.hpp"
 #include "core/Mutex.hpp"
 #include "core/Logging.hpp"
+#include "core/FrameData.hpp"
 #include "containers/RingQueue.hpp"
 
 #define MT_ENABLED 1
@@ -120,7 +121,7 @@ namespace JobSystem
 	}
 
 
-	bool32 update(void* state, float64 delta_time)
+	bool32 update(void* state, const FrameData* frame_data)
 	{
 
 		if (!system_state->is_running)

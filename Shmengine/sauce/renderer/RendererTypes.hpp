@@ -6,13 +6,14 @@
 #include "memory/Freelist.hpp"
 #include "utility/Math.hpp"
 
+struct UIText;
+struct Skybox;
+struct FrameData;
+
 namespace Platform
 {
 	struct PlatformState;
 }
-
-struct UIText;
-struct Skybox;
 
 namespace Memory
 {
@@ -493,8 +494,6 @@ namespace Renderer
 
 	struct RenderPacket
 	{
-		float64 delta_time;
-
 		Sarray<RenderViewPacket> views;
 	};
 
@@ -517,8 +516,8 @@ namespace Renderer
 
 		void (*on_resized)(uint32 width, uint32 height);
 
-		bool32(*begin_frame)(float64 delta_time);
-		bool32(*end_frame)(float64 delta_time);
+		bool32(*begin_frame)(const FrameData* frame_data);
+		bool32(*end_frame)(const FrameData* frame_data);
 
 		bool32 (*render_target_create)(uint32 attachment_count, const RenderTargetAttachment* attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
 		void (*render_target_destroy)(RenderTarget* target, bool32 free_internal_memory);

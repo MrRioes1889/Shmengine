@@ -7,6 +7,7 @@
 #include "Console.hpp"
 #include "Event.hpp"
 #include "Input.hpp"
+#include "FrameData.hpp"
 #include "platform/Platform.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "systems/CameraSystem.hpp"
@@ -99,12 +100,12 @@ namespace SubsystemManager
 		manager_state.allocator.destroy();
 	}
 
-	bool32 update(float64 delta_time)
+	bool32 update(const FrameData* frame_data)
 	{
 		for (uint32 i = 0; i < SubsystemType::MAX_TYPES_COUNT; ++i) {
 			Subsystem* s = &manager_state.subsystems[i];
 			if (s->update) {
-				if (!s->update(s->state, delta_time)) {
+				if (!s->update(s->state, frame_data)) {
 					SHMERRORV("System update failed for type: %u", i);
 				}
 			}

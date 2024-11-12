@@ -3,6 +3,7 @@
 
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
+#include "core/FrameData.hpp"
 #include "memory/LinearAllocator.hpp"
 #include "memory/Freelist.hpp"
 #include "systems/ResourceSystem.hpp"
@@ -96,7 +97,7 @@ namespace Renderer
 		system_state->module.on_config_changed();
 	}
 
-	bool32 draw_frame(RenderPacket* data)
+	bool32 draw_frame(RenderPacket* data, const FrameData* frame_data)
 	{
 		OPTICK_EVENT();
 		Module& backend = system_state->module;
@@ -122,7 +123,7 @@ namespace Renderer
 			}
 		}
 
-		if (!backend.begin_frame(data->delta_time))
+		if (!backend.begin_frame(frame_data))
 		{
 			if (!did_resize)
 				SHMERROR("draw_frame - Failed to begin frame;");
@@ -140,7 +141,7 @@ namespace Renderer
 			}
 		}
 
-		if (!backend.end_frame(data->delta_time))
+		if (!backend.end_frame(frame_data))
 		{
 			SHMERROR("draw_frame - Failed to end frame;");
 			return false;

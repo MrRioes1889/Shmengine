@@ -4,6 +4,7 @@
 #include <utility/Math.hpp>
 #include <resources/ResourceTypes.hpp>
 
+struct FrameData;
 struct VulkanContext;
 
 namespace Renderer::Vulkan
@@ -14,8 +15,8 @@ namespace Renderer::Vulkan
 	void on_config_changed();
 	void on_resized(uint32 width, uint32 height);
 
-	bool32 begin_frame(float64 delta_time);
-	bool32 end_frame(float64 delta_time);
+	bool32 begin_frame(const FrameData* frame_data);
+	bool32 end_frame(const FrameData* frame_data);
 
 	bool32 vk_render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
 	void vk_render_target_destroy(RenderTarget* target, bool32 free_internal_memory);

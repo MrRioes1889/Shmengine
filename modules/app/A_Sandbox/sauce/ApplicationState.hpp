@@ -17,7 +17,6 @@
 
 struct ApplicationState
 {
-    float64 delta_time;
     uint32 allocation_count;
     bool32 world_meshes_loaded;
     uint32 hovered_object_id;
@@ -41,6 +40,11 @@ struct ApplicationState
 
     Input::Keymap console_keymap;
 
-    DebugConsole::State debug_console;
+    DebugConsole::ConsoleState debug_console;
 
+};
+
+struct ApplicationFrameData
+{
+    Darray<Renderer::GeometryRenderData> world_geometries;
 };

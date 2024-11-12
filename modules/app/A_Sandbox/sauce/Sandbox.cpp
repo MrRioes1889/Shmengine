@@ -9,6 +9,7 @@
 #include <core/Input.hpp>
 #include <core/Event.hpp>
 #include <core/Clock.hpp>
+#include <core/FrameData.hpp>
 #include <utility/Utility.hpp>
 #include <utility/String.hpp>
 #include <renderer/RendererFrontend.hpp>
@@ -20,11 +21,14 @@
 #include <systems/MaterialSystem.hpp>
 #include <systems/GeometrySystem.hpp>
 #include <systems/RenderViewSystem.hpp>
+#include <systems/FontSystem.hpp>
 #include <resources/Mesh.hpp>
 // end
 
-static void register_events(Application* app_inst);
-static void unregister_events(Application* app_inst);
+Application* app_inst = 0;
+
+static void register_events();
+static void unregister_events();
 
 static bool32 application_on_key_pressed(uint16 code, void* sender, void* listener_inst, EventData data)
 {
@@ -35,7 +39,6 @@ static bool32 application_on_key_pressed(uint16 code, void* sender, void* listen
 static bool32 application_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 
-	Application* app_inst = (Application*)listener_inst;
 	ApplicationState* state = (ApplicationState*)app_inst->state;
 
 	if (code == SystemEventCode::DEBUG0)
@@ -91,13 +94,13 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 	return true;
 }
 
-bool32 application_boot(Application* app_inst)
+bool32 application_boot(Application* application)
 {
+	app_inst = application;
 
-	app_inst->frame_allocator.init(Mebibytes(64));
-
-	app_inst->state_size = sizeof(ApplicationState);
-	app_inst->state = Memory::allocate(app_inst->state_size, AllocationTag::APPLICATION);
+	app_inst->config.app_frame_data_size = sizeof(ApplicationFrameData);
+	app_inst->config.state_size = sizeof(ApplicationState);
+	app_inst->config.frame_allocator_size = Mebibytes(64);
 
 	FontSystem::SystemConfig* font_sys_config = &app_inst->config.fontsystem_config;
 	font_sys_config->auto_release = false;
@@ -278,12 +281,12 @@ bool32 application_boot(Application* app_inst)
 
 }
 
-bool32 application_init(Application* app_inst) 
+bool32 application_init() 
 {
     ApplicationState* state = (ApplicationState*)app_inst->state;
 
-	register_events(app_inst);
-	add_keymaps(app_inst);
+	register_events();
+	add_keymaps();
 	
 	DebugConsole::init(&state->debug_console);
 	DebugConsole::load(&state->debug_console);
@@ -409,8 +412,6 @@ bool32 application_init(Application* app_inst)
 	ui_mesh->transform = Math::transform_create();
 	ui_mesh->generation = 0;*/
 
-	app_inst->frame_data.world_geometries.init(512, 0);
-
 	state->dir_light = LightSystem::get_directional_light();
 	state->dir_light->color = { 0.4f, 0.4f, 0.2f, 1.0f };
 	state->dir_light->direction = { -0.57735f, -0.57735f, -0.57735f, 0.0f };
@@ -441,10 +442,10 @@ bool32 application_init(Application* app_inst)
     return true;
 }
 
-void application_shutdown(Application* app_inst)
+void application_shutdown()
 {
 	ApplicationState* state = (ApplicationState*)app_inst->state;
-	
+
 	app_inst->config.bitmap_font_configs.free_data();
 	app_inst->config.truetype_font_configs.free_data();
 
@@ -472,23 +473,22 @@ void application_shutdown(Application* app_inst)
 	state->car_mesh = 0;
 	state->sponza_mesh = 0;
 
-	Event::event_unregister(SystemEventCode::DEBUG0, app_inst, application_on_debug_event);
-	Event::event_unregister(SystemEventCode::DEBUG1, app_inst, application_on_debug_event);
-	Event::event_unregister(SystemEventCode::DEBUG2, app_inst, application_on_debug_event);
-	Event::event_unregister(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
+	unregister_events();
 	// end
 
 }
 
-bool32 application_update(Application* app_inst, float64 delta_time) 
+bool32 application_update(const FrameData* frame_data)
 {
 
     ApplicationState* state = (ApplicationState*)app_inst->state;
-	state->delta_time = delta_time;
+	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
-	app_inst->frame_data.world_geometries.clear();
+	if (!app_frame_data->world_geometries.data)
+		app_frame_data->world_geometries.init(512, 0);
 
-	app_inst->frame_allocator.free_all_data();
+	app_frame_data->world_geometries.clear();
+	frame_data->frame_allocator->free_all_data();
 
     uint32 allocation_count = Memory::get_current_allocation_count();
     state->allocation_count = allocation_count;
@@ -497,13 +497,13 @@ bool32 application_update(Application* app_inst, float64 delta_time)
     {
         Math::Vec2i mouse_offset = Input::get_internal_mouse_offset();
         float32 mouse_sensitivity = 3.0f;
-		float32 yaw = -mouse_offset.x * (float32)delta_time * mouse_sensitivity;
-		float32 pitch = -mouse_offset.y * (float32)delta_time * mouse_sensitivity;
+		float32 yaw = -mouse_offset.x * (float32)frame_data->delta_time * mouse_sensitivity;
+		float32 pitch = -mouse_offset.y * (float32)frame_data->delta_time * mouse_sensitivity;
         state->world_camera->yaw(yaw);
         state->world_camera->pitch(pitch);
     }
 
-	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, -0.5f * (float32)delta_time, true);
+	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, -0.5f * (float32)frame_data->delta_time, true);
 	Math::transform_rotate(state->world_meshes[0].transform, rotation);
 	Math::transform_rotate(state->world_meshes[1].transform, rotation);
 	Math::transform_rotate(state->world_meshes[2].transform, rotation);
@@ -552,7 +552,7 @@ bool32 application_update(Application* app_inst, float64 delta_time)
 
 				if (Math::frustum_intersects_aabb(state->camera_frustum, center, half_extents))
 				{
-					Renderer::GeometryRenderData* render_data = app_inst->frame_data.world_geometries.emplace();
+					Renderer::GeometryRenderData* render_data = app_frame_data->world_geometries.emplace();
 					render_data->model = model;
 					render_data->geometry = g;
 					render_data->unique_id = m->unique_id;
@@ -564,7 +564,7 @@ bool32 application_update(Application* app_inst, float64 delta_time)
 	char ui_text_buffer[512];
 	CString::safe_print_s<uint32, uint32, int32, int32, float32, float32, float32, float32, float32, float32, float64, float64, float64>
 		(ui_text_buffer, 512, "Object Hovered ID: %u\nWorld geometry count: %u\nMouse Pos : [%i, %i]\tCamera Pos : [%f3, %f3, %f3]\nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms\nLogic: %lf4 / Render: %lf4",
-			state->hovered_object_id, app_inst->frame_data.world_geometries.count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
+			state->hovered_object_id, app_frame_data->world_geometries.count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
 
 	ui_text_set_text(&state->test_truetype_text, ui_text_buffer);
 
@@ -573,37 +573,38 @@ bool32 application_update(Application* app_inst, float64 delta_time)
     return true;
 }
 
-bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet, float64 delta_time)
+bool32 application_render(Renderer::RenderPacket* packet, const FrameData* frame_data)
 {
 
 	ApplicationState* state = (ApplicationState*)app_inst->state;
+	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
 	const uint32 view_count = 3;
-	Renderer::RenderViewPacket* render_view_packets = (Renderer::RenderViewPacket*)app_inst->frame_allocator.allocate(view_count * sizeof(Renderer::RenderViewPacket));
+	Renderer::RenderViewPacket* render_view_packets = (Renderer::RenderViewPacket*)frame_data->frame_allocator->allocate(view_count * sizeof(Renderer::RenderViewPacket));
 	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_view_packets);
 
-	Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)app_inst->frame_allocator.allocate(sizeof(Renderer::SkyboxPacketData));
+	Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::SkyboxPacketData));
 	skybox_data->skybox = &state->skybox;
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), &app_inst->frame_allocator, skybox_data, &packet->views[0]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), frame_data->frame_allocator, skybox_data, &packet->views[0]))
 	{
 		SHMERROR("Failed to build packet for view 'skybox'.");
 		return false;
 	}
 
-	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)app_inst->frame_allocator.allocate(sizeof(Renderer::WorldPacketData));
-	world_packet->geometries = app_inst->frame_data.world_geometries.data;
-	world_packet->geometries_count = app_inst->frame_data.world_geometries.count;
+	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::WorldPacketData));
+	world_packet->geometries = app_frame_data->world_geometries.data;
+	world_packet->geometries_count = app_frame_data->world_geometries.count;
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), &app_inst->frame_allocator, world_packet, &packet->views[1]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), frame_data->frame_allocator, world_packet, &packet->views[1]))
 	{
 		SHMERROR("Failed to build packet for view 'world'.");
 		return false;
 	}
 
-	Mesh** ui_meshes_ptr = (Mesh**)app_inst->frame_allocator.allocate(state->ui_meshes.count * sizeof(Mesh*));
+	Mesh** ui_meshes_ptr = (Mesh**)frame_data->frame_allocator->allocate(state->ui_meshes.count * sizeof(Mesh*));
 	Sarray<Mesh*> ui_meshes(state->ui_meshes.count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, ui_meshes_ptr);
 
-	Renderer::UIPacketData* ui_mesh_data = (Renderer::UIPacketData*)app_inst->frame_allocator.allocate(sizeof(Renderer::UIPacketData));
+	Renderer::UIPacketData* ui_mesh_data = (Renderer::UIPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::UIPacketData));
 	ui_mesh_data->mesh_data.mesh_count = 0;
 	for (uint32 i = 0; i < state->ui_meshes.count; i++)
 	{
@@ -616,7 +617,7 @@ bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet,
 	ui_mesh_data->mesh_data.meshes = ui_meshes.data;
 
 	const uint32 max_text_count = 3;
-	UIText** ui_texts_ptr = (UIText**)app_inst->frame_allocator.allocate(max_text_count * sizeof(UIText*));
+	UIText** ui_texts_ptr = (UIText**)frame_data->frame_allocator->allocate(max_text_count * sizeof(UIText*));
 	Sarray<UIText*> ui_texts(max_text_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, ui_texts_ptr);
 	ui_texts[0] = &state->test_truetype_text;
 	ui_texts[1] = &state->test_bitmap_text;
@@ -631,7 +632,7 @@ bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet,
 		ui_texts[2] = DebugConsole::get_entry_text(&state->debug_console);
 	}
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), &app_inst->frame_allocator, ui_mesh_data, &packet->views[2]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), frame_data->frame_allocator, ui_mesh_data, &packet->views[2]))
 	{
 		SHMERROR("Failed to build packet for view 'ui'.");
 		return false;
@@ -653,12 +654,13 @@ bool32 application_render(Application* app_inst, Renderer::RenderPacket* packet,
     return true;
 }
 
-void application_on_resize(Application* app_inst, uint32 width, uint32 height) 
+void application_on_resize(uint32 width, uint32 height) 
 {
 
-	ApplicationState* state = (ApplicationState*)app_inst->state;
-	if (!state)
+	if (!app_inst || !app_inst->state)
 		return;
+
+	ApplicationState* state = (ApplicationState*)app_inst->state;
 
 	state->width = width;
 	state->height = height;
@@ -667,25 +669,26 @@ void application_on_resize(Application* app_inst, uint32 width, uint32 height)
 
 }
 
-void application_on_module_reload(Application* app_inst)
+void application_on_module_reload(Application* application)
 {
+	app_inst = application;
 	ApplicationState* state = (ApplicationState*)app_inst->state;	
 
-	register_events(app_inst);
+	register_events();
 	DebugConsole::on_module_reload(&state->debug_console);
-	add_keymaps(app_inst);
+	add_keymaps();
 }
 
-void application_on_module_unload(Application* app_inst)
+void application_on_module_unload()
 {
 	ApplicationState* state = (ApplicationState*)app_inst->state;
 
-	unregister_events(app_inst);
+	unregister_events();
 	DebugConsole::on_module_unload(&state->debug_console);
-	remove_keymaps(app_inst);
+	remove_keymaps();
 }
 
-static void register_events(Application* app_inst)
+static void register_events()
 {
 	Event::event_register(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
 
@@ -694,7 +697,7 @@ static void register_events(Application* app_inst)
 	Event::event_register(SystemEventCode::DEBUG2, app_inst, application_on_debug_event);
 }
 
-static void unregister_events(Application* app_inst)
+static void unregister_events()
 {
 	Event::event_unregister(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
 

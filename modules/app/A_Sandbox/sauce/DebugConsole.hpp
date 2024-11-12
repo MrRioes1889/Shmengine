@@ -6,7 +6,7 @@
 namespace DebugConsole
 {
 
-	struct State
+	struct ConsoleState
 	{
 		uint32 line_display_count;
 		int32 line_offset;
@@ -25,26 +25,26 @@ namespace DebugConsole
 		String entry_prefix;
 	};
 
-	void init(State* console_state);
-	void destroy(State* console_state);
+	void init(ConsoleState* console_state);
+	void destroy(ConsoleState* console_state);
 
-	bool32 load(State* console_state);
-	void unload(State* console_state);
+	bool32 load(ConsoleState* console_state);
+	void unload(ConsoleState* console_state);
 
-	void update(State* console_state);
+	void update(ConsoleState* console_state);
 
-	UIText* get_text(State* console_state);
-	UIText* get_entry_text(State* console_state);
+	UIText* get_text(ConsoleState* console_state);
+	UIText* get_entry_text(ConsoleState* console_state);
 
-	bool32 is_visible(State* console_state);
-	void set_visible(State* console_state, bool8 flag);
+	bool32 is_visible(ConsoleState* console_state);
+	void set_visible(ConsoleState* console_state, bool8 flag);
 
-	void scroll_up(State* console_state);
-	void scroll_down(State* console_state);
-	void scroll_to_top(State* console_state);
-	void scroll_to_bottom(State* console_state);
+	void scroll_up(ConsoleState* console_state);
+	void scroll_down(ConsoleState* console_state);
+	void scroll_to_top(ConsoleState* console_state);
+	void scroll_to_bottom(ConsoleState* console_state);
 
-	void on_module_reload(State* console_state);
-	void on_module_unload(State* console_state);
+	void on_module_reload(ConsoleState* console_state);
+	void on_module_unload(ConsoleState* console_state);
 
 }

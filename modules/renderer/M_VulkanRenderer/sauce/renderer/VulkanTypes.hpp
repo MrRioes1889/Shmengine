@@ -304,8 +304,6 @@ namespace Renderer::Vulkan
 		bool8 config_changed;
 		bool8 recreating_swapchain;
 		bool8 is_multithreaded;
-
-		float64 frame_delta_time;
 	};
 
 }

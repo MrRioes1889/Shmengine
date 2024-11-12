@@ -3,11 +3,12 @@
 #include "Defines.hpp"
 #include "core/Subsystems.hpp"
 
+struct FrameData;
+
 namespace JobSystem
 {
 
 	typedef bool32 (*FP_job_start)(void*, void*);
-
 	typedef void (*FP_job_on_complete)(void*);
 
 	namespace JobType
@@ -54,7 +55,7 @@ namespace JobSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	bool32 update(void* state, float64 delta_time);
+	bool32 update(void* state, const FrameData* frame_data);
 
 	SHMAPI void submit(JobInfo info);
 

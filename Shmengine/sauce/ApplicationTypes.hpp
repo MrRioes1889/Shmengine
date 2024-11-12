@@ -1,8 +1,11 @@
 #pragma once
 
 #include "core/Engine.hpp"
-#include "memory/LinearAllocator.hpp"
 #include "platform/Platform.hpp"
+#include "systems/FontSystem.hpp"
+#include "renderer/RendererTypes.hpp"
+
+struct FrameData;
 
 enum class ApplicationStage
 {
@@ -15,15 +18,14 @@ enum class ApplicationStage
 	SHUTTING_DOWN
 };
 
-struct ApplicationFrameData
-{
-	Darray<Renderer::GeometryRenderData> world_geometries;
-};
-
 struct ApplicationConfig {
 
 	int32 start_pos_x, start_pos_y;
 	int32 start_width, start_height;
+
+	uint64 state_size;
+	uint64 frame_allocator_size;
+	uint64 app_frame_data_size;
 
 	char* name;
 
@@ -40,14 +42,14 @@ struct Application
 {
 	ApplicationConfig config;
 
-	typedef bool32(*FP_boot)(Application* game_inst);
-	typedef bool32(*FP_init)(Application* game_inst);
-	typedef void(*FP_shutdown)(Application* game_inst);
-	typedef bool32(*FP_update)(Application* app_inst, float64 delta_time);
-	typedef bool32(*FP_render)(Application* app_inst, Renderer::RenderPacket* packet, float64 delta_time);
-	typedef void(*FP_on_resize)(Application* game_inst, uint32 width, uint32 height);
-	typedef void(*FP_on_module_reload)(Application* game_inst);
-	typedef void(*FP_on_module_unload)(Application* game_inst);
+	typedef bool32(*FP_boot)(Application* app_inst);
+	typedef bool32(*FP_init)();
+	typedef void(*FP_shutdown)();
+	typedef bool32(*FP_update)(const FrameData* frame_data);
+	typedef bool32(*FP_render)(Renderer::RenderPacket* packet, const FrameData* frame_data);
+	typedef void(*FP_on_resize)(uint32 width, uint32 height);
+	typedef void(*FP_on_module_reload)(Application* app_inst);
+	typedef void(*FP_on_module_unload)();
 		
 	FP_boot boot;
 	FP_init init;
@@ -60,10 +62,7 @@ struct Application
 
 	ApplicationStage stage;
 
-	Memory::LinearAllocator frame_allocator;
-	ApplicationFrameData frame_data;
-
-	uint64 state_size;
+	
 	void* state;
 
 	void* engine_state;

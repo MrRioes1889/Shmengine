@@ -297,6 +297,7 @@ namespace KeyCode
 
 
 
+struct FrameData;
 
 namespace Input
 {
@@ -309,7 +310,7 @@ namespace Input
     SHMAPI void clear_keymaps();
 
     void frame_start();
-    void frame_end(float64 delta_time);
+    void frame_end(const FrameData* frame_data);
 
     SHMAPI bool32 is_key_down(KeyCode::Value key);
     SHMAPI bool32 is_key_up(KeyCode::Value key);

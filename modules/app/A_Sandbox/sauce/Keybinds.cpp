@@ -7,8 +7,12 @@
 #include <core/Logging.hpp>
 #include <core/Input.hpp>
 #include <core/Keymap.hpp>
+#include <core/Engine.hpp>
+#include <core/FrameData.hpp>
 
+#include <systems/RenderViewSystem.hpp>
 
+extern Application* app_inst;
 
 static void on_escape(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
@@ -40,7 +44,8 @@ static void on_camera_yaw(KeyCode::Value key, Input::KeymapBindingType type, Inp
 	else if (key == KeyCode::RIGHT)
 		f = -1.0f;
 
-	state->world_camera->yaw(f * (float32)state->delta_time);
+	float64 delta_time = Engine::get_frame_delta_time();
+	state->world_camera->yaw(f * (float32)delta_time);
 }
 
 static void on_camera_pitch(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
@@ -53,7 +58,8 @@ static void on_camera_pitch(KeyCode::Value key, Input::KeymapBindingType type, I
 	else if (key == KeyCode::DOWN)
 		f = -1.0f;
 
-	state->world_camera->pitch(f * (float32)state->delta_time);
+	float64 delta_time = Engine::get_frame_delta_time();
+	state->world_camera->pitch(f * (float32)delta_time);
 }
 
 static float32 camera_movespeed = 50.0f;
@@ -61,37 +67,49 @@ static float32 camera_movespeed = 50.0f;
 static void on_camera_forward(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
-	state->world_camera->move_forward(camera_movespeed * (float32)state->delta_time);
+	float64 delta_time = Engine::get_frame_delta_time();
+
+	state->world_camera->move_forward(camera_movespeed * (float32)delta_time);
 }
 
 static void on_camera_backward(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
-	state->world_camera->move_backward(camera_movespeed * (float32)state->delta_time);
+	float64 delta_time = Engine::get_frame_delta_time();
+
+	state->world_camera->move_backward(camera_movespeed * (float32)delta_time);
 }
 
 static void on_camera_left(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
-	state->world_camera->move_left(camera_movespeed * (float32)state->delta_time);
+	float64 delta_time = Engine::get_frame_delta_time();
+
+	state->world_camera->move_left(camera_movespeed * (float32)delta_time);
 }
 
 static void on_camera_right(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
-	state->world_camera->move_right(camera_movespeed * (float32)state->delta_time);
+	float64 delta_time = Engine::get_frame_delta_time();
+
+	state->world_camera->move_right(camera_movespeed * (float32)delta_time);
 }
 
 static void on_camera_up(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
-	state->world_camera->move_up(camera_movespeed * (float32)state->delta_time);
+	float64 delta_time = Engine::get_frame_delta_time();
+
+	state->world_camera->move_up(camera_movespeed * (float32)delta_time);
 }
 
 static void on_camera_down(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
-	state->world_camera->move_down(camera_movespeed * (float32)state->delta_time);
+	float64 delta_time = Engine::get_frame_delta_time();
+
+	state->world_camera->move_down(camera_movespeed * (float32)delta_time);
 }
 
 static void on_render_mode_change(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
@@ -151,7 +169,9 @@ static void on_console_scroll_hold(KeyCode::Value key, Input::KeymapBindingType 
 {
 	ApplicationState* state = (ApplicationState*)((Application*)user_data)->state;
 	static float64 accumulated_time = 0.0f;
-	accumulated_time += state->delta_time;
+
+	float64 delta_time = Engine::get_frame_delta_time();
+	accumulated_time += delta_time;
 	if (accumulated_time < 0.1f)
 		return;
 
@@ -163,7 +183,7 @@ static void on_console_scroll_hold(KeyCode::Value key, Input::KeymapBindingType 
 }
 
 
-void add_keymaps(Application* app_inst)
+void add_keymaps()
 {
 
 	ApplicationState* state = (ApplicationState*)app_inst->state;
@@ -184,9 +204,13 @@ void add_keymaps(Application* app_inst)
 	global_keymap.add_binding(KeyCode::SPACE, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_up);
 	global_keymap.add_binding(KeyCode::SHIFT, Input::KeymapBindingType::HOLD, 0, app_inst, on_camera_down);
 
-	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, 0, app_inst, on_render_mode_change);
+	/*global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, 0, app_inst, on_render_mode_change);
 	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, 0, app_inst, on_render_mode_change);
-	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, 0, app_inst, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, 0, app_inst, on_render_mode_change);*/
+	Renderer::RenderView* world_render_view = RenderViewSystem::get("skybox");
+	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, 0, world_render_view, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, 0, world_render_view, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, 0, world_render_view, on_render_mode_change);
 
 	global_keymap.add_binding(KeyCode::L, Input::KeymapBindingType::PRESS, 0, app_inst, on_load_scene);
 	global_keymap.add_binding(KeyCode::U, Input::KeymapBindingType::PRESS, 0, app_inst, on_unload_scene);
@@ -213,7 +237,7 @@ void add_keymaps(Application* app_inst)
 
 }
 
-void remove_keymaps(Application* app_inst)
+void remove_keymaps()
 {
 	ApplicationState* state = (ApplicationState*)app_inst->state;
 

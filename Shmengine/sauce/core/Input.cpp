@@ -4,6 +4,7 @@
 #include "Keymap.hpp"
 #include "platform/Platform.hpp"
 #include "memory/LinearAllocator.hpp"
+#include "core/FrameData.hpp"
 #include "containers/Stack.hpp"
 
 namespace Input
@@ -113,7 +114,7 @@ namespace Input
         //system_state->mouse_pos = Platform::get_cursor_pos();
     }
 
-    void frame_end(float64 delta_time)
+    void frame_end(const FrameData* frame_data)
     {
         if (!system_state->initialized)
             return;

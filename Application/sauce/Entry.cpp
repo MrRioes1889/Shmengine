@@ -47,7 +47,7 @@ static bool32 on_watched_file_written(uint16 code, void* sender, void* listener_
     if (e_data.ui32[0] == app->application_lib.watch_id)
         SHMINFO("Hot reloading application library");
 
-    app->on_module_unload(app);
+    app->on_module_unload();
     if (!Platform::unload_dynamic_library(&app->application_lib))
     {
         SHMERROR("Failed to unload application library.");
