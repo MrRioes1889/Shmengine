@@ -309,11 +309,16 @@ bool32 application_init(void* application_state)
 	ui_text_set_position(&app_state->test_truetype_text, { 500, 550, 0 });
 
 	// Skybox
-	if (!skybox_create("skybox_cube", &app_state->skybox))
+	SkyboxConfig skybox_config;
+	skybox_config.cubemap_name = "skybox";
+	if (!skybox_create(&skybox_config, &app_state->skybox) ||
+		!skybox_init(&app_state->skybox) ||
+		!skybox_load(&app_state->skybox))
 	{
 		SHMERROR("Failed to load skybox.");
 		return false;
 	}
+
 
 	// Meshes
 	app_state->world_meshes.init(5, DarrayFlags::NON_RESIZABLE);
@@ -322,7 +327,7 @@ bool32 application_init(void* application_state)
 	cube_mesh->geometries.init(1, 0);
 	GeometrySystem::GeometryConfig g_config = {};
 	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
-	cube_mesh->geometries.push(GeometrySystem::acquire_from_config(g_config, true));
+	cube_mesh->geometries.push(GeometrySystem::acquire_from_config(&g_config, true));
 	cube_mesh->transform = Math::transform_create();
 	cube_mesh->unique_id = identifier_acquire_new_id(cube_mesh);
 	cube_mesh->generation = 0;
@@ -331,7 +336,7 @@ bool32 application_init(void* application_state)
 	cube_mesh2->geometries.init(1, 0);
 	GeometrySystem::GeometryConfig g_config2 = {};
 	Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
-	cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(g_config2, true));
+	cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(&g_config2, true));
 	cube_mesh2->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
 	cube_mesh2->unique_id = identifier_acquire_new_id(cube_mesh);
 	cube_mesh2->generation = 0;
@@ -340,7 +345,7 @@ bool32 application_init(void* application_state)
 	cube_mesh3->geometries.init(1, 0);
 	GeometrySystem::GeometryConfig g_config3 = {};
 	Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);
-	cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(g_config3, true));
+	cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(&g_config3, true));
 	cube_mesh3->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
 	cube_mesh3->unique_id = identifier_acquire_new_id(cube_mesh);
 	cube_mesh3->generation = 0;
@@ -460,7 +465,6 @@ void application_shutdown()
 
 bool32 application_update(const FrameData* frame_data)
 {
-
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
 	if (!app_frame_data->world_geometries.data)
@@ -522,20 +526,17 @@ bool32 application_update(const FrameData* frame_data)
 		for (uint32 j = 0; j < m->geometries.count; j++)
 		{
 			Geometry* g = m->geometries[j];
+			Math::Vec3f extents_max = Math::vec_mul_mat(g->extents.max, model);
 
+			Math::Vec3f center = Math::vec_mul_mat(g->center, model);
+			Math::Vec3f half_extents = { Math::abs(extents_max.x - center.x), Math::abs(extents_max.y - center.y), Math::abs(extents_max.z - center.z) };
+
+			if (Math::frustum_intersects_aabb(app_state->camera_frustum, center, half_extents))
 			{
-				Math::Vec3f extents_max = Math::vec_mul_mat(g->extents.max, model);
-
-				Math::Vec3f center = Math::vec_mul_mat(g->center, model);
-				Math::Vec3f half_extents = { Math::abs(extents_max.x - center.x), Math::abs(extents_max.y - center.y), Math::abs(extents_max.z - center.z) };
-
-				if (Math::frustum_intersects_aabb(app_state->camera_frustum, center, half_extents))
-				{
-					Renderer::GeometryRenderData* render_data = app_frame_data->world_geometries.emplace();
-					render_data->model = model;
-					render_data->geometry = g;
-					render_data->unique_id = m->unique_id;
-				}
+				Renderer::GeometryRenderData* render_data = app_frame_data->world_geometries.emplace();
+				render_data->model = model;
+				render_data->geometry = g;
+				render_data->unique_id = m->unique_id;
 			}
 		}
 	}

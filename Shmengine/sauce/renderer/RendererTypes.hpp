@@ -549,7 +549,7 @@ namespace Renderer
 		bool32 (*texture_read_pixel)(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 		void (*texture_destroy)(Texture* texture);	
 
-		bool32(*geometry_create)(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices);
+		bool32(*geometry_create)(Geometry* geometry);
 		void (*geometry_destroy)(Geometry* geometry);
 
 		bool32 (*shader_create)(Shader* shader, const ShaderConfig* config, const Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);

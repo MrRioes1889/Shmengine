@@ -107,7 +107,6 @@ struct TextureMap
 	TextureRepeat repeat_u;
 	TextureRepeat repeat_v;
 	TextureRepeat repeat_w;
-
 };
 
 struct FontKerning {
@@ -216,6 +215,11 @@ struct Geometry
 	char name[max_name_length];
 	Material* material;
 
+	uint32 vertex_size;
+	uint32 vertex_count;
+	Sarray<byte> vertices;
+	Sarray<uint32> indices;
+
 };
 
 namespace GeometrySystem{ struct GeometryConfig; }
@@ -230,13 +234,5 @@ struct Mesh
 	uint8 generation;
 	Darray<Geometry*> geometries;
 	Math::Transform transform;
-};
-
-struct Skybox
-{
-	TextureMap cubemap;
-	Geometry* g;
-	uint64 renderer_frame_number;
-	uint32 instance_id;	
 };
 

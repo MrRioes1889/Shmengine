@@ -306,18 +306,21 @@ namespace Renderer
 		texture->internal_data.free_data();
 	}
 
-	bool32 geometry_create(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices)
+	bool32 geometry_load(Geometry* geometry)
 	{
-		return system_state->module.geometry_create(geometry, vertex_size, vertex_count, vertices, index_count, indices);
+		return system_state->module.geometry_create(geometry);
 	}
 
-	void geometry_destroy(Geometry* geometry)
+	void geometry_unload(Geometry* geometry)
 	{
 		system_state->module.geometry_destroy(geometry);
 	}
 
 	void geometry_draw(const GeometryRenderData& data)
 	{
+		if (data.geometry->internal_id == INVALID_ID)
+			geometry_load(data.geometry);
+
 		system_state->module.geometry_draw(data);
 	}
 

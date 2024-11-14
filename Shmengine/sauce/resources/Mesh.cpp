@@ -23,12 +23,13 @@ static void mesh_load_job_success(void* params) {
     mesh_params->out_mesh->geometries.init(configs->count, 0);
     for (uint32 i = 0; i < configs->count; ++i) {
         Geometry** g = mesh_params->out_mesh->geometries.push(0);
-        *g = GeometrySystem::acquire_from_config((*configs)[i], true);
+        *g = GeometrySystem::acquire_from_config(&(*configs)[i], true);
     }
-    mesh_params->out_mesh->generation++;
+    mesh_params->out_mesh->generation++;   
 
     SHMTRACEV("Successfully loaded mesh '%s'.", mesh_params->resource_name);
 
+    configs->free_data();
     ResourceSystem::mesh_loader_unload(&mesh_params->mesh_resource);
 }
 

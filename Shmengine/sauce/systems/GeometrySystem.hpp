@@ -31,7 +31,7 @@ namespace GeometrySystem
 	void system_shutdown(void* state);
 
 	SHMAPI Geometry* acquire_by_id(uint32 id);
-	SHMAPI Geometry* acquire_from_config(const GeometryConfig& config, bool32 auto_release);
+	SHMAPI Geometry* acquire_from_config(GeometryConfig* config, bool32 auto_release);
 	SHMAPI void release(Geometry* geometry);
 
 	Geometry* get_default_geometry();

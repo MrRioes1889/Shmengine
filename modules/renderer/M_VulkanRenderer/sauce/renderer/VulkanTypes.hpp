@@ -251,11 +251,7 @@ namespace Renderer::Vulkan
 	{
 		uint32 id;
 		uint32 generation;
-		uint32 vertex_count;
-		uint32 vertex_size;
 		uint64 vertex_buffer_offset;
-		uint32 index_count;
-		uint32 index_size;
 		uint64 index_buffer_offset;
 	};
 

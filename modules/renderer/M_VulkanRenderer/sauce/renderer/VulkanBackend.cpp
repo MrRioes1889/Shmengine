@@ -682,10 +682,10 @@ namespace Renderer::Vulkan
 	}
 
 
-	bool32 vk_geometry_create(Geometry* geometry, uint32 vertex_size, uint32 vertex_count, const void* vertices, uint32 index_count, const uint32* indices)
+	bool32 vk_geometry_create(Geometry* geometry)
 	{
 
-		if (!vertices)
+		if (!geometry->vertices.data)
 		{
 			SHMERROR("create_geometry - Supplied vertex and/or index buffer invalid!");
 			return false;
@@ -720,10 +720,7 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-
-		internal_data->vertex_count = vertex_count;
-		internal_data->vertex_size = vertex_size;
-		uint32 vertices_size = internal_data->vertex_count * internal_data->vertex_size;
+		uint32 vertices_size = geometry->vertex_count * geometry->vertex_size;
 
 		if (!renderbuffer_allocate(&context->object_vertex_buffer, vertices_size, &internal_data->vertex_buffer_offset))
 		{
@@ -731,7 +728,7 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		if (!renderbuffer_load_range(&context->object_vertex_buffer, internal_data->vertex_buffer_offset, vertices_size, vertices))
+		if (!renderbuffer_load_range(&context->object_vertex_buffer, internal_data->vertex_buffer_offset, vertices_size, geometry->vertices.data))
 		{
 			SHMERROR("vk_geometry_create - Failed to load data into vertex buffer.");
 			return false;
@@ -739,11 +736,9 @@ namespace Renderer::Vulkan
 
 		//context->geometry_vertex_offset += vertices_size;
 
-		if (index_count && indices)
+		if (geometry->indices.data)
 		{
-			internal_data->index_count = index_count;
-			internal_data->index_size = sizeof(uint32);
-			uint32 indices_size = internal_data->index_count * internal_data->index_size;
+			uint32 indices_size = geometry->indices.capacity * sizeof(geometry->indices[0]);
 
 			if (!renderbuffer_allocate(&context->object_index_buffer, indices_size, &internal_data->index_buffer_offset))
 			{
@@ -751,17 +746,12 @@ namespace Renderer::Vulkan
 				return false;
 			}
 
-			if (!renderbuffer_load_range(&context->object_index_buffer, internal_data->index_buffer_offset, indices_size, indices))
+			if (!renderbuffer_load_range(&context->object_index_buffer, internal_data->index_buffer_offset, indices_size, geometry->indices.data))
 			{
 				SHMERROR("vk_geometry_create - Failed to load data into index buffer.");
 				return false;
 			}
 			//context->geometry_index_offset += indices_size;
-		}
-		else
-		{
-			internal_data->index_count = 0;
-			internal_data->index_size = 0;
 		}
 
 		if (internal_data->generation == INVALID_ID)
@@ -772,7 +762,7 @@ namespace Renderer::Vulkan
 		if (is_reupload)
 		{
 			renderbuffer_free(&context->object_vertex_buffer, old_range.vertex_buffer_offset);
-			if (old_range.index_size)
+			if (geometry->indices.data)
 				renderbuffer_free(&context->object_index_buffer, old_range.index_buffer_offset);
 		}
 
@@ -788,7 +778,7 @@ namespace Renderer::Vulkan
 			VulkanGeometryData& internal_data = context->geometries[geometry->internal_id];
 
 			renderbuffer_free(&context->object_vertex_buffer, internal_data.vertex_buffer_offset);
-			if (internal_data.index_size)
+			if (geometry->indices.data)
 				renderbuffer_free(&context->object_index_buffer, internal_data.index_buffer_offset);
 
 			internal_data = {};
@@ -804,11 +794,11 @@ namespace Renderer::Vulkan
 			return;
 
 		VulkanGeometryData& buffer_data = context->geometries[data.geometry->internal_id];
-		bool32 includes_indices = buffer_data.index_count > 0;
+		bool32 includes_indices = data.geometry->indices.capacity > 0;
 
-		vk_buffer_draw(&context->object_vertex_buffer, buffer_data.vertex_buffer_offset, buffer_data.vertex_count, includes_indices);
+		vk_buffer_draw(&context->object_vertex_buffer, buffer_data.vertex_buffer_offset, data.geometry->vertex_count, includes_indices);
 		if (includes_indices)
-			vk_buffer_draw(&context->object_index_buffer, buffer_data.index_buffer_offset, buffer_data.index_count, false);
+			vk_buffer_draw(&context->object_index_buffer, buffer_data.index_buffer_offset, data.geometry->indices.capacity, false);
 
 	}
 

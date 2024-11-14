@@ -28,10 +28,9 @@ namespace GeometrySystem
 
 	static SystemState* system_state = 0;
 
-	bool32 create_geometry(const GeometryConfig& config, Geometry* g);
-	void destroy_geometry(Geometry* g);
-	bool32 create_default_geometries();
-	
+	static bool32 create_geometry(GeometryConfig* config, Geometry* g);
+	static void destroy_geometry(Geometry* g);
+	static bool32 create_default_geometries();
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
@@ -78,7 +77,7 @@ namespace GeometrySystem
 		return 0;
 	}
 
-	Geometry* acquire_from_config(const GeometryConfig& config, bool32 auto_release)
+	Geometry* acquire_from_config(GeometryConfig* config, bool32 auto_release)
 	{
 
 		Geometry* g = 0;
@@ -148,27 +147,21 @@ namespace GeometrySystem
 		return &system_state->default_geometry_2d;
 	}
 
-	bool32 create_geometry(const GeometryConfig& config, Geometry* g)
+	static bool32 create_geometry(GeometryConfig* config, Geometry* g)
 	{
 
-		if (!Renderer::geometry_create(g, config.vertex_size, config.vertex_count, config.vertices.data, config.indices.capacity, config.indices.data))
+		g->center = config->center;
+		g->extents.min = config->min_extents;
+		g->extents.max = config->max_extents;
+
+		g->vertex_size = config->vertex_size;
+		g->vertex_count = config->vertex_count;
+		g->vertices.steal(config->vertices);
+		g->indices.steal(config->indices);
+
+		if (*config->material_name)
 		{
-			system_state->registered_geometries[g->id].reference_count = 0;
-			system_state->registered_geometries[g->id].auto_release = false;
-			g->id = INVALID_ID;
-			g->generation = INVALID_ID;
-			g->internal_id = INVALID_ID;
-
-			return false;
-		}
-
-		g->center = config.center;
-		g->extents.min = config.min_extents;
-		g->extents.max = config.max_extents;
-
-		if (*config.material_name)
-		{
-			g->material = MaterialSystem::acquire(config.material_name);
+			g->material = MaterialSystem::acquire(config->material_name);
 			if (!g->material)
 				g->material = MaterialSystem::get_default_material();
 		}
@@ -177,12 +170,17 @@ namespace GeometrySystem
 
 	}
 
-	void destroy_geometry(Geometry* g)
+	static void destroy_geometry(Geometry* g)
 	{
-		Renderer::geometry_destroy(g);
+		Renderer::geometry_unload(g);
 		g->internal_id = INVALID_ID;
 		g->generation = INVALID_ID;
 		g->id = INVALID_ID;
+
+		g->vertices.free_data();
+		g->indices.free_data();
+		g->vertex_size = 0;
+		g->vertex_count = 0;
 
 		CString::empty(g->name);
 
@@ -193,8 +191,11 @@ namespace GeometrySystem
 		}
 	}
 
-	bool32 create_default_geometries()
+	static bool32 create_default_geometries()
 	{
+
+		system_state->default_geometry.vertex_count = 4;
+		system_state->default_geometry.vertex_size = sizeof(Renderer::Vertex3D);
 
 		Renderer::Vertex3D verts[4] = {};
 
@@ -222,14 +223,22 @@ namespace GeometrySystem
 
 		uint32 indices[6] = { 0, 1, 2, 0, 3, 1 };
 
+		system_state->default_geometry.vertices.init(sizeof(verts), 0, AllocationTag::ARRAY, verts);
+		system_state->default_geometry.indices.init(6, 0, AllocationTag::ARRAY, indices);
+
 		// Send the geometry off to the renderer to be uploaded to the GPU.
 		system_state->default_geometry.id = INVALID_ID;
 		system_state->default_geometry.internal_id = INVALID_ID;
 		system_state->default_geometry.generation = INVALID_ID;
-		if (!Renderer::geometry_create(&system_state->default_geometry, sizeof(Renderer::Vertex3D), 4, verts, 6, indices)) {
+
+		
+		if (!Renderer::geometry_load(&system_state->default_geometry)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;
 		}
+
+		system_state->default_geometry_2d.vertex_count = 4;
+		system_state->default_geometry_2d.vertex_size = sizeof(Renderer::Vertex2D);
 
 		Renderer::Vertex2D verts_2d[4] = {};
 
@@ -257,11 +266,14 @@ namespace GeometrySystem
 
 		uint32 indices_2d[6] = { 2, 1, 0, 3, 0, 1 };
 
+		system_state->default_geometry_2d.vertices.init(sizeof(verts_2d), 0, AllocationTag::ARRAY, verts_2d);
+		system_state->default_geometry_2d.indices.init(6, 0, AllocationTag::ARRAY, indices_2d);
+
 		// Send the geometry off to the renderer to be uploaded to the GPU.
 		system_state->default_geometry_2d.id = INVALID_ID;
 		system_state->default_geometry_2d.internal_id = INVALID_ID;
 		system_state->default_geometry_2d.generation = INVALID_ID;
-		if (!Renderer::geometry_create(&system_state->default_geometry_2d, sizeof(Renderer::Vertex2D), 4, verts_2d, 6, indices_2d)) {
+		if (!Renderer::geometry_load(&system_state->default_geometry_2d)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;
 		}
