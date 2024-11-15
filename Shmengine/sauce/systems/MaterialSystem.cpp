@@ -8,7 +8,6 @@
 #include "systems/TextureSystem.hpp"
 #include "resources/loaders/MaterialLoader.hpp"
 #include "systems/ShaderSystem.hpp"
-#include "systems/LightSystem.hpp"
 #include "containers/Sarray.hpp"
 
 
@@ -239,7 +238,7 @@ namespace MaterialSystem
         return true;
     }
 
-    bool32 apply_instance(Material* m, bool32 needs_update)
+    bool32 apply_instance(Material* m, LightingInfo lighting, bool32 needs_update)
     {
         MATERIAL_APPLY_OR_FAIL(ShaderSystem::bind_instance(m->internal_id));
         if (needs_update)
@@ -252,12 +251,21 @@ namespace MaterialSystem
                 MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.normal_texture, &m->normal_map));
                 MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.shininess, &m->shininess));
 
-                const LightSystem::DirectionalLight* dir_light = LightSystem::get_directional_light();
-                const Darray<LightSystem::PointLight>* p_lights = LightSystem::get_point_lights();
-
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, dir_light));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &p_lights->count));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, p_lights->data));
+                if (lighting.dir_light)
+                {
+                    MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, lighting.dir_light));
+                }
+                    
+                if (lighting.p_lights)
+                {
+                    MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
+                    MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, lighting.p_lights));
+                }
+                else
+                {
+                    MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
+                }
+                
             }
             else if (m->shader_id == ShaderSystem::get_ui_shader_id()) {
                 ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();

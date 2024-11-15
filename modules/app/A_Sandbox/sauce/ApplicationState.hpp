@@ -6,7 +6,6 @@
 #include <core/Keymap.hpp>
 #include <utility/MathTypes.hpp>
 #include <systems/CameraSystem.hpp>
-#include <systems/LightSystem.hpp>
 
 #include "DebugConsole.hpp"
 
@@ -35,8 +34,9 @@ struct ApplicationState
     UIText test_bitmap_text;
     UIText test_truetype_text;
 
-    LightSystem::DirectionalLight* dir_light;
-    uint32 p_lights_i[3];
+    DirectionalLight dir_light;
+    static const uint32 p_lights_count = 3;
+    PointLight p_lights[p_lights_count];
 
     Input::Keymap console_keymap;
 

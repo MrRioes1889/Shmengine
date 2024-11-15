@@ -19,7 +19,6 @@
 #include "systems/ResourceSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "systems/TextureSystem.hpp"
-#include "systems/LightSystem.hpp"
 
 namespace SubsystemManager
 {
@@ -54,7 +53,6 @@ namespace SubsystemManager
 			RENDERVIEW_SYSTEM,
 			MATERIAL_SYSTEM,
 			GEOMETRY_SYSTEM,
-			LIGHT_SYSTEM,
 			KNOWN_TYPES_COUNT,
 
 			MAX_TYPES_COUNT = 128
@@ -316,12 +314,6 @@ namespace SubsystemManager
 		if (!register_system(SubsystemType::GEOMETRY_SYSTEM, GeometrySystem::system_init, GeometrySystem::system_shutdown, 0, &geometry_sys_config))
 		{
 			SHMFATAL("Failed to register geometry subsystem!");
-			return false;
-		}
-
-		if (!register_system(SubsystemType::LIGHT_SYSTEM, LightSystem::system_init, LightSystem::system_shutdown, 0, 0))
-		{
-			SHMFATAL("Failed to register light subsystem!");
 			return false;
 		}
 

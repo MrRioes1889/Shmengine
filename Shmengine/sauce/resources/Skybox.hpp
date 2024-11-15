@@ -5,6 +5,17 @@
 
 struct Geometry;
 
+enum class SkyboxState
+{
+	DESTROYED,
+	UNINITIALIZED,
+	INITIALIZED,
+	LOADING,
+	LOADED,
+	UNLOADING,
+	UNLOADED
+};
+
 struct SkyboxConfig
 {
 	const char* cubemap_name;
@@ -17,6 +28,7 @@ struct Skybox
 	Geometry* g;
 	uint64 renderer_frame_number;
 	uint32 instance_id;
+	SkyboxState state;
 };
 
 SHMAPI bool32 skybox_create(SkyboxConfig* config, Skybox* out_skybox);

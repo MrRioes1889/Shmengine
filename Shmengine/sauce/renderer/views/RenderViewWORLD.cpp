@@ -13,7 +13,7 @@
 #include "renderer/RendererFrontend.hpp"
 #include "utility/Sort.hpp"
 
-struct RenderViewPickInternalData {
+struct RenderViewWorldInternalData {
 	Renderer::Shader* shader;
 	float32 near_clip;
 	float32 far_clip;
@@ -21,7 +21,10 @@ struct RenderViewPickInternalData {
 	uint32 render_mode;
 	Math::Mat4 projection_matrix;
 	Math::Vec4f ambient_color;
-	
+
+	DirectionalLight* dir_light;
+	uint32 p_lights_count;
+	PointLight* p_lights;
 
 	Camera* camera;
 };
@@ -36,7 +39,7 @@ namespace Renderer
 		if (!self) 
 			return false;
 
-		RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
+		RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 		if (!internal_data) 
 			return false;
 
@@ -79,8 +82,8 @@ namespace Renderer
 	bool32 render_view_world_on_create(RenderView* self)
 	{
 
-		self->internal_data.init(sizeof(RenderViewPickInternalData), 0, AllocationTag::RENDERER);
-		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
+		self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::RENDERER);
+		RenderViewWorldInternalData* data = (RenderViewWorldInternalData*)self->internal_data.data;
 
 		ShaderConfig s_config = {};
 		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_material, 0, &s_config))
@@ -126,7 +129,7 @@ namespace Renderer
 		if (self->width == width && self->height == height)
 			return;
 
-		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
+		RenderViewWorldInternalData* data = (RenderViewWorldInternalData*)self->internal_data.data;
 
 		self->width = (uint16)width;
 		self->height = (uint16)height;
@@ -153,10 +156,13 @@ namespace Renderer
 		};
 
 		WorldPacketData* packet_data = (WorldPacketData*)data;
-		RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
+		RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
 		uint32 total_geometry_count = 0;
 		total_geometry_count += packet_data->geometries_count;
+
+		out_packet->extended_data = frame_allocator->allocate(sizeof(WorldPacketData));
+		Memory::copy_memory(packet_data, out_packet->extended_data, sizeof(WorldPacketData));
 
 		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER);
 		out_packet->view = self;
@@ -208,7 +214,8 @@ namespace Renderer
 	bool32 render_view_world_on_render(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
 	{
 
-		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
+		RenderViewWorldInternalData* data = (RenderViewWorldInternalData*)self->internal_data.data;
+		WorldPacketData* packet_data = (WorldPacketData*)packet.extended_data;
 
 		for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
 		{
@@ -244,9 +251,16 @@ namespace Renderer
 					m = MaterialSystem::get_default_material();
 				}
 
+				MaterialSystem::LightingInfo lighting = 
+				{ 
+					.dir_light = packet_data->dir_light,
+					.p_lights_count = packet_data->p_lights_count,
+					.p_lights = packet_data->p_lights
+				};
+
 				// Apply the material
 				bool32 needs_update = (m->render_frame_number != (uint32)frame_number);
-				if (!MaterialSystem::apply_instance(m, needs_update))
+				if (!MaterialSystem::apply_instance(m, lighting, needs_update))
 				{
 					SHMWARNV("render_view_world_on_render - Failed to apply material '%s'. Skipping draw.", m->name);
 					continue;

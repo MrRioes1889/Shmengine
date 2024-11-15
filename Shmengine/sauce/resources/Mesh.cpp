@@ -17,22 +17,37 @@ static bool32 mesh_load_from_resource(const char* resource_name, Mesh* out_mesh)
 bool32 mesh_create(MeshConfig* config, Mesh* out_mesh)
 {
     out_mesh->resource_name = config->resource_name;
+    out_mesh->state = MeshState::UNINITIALIZED;
 
     return true;
 }
 
 void mesh_destroy(Mesh* mesh)
 {
-    mesh_unload(mesh);
+    if (mesh->state != MeshState::UNLOADED || !mesh_unload(mesh))
+        return;
+
+    mesh->state = MeshState::DESTROYED;
 }
 
 bool32 mesh_init(Mesh* mesh)
 {
+
+    if (mesh->state != MeshState::UNINITIALIZED)
+        return false;
+
+    mesh->state = MeshState::INITIALIZED;
     return true;
+
 }
 
 bool32 mesh_load(Mesh* mesh)
 {
+
+    if (mesh->state != MeshState::INITIALIZED && mesh->state != MeshState::UNLOADED)
+        return false;
+
+    mesh->state = MeshState::LOADING;
     
     mesh->unique_id = identifier_acquire_new_id(mesh);
 
@@ -49,6 +64,14 @@ bool32 mesh_load(Mesh* mesh)
 
 bool32 mesh_unload(Mesh* mesh)
 {
+
+    if (mesh->state <= MeshState::INITIALIZED)
+        return true;
+    else if (mesh->state != MeshState::LOADED)
+        return false;
+
+    mesh->state = MeshState::UNLOADING;
+
     for (uint32 i = 0; i < mesh->geometries.count; ++i)
         GeometrySystem::release(mesh->geometries[i]);
 
@@ -56,6 +79,8 @@ bool32 mesh_unload(Mesh* mesh)
 
     mesh->generation = INVALID_ID8;
     identifier_release_id(mesh->unique_id);
+
+    mesh->state = MeshState::UNLOADED;
 
     return true;
 }
@@ -77,6 +102,7 @@ static void mesh_load_job_success(void* params) {
         *g = GeometrySystem::acquire_from_config(&(*configs)[i], true);
     }
     mesh_params->out_mesh->generation++;   
+    mesh_params->out_mesh->state = MeshState::LOADED;
 
     SHMTRACEV("Successfully loaded mesh '%s'.", mesh_params->resource_name);
 

@@ -421,32 +421,38 @@ bool32 application_init(void* application_state)
 	ui_mesh->transform = Math::transform_create();
 	ui_mesh->generation = 0;*/
 
-	app_state->dir_light = LightSystem::get_directional_light();
-	app_state->dir_light->color = { 0.4f, 0.4f, 0.2f, 1.0f };
-	app_state->dir_light->direction = { -0.57735f, -0.57735f, -0.57735f, 0.0f };
+	app_state->dir_light =
+	{ 
+		.color = { 0.4f, 0.4f, 0.2f, 1.0f }, 
+		.direction = { -0.57735f, -0.57735f, -0.57735f, 0.0f } 
+	};
 
-	LightSystem::PointLight p_light;
-	p_light.color = { 1.0f, 0.0f, 0.0f, 1.0f };
-	p_light.position = { -5.5f, 0.0f, -5.5f, 0.0f };
-	p_light.constant_f = 1.0f;
-	p_light.linear = 0.35f;
-	p_light.quadratic = 0.44f;
-	app_state->p_lights_i[0] = LightSystem::add_point_light(p_light);
+	app_state->p_lights[0] =
+	{
+		.color = { 1.0f, 0.0f, 0.0f, 1.0f },
+		.position = { -5.5f, 0.0f, -5.5f, 0.0f },
+		.constant_f = 1.0f,
+		.linear = 0.35f,
+		.quadratic = 0.44f
+	};
 
-	p_light.color = { 0.0f, 1.0f, 0.0f, 1.0f };
-	p_light.position = { 5.5f, 0.0f, -5.5f, 0.0f };
-	p_light.constant_f = 1.0f;
-	p_light.linear = 0.35f;
-	p_light.quadratic = 0.44f;
-	app_state->p_lights_i[1] = LightSystem::add_point_light(p_light);
+	app_state->p_lights[1] =
+	{
+		.color = { 0.0f, 1.0f, 0.0f, 1.0f },
+		.position = { 5.5f, 0.0f, -5.5f, 0.0f },
+		.constant_f = 1.0f,
+		.linear = 0.35f,
+		.quadratic = 0.44f
+	};
 
-	p_light.color = { 0.0f, 0.0f, 1.0f, 1.0f };
-	p_light.position = { 5.5f, 0.0f, 5.5f, 0.0f };
-	p_light.constant_f = 1.0f;
-	p_light.linear = 0.35f;
-	p_light.quadratic = 0.44f;
-	app_state->p_lights_i[2] = LightSystem::add_point_light(p_light);
-
+	app_state->p_lights[2] =
+	{
+		.color = { 0.0f, 0.0f, 1.0f, 1.0f },
+		.position = { 5.5f, 0.0f, 5.5f, 0.0f },
+		.constant_f = 1.0f,
+		.linear = 0.35f,
+		.quadratic = 0.44f
+	};
 
     return true;
 }
@@ -475,7 +481,8 @@ bool32 application_update(const FrameData* frame_data)
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
 	if (!app_frame_data->world_geometries.data)
-		app_frame_data->world_geometries.init(512, 0);
+		// TODO: Figure out a way to make this resizable without messing up pointers in render packets on resize.
+		app_frame_data->world_geometries.init(512, DarrayFlags::NON_RESIZABLE);
 
 	app_frame_data->world_geometries.clear();
 	frame_data->frame_allocator->free_all_data();
@@ -580,6 +587,9 @@ bool32 application_render(Renderer::RenderPacket* packet, const FrameData* frame
 	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::WorldPacketData));
 	world_packet->geometries = app_frame_data->world_geometries.data;
 	world_packet->geometries_count = app_frame_data->world_geometries.count;
+	world_packet->dir_light = &app_state->dir_light;
+	world_packet->p_lights_count = app_state->p_lights_count;
+	world_packet->p_lights = app_state->p_lights;
 
 	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), frame_data->frame_allocator, world_packet, &packet->views[1]))
 	{

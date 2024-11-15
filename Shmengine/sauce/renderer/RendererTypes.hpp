@@ -27,6 +27,25 @@ namespace Memory
 	struct LinearAllocator;
 }
 
+struct DirectionalLight
+{
+	Math::Vec4f color;
+	Math::Vec4f direction;
+};
+
+struct PointLight 
+{
+	Math::Vec4f color;
+	Math::Vec4f position;
+	// Usually 1, make sure denominator never gets smaller than 1
+	float32 constant_f;
+	// Reduces light intensity linearly
+	float32 linear;
+	// Makes the light fall off slower at longer distances.
+	float32 quadratic;
+	float32 padding;
+};
+
 namespace Renderer
 {
 
@@ -469,7 +488,11 @@ namespace Renderer
 	struct WorldPacketData
 	{
 		uint32 geometries_count;
+		uint32 p_lights_count;
+
 		GeometryRenderData* geometries;
+		DirectionalLight* dir_light;
+		PointLight* p_lights;
 	};
 
 	struct SkyboxPacketData

@@ -183,9 +183,11 @@ namespace Renderer
 					m = MaterialSystem::get_default_material();
 				}
 
-				// Apply the material
+				MaterialSystem::LightingInfo lighting = {};
+
+				// Apply the material			
 				bool32 needs_update = (m->render_frame_number != frame_number);
-				if (!MaterialSystem::apply_instance(m, needs_update))
+				if (!MaterialSystem::apply_instance(m, lighting, needs_update))
 				{
 					SHMWARNV("render_view_ui_on_render - Failed to apply material '%s'. Skipping draw.", m->name);
 					continue;

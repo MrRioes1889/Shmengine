@@ -6,6 +6,9 @@
 #include "utility/String.hpp"
 #include "core/Subsystems.hpp"
 
+struct DirectionalLight;
+struct PointLight;
+
 struct Material
 {
 
@@ -47,6 +50,13 @@ namespace MaterialSystem
 		inline static const char* default_name = "default";
 	};
 
+	struct LightingInfo
+	{
+		DirectionalLight* dir_light;
+		uint32 p_lights_count;
+		PointLight* p_lights;
+	};
+
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
@@ -57,7 +67,7 @@ namespace MaterialSystem
 	SHMAPI Material* get_default_material();
 
 	bool32 apply_globals(uint32 shader_id, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode);
-	bool32 apply_instance(Material* m, bool32 needs_update);
+	bool32 apply_instance(Material* m, LightingInfo lighting, bool32 needs_update);
 	bool32 apply_local(Material* m, const Math::Mat4& model);
 
 }

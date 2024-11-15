@@ -6,6 +6,17 @@
 
 struct Geometry;
 
+enum class MeshState
+{
+	DESTROYED,
+	UNINITIALIZED,
+	INITIALIZED,
+	LOADING,
+	LOADED,
+	UNLOADING,
+	UNLOADED
+};
+
 struct MeshConfig
 {
 	const char* resource_name;
@@ -14,6 +25,7 @@ struct MeshConfig
 struct Mesh
 {
 	const char* resource_name;
+	MeshState state;
 	UniqueId unique_id;
 	uint8 generation;
 	Darray<Geometry*> geometries;
