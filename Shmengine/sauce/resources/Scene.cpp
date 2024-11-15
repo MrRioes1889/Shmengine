@@ -30,7 +30,7 @@ bool32 scene_create(void* config, Scene* out_scene)
 bool32 scene_destroy(Scene* scene)
 {
 
-	if (scene->state != SceneState::UNLOADED || !scene_unload(scene))
+	if (scene->state != SceneState::UNLOADED && !scene_unload(scene))
 		return false;
 
 	if (scene->skybox)

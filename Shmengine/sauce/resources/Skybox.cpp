@@ -17,7 +17,7 @@ bool32 skybox_create(SkyboxConfig* config, Skybox* out_skybox)
 
 void skybox_destroy(Skybox* skybox)
 {
-	if (skybox->state != SkyboxState::UNLOADED || !skybox_unload(skybox))
+	if (skybox->state != SkyboxState::UNLOADED && !skybox_unload(skybox))
 		return;
 
 	GeometrySystem::release(skybox->g);

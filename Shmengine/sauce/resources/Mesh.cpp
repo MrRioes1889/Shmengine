@@ -24,7 +24,7 @@ bool32 mesh_create(MeshConfig* config, Mesh* out_mesh)
 
 void mesh_destroy(Mesh* mesh)
 {
-    if (mesh->state != MeshState::UNLOADED || !mesh_unload(mesh))
+    if (mesh->state != MeshState::UNLOADED && !mesh_unload(mesh))
         return;
 
     mesh->state = MeshState::DESTROYED;
