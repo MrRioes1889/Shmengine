@@ -2,6 +2,9 @@
 
 #include "VulkanTypes.hpp"
 
+enum class TextureType;
+namespace Renderer { enum class RenderbufferType; }
+
 namespace Renderer::Vulkan
 {	
 

@@ -1,8 +1,82 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "renderer/RendererTypes.hpp"
+#include "containers/Buffer.hpp"
+
 #include "core/Subsystems.hpp"
+
+namespace TextureFlags
+{
+	enum Value
+	{
+		HAS_TRANSPARENCY = 1 << 0,
+		IS_WRITABLE = 1 << 1,
+		IS_WRAPPED = 1 << 2,
+		FLIP_Y = 1 << 3,
+		IS_DEPTH = 1 << 4,
+	};
+}
+
+enum class TextureType
+{
+	TYPE_2D,
+	TYPE_CUBE
+};
+
+struct Texture
+{
+
+	static const uint32 max_name_length = 128;
+
+	Buffer internal_data = {};
+
+	char name[max_name_length];
+	uint32 id;
+	TextureType type;
+	uint32 width;
+	uint32 height;
+	uint32 generation;
+	uint32 channel_count;
+	uint32 flags;
+
+};
+
+enum class TextureUse
+{
+	UNKNOWN = 0,
+	MAP_DIFFUSE = 1,
+	MAP_SPECULAR = 2,
+	MAP_NORMAL = 3,
+	MAP_CUBEMAP = 3,
+};
+
+enum class TextureFilter
+{
+	NEAREST = 0,
+	LINEAR = 1,
+};
+
+enum class TextureRepeat
+{
+	REPEAT = 0,
+	MIRRORED_REPEAT = 1,
+	CLAMP_TO_EDGE = 2,
+	CLAMP_TO_BORDER = 3
+};
+
+struct TextureMap
+{
+	void* internal_data;
+	Texture* texture;
+	TextureUse use;
+
+	TextureFilter filter_minify;
+	TextureFilter filter_magnify;
+
+	TextureRepeat repeat_u;
+	TextureRepeat repeat_v;
+	TextureRepeat repeat_w;
+};
 
 namespace TextureSystem
 {

@@ -1,10 +1,54 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "resources/ResourceTypes.hpp"
+#include "containers/Sarray.hpp"
+#include "containers/Darray.hpp"
+#include "systems/TextureSystem.hpp"
 #include "core/Subsystems.hpp"
 
 struct UIText;
+
+struct FontKerning {
+	int32 codepoint_0;
+	int32 codepoint_1;
+	int16 advance;
+
+	SHMINLINE bool8 operator<=(const FontKerning& other) { return codepoint_0 != other.codepoint_0 ? codepoint_0 <= other.codepoint_0 : codepoint_1 <= other.codepoint_1; }
+	SHMINLINE bool8 operator>=(const FontKerning& other) { return codepoint_0 != other.codepoint_0 ? codepoint_0 >= other.codepoint_0 : codepoint_1 >= other.codepoint_1; }
+};
+
+struct FontGlyph {
+	int32 codepoint;
+	uint16 x;
+	uint16 y;
+	uint16 width;
+	uint16 height;
+	int16 x_offset;
+	int16 y_offset;
+	int16 x_advance;
+	uint8 page_id;
+
+	uint32 kernings_offset;
+};
+
+enum class FontType {
+	BITMAP,
+	TRUETYPE
+};
+
+struct FontAtlas {
+	FontType type;
+	char face[256];
+	uint32 font_size;
+	uint32 line_height;
+	int32 baseline;
+	uint32 atlas_size_x;
+	uint32 atlas_size_y;
+	float32 tab_x_advance;
+	TextureMap map;
+	Sarray<FontGlyph> glyphs;
+	Darray<FontKerning> kernings;
+};
 
 namespace FontSystem
 {

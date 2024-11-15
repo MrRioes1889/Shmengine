@@ -1,6 +1,14 @@
 #pragma once
 
-#include "systems/ResourceSystem.hpp"
+#include "Defines.hpp"
+#include "containers/Darray.hpp"
+
+namespace GeometrySystem { struct GeometryConfig; }
+
+struct MeshResourceData
+{
+	Darray<GeometrySystem::GeometryConfig> g_configs;
+};
 
 namespace ResourceSystem
 {

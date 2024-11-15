@@ -11,6 +11,7 @@
 
 #include <systems/ShaderSystem.hpp>
 #include <systems/MaterialSystem.hpp>
+#include <systems/GeometrySystem.hpp>
 #include <systems/TextureSystem.hpp>
 #include <systems/ResourceSystem.hpp>
 

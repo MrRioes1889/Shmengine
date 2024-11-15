@@ -1,6 +1,8 @@
 #include "VulkanTypes.hpp"
 #include "VulkanBackend.hpp"
 
+#include <systems/TextureSystem.hpp>
+
 namespace Renderer::Vulkan
 {
 

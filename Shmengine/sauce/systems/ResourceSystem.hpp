@@ -1,6 +1,5 @@
 #pragma once
 
-#include "resources/ResourceTypes.hpp"
 #include "core/Subsystems.hpp"
 
 namespace ResourceSystem

@@ -1,7 +1,30 @@
 #pragma once
 
-#include "renderer/RendererTypes.hpp"
+#include "utility/MathTypes.hpp"
 #include "core/Subsystems.hpp"
+#include "containers/Sarray.hpp"
+
+struct Material;
+
+struct Geometry
+{
+
+	static const uint32 max_name_length = 128;
+
+	uint32 id;
+	uint32 generation;
+	uint32 internal_id;
+	Math::Vec3f center;
+	Math::Extents3D extents;
+	char name[max_name_length];
+	Material* material;
+
+	uint32 vertex_size;
+	uint32 vertex_count;
+	Sarray<byte> vertices;
+	Sarray<uint32> indices;
+
+};
 
 namespace GeometrySystem
 {
@@ -20,7 +43,7 @@ namespace GeometrySystem
 		Sarray<byte> vertices;	
 		Sarray<uint32> indices;
 		char name[Geometry::max_name_length];
-		char material_name[Material::max_name_length];
+		char material_name[Geometry::max_name_length];
 
 		Math::Vec3f center;
 		Math::Vec3f min_extents;

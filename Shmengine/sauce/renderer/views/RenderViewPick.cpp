@@ -4,6 +4,7 @@
 #include "utility/Math.hpp"
 #include "utility/math/Transform.hpp"
 #include "resources/loaders/ShaderLoader.hpp"
+#include "resources/Mesh.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/CameraSystem.hpp"

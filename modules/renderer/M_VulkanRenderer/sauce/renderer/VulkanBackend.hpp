@@ -2,7 +2,6 @@
 
 #include <renderer/RendererTypes.hpp>
 #include <utility/Math.hpp>
-#include <resources/ResourceTypes.hpp>
 
 struct FrameData;
 struct VulkanContext;

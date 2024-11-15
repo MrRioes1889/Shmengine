@@ -1,6 +1,8 @@
 #pragma once
 
-#include "systems/ResourceSystem.hpp"
+#include "Defines.hpp"
+
+struct Buffer;
 
 namespace ResourceSystem
 {

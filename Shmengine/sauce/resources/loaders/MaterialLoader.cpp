@@ -1,5 +1,6 @@
 #include "MaterialLoader.hpp"
 
+#include "systems/MaterialSystem.hpp"
 #include "systems/ResourceSystem.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"

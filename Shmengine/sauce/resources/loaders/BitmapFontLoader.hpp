@@ -1,6 +1,18 @@
 #pragma once
 
-#include "systems/ResourceSystem.hpp"
+#include "Defines.hpp"
+#include "containers/Sarray.hpp"
+#include "systems/FontSystem.hpp"
+
+struct BitmapFontPage {
+	uint32 id;
+	char file[256];
+};
+
+struct BitmapFontResourceData {
+	FontAtlas atlas;
+	Sarray<BitmapFontPage> pages;
+};
 
 namespace ResourceSystem
 {

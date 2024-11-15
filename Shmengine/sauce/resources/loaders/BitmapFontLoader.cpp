@@ -1,6 +1,6 @@
 #include "BitmapFontLoader.hpp"
 
-#include "resources/ResourceTypes.hpp"
+#include "systems/ResourceSystem.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"

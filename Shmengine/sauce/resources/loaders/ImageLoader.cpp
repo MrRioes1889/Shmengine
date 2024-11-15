@@ -2,6 +2,8 @@
 
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
+#include "containers/Buffer.hpp"
+#include "systems/ResourceSystem.hpp"
 #include "platform/FileSystem.hpp"
 #include "utility/CString.hpp"
 

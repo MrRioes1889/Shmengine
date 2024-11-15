@@ -1,6 +1,12 @@
 #pragma once
 
-#include "systems/ResourceSystem.hpp"
+#include "Defines.hpp"
+#include "containers/Buffer.hpp"
+
+struct TruetypeFontResourceData {
+	char face[256];
+	Buffer binary_data;
+};
 
 namespace ResourceSystem
 {

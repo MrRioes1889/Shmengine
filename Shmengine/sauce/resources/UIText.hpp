@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ResourceTypes.hpp"
 #include "renderer/RendererTypes.hpp"
+#include "systems/FontSystem.hpp"
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
 

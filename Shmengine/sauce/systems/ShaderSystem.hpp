@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "resources/ResourceTypes.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "core/Subsystems.hpp"
 

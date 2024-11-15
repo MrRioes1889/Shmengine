@@ -8,6 +8,7 @@
 #include "renderer/views/RenderViewUI.hpp"
 #include "renderer/views/RenderViewSkybox.hpp"
 #include "renderer/views/RenderViewPick.hpp"
+#include "systems/TextureSystem.hpp"
 #include "optick.h"
 
 namespace RenderViewSystem

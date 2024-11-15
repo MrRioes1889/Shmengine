@@ -1,7 +1,7 @@
 #include "VulkanInternal.hpp"
 
 #include <core/Logging.hpp>
-
+#include <systems/TextureSystem.hpp>
 
 namespace Renderer::Vulkan
 {

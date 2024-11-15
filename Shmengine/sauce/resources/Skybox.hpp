@@ -1,8 +1,9 @@
 #pragma once
 
 #include "utility/MathTypes.hpp"
-#include "resources/ResourceTypes.hpp"
-#include "systems/GeometrySystem.hpp"
+#include "systems/TextureSystem.hpp"
+
+struct Geometry;
 
 struct SkyboxConfig
 {
@@ -19,7 +20,7 @@ struct Skybox
 };
 
 SHMAPI bool32 skybox_create(SkyboxConfig* config, Skybox* out_skybox);
+SHMAPI void skybox_destroy(Skybox* skybox);
 SHMAPI bool32 skybox_init(Skybox* skybox);
 SHMAPI bool32 skybox_load(Skybox* skybox);
 SHMAPI bool32 skybox_unload(Skybox* skybox);
-SHMAPI void skybox_destroy(Skybox* skybox);

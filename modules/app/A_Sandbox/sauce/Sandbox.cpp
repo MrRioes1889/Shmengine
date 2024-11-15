@@ -10,6 +10,7 @@
 #include <core/Event.hpp>
 #include <core/Clock.hpp>
 #include <core/FrameData.hpp>
+#include <core/Identifier.hpp>
 #include <utility/Utility.hpp>
 #include <utility/String.hpp>
 #include <renderer/RendererFrontend.hpp>
@@ -70,9 +71,15 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 		if (!app_state->world_meshes_loaded)
 		{
 			SHMDEBUG("Loading models...");
-			if (!mesh_load_from_resource("falcon", app_state->car_mesh))
+
+			MeshConfig falcon_config;
+			falcon_config.resource_name = "falcon";
+			if (!mesh_create(&falcon_config, app_state->car_mesh) || !mesh_init(app_state->car_mesh) || !mesh_load(app_state->car_mesh))
 				SHMERROR("Failed to load car mesh!");
-			if (!mesh_load_from_resource("sponza", app_state->sponza_mesh))
+
+			MeshConfig sponza_config;
+			sponza_config.resource_name = "sponza";
+			if (!mesh_create(&sponza_config, app_state->sponza_mesh) || !mesh_init(app_state->sponza_mesh) || !mesh_load(app_state->sponza_mesh))
 				SHMERROR("Failed to load sponza mesh!");
 
 			app_state->world_meshes_loaded = true;

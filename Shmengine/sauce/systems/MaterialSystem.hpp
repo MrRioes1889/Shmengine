@@ -1,8 +1,42 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "resources/ResourceTypes.hpp"
+#include "systems/TextureSystem.hpp"
+#include "utility/MathTypes.hpp"
+#include "utility/String.hpp"
 #include "core/Subsystems.hpp"
+
+struct Material
+{
+
+	static const uint32 max_name_length = 128;
+
+	uint32 id;
+	uint32 generation;
+	uint32 internal_id;
+	uint32 shader_id;
+	char name[max_name_length];
+	uint32 render_frame_number;
+	float32 shininess;
+	Math::Vec4f diffuse_color;
+	TextureMap diffuse_map;
+	TextureMap specular_map;
+	TextureMap normal_map;
+
+};
+
+struct MaterialConfig
+{
+	char name[Material::max_name_length];
+	char diffuse_map_name[Texture::max_name_length];
+	char specular_map_name[Texture::max_name_length];
+	char normal_map_name[Texture::max_name_length];
+	String shader_name;
+	Math::Vec4f diffuse_color;
+	bool32 auto_release;
+
+	float32 shininess;
+};
 
 namespace MaterialSystem
 {

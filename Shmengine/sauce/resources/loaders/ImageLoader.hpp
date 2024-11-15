@@ -1,6 +1,18 @@
 #pragma once
 
-#include "systems/ResourceSystem.hpp"
+#include "Defines.hpp"
+
+struct ImageConfig
+{
+	uint32 channel_count;
+	uint32 width;
+	uint32 height;
+	uint8* pixels;
+};
+
+struct ImageResourceParams {
+	bool8 flip_y;
+};
 
 namespace ResourceSystem
 {

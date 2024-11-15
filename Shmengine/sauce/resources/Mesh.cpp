@@ -2,11 +2,63 @@
 
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
+#include "core/Identifier.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "resources/loaders/MeshLoader.hpp"
 
 #include "systems/JobSystem.hpp"
 #include "systems/GeometrySystem.hpp"
+
+static void mesh_load_job_success(void* params);
+static void mesh_load_job_fail(void* params);
+static bool32 mesh_load_job_start(void* params, void* result_data);
+static bool32 mesh_load_from_resource(const char* resource_name, Mesh* out_mesh);
+
+bool32 mesh_create(MeshConfig* config, Mesh* out_mesh)
+{
+    out_mesh->resource_name = config->resource_name;
+
+    return true;
+}
+
+void mesh_destroy(Mesh* mesh)
+{
+    mesh_unload(mesh);
+}
+
+bool32 mesh_init(Mesh* mesh)
+{
+    return true;
+}
+
+bool32 mesh_load(Mesh* mesh)
+{
+    
+    mesh->unique_id = identifier_acquire_new_id(mesh);
+
+    if (mesh->resource_name)
+    {
+        return mesh_load_from_resource(mesh->resource_name, mesh);
+    }
+    else
+    {
+        return false;
+    }
+
+}
+
+bool32 mesh_unload(Mesh* mesh)
+{
+    for (uint32 i = 0; i < mesh->geometries.count; ++i)
+        GeometrySystem::release(mesh->geometries[i]);
+
+    mesh->geometries.free_data();
+
+    mesh->generation = INVALID_ID8;
+    identifier_release_id(mesh->unique_id);
+
+    return true;
+}
 
 struct MeshLoadParams
 {
@@ -18,7 +70,6 @@ struct MeshLoadParams
 static void mesh_load_job_success(void* params) {
     MeshLoadParams* mesh_params = (MeshLoadParams*)params;
 
-    // This also handles the GPU upload. Can't be jobified until the renderer is multithreaded.
     Darray<GeometrySystem::GeometryConfig>* configs = &mesh_params->mesh_resource.g_configs;
     mesh_params->out_mesh->geometries.init(configs->count, 0);
     for (uint32 i = 0; i < configs->count; ++i) {
@@ -51,7 +102,7 @@ static bool32 mesh_load_job_start(void* params, void* result_data) {
     return result;
 }
 
-bool32 mesh_load_from_resource(const char* resource_name, Mesh* out_mesh)
+static bool32 mesh_load_from_resource(const char* resource_name, Mesh* out_mesh)
 {
     out_mesh->generation = INVALID_ID8;
 
@@ -63,15 +114,4 @@ bool32 mesh_load_from_resource(const char* resource_name, Mesh* out_mesh)
     JobSystem::submit(job);
 
     return true;
-}
-
-void mesh_unload(Mesh* m)
-{
-    for (uint32 i = 0; i < m->geometries.count; ++i)
-        GeometrySystem::release(m->geometries[i]);
-
-    m->geometries.free_data();
-
-    // For good measure, invalidate the geometry so it doesn't attempt to be rendered.
-    m->generation = INVALID_ID8;
 }

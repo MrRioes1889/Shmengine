@@ -1,6 +1,5 @@
 #include "ShaderLoader.hpp"
 
-#include "resources/ResourceTypes.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"

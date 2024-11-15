@@ -22,6 +22,8 @@ typedef bool bool8;
 
 typedef unsigned char byte;
 
+typedef uint32 UniqueId;
+
 typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
 #define PI 3.14159265358979323846f

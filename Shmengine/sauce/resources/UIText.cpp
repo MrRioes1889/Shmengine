@@ -1,6 +1,7 @@
 #include "UIText.hpp"
 
 #include "core/Logging.hpp"
+#include "core/Identifier.hpp"
 #include "systems/FontSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "utility/math/Transform.hpp"

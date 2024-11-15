@@ -8,6 +8,7 @@
 #include "memory/Freelist.hpp"
 #include "systems/ResourceSystem.hpp"
 #include "systems/TextureSystem.hpp"
+#include "systems/GeometrySystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "systems/CameraSystem.hpp"
