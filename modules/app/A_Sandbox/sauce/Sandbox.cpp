@@ -72,14 +72,10 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 		{
 			SHMDEBUG("Loading models...");
 
-			MeshConfig falcon_config;
-			falcon_config.resource_name = "falcon";
-			if (!mesh_create(&falcon_config, app_state->car_mesh) || !mesh_init(app_state->car_mesh) || !mesh_load(app_state->car_mesh))
+			if (!mesh_load(app_state->car_mesh))
 				SHMERROR("Failed to load car mesh!");
 
-			MeshConfig sponza_config;
-			sponza_config.resource_name = "sponza";
-			if (!mesh_create(&sponza_config, app_state->sponza_mesh) || !mesh_init(app_state->sponza_mesh) || !mesh_load(app_state->sponza_mesh))
+			if (!mesh_load(app_state->sponza_mesh))
 				SHMERROR("Failed to load sponza mesh!");
 
 			app_state->world_meshes_loaded = true;
@@ -280,7 +276,7 @@ bool32 application_boot(Application* app_inst)
 	ui_pick_pass->target_config.attachment_configs[0].present_after = false;
 
 	ui_pick_pass->render_target_count = 1;
-	
+
 	return true;
 
 }
@@ -291,7 +287,7 @@ bool32 application_init(void* application_state)
 
 	register_events();
 	add_keymaps();
-	
+
 	DebugConsole::init(&app_state->debug_console);
 	DebugConsole::load(&app_state->debug_console);
 
@@ -330,45 +326,63 @@ bool32 application_init(void* application_state)
 	// Meshes
 	app_state->world_meshes.init(5, DarrayFlags::NON_RESIZABLE);
 
+	MeshConfig cube_config = {};
+	cube_config.g_configs.init(1, 0);
+	cube_config.g_configs.emplace();
+
+	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", cube_config.g_configs[0]);
 	Mesh* cube_mesh = app_state->world_meshes.emplace();
-	cube_mesh->geometries.init(1, 0);
-	GeometrySystem::GeometryConfig g_config = {};
-	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", g_config);
-	cube_mesh->geometries.push(GeometrySystem::acquire_from_config(&g_config, true));
+	if (!mesh_create(&cube_config, cube_mesh) || !mesh_init(cube_mesh) || !mesh_load(cube_mesh))
+	{
+		SHMERROR("Failed to load cube mesh");
+		return false;
+	}
 	cube_mesh->transform = Math::transform_create();
-	cube_mesh->unique_id = identifier_acquire_new_id(cube_mesh);
-	cube_mesh->generation = 0;
 
+	cube_config.g_configs.init(1, 0);
+	cube_config.g_configs.emplace();
+	Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", cube_config.g_configs[0]);
 	Mesh* cube_mesh2 = app_state->world_meshes.emplace();
-	cube_mesh2->geometries.init(1, 0);
-	GeometrySystem::GeometryConfig g_config2 = {};
-	Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", g_config2);
-	cube_mesh2->geometries.push(GeometrySystem::acquire_from_config(&g_config2, true));
+	if (!mesh_create(&cube_config, cube_mesh2) || !mesh_init(cube_mesh2) || !mesh_load(cube_mesh2))
+	{
+		SHMERROR("Failed to load cube mesh");
+		return false;
+	}
 	cube_mesh2->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
-	cube_mesh2->unique_id = identifier_acquire_new_id(cube_mesh);
-	cube_mesh2->generation = 0;
 
+	cube_config.g_configs.init(1, 0);
+	cube_config.g_configs.emplace();
+	Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", cube_config.g_configs[0]);
 	Mesh* cube_mesh3 = app_state->world_meshes.emplace();
-	cube_mesh3->geometries.init(1, 0);
-	GeometrySystem::GeometryConfig g_config3 = {};
-	Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", g_config3);
-	cube_mesh3->geometries.push(GeometrySystem::acquire_from_config(&g_config3, true));
+	if (!mesh_create(&cube_config, cube_mesh3) || !mesh_init(cube_mesh3) || !mesh_load(cube_mesh3))
+	{
+		SHMERROR("Failed to load cube mesh");
+		return false;
+	}
 	cube_mesh3->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
-	cube_mesh3->unique_id = identifier_acquire_new_id(cube_mesh);
-	cube_mesh3->generation = 0;
 
 	app_state->world_meshes[1].transform.parent = &app_state->world_meshes[0].transform;
 	app_state->world_meshes[2].transform.parent = &app_state->world_meshes[0].transform;
 
+	MeshConfig falcon_config = {};
+	falcon_config.resource_name = "falcon";	
 	app_state->car_mesh = app_state->world_meshes.emplace();
-	app_state->car_mesh->unique_id = identifier_acquire_new_id(app_state->car_mesh);
+	if (!mesh_create(&falcon_config, app_state->car_mesh) || !mesh_init(app_state->car_mesh))
+	{
+		SHMERROR("Failed to create and initialize car mesh.");
+		return false;
+	}
 	app_state->car_mesh->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
-	app_state->car_mesh->generation = INVALID_ID8;
 
+	MeshConfig sponza_config = {};
+	sponza_config.resource_name = "sponza";
 	app_state->sponza_mesh = app_state->world_meshes.emplace();
-	app_state->sponza_mesh->unique_id = identifier_acquire_new_id(app_state->car_mesh);
+	if (!mesh_create(&sponza_config, app_state->sponza_mesh) || !mesh_init(app_state->sponza_mesh))
+	{
+		SHMERROR("Failed to create and initialize sponza mesh.");
+		return false;
+	}
 	app_state->sponza_mesh->transform = Math::transform_from_position_rotation_scale({ 15.0f, 0.0f, 1.0f }, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
-	app_state->sponza_mesh->generation = INVALID_ID8;
 
 	// Load up some test UI geometry.
 	GeometrySystem::GeometryConfig ui_config = {};
@@ -422,9 +436,9 @@ bool32 application_init(void* application_state)
 	ui_mesh->generation = 0;*/
 
 	app_state->dir_light =
-	{ 
-		.color = { 0.4f, 0.4f, 0.2f, 1.0f }, 
-		.direction = { -0.57735f, -0.57735f, -0.57735f, 0.0f } 
+	{
+		.color = { 0.4f, 0.4f, 0.2f, 1.0f },
+		.direction = { -0.57735f, -0.57735f, -0.57735f, 0.0f }
 	};
 
 	app_state->p_lights[0] =
@@ -454,7 +468,7 @@ bool32 application_init(void* application_state)
 		.quadratic = 0.44f
 	};
 
-    return true;
+	return true;
 }
 
 void application_shutdown()
@@ -476,7 +490,7 @@ void application_shutdown()
 
 }
 
-bool32 application_update(const FrameData* frame_data)
+bool32 application_update(FrameData* frame_data)
 {
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
@@ -487,18 +501,18 @@ bool32 application_update(const FrameData* frame_data)
 	app_frame_data->world_geometries.clear();
 	frame_data->frame_allocator->free_all_data();
 
-    uint32 allocation_count = Memory::get_current_allocation_count();
+	uint32 allocation_count = Memory::get_current_allocation_count();
 	app_state->allocation_count = allocation_count;
 
-    if (Input::is_cursor_clipped())
-    {
-        Math::Vec2i mouse_offset = Input::get_internal_mouse_offset();
-        float32 mouse_sensitivity = 3.0f;
+	if (Input::is_cursor_clipped())
+	{
+		Math::Vec2i mouse_offset = Input::get_internal_mouse_offset();
+		float32 mouse_sensitivity = 3.0f;
 		float32 yaw = -mouse_offset.x * (float32)frame_data->delta_time * mouse_sensitivity;
 		float32 pitch = -mouse_offset.y * (float32)frame_data->delta_time * mouse_sensitivity;
 		app_state->world_camera->yaw(yaw);
 		app_state->world_camera->pitch(pitch);
-    }
+	}
 
 	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 5.5f * (float32)frame_data->delta_time, true);
 	Math::transform_rotate(app_state->world_meshes[0].transform, rotation);
@@ -564,10 +578,10 @@ bool32 application_update(const FrameData* frame_data)
 
 	DebugConsole::update(&app_state->debug_console);
 
-    return true;
+	return true;
 }
 
-bool32 application_render(Renderer::RenderPacket* packet, const FrameData* frame_data)
+bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 {
 
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
@@ -618,7 +632,7 @@ bool32 application_render(Renderer::RenderPacket* packet, const FrameData* frame
 	ui_texts[0] = &app_state->test_truetype_text;
 	ui_texts[1] = &app_state->test_bitmap_text;
 
-	ui_mesh_data->text_count = 1;		
+	ui_mesh_data->text_count = 1;
 	ui_mesh_data->texts = ui_texts.data;
 
 	if (DebugConsole::is_visible(&app_state->debug_console))
@@ -647,10 +661,10 @@ bool32 application_render(Renderer::RenderPacket* packet, const FrameData* frame
 		return false;
 	}*/
 
-    return true;
+	return true;
 }
 
-void application_on_resize(uint32 width, uint32 height) 
+void application_on_resize(uint32 width, uint32 height)
 {
 
 	if (!app_state)
@@ -696,4 +710,3 @@ static void unregister_events()
 	Event::event_unregister(SystemEventCode::DEBUG1, app_state, application_on_debug_event);
 	Event::event_unregister(SystemEventCode::DEBUG2, app_state, application_on_debug_event);
 }
-

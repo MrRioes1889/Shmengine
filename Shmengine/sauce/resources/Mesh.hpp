@@ -5,6 +5,7 @@
 #include "utility/math/Transform.hpp"
 
 struct Geometry;
+namespace GeometrySystem { struct GeometryConfig; }
 
 enum class MeshState
 {
@@ -20,11 +21,14 @@ enum class MeshState
 struct MeshConfig
 {
 	const char* resource_name;
+	Darray<GeometrySystem::GeometryConfig> g_configs;
 };
 
 struct Mesh
 {
 	const char* resource_name;
+	Darray<GeometrySystem::GeometryConfig> pending_g_configs;
+
 	MeshState state;
 	UniqueId unique_id;
 	uint8 generation;

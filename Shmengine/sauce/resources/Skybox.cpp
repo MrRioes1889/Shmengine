@@ -7,6 +7,9 @@
 
 bool32 skybox_create(SkyboxConfig* config, Skybox* out_skybox)
 {
+
+	if (out_skybox->state > SkyboxState::UNINITIALIZED)
+		return false;
 	
 	out_skybox->cubemap_name = config->cubemap_name;
 

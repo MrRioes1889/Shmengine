@@ -176,12 +176,16 @@ namespace MaterialSystem
         if (CString::equal_i(name, SystemConfig::default_name)) {
             return;
         }
-        MaterialReference& ref = system_state->registered_material_table.get_ref(name);
+        MaterialReference ref = system_state->registered_material_table.get_value(name);
+
+        char name_copy[Material::max_name_length];
+        CString::copy(Material::max_name_length, name_copy, name);
 
         if (ref.reference_count == 0) {
-            SHMWARNV("Tried to release non-existent material: '%s'", name);
+            SHMWARNV("Tried to release non-existent material: '%s'", name_copy);
             return;
         }
+
         ref.reference_count--;
         if (ref.reference_count == 0 && ref.auto_release) {
             Material* m = &system_state->registered_materials[ref.handle];
@@ -192,11 +196,13 @@ namespace MaterialSystem
             // Reset the reference.
             ref.handle = INVALID_ID;
             ref.auto_release = false;
-            SHMTRACEV("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name);
+            SHMTRACEV("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name_copy);
         }
         else {
-            SHMTRACEV("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name, ref.reference_count, ref.auto_release ? "true" : "false");
+            SHMTRACEV("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name_copy, ref.reference_count, ref.auto_release ? "true" : "false");
         }
+
+        system_state->registered_material_table.set_value(name_copy, ref);
 
     }
 
@@ -293,6 +299,25 @@ namespace MaterialSystem
 
         SHMERRORV("Unrecognized shader id '%i'", m->shader_id);
         return false;
+    }
+
+    void dump_system_stats()
+    {
+        for (uint32 i = 0; i < system_state->registered_material_table.element_count; i++) 
+        {
+            MaterialReference* r = &system_state->registered_material_table.buffer[i];
+            if (r->reference_count > 0 || r->handle != INVALID_ID) {
+                if (r->handle != INVALID_ID) 
+                {
+                    SHMTRACEV("Material name: %s", system_state->registered_materials[r->handle].name);
+                    SHMTRACEV("Material ref (handle/refCount): (%u/%u)", r->handle, r->reference_count);
+                }
+                else
+                {
+                    SHMTRACEV("Found handleless material ref (handle/refCount): (%u/%u)", r->handle, r->reference_count);
+                }                         
+            }
+        }
     }
 
     static bool32 load_material(MaterialConfig config, Material* m)

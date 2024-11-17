@@ -18,9 +18,9 @@ extern "C"
 
     SHMAPI void application_shutdown();
 
-    SHMAPI bool32 application_update(const FrameData* frame_data);
+    SHMAPI bool32 application_update(FrameData* frame_data);
 
-    SHMAPI bool32 application_render(Renderer::RenderPacket* packet, const FrameData* frame_data);
+    SHMAPI bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data);
 
     SHMAPI void application_on_resize(uint32 width, uint32 height);
 

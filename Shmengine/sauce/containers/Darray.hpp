@@ -35,6 +35,19 @@ struct Darray
 	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::DARRAY, void* memory = 0);
 	SHMINLINE void free_data();
 
+	SHMINLINE void steal(Darray<T>& other)
+	{
+		data = other.data;
+		capacity = other.capacity;
+		count = other.count;
+		flags = other.flags;
+		allocation_tag = other.allocation_tag;
+
+		other.data = 0;
+		other.capacity = 0;
+		other.count = 0;
+	}
+
 	SHMINLINE void clear();
 
 	SHMINLINE void resize();
@@ -72,7 +85,9 @@ struct Darray
 	
 	SHMINLINE T& operator[](uint32 index)
 	{
-		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Darray.");
+		//SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Darray.");
+		if (!(index + 1 <= count))
+			__debugbreak();
 		return data[index];
 	}
 

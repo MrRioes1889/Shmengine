@@ -204,10 +204,10 @@ namespace DebugConsole
 			return;
 
 		uint32 line_count = console_state->lines.count;
-		uint32 max_lines_count = console_state->line_display_count;
+		uint32 max_lines_shown_count = console_state->line_display_count;
 
-		uint32 min_line = (uint32)SHMAX((int32)line_count - (int32)max_lines_count - console_state->line_offset, 0);
-		uint32 max_line = min_line + max_lines_count - 1;
+		uint32 min_line = (uint32)SHMAX((int32)line_count - (int32)max_lines_shown_count - console_state->line_offset, 0);
+		uint32 max_line = min_line + SHMIN(max_lines_shown_count, line_count) - 1;
 
 		static char buffer[16384];
 		uint32 buffer_offset = 0;

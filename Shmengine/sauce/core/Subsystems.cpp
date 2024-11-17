@@ -71,7 +71,6 @@ namespace SubsystemManager
 	static bool32 register_system(SubsystemType::Value type, FP_system_init init_callback, FP_system_shutdown shutdown_callback, FP_system_update update_callback, void* config);
 	static bool32 register_known_systems_pre_boot(ApplicationConfig* app_config);
 	static bool32 register_known_systems_post_boot(ApplicationConfig* app_config);
-	static void shutdown_known_systems();
 
 	static void* allocate_system(void* allocator, uint64 size)
 	{
@@ -79,7 +78,7 @@ namespace SubsystemManager
 		return lin_allocator->allocate(size);
 	}
 
-	bool32 init(ApplicationConfig* app_config)
+	bool32 init_basic(ApplicationConfig* app_config)
 	{
 		uint64 allocator_size = Mebibytes(64);
 		manager_state.allocator.init(allocator_size);
@@ -87,14 +86,22 @@ namespace SubsystemManager
 		return register_known_systems_pre_boot(app_config);
 	}
 
-	bool32 post_boot_init(ApplicationConfig* app_config)
+	bool32 init_advanced(ApplicationConfig* app_config)
 	{
 		return register_known_systems_post_boot(app_config);
 	}
 
-	void shutdown()
+	void shutdown_advanced()
 	{
-		shutdown_known_systems();
+		for (int32 i = SubsystemType::GEOMETRY_SYSTEM; i > SubsystemType::EVENT; i--)
+			manager_state.subsystems[i].shutdown(manager_state.subsystems[i].state);
+	}
+
+	void shutdown_basic()
+	{
+		for (int32 i = SubsystemType::EVENT; i >= 0; i--)
+			manager_state.subsystems[i].shutdown(manager_state.subsystems[i].state);
+
 		manager_state.allocator.destroy();
 	}
 
@@ -318,16 +325,6 @@ namespace SubsystemManager
 		}
 
 		return true;
-	}
-
-	static void shutdown_known_systems()
-	{
-
-		for (int32 i = SubsystemType::KNOWN_TYPES_COUNT - 1; i >= 0; i--)
-		{
-			manager_state.subsystems[i].shutdown(manager_state.subsystems[i].state);
-		}
-
 	}
 
 }

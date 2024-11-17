@@ -16,6 +16,9 @@ static uint32 global_scene_id = 0;
 bool32 scene_create(void* config, Scene* out_scene)
 {
 
+	if (out_scene->state > SceneState::UNINITIALIZED)
+		return false;
+
 	*out_scene = {};
 
 	out_scene->enabled = false;

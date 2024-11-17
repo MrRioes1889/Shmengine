@@ -55,7 +55,8 @@ namespace GeometrySystem
 
 	SHMAPI Geometry* acquire_by_id(uint32 id);
 	SHMAPI Geometry* acquire_from_config(GeometryConfig* config, bool32 auto_release);
-	SHMAPI void release(Geometry* geometry);
+	SHMAPI void release(Geometry* geometry, GeometryConfig* out_config = 0);
+	SHMAPI uint32 get_ref_count(Geometry* geometry);
 
 	Geometry* get_default_geometry();
 	Geometry* get_default_geometry_2d();

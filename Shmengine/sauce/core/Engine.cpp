@@ -90,7 +90,7 @@ namespace Engine
 		engine_state->is_running = true;
 		engine_state->is_suspended = false;
 
-		if (!SubsystemManager::init(&app_inst->config))
+		if (!SubsystemManager::init_basic(&app_inst->config))
 		{
 			SHMFATAL("Failed to initialize subsystem manager!");
 			return false;
@@ -104,7 +104,7 @@ namespace Engine
 		}
 		app_inst->stage = ApplicationStage::BOOT_COMPLETE;
 
-		if (!SubsystemManager::post_boot_init(&app_inst->config))
+		if (!SubsystemManager::init_advanced(&app_inst->config))
 		{
 			SHMFATAL("Failed to initialize subsystem manager!");
 			return false;
@@ -240,8 +240,15 @@ namespace Engine
 		engine_state->is_running = false;
 		engine_state->app_inst->shutdown();	
 
-		SubsystemManager::shutdown();
-		app_inst->stage = ApplicationStage::UNINITIALIZED;
+		SubsystemManager::shutdown_advanced();
+
+		app_inst->on_module_unload();
+		Platform::unload_dynamic_library(&app_inst->application_lib);
+		Platform::unload_dynamic_library(&app_inst->renderer_lib);
+
+		SubsystemManager::shutdown_basic();
+
+		app_inst->stage = ApplicationStage::UNINITIALIZED;		
 
 		return true;
 

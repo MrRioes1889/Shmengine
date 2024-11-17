@@ -70,4 +70,6 @@ namespace MaterialSystem
 	bool32 apply_instance(Material* m, LightingInfo lighting, bool32 needs_update);
 	bool32 apply_local(Material* m, const Math::Mat4& model);
 
+	void dump_system_stats();
+
 }

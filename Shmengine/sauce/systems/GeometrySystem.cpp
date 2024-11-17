@@ -29,7 +29,7 @@ namespace GeometrySystem
 	static SystemState* system_state = 0;
 
 	static bool32 create_geometry(GeometryConfig* config, Geometry* g);
-	static void destroy_geometry(Geometry* g);
+	static void destroy_geometry(Geometry* g, GeometryConfig* out_revert_config);
 	static bool32 create_default_geometries();
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
@@ -109,7 +109,7 @@ namespace GeometrySystem
 
 	}
 
-	void release(Geometry* g)
+	void release(Geometry* g, GeometryConfig* out_revert_config)
 	{
 		if (g->id != INVALID_ID)
 		{
@@ -123,7 +123,7 @@ namespace GeometrySystem
 
 				if (ref.reference_count < 1 && ref.auto_release)
 				{
-					destroy_geometry(g);
+					destroy_geometry(g, out_revert_config);
 					ref.reference_count = 0;
 					ref.auto_release = false;
 				}
@@ -135,6 +135,15 @@ namespace GeometrySystem
 
 		}
 
+	}
+
+	uint32 get_ref_count(Geometry* geometry)
+	{
+		if (geometry->id == INVALID_ID)
+			return 0;
+
+		GeometryReference ref = system_state->registered_geometries[geometry->id];
+		return ref.reference_count;
 	}
 
 	Geometry* get_default_geometry()
@@ -170,9 +179,26 @@ namespace GeometrySystem
 
 	}
 
-	static void destroy_geometry(Geometry* g)
+	static void destroy_geometry(Geometry* g, GeometryConfig* out_config)
 	{
+
 		Renderer::geometry_unload(g);
+
+		if (out_config)
+		{
+			CString::copy(Geometry::max_name_length, out_config->name, g->name);
+			CString::copy(Material::max_name_length, out_config->material_name, g->material->name);
+
+			out_config->center = g->center;
+			out_config->min_extents = g->extents.min;
+			out_config->max_extents = g->extents.max;
+			out_config->vertex_count = g->vertex_count;
+			out_config->vertex_size = g->vertex_size;
+
+			out_config->vertices.steal(g->vertices);
+			out_config->indices.steal(g->indices);
+		}
+		
 		g->internal_id = INVALID_ID;
 		g->generation = INVALID_ID;
 		g->id = INVALID_ID;

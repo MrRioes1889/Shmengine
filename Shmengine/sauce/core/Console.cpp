@@ -49,7 +49,11 @@ namespace Console
 
 	void system_shutdown(void* state)
 	{
+		for (uint32 i = 0; i < SystemState::max_consumer_count; i++)
+			system_state->consumers[i].instance = 0;
+
 		system_state->registered_commands.free_data();
+		system_state = 0;
 	}
 
 	bool32 register_consumer(void* inst, FP_consumer_write callback, uint32* out_consumer_id)
