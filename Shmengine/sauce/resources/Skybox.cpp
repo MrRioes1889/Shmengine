@@ -5,15 +5,27 @@
 #include "systems/GeometrySystem.hpp"
 #include "systems/ShaderSystem.hpp"
 
-bool32 skybox_create(SkyboxConfig* config, Skybox* out_skybox)
+bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 {
-	if (out_skybox->state >= SkyboxState::UNINITIALIZED)
+	if (out_skybox->state >= SkyboxState::INITIALIZED)
 		return false;
 	
 	out_skybox->name = config->name;
 	out_skybox->cubemap_name = config->cubemap_name;
 
-	out_skybox->state = SkyboxState::UNINITIALIZED;
+	out_skybox->cubemap.filter_minify = TextureFilter::LINEAR;
+	out_skybox->cubemap.filter_magnify = TextureFilter::LINEAR;
+	out_skybox->cubemap.repeat_u = out_skybox->cubemap.repeat_v = out_skybox->cubemap.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
+	out_skybox->cubemap.use = TextureUse::MAP_CUBEMAP;
+
+	out_skybox->instance_id = INVALID_ID;
+
+	GeometrySystem::GeometryConfig skybox_cube_config = {};
+	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), 0, skybox_cube_config);
+	skybox_cube_config.material_name[0] = 0;
+	out_skybox->g = GeometrySystem::acquire_from_config(&skybox_cube_config, true);
+
+	out_skybox->state = SkyboxState::INITIALIZED;
 
 	return true;
 }
@@ -30,30 +42,6 @@ bool32 skybox_destroy(Skybox* skybox)
 	skybox->instance_id = INVALID_ID;
 	skybox->state = SkyboxState::DESTROYED;
 	return true;
-}
-
-bool32 skybox_init(Skybox* skybox)
-{
-
-	if (skybox->state != SkyboxState::UNINITIALIZED)
-		return false;
-
-	skybox->cubemap.filter_minify = TextureFilter::LINEAR;
-	skybox->cubemap.filter_magnify = TextureFilter::LINEAR;
-	skybox->cubemap.repeat_u = skybox->cubemap.repeat_v = skybox->cubemap.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
-	skybox->cubemap.use = TextureUse::MAP_CUBEMAP;
-
-	skybox->instance_id = INVALID_ID;
-
-	GeometrySystem::GeometryConfig skybox_cube_config = {};
-	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, skybox->cubemap_name.c_str(), 0, skybox_cube_config);
-	skybox_cube_config.material_name[0] = 0;
-	skybox->g = GeometrySystem::acquire_from_config(&skybox_cube_config, true);
-
-	skybox->state = SkyboxState::INITIALIZED;
-
-	return true;
-
 }
 
 bool32 skybox_load(Skybox* skybox)

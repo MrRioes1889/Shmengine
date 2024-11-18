@@ -23,9 +23,8 @@ struct Camera;
 
 enum class SceneState
 {
-	INVALID,
-	DESTROYED,
 	UNINITIALIZED,
+	DESTROYED,
 	INITIALIZED,
 	LOADING,
 	LOADED,
@@ -40,9 +39,11 @@ struct SceneConfig
 
 	Math::Transform transform;
 
+	uint32 max_meshes_count;
+
 	uint32 dir_light_count;
 	uint32 point_light_count;
-	uint32 mesh_count;
+	uint32 mesh_configs_count;
 
 	SkyboxConfig* skybox_config;
 	DirectionalLight* dir_lights;
@@ -66,13 +67,10 @@ struct Scene
 	Darray<DirectionalLight> dir_lights;
 	Darray<PointLight> p_lights;
 	Darray<Mesh> meshes;
-
-	Darray<Renderer::GeometryRenderData> geometries;
 };
 
-SHMAPI bool32 scene_create(SceneConfig* config, Scene* out_scene);
+SHMAPI bool32 scene_init(SceneConfig* config, Scene* out_scene);
 SHMAPI bool32 scene_destroy(Scene* scene);
-SHMAPI bool32 scene_init(Scene* scene);
 SHMAPI bool32 scene_load(Scene* scene);
 SHMAPI bool32 scene_unload(Scene* scene);
 

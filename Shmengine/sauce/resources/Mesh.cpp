@@ -14,9 +14,9 @@ static void mesh_load_job_fail(void* params);
 static bool32 mesh_load_job_start(void* params, void* result_data);
 static bool32 mesh_load_async(Mesh* mesh, bool32 reload);
 
-bool32 mesh_create(MeshConfig* config, Mesh* out_mesh)
+bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
 {
-    if (out_mesh->state >= MeshState::UNINITIALIZED)
+    if (out_mesh->state >= MeshState::INITIALIZED)
         return false;
 
     out_mesh->name = config->name;
@@ -27,7 +27,7 @@ bool32 mesh_create(MeshConfig* config, Mesh* out_mesh)
 
     out_mesh->generation = INVALID_ID8;
 
-    out_mesh->state = MeshState::UNINITIALIZED;
+    out_mesh->state = MeshState::INITIALIZED;
 
     return true;
 }
@@ -50,17 +50,6 @@ bool32 mesh_destroy(Mesh* mesh)
 
     mesh->state = MeshState::DESTROYED;
     return true;
-}
-
-bool32 mesh_init(Mesh* mesh)
-{
-
-    if (mesh->state != MeshState::UNINITIALIZED)
-        return false;
-
-    mesh->state = MeshState::INITIALIZED;
-    return true;
-
 }
 
 bool32 mesh_load(Mesh* mesh)

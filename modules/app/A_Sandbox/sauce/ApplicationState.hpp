@@ -12,31 +12,33 @@
 // TODO: temp
 #include <resources/UIText.hpp>
 #include <resources/Skybox.hpp>
+#include <resources/Scene.hpp>
 // end
 
 struct ApplicationState
 {
     uint32 allocation_count;
-    bool32 world_meshes_loaded;
     uint32 hovered_object_id;
     uint32 width, height;
 
     Camera* world_camera;
     Math::Frustum camera_frustum;
 
-    Skybox skybox;
+    Scene main_scene;
+
+    /*Skybox skybox;
 
     Darray<Mesh> world_meshes;
     Mesh* car_mesh;
-    Mesh* sponza_mesh;
+    Mesh* sponza_mesh;*/
 
     Darray<Mesh> ui_meshes;
     UIText test_bitmap_text;
     UIText test_truetype_text;
 
-    DirectionalLight dir_light;
+    /*DirectionalLight dir_light;
     static const uint32 p_lights_count = 3;
-    PointLight p_lights[p_lights_count];
+    PointLight p_lights[p_lights_count];*/
 
     Input::Keymap console_keymap;
 
@@ -46,5 +48,4 @@ struct ApplicationState
 
 struct ApplicationFrameData
 {
-    Darray<Renderer::GeometryRenderData> world_geometries;
 };

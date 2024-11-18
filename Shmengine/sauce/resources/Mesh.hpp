@@ -9,15 +9,16 @@ namespace GeometrySystem { struct GeometryConfig; }
 
 enum class MeshState
 {
-	INVALID,
-	DESTROYED,
 	UNINITIALIZED,
+	DESTROYED,
 	INITIALIZED,
 	LOADING,
 	LOADED,
 	UNLOADING,
 	UNLOADED
 };
+
+struct Mesh;
 
 struct MeshConfig
 {
@@ -42,8 +43,7 @@ struct Mesh
 	Math::Transform transform;
 };
 
-SHMAPI bool32 mesh_create(MeshConfig* config, Mesh* out_mesh);
+SHMAPI bool32 mesh_init(MeshConfig* config, Mesh* out_mesh);
 SHMAPI bool32 mesh_destroy(Mesh* mesh);
-SHMAPI bool32 mesh_init(Mesh* mesh);
 SHMAPI bool32 mesh_load(Mesh* mesh);
 SHMAPI bool32 mesh_unload(Mesh* mesh);

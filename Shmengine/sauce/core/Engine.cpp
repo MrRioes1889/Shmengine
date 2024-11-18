@@ -200,6 +200,7 @@ namespace Engine
 
 				metrics_update_logic();
 
+				render_packet = {};
 				if (!engine_state->app_inst->render(&render_packet, &engine_state->frame_data))
 				{
 					SHMFATAL("Failed to render application.");

@@ -135,7 +135,7 @@ namespace Renderer
 
 	void render_view_skybox_on_destroy_packet(const RenderView* self, RenderViewPacket* packet)
 	{
-
+		packet->extended_data = 0;
 	}
 
 	bool32 render_view_skybox_on_render(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
@@ -178,21 +178,24 @@ namespace Renderer
 			ShaderSystem::apply_global();
 
 			// Instance
-			ShaderSystem::bind_instance(skybox_data->skybox->instance_id);
-			if (!ShaderSystem::set_uniform(data->cube_map_location, &skybox_data->skybox->cubemap)) {
-				SHMERROR("render_view_skybox_on_render - Failed to apply skybox cube map uniform.");
-				return false;
-			}
-			bool8 needs_update = skybox_data->skybox->renderer_frame_number != frame_number;
-			ShaderSystem::apply_instance(needs_update);
+			if (skybox_data)
+			{
+				ShaderSystem::bind_instance(skybox_data->skybox->instance_id);
+				if (!ShaderSystem::set_uniform(data->cube_map_location, &skybox_data->skybox->cubemap)) {
+					SHMERROR("render_view_skybox_on_render - Failed to apply skybox cube map uniform.");
+					return false;
+				}
+				bool8 needs_update = skybox_data->skybox->renderer_frame_number != frame_number;
+				ShaderSystem::apply_instance(needs_update);
 
-			// Sync the frame number.
-			skybox_data->skybox->renderer_frame_number = frame_number;
+				// Sync the frame number.
+				skybox_data->skybox->renderer_frame_number = frame_number;
 
-			// Draw it.
-			GeometryRenderData render_data = {};
-			render_data.geometry = skybox_data->skybox->g;
-			Renderer::geometry_draw(render_data);
+				// Draw it.
+				GeometryRenderData render_data = {};
+				render_data.geometry = skybox_data->skybox->g;
+				Renderer::geometry_draw(render_data);
+			}	
 
 			if (!renderpass_end(renderpass))
 			{

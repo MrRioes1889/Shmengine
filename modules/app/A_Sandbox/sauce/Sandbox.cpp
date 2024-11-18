@@ -53,7 +53,7 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 		choice++;
 		choice %= 3;
 
-		Geometry* g = app_state->world_meshes[0].geometries[0];
+		Geometry* g = app_state->main_scene.meshes[0].geometries[0];
 		if (g)
 		{
 			g->material = MaterialSystem::acquire(names[choice]);
@@ -68,27 +68,20 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 	}
 	else if (code == SystemEventCode::DEBUG1)
 	{
-		if (!app_state->world_meshes_loaded)
+		if (app_state->main_scene.state == SceneState::INITIALIZED || app_state->main_scene.state == SceneState::UNLOADED)
 		{
-			SHMDEBUG("Loading models...");
+			SHMDEBUG("Loading main scene...");
 
-			if (!mesh_load(app_state->car_mesh))
-				SHMERROR("Failed to load car mesh!");
-
-			if (!mesh_load(app_state->sponza_mesh))
-				SHMERROR("Failed to load sponza mesh!");
-
-			app_state->world_meshes_loaded = true;
+			if (!scene_load(&app_state->main_scene))
+				SHMERROR("Failed to load main_scene!");
 		}
 	}
 	else if (code == SystemEventCode::DEBUG2)
 	{
-		if (app_state->world_meshes_loaded)
+		if (app_state->main_scene.state == SceneState::LOADED)
 		{
-			SHMDEBUG("Unloading models...");
-			mesh_unload(app_state->sponza_mesh);
-			mesh_unload(app_state->car_mesh);
-			app_state->world_meshes_loaded = false;
+			SHMDEBUG("Unloading main scene...");
+			scene_unload(&app_state->main_scene);
 		}
 	}
 
@@ -295,8 +288,6 @@ bool32 application_init(void* application_state)
 	app_state->world_camera->set_position({ 10.5f, 5.0f, 9.5f });
 	app_state->allocation_count = 0;
 
-	app_state->world_meshes_loaded = false;
-
 	if (!ui_text_create(UITextType::BITMAP, "Roboto Mono 21px", 21, "Some test täext,\n\tyo!", &app_state->test_bitmap_text))
 	{
 		SHMERROR("Failed to load basic ui bitmap text.");
@@ -311,88 +302,103 @@ bool32 application_init(void* application_state)
 	}
 	ui_text_set_position(&app_state->test_truetype_text, { 500, 550, 0 });
 
+	SceneConfig main_scene_config = {};
+
+	main_scene_config.name = "main_scene";
+	main_scene_config.description = "Main Scene";
+	main_scene_config.transform = Math::transform_create();
+
+	main_scene_config.max_meshes_count = 10;
+
 	// Skybox
 	SkyboxConfig skybox_config;
-	skybox_config.cubemap_name = "skybox";
-	skybox_config.name = "skybox";
-	if (!skybox_create(&skybox_config, &app_state->skybox) ||
-		!skybox_init(&app_state->skybox) ||
-		!skybox_load(&app_state->skybox))
+	skybox_config.name = "skybox_cube";
+	skybox_config.cubemap_name = "skybox";	
+	main_scene_config.skybox_config = &skybox_config;
+
+	Darray<MeshConfig> mesh_configs(main_scene_config.max_meshes_count, DarrayFlags::NON_RESIZABLE);
+
+	MeshConfig* cube_config = mesh_configs.emplace();
+	cube_config->g_configs.init(1, 0);
+	cube_config->g_configs.emplace();	
+	cube_config->name = "cube1";
+	cube_config->transform = Math::transform_create();
+	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", cube_config->g_configs[0]);
+
+	cube_config = mesh_configs.emplace();
+	cube_config->g_configs.init(1, 0);
+	cube_config->g_configs.emplace();
+	cube_config->name = "cube2";
+	cube_config->parent_name = "cube1";
+	cube_config->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
+	Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", cube_config->g_configs[0]);
+
+	cube_config = mesh_configs.emplace();
+	cube_config->g_configs.init(1, 0);
+	cube_config->g_configs.emplace();
+	cube_config->name = "cube3";
+	cube_config->parent_name = "cube1";
+	cube_config->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
+	Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", cube_config->g_configs[0]);
+
+	MeshConfig* falcon_config = mesh_configs.emplace();
+	falcon_config->name = "falcon";	
+	falcon_config->resource_name = "falcon";
+	falcon_config->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
+
+	MeshConfig* sponza_config = mesh_configs.emplace();
+	sponza_config->name = "sponza";
+	sponza_config->resource_name = "sponza";
+	sponza_config->transform = Math::transform_from_position_rotation_scale({ 15.0f, 0.0f, 1.0f }, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
+
+	main_scene_config.mesh_configs_count = mesh_configs.count;
+	main_scene_config.mesh_configs = mesh_configs.data;
+
+	DirectionalLight dir_light =
 	{
-		SHMERROR("Failed to load skybox.");
-		return false;
-	}
+		.color = { 0.4f, 0.4f, 0.2f, 1.0f },
+		.direction = { -0.57735f, -0.57735f, -0.57735f, 0.0f }
+	};
 
-	// Meshes
-	app_state->world_meshes.init(5, DarrayFlags::NON_RESIZABLE);
+	main_scene_config.dir_light_count = 1;
+	main_scene_config.dir_lights = &dir_light;
 
-	MeshConfig cube_config = {};
-	cube_config.g_configs.init(1, 0);
-	cube_config.g_configs.emplace();
+	const uint32 p_lights_count = 3;
+	PointLight p_lights[p_lights_count];
 
-	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", cube_config.g_configs[0]);
-	cube_config.name = "cube1";
-	cube_config.transform = Math::transform_create();
-
-	Mesh* cube_mesh = app_state->world_meshes.emplace();
-	if (!mesh_create(&cube_config, cube_mesh) || !mesh_init(cube_mesh) || !mesh_load(cube_mesh))
+	p_lights[0] =
 	{
-		SHMERROR("Failed to load cube mesh");
-		return false;
-	}
+		.color = { 1.0f, 0.0f, 0.0f, 1.0f },
+		.position = { -5.5f, 0.0f, -5.5f, 0.0f },
+		.constant_f = 1.0f,
+		.linear = 0.35f,
+		.quadratic = 0.44f
+	};
 
-	cube_config.g_configs.init(1, 0);
-	cube_config.g_configs.emplace();
-	Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", cube_config.g_configs[0]);
-	cube_config.name = "cube2";
-	cube_config.parent_name = "cube1";
-	cube_config.transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
-
-	Mesh* cube_mesh2 = app_state->world_meshes.emplace();
-	if (!mesh_create(&cube_config, cube_mesh2) || !mesh_init(cube_mesh2) || !mesh_load(cube_mesh2))
+	p_lights[1] =
 	{
-		SHMERROR("Failed to load cube mesh");
-		return false;
-	}
+		.color = { 0.0f, 1.0f, 0.0f, 1.0f },
+		.position = { 5.5f, 0.0f, -5.5f, 0.0f },
+		.constant_f = 1.0f,
+		.linear = 0.35f,
+		.quadratic = 0.44f
+	};
 
-	cube_config.g_configs.init(1, 0);
-	cube_config.g_configs.emplace();
-	Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", cube_config.g_configs[0]);
-	cube_config.name = "cube3";
-	cube_config.parent_name = "cube1";
-	cube_config.transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
-
-	Mesh* cube_mesh3 = app_state->world_meshes.emplace();
-	if (!mesh_create(&cube_config, cube_mesh3) || !mesh_init(cube_mesh3) || !mesh_load(cube_mesh3))
+	p_lights[2] =
 	{
-		SHMERROR("Failed to load cube mesh");
-		return false;
-	}
+		.color = { 0.0f, 0.0f, 1.0f, 1.0f },
+		.position = { 5.5f, 0.0f, 5.5f, 0.0f },
+		.constant_f = 1.0f,
+		.linear = 0.35f,
+		.quadratic = 0.44f
+	};
 
-	app_state->world_meshes[1].transform.parent = &app_state->world_meshes[0].transform;
-	app_state->world_meshes[2].transform.parent = &app_state->world_meshes[0].transform;
+	main_scene_config.point_light_count = p_lights_count;
+	main_scene_config.point_lights = p_lights;
 
-	MeshConfig falcon_config = {};
-	falcon_config.name = "falcon";	
-	falcon_config.resource_name = "falcon";
-	falcon_config.transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
-
-	app_state->car_mesh = app_state->world_meshes.emplace();
-	if (!mesh_create(&falcon_config, app_state->car_mesh) || !mesh_init(app_state->car_mesh))
+	if (!scene_init(&main_scene_config, &app_state->main_scene))
 	{
-		SHMERROR("Failed to create and initialize car mesh.");
-		return false;
-	}
-
-	MeshConfig sponza_config = {};
-	sponza_config.name = "sponza";
-	sponza_config.resource_name = "sponza";
-	sponza_config.transform = Math::transform_from_position_rotation_scale({ 15.0f, 0.0f, 1.0f }, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
-
-	app_state->sponza_mesh = app_state->world_meshes.emplace();
-	if (!mesh_create(&sponza_config, app_state->sponza_mesh) || !mesh_init(app_state->sponza_mesh))
-	{
-		SHMERROR("Failed to create and initialize sponza mesh.");
+		SHMERROR("Failed to initialize main scene");
 		return false;
 	}
 
@@ -447,55 +453,19 @@ bool32 application_init(void* application_state)
 	ui_mesh->transform = Math::transform_create();
 	ui_mesh->generation = 0;*/
 
-	app_state->dir_light =
-	{
-		.color = { 0.4f, 0.4f, 0.2f, 1.0f },
-		.direction = { -0.57735f, -0.57735f, -0.57735f, 0.0f }
-	};
-
-	app_state->p_lights[0] =
-	{
-		.color = { 1.0f, 0.0f, 0.0f, 1.0f },
-		.position = { -5.5f, 0.0f, -5.5f, 0.0f },
-		.constant_f = 1.0f,
-		.linear = 0.35f,
-		.quadratic = 0.44f
-	};
-
-	app_state->p_lights[1] =
-	{
-		.color = { 0.0f, 1.0f, 0.0f, 1.0f },
-		.position = { 5.5f, 0.0f, -5.5f, 0.0f },
-		.constant_f = 1.0f,
-		.linear = 0.35f,
-		.quadratic = 0.44f
-	};
-
-	app_state->p_lights[2] =
-	{
-		.color = { 0.0f, 0.0f, 1.0f, 1.0f },
-		.position = { 5.5f, 0.0f, 5.5f, 0.0f },
-		.constant_f = 1.0f,
-		.linear = 0.35f,
-		.quadratic = 0.44f
-	};
-
 	return true;
 }
 
 void application_shutdown()
 {
 	// TODO: temp
-	skybox_destroy(&app_state->skybox);
+	scene_destroy(&app_state->main_scene);
 	ui_text_destroy(&app_state->test_bitmap_text);
 	ui_text_destroy(&app_state->test_truetype_text);
 
 	DebugConsole::destroy(&app_state->debug_console);
 
-	app_state->world_meshes.free_data();
 	app_state->ui_meshes.free_data();
-	app_state->car_mesh = 0;
-	app_state->sponza_mesh = 0;
 
 	unregister_events();
 	// end
@@ -506,11 +476,7 @@ bool32 application_update(FrameData* frame_data)
 {
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
-	if (!app_frame_data->world_geometries.data)
-		// TODO: Figure out a way to make this resizable without messing up pointers in render packets on resize.
-		app_frame_data->world_geometries.init(512, DarrayFlags::NON_RESIZABLE);
-
-	app_frame_data->world_geometries.clear();
+	scene_update(&app_state->main_scene);
 	frame_data->frame_allocator->free_all_data();
 
 	uint32 allocation_count = Memory::get_current_allocation_count();
@@ -527,9 +493,9 @@ bool32 application_update(FrameData* frame_data)
 	}
 
 	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 5.5f * (float32)frame_data->delta_time, true);
-	Math::transform_rotate(app_state->world_meshes[0].transform, rotation);
-	Math::transform_rotate(app_state->world_meshes[1].transform, rotation);
-	Math::transform_rotate(app_state->world_meshes[2].transform, rotation);
+	Math::transform_rotate(app_state->main_scene.meshes[0].transform, rotation);
+	Math::transform_rotate(app_state->main_scene.meshes[1].transform, rotation);
+	Math::transform_rotate(app_state->main_scene.meshes[2].transform, rotation);
 
 	Math::Vec2i mouse_pos = Input::get_mouse_position();
 
@@ -556,35 +522,10 @@ bool32 application_update(FrameData* frame_data)
 	Math::Vec3f up = app_state->world_camera->get_up();
 	app_state->camera_frustum = Math::frustum_create(app_state->world_camera->get_position(), fwd, right, up, (float32)app_state->width / (float32)app_state->height, Math::deg_to_rad(45.0f), 0.1f, 1000.0f);
 
-	for (uint32 i = 0; i < app_state->world_meshes.count; i++)
-	{
-		Mesh* m = &app_state->world_meshes[i];
-		if (m->generation == INVALID_ID8)
-			continue;
-
-		Math::Mat4 model = Math::transform_get_world(m->transform);
-		for (uint32 j = 0; j < m->geometries.count; j++)
-		{
-			Geometry* g = m->geometries[j];
-			Math::Vec3f extents_max = Math::vec_mul_mat(g->extents.max, model);
-
-			Math::Vec3f center = Math::vec_mul_mat(g->center, model);
-			Math::Vec3f half_extents = { Math::abs(extents_max.x - center.x), Math::abs(extents_max.y - center.y), Math::abs(extents_max.z - center.z) };
-
-			if (Math::frustum_intersects_aabb(app_state->camera_frustum, center, half_extents))
-			{
-				Renderer::GeometryRenderData* render_data = app_frame_data->world_geometries.emplace();
-				render_data->model = model;
-				render_data->geometry = g;
-				render_data->unique_id = m->unique_id;
-			}
-		}
-	}
-
 	char ui_text_buffer[512];
 	CString::safe_print_s<uint32, uint32, int32, int32, float32, float32, float32, float32, float32, float32, float64, float64, float64>
 		(ui_text_buffer, 512, "Object Hovered ID: %u\nWorld geometry count: %u\nMouse Pos : [%i, %i]\tCamera Pos : [%f3, %f3, %f3]\nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms\nLogic: %lf4 / Render: %lf4",
-			app_state->hovered_object_id, app_frame_data->world_geometries.count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
+			app_state->hovered_object_id, frame_data->drawn_geometry_count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
 
 	ui_text_set_text(&app_state->test_truetype_text, ui_text_buffer);
 
@@ -598,29 +539,23 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
+	frame_data->drawn_geometry_count = 0;
+
 	const uint32 view_count = 3;
 	Renderer::RenderViewPacket* render_view_packets = (Renderer::RenderViewPacket*)frame_data->frame_allocator->allocate(view_count * sizeof(Renderer::RenderViewPacket));
 	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_view_packets);
 
-	Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::SkyboxPacketData));
-	skybox_data->skybox = &app_state->skybox;
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), frame_data->frame_allocator, skybox_data, &packet->views[0]))
-	{
-		SHMERROR("Failed to build packet for view 'skybox'.");
-		return false;
-	}
+	packet->views[0].view = RenderViewSystem::get("skybox");
+	packet->views[1].view = RenderViewSystem::get("world");
+	packet->views[2].view = RenderViewSystem::get("ui");
 
-	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::WorldPacketData));
-	world_packet->geometries = app_frame_data->world_geometries.data;
-	world_packet->geometries_count = app_frame_data->world_geometries.count;
-	world_packet->dir_light = &app_state->dir_light;
-	world_packet->p_lights_count = app_state->p_lights_count;
-	world_packet->p_lights = app_state->p_lights;
-
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), frame_data->frame_allocator, world_packet, &packet->views[1]))
+	if (app_state->main_scene.state == SceneState::LOADED)
 	{
-		SHMERROR("Failed to build packet for view 'world'.");
-		return false;
+		if (!scene_build_render_packet(&app_state->main_scene, &app_state->camera_frustum, frame_data, packet))
+		{
+			SHMERROR("Failed to build main scene render packet.");
+			return false;
+		}
 	}
 
 	Mesh** ui_meshes_ptr = (Mesh**)frame_data->frame_allocator->allocate(app_state->ui_meshes.count * sizeof(Mesh*));

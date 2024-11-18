@@ -144,6 +144,7 @@ namespace Renderer
 	void render_view_ui_on_destroy_packet(const RenderView* self, RenderViewPacket* packet)
 	{
 		packet->geometries.free_data();
+		packet->extended_data = 0;
 	}
 
 	bool32 render_view_ui_on_render(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)

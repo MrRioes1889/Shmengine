@@ -8,9 +8,8 @@ struct Geometry;
 
 enum class SkyboxState
 {
-	INVALID,
-	DESTROYED,
 	UNINITIALIZED,
+	DESTROYED,
 	INITIALIZED,
 	LOADING,
 	LOADED,
@@ -35,8 +34,7 @@ struct Skybox
 	SkyboxState state;
 };
 
-SHMAPI bool32 skybox_create(SkyboxConfig* config, Skybox* out_skybox);
+SHMAPI bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox);
 SHMAPI bool32 skybox_destroy(Skybox* skybox);
-SHMAPI bool32 skybox_init(Skybox* skybox);
 SHMAPI bool32 skybox_load(Skybox* skybox);
 SHMAPI bool32 skybox_unload(Skybox* skybox);
