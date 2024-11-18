@@ -104,6 +104,11 @@ String& String::operator=(String&& other) noexcept
 
 String& String::operator=(const char* s)
 {
+	if (!s)
+	{
+		free_data();
+		return *this;
+	}
 
 	uint32 s_length = CString::length(s);
 	uint32 reserve_size = s_length + 1;

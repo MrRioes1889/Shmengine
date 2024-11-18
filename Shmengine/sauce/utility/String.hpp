@@ -59,7 +59,7 @@ struct SHMAPI String
 
 	SHMINLINE int32 index_of(char c) { return CString::index_of(arr.data, c); }
 	SHMINLINE int32 index_of_last(char c) { return CString::index_of_last(arr.data, c); }
-	SHMINLINE bool32 is_empty() { return arr.count > 0; }
+	SHMINLINE bool32 is_empty() { return !arr.data || !arr.count; }
 
 	SHMINLINE const char* c_str() const { return arr.data; }
 	//SHMINLINE operator const char* () { return arr.data; }

@@ -7,10 +7,10 @@
 
 bool32 skybox_create(SkyboxConfig* config, Skybox* out_skybox)
 {
-
-	if (out_skybox->state > SkyboxState::UNINITIALIZED)
+	if (out_skybox->state >= SkyboxState::UNINITIALIZED)
 		return false;
 	
+	out_skybox->name = config->name;
 	out_skybox->cubemap_name = config->cubemap_name;
 
 	out_skybox->state = SkyboxState::UNINITIALIZED;
@@ -18,16 +18,18 @@ bool32 skybox_create(SkyboxConfig* config, Skybox* out_skybox)
 	return true;
 }
 
-void skybox_destroy(Skybox* skybox)
+bool32 skybox_destroy(Skybox* skybox)
 {
 	if (skybox->state != SkyboxState::UNLOADED && !skybox_unload(skybox))
-		return;
+		return false;
 
 	GeometrySystem::release(skybox->g);
+	skybox->name.free_data();
+	skybox->cubemap_name.free_data();
 	skybox->g = 0;
 	skybox->instance_id = INVALID_ID;
-	skybox->cubemap_name = 0;
 	skybox->state = SkyboxState::DESTROYED;
+	return true;
 }
 
 bool32 skybox_init(Skybox* skybox)
@@ -44,7 +46,7 @@ bool32 skybox_init(Skybox* skybox)
 	skybox->instance_id = INVALID_ID;
 
 	GeometrySystem::GeometryConfig skybox_cube_config = {};
-	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, skybox->cubemap_name, 0, skybox_cube_config);
+	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, skybox->cubemap_name.c_str(), 0, skybox_cube_config);
 	skybox_cube_config.material_name[0] = 0;
 	skybox->g = GeometrySystem::acquire_from_config(&skybox_cube_config, true);
 
@@ -67,7 +69,7 @@ bool32 skybox_load(Skybox* skybox)
 		SHMFATAL("Failed to acquire renderer resources for skybox cube map!");
 		return false;
 	}
-	skybox->cubemap.texture = TextureSystem::acquire_cube(skybox->cubemap_name, true);
+	skybox->cubemap.texture = TextureSystem::acquire_cube(skybox->cubemap_name.c_str(), true);
 	skybox->renderer_frame_number = INVALID_ID64;
 
 	Renderer::Shader* skybox_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_skybox);
@@ -98,7 +100,7 @@ bool32 skybox_unload(Skybox* skybox)
 
 	Renderer::shader_release_instance_resources(skybox_shader, skybox->instance_id);
 	skybox->instance_id = 0;
-	TextureSystem::release(skybox->cubemap_name);
+	TextureSystem::release(skybox->cubemap_name.c_str());
 	Renderer::texture_map_release_resources(&skybox->cubemap);
 
 	skybox->state = SkyboxState::UNLOADED;

@@ -1,12 +1,14 @@
 #pragma once
 
 #include "utility/MathTypes.hpp"
+#include "utility/String.hpp"
 #include "systems/TextureSystem.hpp"
 
 struct Geometry;
 
 enum class SkyboxState
 {
+	INVALID,
 	DESTROYED,
 	UNINITIALIZED,
 	INITIALIZED,
@@ -18,12 +20,14 @@ enum class SkyboxState
 
 struct SkyboxConfig
 {
+	const char* name;
 	const char* cubemap_name;
 };
 
 struct Skybox
 {
-	const char* cubemap_name;
+	String name;
+	String cubemap_name;
 	TextureMap cubemap;
 	Geometry* g;
 	uint64 renderer_frame_number;
@@ -32,7 +36,7 @@ struct Skybox
 };
 
 SHMAPI bool32 skybox_create(SkyboxConfig* config, Skybox* out_skybox);
-SHMAPI void skybox_destroy(Skybox* skybox);
+SHMAPI bool32 skybox_destroy(Skybox* skybox);
 SHMAPI bool32 skybox_init(Skybox* skybox);
 SHMAPI bool32 skybox_load(Skybox* skybox);
 SHMAPI bool32 skybox_unload(Skybox* skybox);

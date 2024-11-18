@@ -4,6 +4,8 @@
 #include "containers/Darray.hpp"
 #include "utility/MathTypes.hpp"
 
+#include "Skybox.hpp"
+#include "Mesh.hpp"
 
 struct FrameData;
 namespace Renderer 
@@ -21,6 +23,7 @@ struct Camera;
 
 enum class SceneState
 {
+	INVALID,
 	DESTROYED,
 	UNINITIALIZED,
 	INITIALIZED,
@@ -30,12 +33,21 @@ enum class SceneState
 	UNLOADED
 };
 
-struct PendingMesh
+struct SceneConfig
 {
-	Mesh* mesh;
-	const char* mesh_resource_name;
-	GeometrySystem::GeometryConfig** g_configs;
-	uint32 g_config_count;
+	const char* name;
+	const char* description;
+
+	Math::Transform transform;
+
+	uint32 dir_light_count;
+	uint32 point_light_count;
+	uint32 mesh_count;
+
+	SkyboxConfig* skybox_config;
+	DirectionalLight* dir_lights;
+	PointLight* point_lights;
+	MeshConfig* mesh_configs;
 };
 
 struct Scene
@@ -45,18 +57,20 @@ struct Scene
 
 	bool8 enabled;
 
+	String name;
+	String description;
+
 	Math::Transform transform;
-	Skybox* skybox;
+
+	Skybox skybox;
 	Darray<DirectionalLight> dir_lights;
 	Darray<PointLight> p_lights;
-	Darray<Mesh*> meshes;
-
-	Darray<PendingMesh> pending_meshes;
+	Darray<Mesh> meshes;
 
 	Darray<Renderer::GeometryRenderData> geometries;
 };
 
-SHMAPI bool32 scene_create(void* config, Scene* out_scene);
+SHMAPI bool32 scene_create(SceneConfig* config, Scene* out_scene);
 SHMAPI bool32 scene_destroy(Scene* scene);
 SHMAPI bool32 scene_init(Scene* scene);
 SHMAPI bool32 scene_load(Scene* scene);
@@ -72,9 +86,9 @@ SHMAPI bool32 scene_remove_directional_light(Scene* scene, uint32 index);
 SHMAPI bool32 scene_add_point_light(Scene* scene, PointLight light);
 SHMAPI bool32 scene_remove_point_light(Scene* scene, uint32 index);
 
-SHMAPI bool32 scene_add_mesh(Scene* scene, Mesh* mesh);
-SHMAPI bool32 scene_remove_mesh(Scene* scene, Mesh* mesh);
+SHMAPI bool32 scene_add_mesh(Scene* scene, MeshConfig* config);
+SHMAPI bool32 scene_remove_mesh(Scene* scene, const char* name);
 
-SHMAPI bool32 scene_add_skybox(Scene* scene, Skybox* skybox);
-SHMAPI bool32 scene_remove_skybox(Scene* scene, Skybox* skybox);
+SHMAPI bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config);
+SHMAPI bool32 scene_remove_skybox(Scene* scene, const char* name);
 

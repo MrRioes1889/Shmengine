@@ -9,21 +9,74 @@
 #include "systems/RenderViewSystem.hpp"
 #include "systems/GeometrySystem.hpp"
 
-// TODO: Meshes and Skybox states are atomatically coupled to scene state for now. Change to a system where scenes can reference resources without influencing their state directly.
-
 static uint32 global_scene_id = 0;
 
-bool32 scene_create(void* config, Scene* out_scene)
+bool32 scene_create(SceneConfig* config, Scene* out_scene)
 {
 
-	if (out_scene->state > SceneState::UNINITIALIZED)
+	if (out_scene->state >= SceneState::UNINITIALIZED)
 		return false;
 
 	*out_scene = {};
 
+	out_scene->name = config->name;
+	out_scene->description = config->description;
 	out_scene->enabled = false;
-	out_scene->state = SceneState::UNINITIALIZED;
-	out_scene->transform = Math::transform_create();
+
+	out_scene->transform = config->transform;
+
+	out_scene->dir_lights.init(1, DarrayFlags::NON_RESIZABLE);
+	out_scene->p_lights.init(10, DarrayFlags::NON_RESIZABLE);
+	out_scene->meshes.init(1, 0);
+	out_scene->geometries.init(512, 0);
+
+	if (config->skybox_config)
+	{
+		if (!scene_add_skybox(out_scene, config->skybox_config))
+		{
+			SHMERROR("Failed to create skybox.");
+			return false;
+		}
+	}
+	
+	if (config->dir_light_count)
+	{
+		for (uint32 i = 0; i < config->dir_light_count; i++)
+		{
+			if (!scene_add_directional_light(out_scene, *config->dir_lights))
+			{
+				SHMERROR("Failed to add directional light.");
+				return false;
+			}
+		}		
+	}
+
+	if (config->point_light_count)
+	{
+		for (uint32 i = 0; i < config->point_light_count; i++)
+		{
+			if (!scene_add_point_light(out_scene, *config->point_lights))
+			{
+				SHMERROR("Failed to add point light.");
+				return false;
+			}
+		}
+	}
+
+	if (config->mesh_count)
+	{
+		for (uint32 i = 0; i < config->mesh_count; i++)
+		{
+			if (!scene_add_mesh(out_scene, &config->mesh_configs[i]))
+			{
+				SHMERROR("Failed to create mesh.");
+				return false;
+			}
+		}
+	}
+
+	
+	out_scene->state = SceneState::UNINITIALIZED;	
 	out_scene->id = global_scene_id++;
 
 	return true;
@@ -36,18 +89,32 @@ bool32 scene_destroy(Scene* scene)
 	if (scene->state != SceneState::UNLOADED && !scene_unload(scene))
 		return false;
 
-	if (scene->skybox)
-		skybox_destroy(scene->skybox);
+	if (scene->skybox.state != SkyboxState::INVALID)
+	{
+		if (!skybox_destroy(&scene->skybox))
+		{
+			SHMERROR("Failed to destroy skybox.");
+			return false;
+		}
+	}
 
 	for (uint32 i = 0; i < scene->meshes.count; i++)
-		mesh_destroy(scene->meshes[i]);
+	{
+		if (!mesh_destroy(&scene->meshes[i]))
+		{
+			SHMERROR("Failed to destroy skybox.");
+			return false;
+		}
+	}
 
 	scene->dir_lights.free_data();
 	scene->p_lights.free_data();
 	scene->meshes.free_data();
-	scene->skybox = 0;
 
 	scene->geometries.free_data();
+
+	scene->name.free_data();
+	scene->description.free_data();
 
 	scene->state = SceneState::DESTROYED;
 
@@ -60,17 +127,11 @@ bool32 scene_init(Scene* scene)
 
 	if (scene->state != SceneState::UNINITIALIZED)
 		return false;
+	
 
-	scene->dir_lights.init(1, DarrayFlags::NON_RESIZABLE);
-	scene->p_lights.init(10, DarrayFlags::NON_RESIZABLE);
-	scene->meshes.init(1, 0);
-	scene->skybox = 0;
-
-	scene->geometries.init(512, 0);
-
-	if (scene->skybox && scene->skybox->state == SkyboxState::UNINITIALIZED)
+	if (scene->skybox.state != SkyboxState::UNINITIALIZED)
 	{
-		if (!skybox_init(scene->skybox))
+		if (!skybox_init(&scene->skybox))
 		{
 			SHMERROR("Failed to init skybox.");
 			return false;
@@ -79,10 +140,7 @@ bool32 scene_init(Scene* scene)
 
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
-		if (scene->meshes[i]->state != MeshState::UNINITIALIZED)
-			continue;
-
-		if (!mesh_init(scene->meshes[i]))
+		if (!mesh_init(&scene->meshes[i]))
 		{
 			SHMERROR("Failed to init mesh.");
 			return false;
@@ -103,9 +161,9 @@ bool32 scene_load(Scene* scene)
 
 	scene->state = SceneState::LOADING;
 
-	if (scene->skybox && (scene->skybox->state == SkyboxState::INITIALIZED || scene->skybox->state == SkyboxState::UNLOADED))
+	if (scene->skybox.state == SkyboxState::INVALID)
 	{
-		if (!skybox_load(scene->skybox))
+		if (!skybox_load(&scene->skybox))
 		{
 			SHMERROR("Failed to load skybox.");
 			return false;
@@ -114,10 +172,7 @@ bool32 scene_load(Scene* scene)
 
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
-		if (scene->meshes[i]->state != MeshState::INITIALIZED && scene->meshes[i]->state != MeshState::UNLOADED)
-			continue;
-
-		if (!mesh_load(scene->meshes[i]))
+		if (!mesh_load(&scene->meshes[i]))
 		{
 			SHMERROR("Failed to load mesh.");
 			return false;
@@ -138,9 +193,9 @@ bool32 scene_unload(Scene* scene)
 
 	scene->state = SceneState::UNLOADING;
 
-	if (scene->skybox)
+	if (scene->skybox.state == SkyboxState::INVALID)
 	{
-		if (!skybox_unload(scene->skybox))
+		if (!skybox_unload(&scene->skybox))
 		{
 			SHMERROR("Failed to unload skybox.");
 			return false;
@@ -149,7 +204,7 @@ bool32 scene_unload(Scene* scene)
 
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
-		if (!mesh_unload(scene->meshes[i]))
+		if (!mesh_unload(&scene->meshes[i]))
 		{
 			SHMERROR("Failed to unload mesh.");
 			return false;
@@ -169,12 +224,12 @@ bool32 scene_update(Scene* scene)
 	{
 		bool32 objects_loaded = true;
 
-		if (scene->skybox && scene->skybox->state != SkyboxState::LOADED)
+		if (scene->skybox.state != SkyboxState::LOADED)
 			objects_loaded = false;
 
 		for (uint32 i = 0; i < scene->meshes.count; i++)
 		{
-			if (scene->meshes[i]->state != MeshState::LOADED)
+			if (scene->meshes[i].state != MeshState::LOADED)
 			{
 				objects_loaded = false;
 				break;
@@ -210,7 +265,7 @@ bool32 scene_update(Scene* scene)
 bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frustum, FrameData* frame_data, Renderer::RenderPacket* packet)
 {
 
-	if (scene->skybox)
+	if (scene->skybox.state == SkyboxState::INVALID)
 	{
 		Renderer::RenderViewPacket* skybox_view_packet = 0;
 		for (uint32 i = 0; i < packet->views.capacity; i++)
@@ -225,7 +280,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		if (skybox_view_packet)
 		{
 			Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::SkyboxPacketData));
-			skybox_data->skybox = scene->skybox;
+			skybox_data->skybox = &scene->skybox;
 			if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), frame_data->frame_allocator, skybox_data, skybox_view_packet))
 			{
 				SHMERROR("Failed to build packet for view 'skybox'.");
@@ -254,7 +309,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
-		Mesh* m = scene->meshes[i];
+		Mesh* m = &scene->meshes[i];
 		if (m->generation == INVALID_ID8)
 			continue;
 
@@ -337,12 +392,18 @@ bool32 scene_remove_point_light(Scene* scene, uint32 index)
 	return true;
 }
 
-bool32 scene_add_mesh(Scene* scene, Mesh* mesh)
+bool32 scene_add_mesh(Scene* scene, MeshConfig* config)
 {
 
-	scene->meshes.emplace(mesh);
+	Mesh* mesh = scene->meshes.emplace();
 
-	if (scene->state >= SceneState::INITIALIZED && mesh->state < MeshState::INITIALIZED)
+	if (!mesh_create(config, mesh))
+	{
+		SHMERROR("Failed to create mesh!");
+		return false;
+	}
+
+	if (scene->state >= SceneState::INITIALIZED)
 	{
 		if (!mesh_init(mesh))
 		{
@@ -351,7 +412,7 @@ bool32 scene_add_mesh(Scene* scene, Mesh* mesh)
 		}
 	}
 
-	if (scene->state == SceneState::LOADED && mesh->state != MeshState::LOADED)
+	if (scene->state == SceneState::LOADED)
 	{
 		if (!mesh_load(mesh))
 		{
@@ -363,37 +424,63 @@ bool32 scene_add_mesh(Scene* scene, Mesh* mesh)
 	return true;
 }
 
-bool32 scene_remove_mesh(Scene* scene, Mesh* mesh)
+bool32 scene_remove_mesh(Scene* scene, const char* name)
 {
+
+	uint32 mesh_index = INVALID_ID;
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
-		if (scene->meshes[i] == mesh)
+		if (scene->meshes[i].name.equal_i(name))
 		{
-			scene->meshes.remove_at(i);
+			mesh_index = i;
 			break;
-		}		
+		}
 	}
+	
+	if (mesh_index == INVALID_ID)
+		return false;
+	
+	if (!mesh_destroy(&scene->meshes[mesh_index]))
+	{
+		SHMERROR("Failed to destroy old skybox!");
+		return false;
+	}
+
+	scene->meshes.remove_at(mesh_index);
 
 	return true;
 }
 
-bool32 scene_add_skybox(Scene* scene, Skybox* skybox)
+bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 {
 
-	scene->skybox = skybox;
-
-	if (scene->state >= SceneState::INITIALIZED && skybox->state < SkyboxState::INITIALIZED)
+	if (scene->skybox.state != SkyboxState::INVALID)
 	{
-		if (!skybox_init(skybox))
+		if (!skybox_destroy(&scene->skybox))
+		{
+			SHMERROR("Failed to destroy old skybox!");
+			return false;
+		}
+	}
+
+	if (!skybox_create(config, &scene->skybox))
+	{
+		SHMERROR("Failed to create skybox!");
+		return false;
+	}
+
+	if (scene->state >= SceneState::INITIALIZED)
+	{
+		if (!skybox_init(&scene->skybox))
 		{
 			SHMERROR("Failed to initialize skybox!");
 			return false;
 		}
 	}
 
-	if (scene->state == SceneState::LOADED && skybox->state != SkyboxState::LOADED)
+	if (scene->state == SceneState::LOADED)
 	{
-		if (!skybox_load(skybox))
+		if (!skybox_load(&scene->skybox))
 		{
 			SHMERROR("Failed to initialize skybox!");
 			return false;
@@ -403,10 +490,16 @@ bool32 scene_add_skybox(Scene* scene, Skybox* skybox)
 	return true;
 }
 
-bool32 scene_remove_skybox(Scene* scene, Skybox* skybox)
+bool32 scene_remove_skybox(Scene* scene, const char* name)
 {
-	if (scene->skybox == skybox)
-		scene->skybox = 0;
+	if (!scene->skybox.name.equal_i(name))
+		return false;
+
+	if (!skybox_destroy(&scene->skybox))
+	{
+		SHMERROR("Failed to destroy old skybox!");
+		return false;
+	}
 
 	return true;
 }

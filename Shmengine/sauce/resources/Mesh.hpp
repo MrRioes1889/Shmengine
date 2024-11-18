@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "containers/Darray.hpp"
+#include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
 
 struct Geometry;
@@ -9,6 +9,7 @@ namespace GeometrySystem { struct GeometryConfig; }
 
 enum class MeshState
 {
+	INVALID,
 	DESTROYED,
 	UNINITIALIZED,
 	INITIALIZED,
@@ -20,13 +21,18 @@ enum class MeshState
 
 struct MeshConfig
 {
+	const char* name;
+	const char* parent_name;
 	const char* resource_name;
 	Darray<GeometrySystem::GeometryConfig> g_configs;
+	Math::Transform transform;
 };
 
 struct Mesh
 {
-	const char* resource_name;
+	String name;
+	String parent_name;
+	String resource_name;
 	Darray<GeometrySystem::GeometryConfig> pending_g_configs;
 
 	MeshState state;
@@ -37,7 +43,7 @@ struct Mesh
 };
 
 SHMAPI bool32 mesh_create(MeshConfig* config, Mesh* out_mesh);
-SHMAPI void mesh_destroy(Mesh* mesh);
+SHMAPI bool32 mesh_destroy(Mesh* mesh);
 SHMAPI bool32 mesh_init(Mesh* mesh);
 SHMAPI bool32 mesh_load(Mesh* mesh);
 SHMAPI bool32 mesh_unload(Mesh* mesh);

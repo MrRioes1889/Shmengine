@@ -314,6 +314,7 @@ bool32 application_init(void* application_state)
 	// Skybox
 	SkyboxConfig skybox_config;
 	skybox_config.cubemap_name = "skybox";
+	skybox_config.name = "skybox";
 	if (!skybox_create(&skybox_config, &app_state->skybox) ||
 		!skybox_init(&app_state->skybox) ||
 		!skybox_load(&app_state->skybox))
@@ -321,7 +322,6 @@ bool32 application_init(void* application_state)
 		SHMERROR("Failed to load skybox.");
 		return false;
 	}
-
 
 	// Meshes
 	app_state->world_meshes.init(5, DarrayFlags::NON_RESIZABLE);
@@ -331,58 +331,70 @@ bool32 application_init(void* application_state)
 	cube_config.g_configs.emplace();
 
 	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", cube_config.g_configs[0]);
+	cube_config.name = "cube1";
+	cube_config.transform = Math::transform_create();
+
 	Mesh* cube_mesh = app_state->world_meshes.emplace();
 	if (!mesh_create(&cube_config, cube_mesh) || !mesh_init(cube_mesh) || !mesh_load(cube_mesh))
 	{
 		SHMERROR("Failed to load cube mesh");
 		return false;
 	}
-	cube_mesh->transform = Math::transform_create();
 
 	cube_config.g_configs.init(1, 0);
 	cube_config.g_configs.emplace();
 	Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", cube_config.g_configs[0]);
+	cube_config.name = "cube2";
+	cube_config.parent_name = "cube1";
+	cube_config.transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
+
 	Mesh* cube_mesh2 = app_state->world_meshes.emplace();
 	if (!mesh_create(&cube_config, cube_mesh2) || !mesh_init(cube_mesh2) || !mesh_load(cube_mesh2))
 	{
 		SHMERROR("Failed to load cube mesh");
 		return false;
 	}
-	cube_mesh2->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
 
 	cube_config.g_configs.init(1, 0);
 	cube_config.g_configs.emplace();
 	Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", cube_config.g_configs[0]);
+	cube_config.name = "cube3";
+	cube_config.parent_name = "cube1";
+	cube_config.transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
+
 	Mesh* cube_mesh3 = app_state->world_meshes.emplace();
 	if (!mesh_create(&cube_config, cube_mesh3) || !mesh_init(cube_mesh3) || !mesh_load(cube_mesh3))
 	{
 		SHMERROR("Failed to load cube mesh");
 		return false;
 	}
-	cube_mesh3->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
 
 	app_state->world_meshes[1].transform.parent = &app_state->world_meshes[0].transform;
 	app_state->world_meshes[2].transform.parent = &app_state->world_meshes[0].transform;
 
 	MeshConfig falcon_config = {};
-	falcon_config.resource_name = "falcon";	
+	falcon_config.name = "falcon";	
+	falcon_config.resource_name = "falcon";
+	falcon_config.transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
+
 	app_state->car_mesh = app_state->world_meshes.emplace();
 	if (!mesh_create(&falcon_config, app_state->car_mesh) || !mesh_init(app_state->car_mesh))
 	{
 		SHMERROR("Failed to create and initialize car mesh.");
 		return false;
 	}
-	app_state->car_mesh->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
 
 	MeshConfig sponza_config = {};
+	sponza_config.name = "sponza";
 	sponza_config.resource_name = "sponza";
+	sponza_config.transform = Math::transform_from_position_rotation_scale({ 15.0f, 0.0f, 1.0f }, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
+
 	app_state->sponza_mesh = app_state->world_meshes.emplace();
 	if (!mesh_create(&sponza_config, app_state->sponza_mesh) || !mesh_init(app_state->sponza_mesh))
 	{
 		SHMERROR("Failed to create and initialize sponza mesh.");
 		return false;
 	}
-	app_state->sponza_mesh->transform = Math::transform_from_position_rotation_scale({ 15.0f, 0.0f, 1.0f }, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
 
 	// Load up some test UI geometry.
 	GeometrySystem::GeometryConfig ui_config = {};
