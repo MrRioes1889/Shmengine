@@ -161,10 +161,10 @@ namespace MaterialSystem
 
             // Also use the handle as the material id.
             m->id = ref.handle;
-            SHMTRACEV("Material '%s' does not yet exist. Created, and ref_count is now %i.", config.name, ref.reference_count);
+            //SHMTRACEV("Material '%s' does not yet exist. Created, and ref_count is now %i.", config.name, ref.reference_count);
         }
         else {
-            SHMTRACEV("Material '%s' already exists, ref_count increased to %i.", config.name, ref.reference_count);
+            //SHMTRACEV("Material '%s' already exists, ref_count increased to %i.", config.name, ref.reference_count);
         }
 
        return &system_state->registered_materials[ref.handle];
@@ -196,10 +196,10 @@ namespace MaterialSystem
             // Reset the reference.
             ref.handle = INVALID_ID;
             ref.auto_release = false;
-            SHMTRACEV("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name_copy);
+            //SHMTRACEV("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name_copy);
         }
         else {
-            SHMTRACEV("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name_copy, ref.reference_count, ref.auto_release ? "true" : "false");
+            //SHMTRACEV("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name_copy, ref.reference_count, ref.auto_release ? "true" : "false");
         }
 
         system_state->registered_material_table.set_value(name_copy, ref);
@@ -339,12 +339,7 @@ namespace MaterialSystem
                 out_map.repeat_u = TextureRepeat::REPEAT;
                 out_map.repeat_v = TextureRepeat::REPEAT;
                 out_map.repeat_w = TextureRepeat::REPEAT;
-                out_map.repeat_u = TextureRepeat::REPEAT;
-                if (!Renderer::texture_map_acquire_resources(&out_map))
-                {
-                    SHMERRORV("load_material - Failed to acquire resources for texture map: '%s'.", map_name);
-                    return false;
-                }
+                out_map.repeat_u = TextureRepeat::REPEAT;               
 
                 if (map_name[0]) {
                     out_map.texture = TextureSystem::acquire(map_name, true);
@@ -356,6 +351,13 @@ namespace MaterialSystem
                 else {
                     out_map.texture = default_texture;
                 }
+
+                if (!Renderer::texture_map_acquire_resources(&out_map))
+                {
+                    SHMERRORV("load_material - Failed to acquire resources for texture map: '%s'.", map_name);
+                    return false;
+                }
+
                 return true;
             };
 
@@ -384,7 +386,7 @@ namespace MaterialSystem
 
     static void destroy_material(Material* m)
     {
-        SHMTRACEV("Destroying material '%s'...", m->name);
+        //SHMTRACEV("Destroying material '%s'...", m->name);
 
         // Release texture references.
         if (m->diffuse_map.texture) {

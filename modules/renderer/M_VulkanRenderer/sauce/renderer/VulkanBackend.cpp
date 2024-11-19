@@ -389,7 +389,7 @@ namespace Renderer::Vulkan
 	bool32 end_frame(const FrameData* frame_data)
 	{
 		
-		OPTICK_EVENT();
+		OPTICK_EVENT("end_frame - pre fence wait");
 		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->image_index];
 
 		vk_command_buffer_end(cmd);
@@ -403,6 +403,7 @@ namespace Renderer::Vulkan
 			}
 		}
 
+		OPTICK_EVENT("end_frame - post fence wait");
 		context->images_in_flight[context->image_index] = context->fences_in_flight[context->current_frame];
 		VK_CHECK(vkResetFences(context->device.logical_device, 1, &context->fences_in_flight[context->current_frame]));
 

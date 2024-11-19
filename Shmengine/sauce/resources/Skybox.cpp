@@ -52,12 +52,12 @@ bool32 skybox_load(Skybox* skybox)
 
 	skybox->state = SkyboxState::LOADING;
 
+	skybox->cubemap.texture = TextureSystem::acquire_cube(skybox->cubemap_name.c_str(), true);
 	if (!Renderer::texture_map_acquire_resources(&skybox->cubemap))
 	{
 		SHMFATAL("Failed to acquire renderer resources for skybox cube map!");
 		return false;
 	}
-	skybox->cubemap.texture = TextureSystem::acquire_cube(skybox->cubemap_name.c_str(), true);
 	skybox->renderer_frame_number = INVALID_ID64;
 
 	Renderer::Shader* skybox_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_skybox);

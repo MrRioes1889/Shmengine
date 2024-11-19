@@ -197,7 +197,7 @@ namespace JobSystem
 		Threading::mutex_lock(queue_mutex);
 		queue->enqueue(info);
 		Threading::mutex_unlock(queue_mutex);
-		SHMTRACE("Job queued.");
+		//SHMTRACE("Job queued.");
 #else
 		bool32 result = info.entry_point(info.params, info.results);
 		if (result)
@@ -359,7 +359,7 @@ namespace JobSystem
 					Threading::mutex_lock(queue_mutex);
 					thread->info = *queue.dequeue();
 					Threading::mutex_unlock(queue_mutex);
-					SHMTRACEV("Assigning job to thread: %u", thread->index);
+					//SHMTRACEV("Assigning job to thread: %u", thread->index);
 					thread_found = true;
 				}
 				Threading::mutex_unlock(&thread->info_mutex);

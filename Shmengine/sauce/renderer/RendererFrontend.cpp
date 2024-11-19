@@ -225,6 +225,7 @@ namespace Renderer
 			return false;
 		}
 
+		out_renderpass->name = config->name;
 		out_renderpass->render_targets.init(config->render_target_count, 0, AllocationTag::RENDERER);
 		out_renderpass->clear_flags = config->clear_flags;
 		out_renderpass->clear_color = config->clear_color;
@@ -254,11 +255,12 @@ namespace Renderer
 
 	void renderpass_destroy(Renderpass* pass)
 	{
+		system_state->module.renderpass_destroy(pass);
+
 		for (uint32 i = 0; i < pass->render_targets.capacity; i++)
 			render_target_destroy(&pass->render_targets[i], true);
 		pass->render_targets.free_data();
-
-		system_state->module.renderpass_destroy(pass);
+		pass->name.free_data();
 	}
 
 	bool32 renderpass_begin(Renderpass* pass, RenderTarget* target)

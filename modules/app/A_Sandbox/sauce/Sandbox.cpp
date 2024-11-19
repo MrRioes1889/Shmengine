@@ -302,101 +302,8 @@ bool32 application_init(void* application_state)
 	}
 	ui_text_set_position(&app_state->test_truetype_text, { 500, 550, 0 });
 
-	SceneConfig main_scene_config = {};
-
-	main_scene_config.name = "main_scene";
-	main_scene_config.description = "Main Scene";
-	main_scene_config.transform = Math::transform_create();
-
-	main_scene_config.max_meshes_count = 10;
-
-	// Skybox
-	SkyboxConfig skybox_config;
-	skybox_config.name = "skybox_cube";
-	skybox_config.cubemap_name = "skybox";	
-	main_scene_config.skybox_config = &skybox_config;
-
-	Darray<MeshConfig> mesh_configs(main_scene_config.max_meshes_count, DarrayFlags::NON_RESIZABLE);
-
-	MeshConfig* cube_config = mesh_configs.emplace();
-	cube_config->g_configs.init(1, 0);
-	cube_config->g_configs.emplace();	
-	cube_config->name = "cube1";
-	cube_config->transform = Math::transform_create();
-	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material", cube_config->g_configs[0]);
-
-	cube_config = mesh_configs.emplace();
-	cube_config->g_configs.init(1, 0);
-	cube_config->g_configs.emplace();
-	cube_config->name = "cube2";
-	cube_config->parent_name = "cube1";
-	cube_config->transform = Math::transform_from_position({ 10.0f, 0.0f, 1.0f });
-	Renderer::generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material", cube_config->g_configs[0]);
-
-	cube_config = mesh_configs.emplace();
-	cube_config->g_configs.init(1, 0);
-	cube_config->g_configs.emplace();
-	cube_config->name = "cube3";
-	cube_config->parent_name = "cube1";
-	cube_config->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
-	Renderer::generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_3", "test_material", cube_config->g_configs[0]);
-
-	MeshConfig* falcon_config = mesh_configs.emplace();
-	falcon_config->name = "falcon";	
-	falcon_config->resource_name = "falcon";
-	falcon_config->transform = Math::transform_from_position({ 15.0f, 0.0f, 1.0f });
-
-	MeshConfig* sponza_config = mesh_configs.emplace();
-	sponza_config->name = "sponza";
-	sponza_config->resource_name = "sponza";
-	sponza_config->transform = Math::transform_from_position_rotation_scale({ 15.0f, 0.0f, 1.0f }, QUAT_IDENTITY, { 0.1f, 0.1f, 0.1f });
-
-	main_scene_config.mesh_configs_count = mesh_configs.count;
-	main_scene_config.mesh_configs = mesh_configs.data;
-
-	DirectionalLight dir_light =
-	{
-		.color = { 0.4f, 0.4f, 0.2f, 1.0f },
-		.direction = { -0.57735f, -0.57735f, -0.57735f, 0.0f }
-	};
-
-	main_scene_config.dir_light_count = 1;
-	main_scene_config.dir_lights = &dir_light;
-
-	const uint32 p_lights_count = 3;
-	PointLight p_lights[p_lights_count];
-
-	p_lights[0] =
-	{
-		.color = { 1.0f, 0.0f, 0.0f, 1.0f },
-		.position = { -5.5f, 0.0f, -5.5f, 0.0f },
-		.constant_f = 1.0f,
-		.linear = 0.35f,
-		.quadratic = 0.44f
-	};
-
-	p_lights[1] =
-	{
-		.color = { 0.0f, 1.0f, 0.0f, 1.0f },
-		.position = { 5.5f, 0.0f, -5.5f, 0.0f },
-		.constant_f = 1.0f,
-		.linear = 0.35f,
-		.quadratic = 0.44f
-	};
-
-	p_lights[2] =
-	{
-		.color = { 0.0f, 0.0f, 1.0f, 1.0f },
-		.position = { 5.5f, 0.0f, 5.5f, 0.0f },
-		.constant_f = 1.0f,
-		.linear = 0.35f,
-		.quadratic = 0.44f
-	};
-
-	main_scene_config.point_light_count = p_lights_count;
-	main_scene_config.point_lights = p_lights;
-
-	if (!scene_init(&main_scene_config, &app_state->main_scene))
+	Scene main_scene_test = {};
+	if (!scene_init_from_resource("main_scene", &app_state->main_scene))
 	{
 		SHMERROR("Failed to initialize main scene");
 		return false;
@@ -492,10 +399,27 @@ bool32 application_update(FrameData* frame_data)
 		app_state->world_camera->pitch(pitch);
 	}
 
-	Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 5.5f * (float32)frame_data->delta_time, true);
-	Math::transform_rotate(app_state->main_scene.meshes[0].transform, rotation);
-	Math::transform_rotate(app_state->main_scene.meshes[1].transform, rotation);
-	Math::transform_rotate(app_state->main_scene.meshes[2].transform, rotation);
+	if (app_state->main_scene.state == SceneState::LOADED)
+	{
+		Mesh* cube1 = scene_get_mesh(&app_state->main_scene, "cube_1");
+		Mesh* cube2 = scene_get_mesh(&app_state->main_scene, "cube_2");
+		Mesh* cube3 = scene_get_mesh(&app_state->main_scene, "cube_3");
+		PointLight* p_light = scene_get_point_light(&app_state->main_scene, 0);
+
+		Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * (float32)frame_data->delta_time, true);
+		/*Math::transform_rotate(cube1->transform, rotation);
+		Math::transform_rotate(cube2->transform, rotation);
+		Math::transform_rotate(cube3->transform, rotation);*/
+
+		p_light->color =
+		{
+			(Math::sin((float32)frame_data->total_time + 0.0f) + 1.0f) * 0.5f,
+			(Math::sin((float32)frame_data->total_time + 0.3f) + 1.0f) * 0.5f,
+			(Math::sin((float32)frame_data->total_time + 0.6f) + 1.0f) * 0.5f,
+			1.0f
+		};
+		p_light->position.x = Math::sin((float32)frame_data->total_time);
+	}
 
 	Math::Vec2i mouse_pos = Input::get_mouse_position();
 

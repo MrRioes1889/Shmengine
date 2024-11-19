@@ -27,17 +27,17 @@ typedef uint32 UniqueId;
 typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
 #define PI 3.14159265358979323846f
-#define DOUBLE_PI 2.0f * PI
-#define HALF_PI 0.5f * PI
-#define QUARTER_PI 0.25f * PI
-#define ONE_OVER_PI 1.0f / PI
-#define ONE_OVER_TWO_PI 1.0f / DOUBLE_PI
+#define DOUBLE_PI (2.0f * PI)
+#define HALF_PI (0.5f * PI)
+#define QUARTER_PI (0.25f * PI)
+#define ONE_OVER_PI (1.0f / PI)
+#define ONE_OVER_TWO_PI (1.0f / DOUBLE_PI)
 #define SQRT_TWO 1.41421356237309504880f
 #define SQRT_THREE 1.73205080756887729352f
 #define SQRT_ONE_OVER_TWO 0.70710678118654752440f
 #define SQRT_ONE_OVER_THREE 0.57735026918962576450f
-#define DEG2RAD_MULTIPLIER PI / 180.0f
-#define RAD2DEG_MULTIPLIER 180.0f / PI
+#define DEG2RAD_MULTIPLIER (PI / 180.0f)
+#define RAD2DEG_MULTIPLIER (180.0f / PI)
 
 // A huge number that should be larger than any valid number used.
 #define INFINITY 1e30f

@@ -23,7 +23,7 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
     out_mesh->parent_name = config->parent_name;
     out_mesh->resource_name = config->resource_name;
     out_mesh->transform = config->transform;
-    out_mesh->pending_g_configs.steal(config->g_configs);
+    out_mesh->pending_g_configs.steal(*config->g_configs);
 
     out_mesh->generation = INVALID_ID8;
 

@@ -186,6 +186,8 @@ namespace Renderer
 		uint32 id;
 		uint32 clear_flags;
 
+		String name;
+
 		Math::Vec2u dim;
 		Math::Vec2i offset;
 		Math::Vec4f clear_color;

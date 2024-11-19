@@ -25,7 +25,7 @@ struct MeshConfig
 	const char* name;
 	const char* parent_name;
 	const char* resource_name;
-	Darray<GeometrySystem::GeometryConfig> g_configs;
+	Darray<GeometrySystem::GeometryConfig>* g_configs;
 	Math::Transform transform;
 };
 

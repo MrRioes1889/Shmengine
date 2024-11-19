@@ -3,6 +3,7 @@
 #include "core/Logging.hpp"
 #include "core/FrameData.hpp"
 #include "utility/Math.hpp"
+#include "resources/loaders/SceneLoader.hpp"
 #include "resources/Mesh.hpp"
 #include "resources/Skybox.hpp"
 #include "renderer/Camera.hpp"
@@ -26,12 +27,12 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 	out_scene->transform = config->transform;
 
 	out_scene->dir_lights.init(1, DarrayFlags::NON_RESIZABLE);
-	out_scene->p_lights.init(10, DarrayFlags::NON_RESIZABLE);
+	out_scene->p_lights.init(config->max_p_lights_count, DarrayFlags::NON_RESIZABLE);
 	out_scene->meshes.init(config->max_meshes_count, DarrayFlags::NON_RESIZABLE);
 
-	if (config->skybox_config)
+	if (config->skybox_configs_count)
 	{
-		if (!scene_add_skybox(out_scene, config->skybox_config))
+		if (!scene_add_skybox(out_scene, &config->skybox_configs[0]))
 		{
 			SHMERROR("Failed to create skybox.");
 			return false;
@@ -98,6 +99,61 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 	out_scene->id = global_scene_id++;
 
 	return true;
+
+}
+
+bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
+{
+	if (out_scene->state >= SceneState::INITIALIZED)
+		return false;
+
+	SceneResourceData resource = {};
+	if (!ResourceSystem::scene_loader_load(resource_name, 0, &resource))
+	{
+		SHMERRORV("Failed to load scene resource %s.", resource_name);
+		return false;
+	}
+
+	SceneConfig config = {};
+
+	config.name = resource.name.c_str();
+	config.description = resource.description.c_str();
+	config.max_meshes_count = resource.max_meshes_count;
+	config.max_p_lights_count = resource.max_p_lights_count;
+	config.transform = resource.transform;
+
+	Sarray<SkyboxConfig> skybox_configs(resource.skyboxes.capacity, 0);
+	for (uint32 i = 0; i < resource.skyboxes.capacity; i++)
+	{
+		SkyboxConfig* sb_config = &skybox_configs[i];
+		sb_config->name = resource.skyboxes[i].name.c_str();
+		sb_config->cubemap_name = resource.skyboxes[i].cubemap_name.c_str();
+	}
+	
+	Sarray<MeshConfig> mesh_configs(resource.meshes.capacity, 0);
+	for (uint32 i = 0; i < resource.meshes.capacity; i++)
+	{
+		MeshConfig* m_config = &mesh_configs[i];
+		m_config->name = resource.meshes[i].name.c_str();
+		m_config->resource_name = resource.meshes[i].resource_name.c_str();
+		m_config->parent_name = resource.meshes[i].parent_name.c_str();
+		m_config->g_configs = &resource.meshes[i].g_configs;
+		m_config->transform = resource.meshes[i].transform;
+	}
+
+	config.skybox_configs_count = skybox_configs.capacity;
+	config.skybox_configs = skybox_configs.data;
+	config.mesh_configs_count = mesh_configs.capacity;
+	config.mesh_configs = mesh_configs.data;
+	config.dir_light_count = resource.dir_lights.capacity;
+	config.dir_lights = resource.dir_lights.data;
+	config.point_light_count = resource.point_lights.capacity;
+	config.point_lights = resource.point_lights.data;
+
+	bool32 success = scene_init(&config, out_scene);
+
+	ResourceSystem::scene_loader_unload(&resource);
+	return success;
 
 }
 
@@ -493,4 +549,39 @@ bool32 scene_remove_skybox(Scene* scene, const char* name)
 	}
 
 	return true;
+}
+
+Skybox* scene_get_skybox(Scene* scene, const char* name)
+{
+	if (!scene->skybox.name.equal_i(name))
+		return 0;
+
+	return &scene->skybox;
+}
+
+Mesh* scene_get_mesh(Scene* scene, const char* name)
+{
+	for (uint32 i = 0; i < scene->meshes.count; i++)
+	{
+		if (scene->meshes[i].name.equal_i(name))
+			return &scene->meshes[i];
+	}
+
+	return 0;
+}
+
+DirectionalLight* scene_get_dir_light(Scene* scene, uint32 index)
+{
+	if (index > scene->dir_lights.count - 1)
+		return 0;
+
+	return &scene->dir_lights[index];
+}
+
+PointLight* scene_get_point_light(Scene* scene, uint32 index)
+{
+	if (index > scene->p_lights.count - 1)
+		return 0;
+
+	return &scene->p_lights[index];
 }

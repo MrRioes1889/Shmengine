@@ -39,13 +39,15 @@ struct SceneConfig
 
 	Math::Transform transform;
 
+	uint32 max_p_lights_count;
 	uint32 max_meshes_count;
 
 	uint32 dir_light_count;
 	uint32 point_light_count;
 	uint32 mesh_configs_count;
+	uint32 skybox_configs_count;
 
-	SkyboxConfig* skybox_config;
+	SkyboxConfig* skybox_configs;
 	DirectionalLight* dir_lights;
 	PointLight* point_lights;
 	MeshConfig* mesh_configs;
@@ -70,6 +72,7 @@ struct Scene
 };
 
 SHMAPI bool32 scene_init(SceneConfig* config, Scene* out_scene);
+SHMAPI bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene);
 SHMAPI bool32 scene_destroy(Scene* scene);
 SHMAPI bool32 scene_load(Scene* scene);
 SHMAPI bool32 scene_unload(Scene* scene);
@@ -89,4 +92,9 @@ SHMAPI bool32 scene_remove_mesh(Scene* scene, const char* name);
 
 SHMAPI bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config);
 SHMAPI bool32 scene_remove_skybox(Scene* scene, const char* name);
+
+SHMAPI Skybox* scene_get_skybox(Scene* scene, const char* name);
+SHMAPI Mesh* scene_get_mesh(Scene* scene, const char* name);
+SHMAPI DirectionalLight* scene_get_dir_light(Scene* scene, uint32 index);
+SHMAPI PointLight* scene_get_point_light(Scene* scene, uint32 index);
 
