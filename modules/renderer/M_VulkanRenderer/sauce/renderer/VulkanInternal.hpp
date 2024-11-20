@@ -65,6 +65,23 @@ namespace Renderer::Vulkan
 	void vk_image_copy_to_buffer(TextureType type, VulkanImage* image, VkBuffer buffer, VulkanCommandBuffer* command_buffer);
 	void vk_image_copy_pixel_to_buffer(TextureType type, VulkanImage* image, VkBuffer buffer, uint32 x, uint32 y, VulkanCommandBuffer* command_buffer);
 	
+#ifdef _DEBUG
+	bool8 vk_debug_set_object_name(VulkanContext* context, VkObjectType object_type, void* object_handle, const char* object_name);
+	bool8 vk_debug_set_object_tag(VulkanContext* context, VkObjectType object_type, void* object_handle, uint64 tag_size, const void* tag_data);
+	bool8 vk_debug_begin_label(VulkanContext* context, VkCommandBuffer cmd, const char* label_name, Math::Vec4f color);
+	bool8 vk_debug_end_label(VulkanContext* context, VkCommandBuffer cmd);
+
+#define VK_DEBUG_SET_OBJECT_NAME(context, object_type, object_handle, object_name) vk_debug_set_object_name(context, object_type, object_handle, object_name)
+#define VK_DEBUG_SET_OBJECT_TAG(context, object_type, object_handle, object_name) vk_debug_set_object_tag(context, object_type, object_handle, tag_size, tag_data)
+#define VK_DEBUG_BEGIN_LABEL(context, command_buffer, label_name, color) vk_debug_begin_label(context, command_buffer, label_name, color)
+#define VK_DEBUG_END_LABEL(context, command_buffer) vk_debug_end_label(context, command_buffer)
+#else
+#define VK_DEBUG_SET_OBJECT_NAME(context, object_type, object_handle, object_name)
+#define VK_DEBUG_SET_OBJECT_TAG(context, object_type, object_handle, object_name)
+#define VK_DEBUG_BEGIN_LABEL(context, command_buffer, label_name, color)
+#define VK_DEBUG_END_LABEL(context, command_buffer, label_name, color)
+#endif
+	
 }
 
 

@@ -837,6 +837,8 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
+		VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_SAMPLER, (VkSampler)out_map->internal_data, out_map->texture->name);
+
 		return true;
 	}
 

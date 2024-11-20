@@ -159,6 +159,7 @@ namespace Renderer::Vulkan
 			image->handle = swapchain_images[i];
 			image->width = swapchain_extent.width;
 			image->height = swapchain_extent.height;
+			VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_IMAGE, image->handle, out_swapchain->render_textures[i].name);
 		}
 
 		for (uint32 i = 0; i < out_swapchain->render_textures.capacity; i++)
@@ -176,6 +177,7 @@ namespace Renderer::Vulkan
 			view_info.subresourceRange.layerCount = 1;
 
 			VK_CHECK(vkCreateImageView(context->device.logical_device, &view_info, context->allocator_callbacks, &image->view));
+			VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_IMAGE_VIEW, image->view, out_swapchain->render_textures[i].name);
 		}
 
 		if (!vk_device_detect_depth_format(&context->device))
@@ -207,18 +209,20 @@ namespace Renderer::Vulkan
 					VK_IMAGE_ASPECT_DEPTH_BIT,
 					depth_image);
 
-					TextureSystem::wrap_internal(
-						tex_name,
-						swapchain_extent.width,
-						swapchain_extent.height,
-						context->device.depth_channel_count,
-						false,
-						true,
-						false,
-						depth_image,
-						sizeof(VulkanImage),
-						&context->swapchain.depth_textures[i]
-					);
+				TextureSystem::wrap_internal(
+					tex_name,
+					swapchain_extent.width,
+					swapchain_extent.height,
+					context->device.depth_channel_count,
+					false,
+					true,
+					false,
+					depth_image,
+					sizeof(VulkanImage),
+					&context->swapchain.depth_textures[i]
+				);
+
+				VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_IMAGE, depth_image->handle, context->swapchain.depth_textures[i].name);
 			}
 		}
 

@@ -94,6 +94,7 @@ namespace Renderer::Vulkan
 		device_create_info.ppEnabledLayerNames = 0;
 
 		VK_CHECK(vkCreateDevice(context->device.physical_device, &device_create_info, context->allocator_callbacks, &context->device.logical_device));
+		VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_DEVICE, context->device.logical_device, "Vulkan logical device");
 		SHMINFO("Logical device created");
 
 		// NOTE: Retrieving queues

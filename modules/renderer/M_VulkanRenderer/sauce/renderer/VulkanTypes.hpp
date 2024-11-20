@@ -283,6 +283,11 @@ namespace Renderer::Vulkan
 
 #if defined(_DEBUG)
 		VkDebugUtilsMessengerEXT debug_messenger;
+
+		PFN_vkSetDebugUtilsObjectNameEXT debug_set_utils_object_name;
+		PFN_vkSetDebugUtilsObjectTagEXT debug_set_utils_object_tag;
+		PFN_vkCmdBeginDebugUtilsLabelEXT debug_begin_utils_label;
+		PFN_vkCmdEndDebugUtilsLabelEXT debug_end_utils_label;
 #endif
 
 		Math::Vec4f viewport_rect;

@@ -294,7 +294,7 @@ namespace Engine
 				engine_state->width = width;
 				engine_state->height = height;
 
-				SHMDEBUGV("Window resize occured: %u, %u", width, height);
+				//SHMDEBUGV("Window resize occured: %u, %u", width, height);
 
 				if (!width || !height)
 				{

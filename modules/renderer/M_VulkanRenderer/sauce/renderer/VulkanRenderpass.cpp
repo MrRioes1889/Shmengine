@@ -1,5 +1,6 @@
 #include "VulkanTypes.hpp"
 #include "VulkanBackend.hpp"
+#include "VulkanInternal.hpp"
 
 #include <systems/TextureSystem.hpp>
 
@@ -278,6 +279,9 @@ namespace Renderer::Vulkan
 		vkCmdBeginRenderPass(command_buffer->handle, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 		command_buffer->state = VulkanCommandBufferState::IN_RENDER_PASS;
 
+		Math::Vec4f label_color = { Math::random_float32_clamped(0.0f, 1.0f), Math::random_float32_clamped(0.0f, 1.0f), Math::random_float32_clamped(0.0f, 1.0f), 1.0f };
+		VK_DEBUG_BEGIN_LABEL(context, command_buffer->handle, renderpass->name.c_str(), label_color);
+
 		return true;
 	}
 
@@ -285,6 +289,7 @@ namespace Renderer::Vulkan
 	{
 		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->image_index];
 		vkCmdEndRenderPass(command_buffer->handle);
+		VK_DEBUG_END_LABEL(context, command_buffer->handle);
 		command_buffer->state = VulkanCommandBufferState::RECORDING;
 		return true;
 	}

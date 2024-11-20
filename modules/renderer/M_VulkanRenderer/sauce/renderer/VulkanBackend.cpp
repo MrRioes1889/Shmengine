@@ -8,6 +8,7 @@
 #include <core/Event.hpp>
 #include <containers/Darray.hpp>
 #include <utility/CString.hpp>
+#include <utility/Math.hpp>
 
 #include <systems/ShaderSystem.hpp>
 #include <systems/MaterialSystem.hpp>
@@ -164,7 +165,7 @@ namespace Renderer::Vulkan
 
 #if defined(_DEBUG)
 		SHMDEBUG("Creating Vulkan Debugger...");
-		uint32 log_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+		uint32 log_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
 
 		VkDebugUtilsMessengerCreateInfoEXT debugger_create_info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
 		debugger_create_info.messageSeverity = log_severity;
@@ -179,6 +180,23 @@ namespace Renderer::Vulkan
 		SHMASSERT_MSG(func, "Failed to create vulkan debug messenger!");
 		VK_CHECK(func(context->instance, &debugger_create_info, context->allocator_callbacks, &context->debug_messenger));
 		SHMDEBUG("Vulkan debug messenger created.");
+
+		context->debug_set_utils_object_name = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(context->instance, "vkSetDebugUtilsObjectNameEXT");
+		if (!context->debug_set_utils_object_name) {
+			SHMWARN("Unable to load function pointer for vkSetDebugUtilsObjectNameEXT. Debug functions associated with this will not work.");
+		}
+		context->debug_set_utils_object_tag = (PFN_vkSetDebugUtilsObjectTagEXT)vkGetInstanceProcAddr(context->instance, "vkSetDebugUtilsObjectTagEXT");
+		if (!context->debug_set_utils_object_tag) {
+			SHMWARN("Unable to load function pointer for vkSetDebugUtilsObjectTagEXT. Debug functions associated with this will not work.");
+		}
+		context->debug_begin_utils_label = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(context->instance, "vkCmdBeginDebugUtilsLabelEXT");
+		if (!context->debug_begin_utils_label) {
+			SHMWARN("Unable to load function pointer for vkCmdBeginDebugUtilsLabelEXT. Debug functions associated with this will not work.");
+		}
+		context->debug_end_utils_label = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(context->instance, "vkCmdEndDebugUtilsLabelEXT");
+		if (!context->debug_end_utils_label) {
+			SHMWARN("Unable to load function pointer for vkCmdEndDebugUtilsLabelEXT. Debug functions associated with this will not work.");
+		}
 #endif
 
 		SHMDEBUG("Creating vulkan surface...");
@@ -318,7 +336,7 @@ namespace Renderer::Vulkan
 		context->framebuffer_height = height;
 		context->framebuffer_size_generation++;
 
-		SHMINFOV("Vulkan renderer backend->resize: w/h/gen: %u/%u/%u", width, height, context->framebuffer_size_generation);
+		//SHMINFOV("Vulkan renderer backend->resize: w/h/gen: %u/%u/%u", width, height, context->framebuffer_size_generation);
 	}
 
 	bool32 begin_frame(const FrameData* frame_data)

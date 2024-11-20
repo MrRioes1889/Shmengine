@@ -1,5 +1,7 @@
 #include "VulkanInternal.hpp"
 
+#include "VulkanTypes.hpp"
+
 namespace Renderer::Vulkan
 {
 
@@ -137,6 +139,75 @@ namespace Renderer::Vulkan
 
 }
 
+#ifdef _DEBUG
+namespace Renderer::Vulkan
+{
+    bool8 vk_debug_set_object_name(VulkanContext* context, VkObjectType object_type, void* object_handle, const char* object_name)
+    {
+        if (!context->debug_set_utils_object_name)
+            return false;
+
+        VkDebugUtilsObjectNameInfoEXT name_info =
+        {
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+        0,
+        object_type,
+        (uint64)object_handle,
+        object_name,
+        };
+
+        VK_CHECK(context->debug_set_utils_object_name(context->device.logical_device, &name_info));
+        return true;   
+    }
+
+    bool8 vk_debug_set_object_tag(VulkanContext* context, VkObjectType object_type, void* object_handle, uint64 tag_size, const void* tag_data)
+    {
+        if (!context->debug_set_utils_object_tag)
+            return false;
+
+        VkDebugUtilsObjectTagInfoEXT tag_info =
+        {
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_TAG_INFO_EXT,
+        0,
+        object_type,
+        (uint64)object_handle,
+        0,
+        tag_size,
+        tag_data
+        };
+
+        VK_CHECK(context->debug_set_utils_object_tag(context->device.logical_device, &tag_info));
+        return true;
+    }
+
+    bool8 vk_debug_begin_label(VulkanContext* context, VkCommandBuffer cmd, const char* label_name, Math::Vec4f color)
+    {
+        if (!context->debug_begin_utils_label)
+            return false;
+
+        VkDebugUtilsLabelEXT label_info =
+        {
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+        0,
+        label_name
+        };
+        Memory::copy_memory(&color, label_info.color, sizeof(label_info.color));
+
+        context->debug_begin_utils_label(cmd, &label_info);
+        return true;
+    }
+
+    bool8 vk_debug_end_label(VulkanContext* context, VkCommandBuffer cmd)
+    {
+        if (!context->debug_end_utils_label)
+            return false;
+
+        context->debug_end_utils_label(cmd);
+        return true;
+    }
+}
+
+#endif
 
 
 
