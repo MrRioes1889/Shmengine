@@ -178,8 +178,8 @@ namespace MaterialSystem
         }
         MaterialReference ref = system_state->registered_material_table.get_value(name);
 
-        char name_copy[Material::max_name_length];
-        CString::copy(Material::max_name_length, name_copy, name);
+        char name_copy[max_material_name_length];
+        CString::copy(max_material_name_length, name_copy, name);
 
         if (ref.reference_count == 0) {
             SHMWARNV("Tried to release non-existent material: '%s'", name_copy);
@@ -325,7 +325,7 @@ namespace MaterialSystem
         Memory::zero_memory(m, sizeof(Material));
 
         // name
-        CString::copy(Material::max_name_length ,m->name, config.name);
+        CString::copy(max_material_name_length ,m->name, config.name);
 
         m->shader_id = ShaderSystem::get_id(config.shader_name.c_str());
         m->diffuse_color = config.diffuse_color;
@@ -424,7 +424,7 @@ namespace MaterialSystem
         Memory::zero_memory(&system_state->default_material, sizeof(Material));
         system_state->default_material.id = INVALID_ID;
         system_state->default_material.generation = INVALID_ID;
-        CString::copy(Material::max_name_length, system_state->default_material.name, SystemConfig::default_name);
+        CString::copy(max_material_name_length, system_state->default_material.name, SystemConfig::default_name);
         system_state->default_material.diffuse_color = VEC4F_ONE;  // white
 
         system_state->default_material.diffuse_map.use = TextureUse::MAP_DIFFUSE;

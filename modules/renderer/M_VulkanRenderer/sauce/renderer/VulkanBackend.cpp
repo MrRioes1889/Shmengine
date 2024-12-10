@@ -702,7 +702,7 @@ namespace Renderer::Vulkan
 	}
 
 
-	bool32 vk_geometry_create(Geometry* geometry)
+	bool32 vk_geometry_create(GeometryData* geometry)
 	{
 
 		if (!geometry->vertices.data)
@@ -789,7 +789,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	void vk_geometry_destroy(Geometry* geometry)
+	void vk_geometry_destroy(GeometryData* geometry)
 	{
 		if (geometry->internal_id != INVALID_ID)
 		{

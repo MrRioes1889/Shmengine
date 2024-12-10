@@ -37,4 +37,4 @@ SHMAPI float64 metrics_last_frametime();
 SHMAPI float64 metrics_logic_time();
 SHMAPI float64 metrics_render_time();
 SHMAPI void metrics_frame_time(float64* out_fps, float64* out_frametime);
-SHMAPI float64 metrics_mid_frame_time();
+SHMAPI float64 metrics_frame_start_time();

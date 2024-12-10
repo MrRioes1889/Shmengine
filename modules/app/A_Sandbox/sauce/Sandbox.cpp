@@ -40,7 +40,7 @@ static bool32 application_on_key_pressed(uint16 code, void* sender, void* listen
 static bool32 application_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 
-	if (code == SystemEventCode::DEBUG0)
+	if (code == SystemEventCode::DEBUG0 && app_state->main_scene.state == SceneState::LOADED)
 	{
 		const char* names[3] = {
 		"cobblestone",
@@ -52,19 +52,20 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 		const char* old_name = names[choice];
 		choice++;
 		choice %= 3;
+		
+		Mesh* m = scene_get_mesh(&app_state->main_scene, "test_cube1");
+		if (!m || !m->geometries.count)
+			return false;
 
-		Geometry* g = app_state->main_scene.meshes[0].geometries[0];
-		if (g)
+		MeshGeometry* g = &m->geometries[0];
+		g->material = MaterialSystem::acquire(names[choice]);
+		if (!g->material)
 		{
-			g->material = MaterialSystem::acquire(names[choice]);
-			if (!g->material)
-			{
-				SHMWARNV("event_on_debug_event - Failed to acquire material '%s'! Using default.", names[choice]);
-				g->material = MaterialSystem::get_default_material();
-			}
-
-			MaterialSystem::release(old_name);
+			SHMWARNV("event_on_debug_event - Failed to acquire material '%s'! Using default.", names[choice]);
+			g->material = MaterialSystem::get_default_material();
 		}
+
+		MaterialSystem::release(old_name);
 	}
 	else if (code == SystemEventCode::DEBUG1)
 	{
@@ -310,15 +311,15 @@ bool32 application_init(void* application_state)
 	}
 
 	// Load up some test UI geometry.
-	GeometrySystem::GeometryConfig ui_config = {};
-	ui_config.vertex_size = sizeof(Renderer::Vertex2D);
-	CString::copy(Material::max_name_length, ui_config.material_name, "test_ui_material");
-	CString::copy(Geometry::max_name_length, ui_config.name, "test_ui_geometry");
+	MeshGeometryConfig ui_config = {};
+	ui_config.data_config.vertex_size = sizeof(Renderer::Vertex2D);
+	CString::copy(max_material_name_length, ui_config.material_name, "test_ui_material");
+	CString::copy(max_geometry_name_length, ui_config.data_config.name, "test_ui_geometry");
 
-	ui_config.vertex_count = 4;
-	ui_config.vertices.init(ui_config.vertex_size * ui_config.vertex_count, 0);
-	ui_config.indices.init(6, 0);
-	Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)&ui_config.vertices[0];
+	ui_config.data_config.vertex_count = 4;
+	ui_config.data_config.vertices.init(ui_config.data_config.vertex_size * ui_config.data_config.vertex_count, 0);
+	ui_config.data_config.indices.init(6, 0);
+	Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)&ui_config.data_config.vertices[0];
 
 	const float32 w = 100.0f;//1077.0f * 0.25f;
 	const float32 h = 100.0f;//1278.0f * 0.25f;
@@ -343,12 +344,12 @@ bool32 application_init(void* application_state)
 	uiverts[3].tex_coordinates.y = 0.0f;
 
 	// Indices - counter-clockwise
-	ui_config.indices[0] = 2;
-	ui_config.indices[1] = 1;
-	ui_config.indices[2] = 0;
-	ui_config.indices[3] = 3;
-	ui_config.indices[4] = 0;
-	ui_config.indices[5] = 1;
+	ui_config.data_config.indices[0] = 2;
+	ui_config.data_config.indices[1] = 1;
+	ui_config.data_config.indices[2] = 0;
+	ui_config.data_config.indices[3] = 3;
+	ui_config.data_config.indices[4] = 0;
+	ui_config.data_config.indices[5] = 1;
 
 	// Get UI geometry from config.
 	app_state->ui_meshes.init(1, 0);
@@ -405,8 +406,8 @@ bool32 application_update(FrameData* frame_data)
 		Mesh* cube2 = scene_get_mesh(&app_state->main_scene, "cube_2");
 		Mesh* cube3 = scene_get_mesh(&app_state->main_scene, "cube_3");
 		PointLight* p_light = scene_get_point_light(&app_state->main_scene, 0);
-
-		Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 0.5f * (float32)frame_data->delta_time, true);
+		
+		Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 1.5f * (float32)frame_data->delta_time, true);
 		/*Math::transform_rotate(cube1->transform, rotation);
 		Math::transform_rotate(cube2->transform, rotation);
 		Math::transform_rotate(cube3->transform, rotation);*/

@@ -1,0 +1,31 @@
+# shader config file
+version=1.0
+name=Shader.Builtin.Terrain
+stages=vertex,fragment
+stagefiles=shaders/bin/Builtin.TerrainShader.vert.spv,shaders/bin/Builtin.TerrainShader.frag.spv
+depth_test=1
+depth_write=1
+
+# Attributes: type,name
+attribute=vec3,in_position
+attribute=vec3,in_normal
+attribute=vec2,in_texcoord
+attribute=vec4,in_color
+attribute=vec3,in_tangent
+
+# Uniforms: type,scope,name
+# NOTE: For scope: 0=global, 1=instance, 2=local
+uniform=mat4,0,projection
+uniform=mat4,0,view
+uniform=mat4,0,model
+uniform=vec4,0,ambient_color
+uniform=vec3,0,camera_position
+uniform=uint32,0,mode
+uniform=samp,0,diffuse_texture
+uniform=samp,0,specular_texture
+uniform=samp,0,normal_texture
+uniform=vec4,0,diffuse_color
+uniform=struct32,0,dir_light
+uniform=struct480,0,p_lights
+uniform=uint32,0,p_lights_count
+uniform=float32,0,shininess

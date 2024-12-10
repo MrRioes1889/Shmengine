@@ -152,7 +152,7 @@ namespace TextureSystem
 
 		Texture* t = &system_state->registered_textures[id];
 		t->id = id;
-		CString::copy(Texture::max_name_length, t->name, name);
+		CString::copy(max_texture_name_length, t->name, name);
 		t->width = width;
 		t->height = height;
 		t->channel_count = channel_count;
@@ -196,7 +196,7 @@ namespace TextureSystem
 		}
 
 		t->id = id;
-		CString::copy(Texture::max_name_length, t->name, name);
+		CString::copy(max_texture_name_length, t->name, name);
 		t->width = width;
 		t->height = height;
 		t->channel_count = channel_count;
@@ -354,7 +354,7 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(Texture::max_name_length, load_params->temp_texture.name, load_params->resource_name);
+		CString::copy(max_texture_name_length, load_params->temp_texture.name, load_params->resource_name);
 		load_params->temp_texture.generation = INVALID_ID;
 		load_params->temp_texture.flags = 0;
 		load_params->temp_texture.flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
@@ -380,7 +380,7 @@ namespace TextureSystem
 		return true;
 	}
 
-	static bool32 load_cube_textures(const char* name, const char texture_names[6][Texture::max_name_length], Texture* t)
+	static bool32 load_cube_textures(const char* name, const char texture_names[6][max_texture_name_length], Texture* t)
 	{
 
 		Buffer pixels = {};
@@ -407,7 +407,7 @@ namespace TextureSystem
 
 				t->generation = INVALID_ID;
 				t->flags = 0;
-				CString::copy(Texture::max_name_length, t->name, texture_names[i]);
+				CString::copy(max_texture_name_length, t->name, texture_names[i]);
 
 				image_size = t->width * t->height * t->channel_count;
 				pixels.init(image_size * 6, 0, AllocationTag::TEXTURE);			
@@ -470,7 +470,7 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(Texture::max_name_length, system_state->default_texture.name, SystemConfig::default_name);
+		CString::copy(max_texture_name_length, system_state->default_texture.name, SystemConfig::default_name);
 		system_state->default_texture.width = tex_dim;
 		system_state->default_texture.height = tex_dim;
 		system_state->default_texture.channel_count = 4;
@@ -486,7 +486,7 @@ namespace TextureSystem
 		SHMTRACE("Creating default diffuse texture...");
 		uint8 diff_pixels[16 * 16 * 4];
 		Memory::set_memory(diff_pixels, 0xFF, sizeof(diff_pixels));
-		CString::copy(Texture::max_name_length, system_state->default_diffuse.name, SystemConfig::default_diffuse_name);
+		CString::copy(max_texture_name_length, system_state->default_diffuse.name, SystemConfig::default_diffuse_name);
 		system_state->default_diffuse.width = 16;
 		system_state->default_diffuse.height = 16;
 		system_state->default_diffuse.channel_count = 4;
@@ -502,7 +502,7 @@ namespace TextureSystem
 		uint8 spec_pixels[16 * 16 * 4];
 		// Default spec map is black (no specular)
 		Memory::zero_memory(spec_pixels, sizeof(spec_pixels));
-		CString::copy(Texture::max_name_length, system_state->default_specular.name, SystemConfig::default_specular_name);
+		CString::copy(max_texture_name_length, system_state->default_specular.name, SystemConfig::default_specular_name);
 		system_state->default_specular.width = 16;
 		system_state->default_specular.height = 16;
 		system_state->default_specular.channel_count = 4;
@@ -531,7 +531,7 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(Texture::max_name_length, system_state->default_normal.name, SystemConfig::default_normal_name);
+		CString::copy(max_texture_name_length, system_state->default_normal.name, SystemConfig::default_normal_name);
 		system_state->default_normal.width = 16;
 		system_state->default_normal.height = 16;
 		system_state->default_normal.channel_count = 4;
@@ -598,14 +598,14 @@ namespace TextureSystem
 			{
 				if (type == TextureType::TYPE_CUBE)
 				{
-					char texture_names[6][Texture::max_name_length];
+					char texture_names[6][max_texture_name_length];
 
-					CString::safe_print_s<const char*>(texture_names[0], Texture::max_name_length, "%s_r", name);
-					CString::safe_print_s<const char*>(texture_names[1], Texture::max_name_length, "%s_l", name);
-					CString::safe_print_s<const char*>(texture_names[2], Texture::max_name_length, "%s_u", name);
-					CString::safe_print_s<const char*>(texture_names[3], Texture::max_name_length, "%s_d", name);
-					CString::safe_print_s<const char*>(texture_names[4], Texture::max_name_length, "%s_f", name);
-					CString::safe_print_s<const char*>(texture_names[5], Texture::max_name_length, "%s_b", name);
+					CString::safe_print_s<const char*>(texture_names[0], max_texture_name_length, "%s_r", name);
+					CString::safe_print_s<const char*>(texture_names[1], max_texture_name_length, "%s_l", name);
+					CString::safe_print_s<const char*>(texture_names[2], max_texture_name_length, "%s_u", name);
+					CString::safe_print_s<const char*>(texture_names[3], max_texture_name_length, "%s_d", name);
+					CString::safe_print_s<const char*>(texture_names[4], max_texture_name_length, "%s_f", name);
+					CString::safe_print_s<const char*>(texture_names[5], max_texture_name_length, "%s_b", name);
 
 					if (!load_cube_textures(name, texture_names, t))
 					{

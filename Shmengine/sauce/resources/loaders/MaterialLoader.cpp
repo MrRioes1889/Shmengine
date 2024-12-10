@@ -36,7 +36,7 @@ namespace ResourceSystem
 		CString::empty(out_config->diffuse_map_name);
 		CString::empty(out_config->specular_map_name);
 		CString::empty(out_config->normal_map_name);
-		CString::copy(Material::max_name_length, out_config->name, name);
+		CString::copy(max_material_name_length, out_config->name, name);
 
         uint32 file_size = FileSystem::get_file_size32(&f);
         String file_content(file_size + 1);
@@ -93,7 +93,7 @@ namespace ResourceSystem
             }
             else if (var_name.equal_i("name")) 
             {
-                CString::copy(Material::max_name_length, out_config->name, value.c_str());
+                CString::copy(max_material_name_length, out_config->name, value.c_str());
             }
             else if (var_name.equal_i("shader")) 
             {
@@ -101,15 +101,15 @@ namespace ResourceSystem
             }
             else if (var_name.equal_i("diffuse_map_name")) 
             {
-                CString::copy(Texture::max_name_length, out_config->diffuse_map_name, value.c_str());
+                CString::copy(max_texture_name_length, out_config->diffuse_map_name, value.c_str());
             }
             else if (var_name.equal_i("specular_map_name"))
             {
-                CString::copy(Texture::max_name_length, out_config->specular_map_name, value.c_str());
+                CString::copy(max_texture_name_length, out_config->specular_map_name, value.c_str());
             }
             else if (var_name.equal_i("normal_map_name"))
             {
-                CString::copy(Texture::max_name_length, out_config->normal_map_name, value.c_str());
+                CString::copy(max_texture_name_length, out_config->normal_map_name, value.c_str());
             }
             else if (var_name.equal_i("diffuse_color"))
             {

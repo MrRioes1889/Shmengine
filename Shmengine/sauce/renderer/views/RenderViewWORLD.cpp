@@ -180,7 +180,7 @@ namespace Renderer
 			if (!g_data->geometry)
 				continue;
 
-			if (!(g_data->geometry->material->diffuse_map.texture->flags & TextureFlags::HAS_TRANSPARENCY))
+			if (!(g_data->material->diffuse_map.texture->flags & TextureFlags::HAS_TRANSPARENCY))
 			{
 				out_packet->geometries.emplace(*g_data);
 			}
@@ -245,8 +245,8 @@ namespace Renderer
 			for (uint32 i = 0; i < packet.geometries.count; i++)
 			{
 				Material* m = 0;
-				if (packet.geometries[i].geometry->material) {
-					m = packet.geometries[i].geometry->material;
+				if (packet.geometries[i].material) {
+					m = packet.geometries[i].material;
 				}
 				else {
 					m = MaterialSystem::get_default_material();

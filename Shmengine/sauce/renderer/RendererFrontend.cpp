@@ -309,12 +309,12 @@ namespace Renderer
 		texture->internal_data.free_data();
 	}
 
-	bool32 geometry_load(Geometry* geometry)
+	bool32 geometry_load(GeometryData* geometry)
 	{
 		return system_state->module.geometry_create(geometry);
 	}
 
-	void geometry_unload(Geometry* geometry)
+	void geometry_unload(GeometryData* geometry)
 	{
 		system_state->module.geometry_destroy(geometry);
 	}

@@ -249,7 +249,8 @@ namespace Renderer
 			for (uint32 j = 0; j < m->geometries.count; j++)
 			{
 				GeometryRenderData* render_data = out_packet->geometries.emplace();
-				render_data->geometry = m->geometries[j];
+				render_data->geometry = m->geometries[j].g_data;
+				render_data->material = m->geometries[j].material;
 				render_data->model = Math::transform_get_world(m->transform);
 				render_data->unique_id = m->unique_id;
 				packet_data->ui_geometries_count++;
@@ -471,7 +472,7 @@ namespace Renderer
 
 		attachment->texture->id = INVALID_ID;
 		attachment->texture->type = TextureType::TYPE_2D;
-		CString::copy(Texture::max_name_length, attachment->texture->name, texture_name);
+		CString::copy(max_texture_name_length, attachment->texture->name, texture_name);
 		attachment->texture->width = width;
 		attachment->texture->height = height;
 		attachment->texture->channel_count = 4;

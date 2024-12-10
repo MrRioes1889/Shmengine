@@ -13,7 +13,8 @@ struct UIText;
 struct Skybox;
 struct FrameData;
 struct Mesh;
-struct Geometry;
+struct GeometryData;
+struct Material;
 struct Texture;
 struct TextureMap;
 
@@ -465,7 +466,8 @@ namespace Renderer
 	struct GeometryRenderData
 	{
 		Math::Mat4 model;
-		Geometry* geometry;
+		GeometryData* geometry;
+		Material* material;
 		UniqueId unique_id;
 	};
 
@@ -581,8 +583,8 @@ namespace Renderer
 		bool32(*texture_read_pixel)(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 		void (*texture_destroy)(Texture* texture);
 
-		bool32(*geometry_create)(Geometry* geometry);
-		void (*geometry_destroy)(Geometry* geometry);
+		bool32(*geometry_create)(GeometryData* geometry);
+		void (*geometry_destroy)(GeometryData* geometry);
 
 		bool32(*shader_create)(Shader* shader, const ShaderConfig* config, const Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 		void (*shader_destroy)(Shader* shader);

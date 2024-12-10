@@ -137,7 +137,7 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 		m_config->name = resource.meshes[i].name.c_str();
 		m_config->resource_name = resource.meshes[i].resource_name.c_str();
 		m_config->parent_name = resource.meshes[i].parent_name.c_str();
-		m_config->g_configs = &resource.meshes[i].g_configs;
+		m_config->g_configs.steal(resource.meshes[i].g_configs);
 		m_config->transform = resource.meshes[i].transform;
 	}
 
@@ -361,17 +361,18 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		Math::Mat4 model = Math::transform_get_world(m->transform);
 		for (uint32 j = 0; j < m->geometries.count; j++)
 		{
-			Geometry* g = m->geometries[j];
-			Math::Vec3f extents_max = Math::vec_mul_mat(g->extents.max, model);
+			MeshGeometry* g = &m->geometries[j];
+			Math::Vec3f extents_max = Math::vec_mul_mat(g->g_data->extents.max, model);
 
-			Math::Vec3f center = Math::vec_mul_mat(g->center, model);
+			Math::Vec3f center = Math::vec_mul_mat(g->g_data->center, model);
 			Math::Vec3f half_extents = { Math::abs(extents_max.x - center.x), Math::abs(extents_max.y - center.y), Math::abs(extents_max.z - center.z) };
 
 			if (Math::frustum_intersects_aabb(*camera_frustum, center, half_extents))
 			{
 				Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
 				render_data->model = model;
-				render_data->geometry = g;
+				render_data->geometry = g->g_data;
+				render_data->material = g->material;
 				render_data->unique_id = m->unique_id;
 
 				geometries_count++;

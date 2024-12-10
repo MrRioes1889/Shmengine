@@ -139,18 +139,18 @@ namespace Math
 		{
 			//__m128 data;
 			struct {
-				float x;
-				float y;
-				float z;
-				float w;
+				float32 x;
+				float32 y;
+				float32 z;
+				float32 w;
 			};
 			struct {
-				float r;
-				float g;
-				float b;
-				float a;
+				float32 r;
+				float32 g;
+				float32 b;
+				float32 a;
 			};
-			float e[4];
+			float32 e[4];
 		};
 
 	};
@@ -180,7 +180,7 @@ namespace Math
 	struct Circle2D
 	{
 		Vec2f pos;
-		float radius;
+		float32 radius;
 	};
 
 	typedef Vec4f Quat;

@@ -26,6 +26,10 @@ typedef uint32 UniqueId;
 
 typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
+inline static const uint32 max_geometry_name_length = 128;
+inline static const uint32 max_material_name_length = 128;
+inline static const uint32 max_texture_name_length = 128;
+
 #define PI 3.14159265358979323846f
 #define DOUBLE_PI (2.0f * PI)
 #define HALF_PI (0.5f * PI)

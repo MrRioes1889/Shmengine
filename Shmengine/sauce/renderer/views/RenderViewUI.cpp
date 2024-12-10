@@ -132,7 +132,8 @@ namespace Renderer
 			for (uint32 g = 0; g < m->geometries.count; g++)
 			{
 				GeometryRenderData* render_data = out_packet->geometries.emplace();
-				render_data->geometry = m->geometries[g];
+				render_data->geometry = m->geometries[g].g_data;
+				render_data->material = m->geometries[g].material;
 				render_data->model = Math::transform_get_world(m->transform);
 			}
 		}
@@ -177,8 +178,8 @@ namespace Renderer
 			for (uint32 i = 0; i < packet.geometries.count; i++)
 			{
 				Material* m = 0;
-				if (packet.geometries[i].geometry->material) {
-					m = packet.geometries[i].geometry->material;
+				if (packet.geometries[i].material) {
+					m = packet.geometries[i].material;
 				}
 				else {
 					m = MaterialSystem::get_default_material();

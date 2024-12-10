@@ -26,11 +26,9 @@ enum class TextureType
 struct Texture
 {
 
-	static const uint32 max_name_length = 128;
-
 	Buffer internal_data = {};
 
-	char name[max_name_length];
+	char name[max_texture_name_length];
 	uint32 id;
 	TextureType type;
 	uint32 width;

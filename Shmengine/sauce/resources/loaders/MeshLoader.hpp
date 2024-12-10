@@ -2,16 +2,17 @@
 
 #include "Defines.hpp"
 #include "containers/Darray.hpp"
+#include "utility/String.hpp"
 
-namespace GeometrySystem { struct GeometryConfig; }
+struct MeshGeometryConfig;
 
-struct MeshResourceData
+struct SceneMeshResourceData
 {
-	Darray<GeometrySystem::GeometryConfig> g_configs;
+	Darray<MeshGeometryConfig> configs;
 };
 
 namespace ResourceSystem
 {
-	bool32 mesh_loader_load(const char* name, void* params, MeshResourceData* out_resource);
-	void mesh_loader_unload(MeshResourceData* resource);
+	bool32 mesh_loader_load(const char* name, void* params, SceneMeshResourceData* out_resource);
+	void mesh_loader_unload(SceneMeshResourceData* resource);
 }

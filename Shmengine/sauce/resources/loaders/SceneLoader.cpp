@@ -9,6 +9,7 @@
 #include "renderer/RendererTypes.hpp"
 #include "renderer/RendererGeometry.hpp"
 #include "systems/GeometrySystem.hpp"
+#include "resources/Mesh.hpp"
 
 namespace ResourceSystem
 {
@@ -48,7 +49,8 @@ namespace ResourceSystem
             MESH,
             PRIMITIVE_CUBE,
             DIRECTIONAL_LIGHT,
-            POINT_LIGHT
+            POINT_LIGHT,
+            TERRAIN
         };
 
         ParserScope scope = ParserScope::NONE;
@@ -65,6 +67,7 @@ namespace ResourceSystem
         uint32 point_lights_count = 0;
         uint32 meshes_count = 0;
         uint32 skyboxes_count = 0;
+        uint32 terrains_count = 0;
 
         Math::Vec3f cube_dim = {};
         Math::Vec2f cube_tiling = {};
@@ -94,6 +97,8 @@ namespace ResourceSystem
                     dir_lights_count++;
                 else if (line.equal_i("[PointLight]"))
                     point_lights_count++;
+                else if (line.equal_i("[Terrain]"))
+                    terrains_count++;
             }
         }
 
@@ -106,6 +111,7 @@ namespace ResourceSystem
         uint32 point_light_i = INVALID_ID;
         uint32 mesh_i = INVALID_ID;
         uint32 skybox_i = INVALID_ID;
+        uint32 terrain_i = INVALID_ID;
 
         line_number = 1;
         continue_ptr = 0;
@@ -165,6 +171,11 @@ namespace ResourceSystem
                         scope = ParserScope::POINT_LIGHT;
                         point_light_i++;
                     }
+                    else if (line.equal_i("[Terrain]"))
+                    {
+                        scope = ParserScope::TERRAIN;
+                        terrain_i++;
+                    }
                     else
                     {
                         SHMERRORV("There is an error in scene scope syntax on line %u", line_number);
@@ -178,12 +189,13 @@ namespace ResourceSystem
                     {
                         if (scope == ParserScope::PRIMITIVE_CUBE)
                         {
-                            MeshResourceData* cube_mesh = &out_resource->meshes[mesh_i];
+                            SceneMeshResourceData* cube_mesh = &out_resource->meshes[mesh_i];
                             if (!cube_material_name.is_empty() && !cube_mesh->name.is_empty())
                             {
                                 cube_mesh->g_configs.init(1, 0);
                                 cube_mesh->g_configs.emplace();
-                                Renderer::generate_cube_config(cube_dim.x, cube_dim.y, cube_dim.z, cube_tiling.x, cube_tiling.y, cube_mesh->name.c_str(), cube_material_name.c_str(), cube_mesh->g_configs[0]);
+                                Renderer::generate_cube_config(cube_dim.x, cube_dim.y, cube_dim.z, cube_tiling.x, cube_tiling.y, cube_mesh->name.c_str(), cube_mesh->g_configs[0].data_config);
+                                CString::copy(max_material_name_length, cube_mesh->g_configs[0].material_name, cube_material_name.c_str());
                             }
                             else
                             {
@@ -257,7 +269,7 @@ namespace ResourceSystem
             }
             else if (scope == ParserScope::SKYBOX)
             {
-                SkyboxResourceData* skybox = &out_resource->skyboxes[skybox_i];
+                SceneSkyboxResourceData* skybox = &out_resource->skyboxes[skybox_i];
 
                 if (var_name.equal_i("name"))
                 {
@@ -270,7 +282,7 @@ namespace ResourceSystem
             }
             else if (scope == ParserScope::MESH || scope == ParserScope::PRIMITIVE_CUBE)
             {
-                MeshResourceData* mesh = &out_resource->meshes[mesh_i];
+                SceneMeshResourceData* mesh = &out_resource->meshes[mesh_i];
 
                 if (var_name.equal_i("name"))
                 {
@@ -419,7 +431,10 @@ namespace ResourceSystem
                         continue;
                     }
                 }
-            }              
+            }    
+            else if (scope == ParserScope::TERRAIN)
+            {
+            }
 
             line_number++;
         }

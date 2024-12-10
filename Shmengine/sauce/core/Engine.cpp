@@ -160,15 +160,16 @@ namespace Engine
 	{
 
 		uint32 frame_count = 0;
-		float64 target_frame_seconds = 1.0f / 240.0f;
+		float64 target_frame_seconds = 1.0f / 120.0f;
 		app_inst->stage = ApplicationStage::RUNNING;
 
 		Renderer::RenderPacket render_packet = {};
 
 		float64 last_frametime = 0.0;
+		metrics_update_frame();
 
 		while (engine_state->is_running)
-		{
+		{		
 			metrics_update_frame();
 			last_frametime = metrics_last_frametime();
 
@@ -221,17 +222,20 @@ namespace Engine
 
 			Input::frame_end(&engine_state->frame_data);
 
-			float64 frame_elapsed_time = metrics_mid_frame_time();
+			float64 frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
 			float64 remaining_s = target_frame_seconds - frame_elapsed_time;
 
-			bool32 limit_frames = false;
+			bool32 limit_frames = true;
+
 			if (remaining_s > 0 && limit_frames)
 			{
-				uint32 remaining_ms = (uint32)(remaining_s * 1000);			
-				Platform::sleep(remaining_ms);
+				int32 remaining_ms = (int32)(remaining_s * 1000) - 1;
+				if (remaining_ms > 0)
+					Platform::sleep(remaining_ms);
+				frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
 
 				while (frame_elapsed_time < target_frame_seconds)
-					frame_elapsed_time = metrics_mid_frame_time();
+					frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();				
 			}
 
 			frame_count++;			

@@ -4,7 +4,7 @@
 #include "utility/String.hpp"
 #include "systems/TextureSystem.hpp"
 
-struct Geometry;
+struct GeometryData;
 
 enum class SkyboxState
 {
@@ -28,7 +28,7 @@ struct Skybox
 	String name;
 	String cubemap_name;
 	TextureMap cubemap;
-	Geometry* g;
+	GeometryData* g;
 	uint64 renderer_frame_number;
 	uint32 instance_id;
 	SkyboxState state;

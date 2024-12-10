@@ -8,6 +8,7 @@
 
 #include "systems/JobSystem.hpp"
 #include "systems/GeometrySystem.hpp"
+#include "systems/MaterialSystem.hpp"
 
 static void mesh_load_job_success(void* params);
 static void mesh_load_job_fail(void* params);
@@ -23,7 +24,7 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
     out_mesh->parent_name = config->parent_name;
     out_mesh->resource_name = config->resource_name;
     out_mesh->transform = config->transform;
-    out_mesh->pending_g_configs.steal(*config->g_configs);
+    out_mesh->pending_g_configs.steal(config->g_configs);
 
     out_mesh->generation = INVALID_ID8;
 
@@ -39,8 +40,8 @@ bool32 mesh_destroy(Mesh* mesh)
 
     for (uint32 i = 0; i < mesh->pending_g_configs.count; i++)
     {
-        mesh->pending_g_configs[i].vertices.free_data();
-        mesh->pending_g_configs[i].indices.free_data();
+        mesh->pending_g_configs[i].data_config.vertices.free_data();
+        mesh->pending_g_configs[i].data_config.indices.free_data();
     }
     mesh->pending_g_configs.free_data();
 
@@ -88,11 +89,20 @@ bool32 mesh_unload(Mesh* mesh)
 
     for (uint32 i = 0; i < mesh->geometries.count; ++i)
     {
-        GeometrySystem::GeometryConfig* out_config = 0;
-        if (GeometrySystem::get_ref_count(mesh->geometries[i]) <= 1)
+        MeshGeometryConfig* out_config = 0;
+        if (GeometrySystem::get_ref_count(mesh->geometries[i].g_data) <= 1)
             out_config = mesh->pending_g_configs.emplace();
+             
+        if (mesh->geometries[i].material)
+        {      
+            if (out_config)
+                CString::copy(max_material_name_length, out_config->material_name, mesh->geometries[i].material->name);
 
-        GeometrySystem::release(mesh->geometries[i], out_config);
+            MaterialSystem::release(mesh->geometries[i].material->name);
+            mesh->geometries[i].material = 0;
+        }
+
+        GeometrySystem::release(mesh->geometries[i].g_data, &out_config->data_config);
     }
 
     mesh->geometries.free_data();
@@ -106,7 +116,7 @@ bool32 mesh_unload(Mesh* mesh)
 struct MeshLoadParams
 {
 	Mesh* out_mesh;
-	MeshResourceData mesh_resource;
+	SceneMeshResourceData mesh_resource;
     bool32 is_reload;
 };
 
@@ -114,17 +124,31 @@ static void mesh_load_job_success(void* params) {
     MeshLoadParams* mesh_params = (MeshLoadParams*)params;
     Mesh* mesh = mesh_params->out_mesh;
 
-    Darray<GeometrySystem::GeometryConfig>* configs = &mesh_params->mesh_resource.g_configs;
-    mesh->geometries.init(configs->count + mesh->pending_g_configs.count, 0);
+    Darray<MeshGeometryConfig>& configs = mesh_params->mesh_resource.configs;
+    mesh->geometries.init(configs.count + mesh->pending_g_configs.count, 0);
 
-    for (uint32 i = 0; i < configs->count; ++i) {
-        Geometry** g = mesh->geometries.push(0);
-        *g = GeometrySystem::acquire_from_config(&(*configs)[i], true);
+    for (uint32 i = 0; i < configs.count; ++i) {
+        MeshGeometry* g = mesh->geometries.emplace();
+        g->g_data = GeometrySystem::acquire_from_config(&configs[i].data_config, true);
+
+        if (*configs[i].material_name)
+        {
+            g->material = MaterialSystem::acquire(configs[i].material_name);
+            if (!g->material)
+                g->material = MaterialSystem::get_default_material();
+        }
     }
 
     for (uint32 i = 0; i < mesh->pending_g_configs.count; ++i) {
-        Geometry** g = mesh->geometries.push(0);
-        *g = GeometrySystem::acquire_from_config(&mesh->pending_g_configs[i], true);
+        MeshGeometry* g = mesh->geometries.emplace();
+        g->g_data = GeometrySystem::acquire_from_config(&mesh->pending_g_configs[i].data_config, true);
+
+        if (*mesh->pending_g_configs[i].material_name)
+        {
+            g->material = MaterialSystem::acquire(mesh->pending_g_configs[i].material_name);
+            if (!g->material)
+                g->material = MaterialSystem::get_default_material();
+        }
     }
 
     mesh_params->out_mesh->generation++;
@@ -132,7 +156,7 @@ static void mesh_load_job_success(void* params) {
 
     SHMTRACEV("Successfully loaded mesh '%s'.", mesh->name.c_str());
 
-    configs->free_data();
+    configs.free_data();
     mesh->pending_g_configs.free_data();
 
     ResourceSystem::mesh_loader_unload(&mesh_params->mesh_resource);

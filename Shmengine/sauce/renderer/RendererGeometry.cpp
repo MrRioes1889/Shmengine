@@ -6,7 +6,7 @@
 namespace Renderer
 {
 
-	void generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, const char* material_name, GeometrySystem::GeometryConfig& out_config)
+	void generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometrySystem::GeometryConfig& out_config)
 	{
 
 		if (width == 0) {
@@ -96,22 +96,15 @@ namespace Renderer
 		}
 
 		if (name && CString::length(name) > 0) {
-			CString::copy(Geometry::max_name_length, out_config.name, name);
+			CString::copy(max_geometry_name_length, out_config.name, name);
 		}
 		else {
-			CString::copy(Geometry::max_name_length, out_config.name, GeometrySystem::SystemConfig::default_name);
-		}
-
-		if (material_name && CString::length(material_name) > 0) {
-			CString::copy(Material::max_name_length, out_config.material_name, material_name);
-		}
-		else {
-			CString::copy(Material::max_name_length, out_config.material_name, MaterialSystem::SystemConfig::default_name);
+			CString::copy(max_geometry_name_length, out_config.name, GeometrySystem::SystemConfig::default_name);
 		}
 
 	}
 
-	void generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, const char* material_name, GeometrySystem::GeometryConfig& out_config)
+	void generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, GeometrySystem::GeometryConfig& out_config)
 	{
 
 		if (width == 0) {
@@ -267,17 +260,10 @@ namespace Renderer
 		geometry_generate_tangents(out_config);
 
 		if (name && CString::length(name) > 0) {
-			CString::copy(Geometry::max_name_length, out_config.name, name);
+			CString::copy(max_geometry_name_length, out_config.name, name);
 		}
 		else {
-			CString::copy(Geometry::max_name_length, out_config.name, GeometrySystem::SystemConfig::default_name);
-		}
-
-		if (material_name && CString::length(material_name) > 0) {
-			CString::copy(Material::max_name_length, out_config.material_name, material_name);
-		}
-		else {
-			CString::copy(Material::max_name_length, out_config.material_name, MaterialSystem::SystemConfig::default_name);
+			CString::copy(max_geometry_name_length, out_config.name, GeometrySystem::SystemConfig::default_name);
 		}
 
 	}

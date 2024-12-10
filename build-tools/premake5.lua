@@ -71,7 +71,7 @@ project  (engine_name)
         inlining ("Explicit")
         systemversion "latest"
 		cppdialect "C++20"
-        staticruntime "on"
+        staticruntime "off"
 
         buildmessage 'Post build events'
         buildcommands 
@@ -147,7 +147,7 @@ project  (vulkan_renderer_module_name)
         inlining ("Explicit")
         systemversion "latest"
 		cppdialect "C++20"
-        staticruntime "on"
+        staticruntime "off"
 
     if compiler == "clang" then
         buildoptions (global_clang_build_options)
@@ -212,7 +212,7 @@ project  (sandbox_app_module_name)
         inlining ("Explicit")
         systemversion "latest"
 		cppdialect "C++20"
-        staticruntime "on"
+        staticruntime "off"
 
     if compiler == "clang" then
         buildoptions (global_clang_build_options)

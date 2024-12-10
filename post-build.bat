@@ -23,6 +23,14 @@ echo "assets\shaders\sauce\Builtin.MaterialShader.frag.glsl -> assets\shaders\bi
 %VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.MaterialShader.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.MaterialShader.frag.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
+echo "assets\shaders\sauce\Builtin.TerrainShader.vert.glsl -> assets\shaders\bin\Builtin.TerrainShader.vert.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.TerrainShader.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.TerrainShader.vert.spv"
+IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
+
+echo "assets\shaders\sauce\Builtin.TerrainShader.frag.glsl -> assets\shaders\bin\Builtin.TerrainShader.frag.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.TerrainShader.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.TerrainShader.frag.spv"
+IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
+
 echo "assets\shaders\sauce\Builtin.UIShader.vert.glsl -> assets\shaders\bin\Builtin.UIShader.vert.spv"
 %VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.UIShader.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.UIShader.vert.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)

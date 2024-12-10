@@ -2,6 +2,7 @@
 
 #include "systems/MaterialSystem.hpp"
 #include "systems/ResourceSystem.hpp"
+#include "resources/Mesh.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
@@ -64,16 +65,16 @@ namespace ResourceSystem
 
     static const char* loader_type_path = "models/";
 
-    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray);
+    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, SceneMeshResourceData* out_resource);
     static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometrySystem::GeometryConfig* out_data);
     static bool32 import_obj_material_library_file(const char* mtl_file_path);
     static bool32 write_shmt_file(const char* directory, MaterialConfig* config);
 
-    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray);
-    static bool32 write_shmesh_file(const char* path, const char* name, Darray<GeometrySystem::GeometryConfig>& geometries);
+    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, SceneMeshResourceData* out_resource);
+    static bool32 write_shmesh_file(const char* path, const char* name, SceneMeshResourceData* resource);
     
 
-    bool32 mesh_loader_load(const char* name, void* params, MeshResourceData* out_resource)
+    bool32 mesh_loader_load(const char* name, void* params, SceneMeshResourceData* out_resource)
     {
 
         const char* format = "%s%s%s";
@@ -112,7 +113,7 @@ namespace ResourceSystem
             return false;
         }
 
-        out_resource->g_configs.init(1, 0, AllocationTag::RESOURCE);
+        out_resource->configs.init(1, 0, AllocationTag::RESOURCE);
 
         bool32 res = false;
         switch (file_type)
@@ -122,13 +123,13 @@ namespace ResourceSystem
             String shmesh_filepath(MAX_FILEPATH_LENGTH);
             shmesh_filepath = full_filepath_wo_extension;
             shmesh_filepath.append(".shmesh");
-            res = import_obj_file(&f, full_filepath.c_str(), name, shmesh_filepath.c_str(), out_resource->g_configs);
+            res = import_obj_file(&f, full_filepath.c_str(), name, shmesh_filepath.c_str(), out_resource);
             
             break;
         }
         case MeshFileType::SHMESH:
         {
-            res = load_shmesh_file(&f, full_filepath.c_str(), out_resource->g_configs);
+            res = load_shmesh_file(&f, full_filepath.c_str(), out_resource);
             break;
         }
         default:
@@ -150,20 +151,20 @@ namespace ResourceSystem
 
     }
 
-    void mesh_loader_unload(MeshResourceData* resource)
+    void mesh_loader_unload(SceneMeshResourceData* resource)
     {
 
-        for (uint32 i = 0; i < resource->g_configs.count; i++)
+        for (uint32 i = 0; i < resource->configs.count; i++)
         {
-            GeometrySystem::GeometryConfig* g_config = &resource->g_configs[i];
+            GeometrySystem::GeometryConfig* g_config = &resource->configs[i].data_config;
             g_config->indices.free_data();
             g_config->vertices.free_data();
         }
-        resource->g_configs.free_data();
+        resource->configs.free_data();
 
     }
 
-    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray)
+    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, SceneMeshResourceData* out_resource)
     {
         
         uint32 file_size = FileSystem::get_file_size32(obj_file);
@@ -271,17 +272,17 @@ namespace ResourceSystem
             {
                 for (uint32 i = 0; i < groups.count; i++)
                 {
-                    GeometrySystem::GeometryConfig* new_data = out_geometries_darray.emplace();
+                    MeshGeometryConfig* new_data = out_resource->configs.emplace();
                     if (!name[0])
                     {
                         name = mesh_name;
                         name += "_geo";
                     }
-                    CString::copy(Geometry::max_name_length, new_data->name, name.c_str());
+                    CString::copy(max_geometry_name_length, new_data->data_config.name, name.c_str());
 
-                    CString::copy(Material::max_name_length, new_data->material_name, material_names[i].c_str());
+                    CString::copy(max_material_name_length, new_data->material_name, material_names[i].c_str());
 
-                    process_subobject(positions, normals, tex_coords, groups[i].faces, new_data);
+                    process_subobject(positions, normals, tex_coords, groups[i].faces, &new_data->data_config);
 
                     groups[i].faces.free_data();
                 }
@@ -304,24 +305,21 @@ namespace ResourceSystem
         for (uint32 i = 0; i < groups.count; i++)
         {
             
-            GeometrySystem::GeometryConfig* new_data = out_geometries_darray.emplace();
-            CString::copy(Geometry::max_name_length, new_data->name, name.c_str());
+            MeshGeometryConfig* new_data = out_resource->configs.emplace();
+            CString::copy(max_geometry_name_length, new_data->data_config.name, name.c_str());
             if (!name[0])
             {
                 name = mesh_name;
                 name += "_geo";
             }
-            CString::copy(Geometry::max_name_length, new_data->name, name.c_str());
+            CString::copy(max_geometry_name_length, new_data->data_config.name, name.c_str());
 
             if (i > 0)
-                CString::append(Geometry::max_name_length, new_data->name, CString::to_string(i));
-            
+                CString::append(max_geometry_name_length, new_data->data_config.name, CString::to_string(i));
                 
-            CString::copy(Material::max_name_length, new_data->material_name, material_names[i].c_str());
+            CString::copy(max_material_name_length, new_data->material_name, material_names[i].c_str());
 
-
-
-            process_subobject(positions, normals, tex_coords, groups[i].faces, new_data);
+            process_subobject(positions, normals, tex_coords, groups[i].faces, &new_data->data_config);
 
             groups[i].faces.free_data();
         }
@@ -342,18 +340,18 @@ namespace ResourceSystem
 
         // De-duplicate geometry
 
-        for (uint32 i = 0; i < out_geometries_darray.count; ++i) {
-            GeometrySystem::GeometryConfig& g = out_geometries_darray[i];
-            SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g.name);
+        for (uint32 i = 0; i < out_resource->configs.count; ++i) {
+            GeometrySystem::GeometryConfig* g = &out_resource->configs[i].data_config;
+            SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
 
-            Renderer::geometry_deduplicate_vertices(g);
-            Renderer::geometry_generate_tangents(g);
+            Renderer::geometry_deduplicate_vertices(*g);
+            Renderer::geometry_generate_tangents(*g);
 
             // TODO: Maybe shrink down vertex array to count after deduplication!
         }
 
         // Output a shmesh file, which will be loaded in the future.
-        return write_shmesh_file(out_shmesh_filename, mesh_name, out_geometries_darray);
+        return write_shmesh_file(out_shmesh_filename, mesh_name, out_resource);
 
     }
 
@@ -525,21 +523,21 @@ namespace ResourceSystem
                 values.left_of_last('.');
                 values.right_of_last('/');
                 values.right_of_last('\\');
-                CString::copy(Texture::max_name_length, current_config.diffuse_map_name, values.c_str());
+                CString::copy(max_texture_name_length, current_config.diffuse_map_name, values.c_str());
             }
             else if (identifier.nequal_i("map_Ks", 6))
             {
                 values.left_of_last('.');
                 values.right_of_last('/');
                 values.right_of_last('\\');
-                CString::copy(Texture::max_name_length, current_config.specular_map_name, values.c_str());
+                CString::copy(max_texture_name_length, current_config.specular_map_name, values.c_str());
             }
             else if (identifier.nequal_i("map_bump", 6) || identifier.nequal_i("bump", 6))
             {
                 values.left_of_last('.');
                 values.right_of_last('/');
                 values.right_of_last('\\');
-                CString::copy(Texture::max_name_length, current_config.normal_map_name, values.c_str());
+                CString::copy(max_texture_name_length, current_config.normal_map_name, values.c_str());
             }
             else if (identifier.nequal_i("newmtl", 6))
             {                
@@ -564,7 +562,7 @@ namespace ResourceSystem
                 }
 
                 hit_name = true;
-                CString::copy(Material::max_name_length, current_config.name, values.c_str());
+                CString::copy(max_material_name_length, current_config.name, values.c_str());
             }
 
             line_number++;
@@ -652,7 +650,7 @@ namespace ResourceSystem
 
     }
 
-    static bool32 write_shmesh_file(const char* path, const char* name, Darray<GeometrySystem::GeometryConfig>& geometries)
+    static bool32 write_shmesh_file(const char* path, const char* name, SceneMeshResourceData* resource)
     {
 
         FileSystem::FileHandle f;
@@ -669,7 +667,7 @@ namespace ResourceSystem
         ShmeshFileHeader file_header = {};
         file_header.version = 1;
         file_header.name_length = (uint16)CString::length(name);
-        file_header.geometry_count = geometries.count;
+        file_header.geometry_count = resource->configs.count;
 
         file_header.name_offset = sizeof(ShmeshFileHeader);
         file_header.geometries_offset = file_header.name_offset + file_header.name_length;
@@ -681,20 +679,21 @@ namespace ResourceSystem
         written_total += written;
 
 
-        for (uint32 i = 0; i < geometries.count; i++)
+        for (uint32 i = 0; i < resource->configs.count; i++)
         {
-            GeometrySystem::GeometryConfig& g = geometries[i];
+            MeshGeometryConfig& config = resource->configs[i];
+            GeometrySystem::GeometryConfig& g_data = config.data_config;
 
             ShmeshFileGeometryHeader geo_header = {};
-            geo_header.center = g.center;
-            geo_header.min_extents = g.min_extents;
-            geo_header.max_extents = g.max_extents;
-            geo_header.vertex_size = g.vertex_size;
-            geo_header.vertex_count = g.vertex_count;
+            geo_header.center = g_data.center;
+            geo_header.min_extents = g_data.min_extents;
+            geo_header.max_extents = g_data.max_extents;
+            geo_header.vertex_size = g_data.vertex_size;
+            geo_header.vertex_count = g_data.vertex_count;
             geo_header.index_size = sizeof(uint32);
-            geo_header.index_count = g.indices.capacity;
-            geo_header.name_length = (uint16)CString::length(g.name);
-            geo_header.material_name_length = (uint16)CString::length(g.material_name);
+            geo_header.index_count = g_data.indices.capacity;
+            geo_header.name_length = (uint16)CString::length(g_data.name);
+            geo_header.material_name_length = (uint16)CString::length(config.material_name);
 
             geo_header.name_offset = sizeof(geo_header);
             geo_header.material_name_offset = geo_header.name_offset + geo_header.name_length;
@@ -703,16 +702,16 @@ namespace ResourceSystem
             FileSystem::write(&f, sizeof(geo_header), &geo_header, &written);
             written_total += written;
 
-            FileSystem::write(&f, geo_header.name_length, g.name, &written);
+            FileSystem::write(&f, geo_header.name_length, g_data.name, &written);
             written_total += written;
 
-            FileSystem::write(&f, geo_header.material_name_length, g.material_name, &written);
+            FileSystem::write(&f, geo_header.material_name_length, config.material_name, &written);
             written_total += written;
 
-            FileSystem::write(&f, geo_header.vertex_size * geo_header.vertex_count, g.vertices.data, &written);
+            FileSystem::write(&f, geo_header.vertex_size * geo_header.vertex_count, g_data.vertices.data, &written);
             written_total += written;
 
-            FileSystem::write(&f, geo_header.index_size * geo_header.index_count, g.indices.data, &written);
+            FileSystem::write(&f, geo_header.index_size * geo_header.index_count, g_data.indices.data, &written);
             written_total += written;
         }
 
@@ -724,7 +723,7 @@ namespace ResourceSystem
 
 
 
-    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, Darray<GeometrySystem::GeometryConfig>& out_geometries_darray)
+    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, SceneMeshResourceData* out_resource)
     {
 
         uint32 file_size = FileSystem::get_file_size32(shmesh_file);
@@ -757,7 +756,8 @@ namespace ResourceSystem
 
         for (uint32 i = 0; i < file_header->geometry_count; i++)
         {
-            GeometrySystem::GeometryConfig* g = out_geometries_darray.emplace();
+            MeshGeometryConfig* config = out_resource->configs.emplace();
+            GeometrySystem::GeometryConfig* g = &config->data_config;
 
             check_buffer_size(sizeof(ShmeshFileGeometryHeader));
             ShmeshFileGeometryHeader* geo_header = (ShmeshFileGeometryHeader*)&read_ptr[read_bytes];
@@ -779,10 +779,10 @@ namespace ResourceSystem
             g->vertices.init(g->vertex_count * g->vertex_size, 0);
             g->indices.init(geo_header->index_count, 0);
 
-            CString::copy(Geometry::max_name_length, g->name, (char*)&read_ptr[read_bytes], (int32)geo_header->name_length);
+            CString::copy(max_geometry_name_length, g->name, (char*)&read_ptr[read_bytes], (int32)geo_header->name_length);
             read_bytes += geo_header->name_length;
 
-            CString::copy(Material::max_name_length, g->material_name, (char*)&read_ptr[read_bytes], (int32)geo_header->material_name_length);
+            CString::copy(max_material_name_length, config->material_name, (char*)&read_ptr[read_bytes], (int32)geo_header->material_name_length);
             read_bytes += geo_header->material_name_length;
 
             g->vertices.copy_memory(&read_ptr[read_bytes], geo_header->vertex_count * geo_header->vertex_size);

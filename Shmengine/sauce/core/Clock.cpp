@@ -148,7 +148,7 @@ SHMINLINE void metrics_frame_time(float64* out_fps, float64* out_frametime)
 	*out_frametime = metrics_state.ms_avg;
 }
 
-SHMINLINE float64 metrics_mid_frame_time()
+SHMINLINE float64 metrics_frame_start_time()
 {
-	return Platform::get_absolute_time() - metrics_state.frame_start_timestamp;
+	return metrics_state.frame_start_timestamp;
 }

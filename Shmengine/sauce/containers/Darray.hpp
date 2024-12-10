@@ -85,9 +85,7 @@ struct Darray
 	
 	SHMINLINE T& operator[](uint32 index)
 	{
-		//SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Darray.");
-		if (!(index + 1 <= count))
-			__debugbreak();
+		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Darray.");
 		return data[index];
 	}
 

@@ -12,7 +12,7 @@ namespace GeometrySystem
 	struct GeometryReference
 	{
 		uint32 reference_count;
-		Geometry geometry;
+		GeometryData geometry;
 		bool32 auto_release;
 	};
 
@@ -20,16 +20,16 @@ namespace GeometrySystem
 	{
 		GeometrySystem::SystemConfig config;
 
-		Geometry default_geometry;
-		Geometry default_geometry_2d;
+		GeometryData default_geometry;
+		GeometryData default_geometry_2d;
 
 		GeometryReference* registered_geometries;
 	};
 
 	static SystemState* system_state = 0;
 
-	static bool32 create_geometry(GeometryConfig* config, Geometry* g);
-	static void destroy_geometry(Geometry* g, GeometryConfig* out_revert_config);
+	static bool32 create_geometry(GeometryConfig* config, GeometryData* g);
+	static void destroy_geometry(GeometryData* g, GeometryConfig* out_revert_config);
 	static bool32 create_default_geometries();
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
@@ -65,7 +65,7 @@ namespace GeometrySystem
 		system_state = 0;
 	}
 
-	Geometry* acquire_by_id(uint32 id)
+	GeometryData* acquire_by_id(uint32 id)
 	{
 		if (id != INVALID_ID && system_state->registered_geometries[id].geometry.id != INVALID_ID)
 		{
@@ -77,10 +77,10 @@ namespace GeometrySystem
 		return 0;
 	}
 
-	Geometry* acquire_from_config(GeometryConfig* config, bool32 auto_release)
+	GeometryData* acquire_from_config(GeometryConfig* config, bool32 auto_release)
 	{
 
-		Geometry* g = 0;
+		GeometryData* g = 0;
 		for (uint32 i = 0; i < system_state->config.max_geometry_count; i++)
 		{
 			if (system_state->registered_geometries[i].geometry.id == INVALID_ID)
@@ -109,7 +109,7 @@ namespace GeometrySystem
 
 	}
 
-	void release(Geometry* g, GeometryConfig* out_revert_config)
+	void release(GeometryData* g, GeometryConfig* out_revert_config)
 	{
 		if (g->id != INVALID_ID)
 		{
@@ -137,7 +137,7 @@ namespace GeometrySystem
 
 	}
 
-	uint32 get_ref_count(Geometry* geometry)
+	uint32 get_ref_count(GeometryData* geometry)
 	{
 		if (geometry->id == INVALID_ID)
 			return 0;
@@ -146,17 +146,17 @@ namespace GeometrySystem
 		return ref.reference_count;
 	}
 
-	Geometry* get_default_geometry()
+	GeometryData* get_default_geometry()
 	{
 		return &system_state->default_geometry;
 	}
 
-	Geometry* get_default_geometry_2d()
+	GeometryData* get_default_geometry_2d()
 	{
 		return &system_state->default_geometry_2d;
 	}
 
-	static bool32 create_geometry(GeometryConfig* config, Geometry* g)
+	static bool32 create_geometry(GeometryConfig* config, GeometryData* g)
 	{
 
 		g->center = config->center;
@@ -168,26 +168,18 @@ namespace GeometrySystem
 		g->vertices.steal(config->vertices);
 		g->indices.steal(config->indices);
 
-		if (*config->material_name)
-		{
-			g->material = MaterialSystem::acquire(config->material_name);
-			if (!g->material)
-				g->material = MaterialSystem::get_default_material();
-		}
-
 		return true;
 
 	}
 
-	static void destroy_geometry(Geometry* g, GeometryConfig* out_config)
+	static void destroy_geometry(GeometryData* g, GeometryConfig* out_config)
 	{
 
 		Renderer::geometry_unload(g);
 
 		if (out_config)
 		{
-			CString::copy(Geometry::max_name_length, out_config->name, g->name);
-			CString::copy(Material::max_name_length, out_config->material_name, g->material->name);
+			CString::copy(max_geometry_name_length, out_config->name, g->name);
 
 			out_config->center = g->center;
 			out_config->min_extents = g->extents.min;
@@ -210,11 +202,6 @@ namespace GeometrySystem
 
 		CString::empty(g->name);
 
-		if (g->material)
-		{
-			MaterialSystem::release(g->material->name);
-			g->material = 0;
-		}
 	}
 
 	static bool32 create_default_geometries()
@@ -303,10 +290,6 @@ namespace GeometrySystem
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;
 		}
-
-		// Acquire the default material.
-		system_state->default_geometry.material = MaterialSystem::get_default_material();
-		system_state->default_geometry_2d.material = MaterialSystem::get_default_material();
 
 		return true;
 

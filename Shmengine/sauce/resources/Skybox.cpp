@@ -21,8 +21,7 @@ bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 	out_skybox->instance_id = INVALID_ID;
 
 	GeometrySystem::GeometryConfig skybox_cube_config = {};
-	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), 0, skybox_cube_config);
-	skybox_cube_config.material_name[0] = 0;
+	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), skybox_cube_config);
 	out_skybox->g = GeometrySystem::acquire_from_config(&skybox_cube_config, true);
 
 	out_skybox->state = SkyboxState::INITIALIZED;

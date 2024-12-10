@@ -9,21 +9,22 @@ struct SkyboxConfig;
 struct MeshConfig;
 struct DirectionalLight;
 struct PointLight;
+struct MeshGeometryConfig;
 
 namespace GeometrySystem { struct GeometryConfig; }
 
-struct SkyboxResourceData
+struct SceneSkyboxResourceData
 {
 	String name;
 	String cubemap_name;
 };
 
-struct MeshResourceData
+struct SceneMeshResourceData
 {
 	String name;
 	String parent_name;
 	String resource_name;
-	Darray<GeometrySystem::GeometryConfig> g_configs;
+	Darray<MeshGeometryConfig> g_configs;
 	Math::Transform transform;
 };
 
@@ -37,10 +38,10 @@ struct SceneResourceData
 	uint32 max_meshes_count;
 	uint32 max_p_lights_count;
 
-	Sarray<SkyboxResourceData> skyboxes;
+	Sarray<SceneSkyboxResourceData> skyboxes;
 	Sarray<DirectionalLight> dir_lights;
 	Sarray<PointLight> point_lights;
-	Sarray<MeshResourceData> meshes;
+	Sarray<SceneMeshResourceData> meshes;
 };
 
 namespace ResourceSystem
