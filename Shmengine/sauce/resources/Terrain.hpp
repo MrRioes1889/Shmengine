@@ -3,9 +3,11 @@
 #include "Defines.hpp"
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
+#include "systems/GeometrySystem.hpp"
 
-struct GeometryData;
-namespace GeometrySystem { struct GeometryConfig; }
+struct Material;
+
+inline static const uint32 max_terrain_materials_count = 8;
 
 enum class TerrainState
 {
@@ -24,16 +26,25 @@ struct TerrainVertex
 	Math::Vec3f normal;
 	Math::Vec2f tex_coords;
 	Math::Vec4f color;
-	Math::Vec3f tangent;
+	Math::Vec4f tangent;
+
+	//float32 material_weights[max_terrain_materials_count];
 };
+
+//struct TerrainVertexData
+//{
+//	float32 height;
+//};
 
 struct TerrainConfig
 {
 	const char* name;
 	uint32 tile_count_x;
 	uint32 tile_count_z;
-	uint32 tile_scale_z;
-	uint32 tile_scale_z;
+	float32 tile_scale_x;
+	float32 tile_scale_z;
+
+	Math::Transform xform;
 
 	uint32 materials_count;
 	const char** material_names;
@@ -41,28 +52,27 @@ struct TerrainConfig
 
 struct Terrain
 {
-	String name;
+	struct PendingMaterial
+	{
+		char name[max_material_name_length];
+	};
+
+	String name;	
 	Math::Transform xform;
+	TerrainState state;
 
 	uint32 tile_count_x;
 	uint32 tile_count_z;
-	uint32 tile_scale_z;
-	uint32 tile_scale_z;
+	float32 tile_scale_x;
+	float32 tile_scale_z;
 
-	Math::Vec3f extents;
-	Math::Vec3f origin;
-
-	String resource_name;
-	Darray<GeometrySystem::GeometryConfig> pending_g_configs;
-
-	MeshState state;
-	UniqueId unique_id;
-	uint8 generation;
-	Darray<GeometryData*> geometries;
+	GeometryData geometry;
 	
+	Darray<PendingMaterial> pending_materials;
+	Darray<Material*> materials;
 };
 
-SHMAPI bool32 mesh_init(MeshConfig* config, Mesh* out_mesh);
-SHMAPI bool32 mesh_destroy(Mesh* mesh);
-SHMAPI bool32 mesh_load(Mesh* mesh);
-SHMAPI bool32 mesh_unload(Mesh* mesh);
+SHMAPI bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain);
+SHMAPI bool32 terrain_destroy(Terrain* terrain);
+SHMAPI bool32 terrain_load(Terrain* terrain);
+SHMAPI bool32 terrain_unload(Terrain* terrain);

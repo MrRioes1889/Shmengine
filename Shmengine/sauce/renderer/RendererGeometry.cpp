@@ -1,6 +1,7 @@
 #include "RendererGeometry.hpp"
 
 #include "utility/Math.hpp"
+#include "resources/Terrain.hpp"
 #include "systems/MaterialSystem.hpp"
 
 namespace Renderer
@@ -17,15 +18,14 @@ namespace Renderer
 			SHMWARN("Height must be nonzero. Defaulting to one.");
 			height = 1.0f;
 		}
-		if (x_segment_count < 1) {
+		if (x_segment_count == 0) {
 			SHMWARN("x_segment_count must be a positive number. Defaulting to one.");
 			x_segment_count = 1;
 		}
-		if (y_segment_count < 1) {
+		if (y_segment_count == 0) {
 			SHMWARN("y_segment_count must be a positive number. Defaulting to one.");
 			y_segment_count = 1;
 		}
-
 		if (tile_x == 0) {
 			SHMWARN("tile_x must be nonzero. Defaulting to one.");
 			tile_x = 1.0f;
@@ -151,12 +151,12 @@ namespace Renderer
 		float32 max_uvx = tile_x;
 		float32 max_uvy = tile_y;
 
-		out_config.min_extents.x = min_x;
-		out_config.min_extents.y = min_y;
-		out_config.min_extents.z = min_z;
-		out_config.max_extents.x = max_x;
-		out_config.max_extents.y = max_y;
-		out_config.max_extents.z = max_z;
+		out_config.extents.min.x = min_x;
+		out_config.extents.min.y = min_y;
+		out_config.extents.min.z = min_z;
+		out_config.extents.max.x = max_x;
+		out_config.extents.max.y = max_y;
+		out_config.extents.max.z = max_z;
 
 		out_config.center = VEC3_ZERO;
 
@@ -266,6 +266,81 @@ namespace Renderer
 			CString::copy(max_geometry_name_length, out_config.name, GeometrySystem::SystemConfig::default_name);
 		}
 
+	}
+
+	void generate_terrain_geometry(uint32 tile_count_x, uint32 tile_count_z, float32 tile_scale_x, float32 tile_scale_z, const char* name, GeometryData* out_geometry)
+	{
+
+		if (!tile_count_x)
+		{
+			SHMWARN("tile_count_x must be a positive number. Defaulting to one.");
+			tile_count_x = 1;
+		}
+		if (!tile_count_z)
+		{
+			SHMWARN("tile_count_z must be a positive number. Defaulting to one.");
+			tile_count_z = 1;
+		}
+		if (!tile_scale_x)
+		{
+			SHMWARN("tile_scale_x must be nonzero. Defaulting to one.");
+			tile_scale_x = 1.0f;
+		}
+		if (!tile_scale_z)
+		{
+			SHMWARN("tile_scale_z must be nonzero. Defaulting to one.");
+			tile_scale_z = 1.0f;
+		}
+
+		out_geometry->extents = {};
+		out_geometry->center = {};
+
+		out_geometry->vertex_size = sizeof(TerrainVertex);
+		//out_geometry->vertex_count = (4 + 2 * (tile_count_x - 1)) + ((4 + 2 * (tile_count_x - 1)) * (tile_count_z - 1) / 2);
+		out_geometry->vertex_count = (tile_count_x + 1) * (tile_count_z + 1);
+		//out_geometry->vertex_count = 4 * tile_count_x * tile_count_z;
+		//out_geometry->vertex_count = tile_count_x * tile_count_z;
+		out_geometry->vertices.init(out_geometry->vertex_size * out_geometry->vertex_count, 0);
+
+		uint32 indices_count = out_geometry->vertex_count * 6;
+		out_geometry->indices.init(indices_count, 0);
+
+		for (uint32 z = 0, i = 0; z < tile_count_z + 1; z++) 
+		{
+			for (uint32 x = 0; x < tile_count_x + 1; x++, i++) 
+			{
+				TerrainVertex* v = &out_geometry->vertices.get_as<TerrainVertex>(i);
+				v->position.x = x * tile_scale_x;
+				v->position.z = z * tile_scale_z;
+				v->position.y = 0.0f;  // <-- this will be modified by a heightmap.
+
+				v->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
+				v->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
+				v->tex_coords.x = (float32)x;
+				v->tex_coords.y = (float32)z;
+
+				v->tangent = {};  // TODO: obviously wrong.
+			}
+		}
+
+		for (uint32 z = 0, i = 0; z < tile_count_z; z++) 
+		{
+			for (uint32 x = 0; x < tile_count_x; x++, i += 6) 
+			{
+				uint32 v0 = (z * (tile_count_x + 1)) + x;
+				uint32 v1 = (z * (tile_count_x + 1)) + x + 1;
+				uint32 v2 = ((z + 1) * (tile_count_x + 1)) + x;
+				uint32 v3 = ((z + 1) * (tile_count_x + 1)) + x + 1;
+
+				out_geometry->indices[i + 0] = v2;
+				out_geometry->indices[i + 1] = v1;
+				out_geometry->indices[i + 2] = v0;
+				out_geometry->indices[i + 3] = v3;
+				out_geometry->indices[i + 4] = v1;
+				out_geometry->indices[i + 5] = v2;
+			}
+		}
+		
 	}
 
 	void geometry_generate_normals(GeometrySystem::GeometryConfig& g_config)

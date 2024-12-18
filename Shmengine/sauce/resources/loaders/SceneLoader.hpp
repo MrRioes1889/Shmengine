@@ -28,6 +28,13 @@ struct SceneMeshResourceData
 	Math::Transform transform;
 };
 
+struct SceneTerrainResourceData
+{
+	String name;
+	String resource_name;
+	Math::Transform xform;
+};
+
 struct SceneResourceData
 {
 	String name;
@@ -37,11 +44,13 @@ struct SceneResourceData
 
 	uint32 max_meshes_count;
 	uint32 max_p_lights_count;
+	uint32 max_terrains_count;
 
 	Sarray<SceneSkyboxResourceData> skyboxes;
 	Sarray<DirectionalLight> dir_lights;
 	Sarray<PointLight> point_lights;
 	Sarray<SceneMeshResourceData> meshes;
+	Sarray<SceneTerrainResourceData> terrains;
 };
 
 namespace ResourceSystem

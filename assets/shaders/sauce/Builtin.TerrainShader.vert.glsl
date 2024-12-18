@@ -4,7 +4,7 @@ layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec2 in_texcoord;
 layout(location = 3) in vec4 in_color;
-layout(location = 4) in vec3 in_tangent;
+layout(location = 4) in vec4 in_tangent;
 
 struct directional_light
 {
@@ -50,7 +50,7 @@ layout(location = 1) out struct dto
     vec3 camera_position;
     vec3 frag_position;
     vec4 color;
-    vec3 tangent;
+    vec4 tangent;
 } out_dto;
 
 void main()
@@ -59,7 +59,7 @@ void main()
     out_dto.frag_position = vec3(global_ubo.model * vec4(in_position, 1.0));
     mat3 m3_model = mat3(global_ubo.model);
 	out_dto.normal = normalize(m3_model * in_normal);
-	out_dto.tangent = normalize(m3_model * in_tangent);
+	out_dto.tangent.xyz = normalize(m3_model * in_tangent.xyz);
     out_dto.texcoord = in_texcoord;
     out_dto.ambient_color = global_ubo.ambient_color;
     out_dto.camera_position = global_ubo.camera_position;

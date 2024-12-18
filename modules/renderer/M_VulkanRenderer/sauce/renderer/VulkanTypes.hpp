@@ -250,7 +250,6 @@ namespace Renderer::Vulkan
 	struct VulkanGeometryData
 	{
 		uint32 id;
-		uint32 generation;
 		uint64 vertex_buffer_offset;
 		uint64 index_buffer_offset;
 	};

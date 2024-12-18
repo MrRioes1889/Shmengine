@@ -311,12 +311,12 @@ namespace Renderer
 
 	bool32 geometry_load(GeometryData* geometry)
 	{
-		return system_state->module.geometry_create(geometry);
+		return system_state->module.geometry_load(geometry);
 	}
 
 	void geometry_unload(GeometryData* geometry)
 	{
-		system_state->module.geometry_destroy(geometry);
+		system_state->module.geometry_unload(geometry);
 	}
 
 	void geometry_draw(const GeometryRenderData& data)

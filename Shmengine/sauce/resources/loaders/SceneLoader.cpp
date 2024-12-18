@@ -104,6 +104,7 @@ namespace ResourceSystem
 
         out_resource->skyboxes.init(skyboxes_count, 0, AllocationTag::RESOURCE);
         out_resource->meshes.init(meshes_count, 0, AllocationTag::RESOURCE);
+        out_resource->terrains.init(terrains_count, 0, AllocationTag::RESOURCE);
         out_resource->dir_lights.init(dir_lights_count, 0, AllocationTag::RESOURCE);
         out_resource->point_lights.init(point_lights_count, 0, AllocationTag::RESOURCE);
 
@@ -175,6 +176,7 @@ namespace ResourceSystem
                     {
                         scope = ParserScope::TERRAIN;
                         terrain_i++;
+                        out_resource->terrains[terrain_i].xform = Math::transform_create();
                     }
                     else
                     {
@@ -255,6 +257,16 @@ namespace ResourceSystem
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
+                        continue;
+                    }
+                }
+                else if (var_name.equal_i("max_terrains_count"))
+                {
+                    if (!CString::parse_u32(value.c_str(), out_resource->max_terrains_count))
+                    {
+                        SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
+                        success = false;
+                        continue;
                     }
                 }
                 else if (var_name.equal_i("max_p_lights_count"))
@@ -434,6 +446,16 @@ namespace ResourceSystem
             }    
             else if (scope == ParserScope::TERRAIN)
             {
+                SceneTerrainResourceData* terrain = &out_resource->terrains[terrain_i];
+
+                if (var_name.equal_i("name"))
+                {
+                    terrain->name = value;
+                }
+                else if (var_name.equal_i("resource_name"))
+                {
+                    terrain->resource_name = value;
+                }
             }
 
             line_number++;
@@ -469,6 +491,12 @@ namespace ResourceSystem
             resource->meshes[i].parent_name.free_data();
 
             resource->meshes[i].g_configs.free_data();
+        }
+
+        for (uint32 i = 0; i < resource->terrains.capacity; i++)
+        {
+            resource->terrains[i].name.free_data();
+            resource->terrains[i].resource_name.free_data();
         }
 
         resource->name.free_data();

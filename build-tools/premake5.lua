@@ -15,8 +15,10 @@ sandbox_app_module_name = "A_Sandbox"
 compiler = "msc"
 project_location = "%{wks.location}"
 
-global_msvc_build_options = {"/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011", "/wd4251"}
-global_clang_build_options = {
+common_premake_flags = {"FatalWarnings", "MultiProcessorCompile"}
+
+common_msvc_compiler_flags = {"/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011", "/wd4251"}
+common_clang_compiler_flags = {
     "-Wno-missing-braces", 
     "-Wno-reorder-ctor", 
     "-Wno-unused-variable", 
@@ -63,7 +65,7 @@ project  (engine_name)
         project_location .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
     } 
 
-    flags("FatalWarnings")
+    flags (common_premake_flags)
 
     filter "system:windows"
         defines {"LIB_COMPILE", "PLATFORM_WINDOWS", "_WIN32", "SHMEXPORT"}
@@ -82,9 +84,9 @@ project  (engine_name)
         buildoutputs { '$(SolutionDir)/dummy_target_file' }
 
     if compiler == "clang" then
-        buildoptions (global_clang_build_options)
+        buildoptions (common_clang_compiler_flags)
     else
-        buildoptions (global_msvc_build_options)
+        buildoptions (common_msvc_compiler_flags)
     end
 
     filter "configurations:Debug"
@@ -139,7 +141,7 @@ project  (vulkan_renderer_module_name)
         project_location .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
     } 
 
-    flags("FatalWarnings")
+    flags (common_premake_flags)
 
     filter "system:windows"
         defines {"LIB_COMPILE", "PLATFORM_WINDOWS", "_WIN32", "SHMEXPORT"}
@@ -150,9 +152,9 @@ project  (vulkan_renderer_module_name)
         staticruntime "off"
 
     if compiler == "clang" then
-        buildoptions (global_clang_build_options)
+        buildoptions (common_clang_compiler_flags)
     else
-        buildoptions (global_msvc_build_options)
+        buildoptions (common_msvc_compiler_flags)
     end
 
     filter "configurations:Debug"
@@ -204,7 +206,7 @@ project  (sandbox_app_module_name)
         project_location .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
     } 
 
-    flags("FatalWarnings")
+    flags (common_premake_flags)
 
     filter "system:windows"
         defines {"LIB_COMPILE", "PLATFORM_WINDOWS", "_WIN32", "SHMEXPORT"}
@@ -215,9 +217,9 @@ project  (sandbox_app_module_name)
         staticruntime "off"
 
     if compiler == "clang" then
-        buildoptions (global_clang_build_options)
+        buildoptions (common_clang_compiler_flags)
     else
-        buildoptions (global_msvc_build_options)
+        buildoptions (common_msvc_compiler_flags)
     end
 
     filter "configurations:Debug"
@@ -274,7 +276,7 @@ project (app_name)
         project_location .. "/bin/" .. outputdir .. "Shmengine.lib",   
     }
 
-    flags("FatalWarnings")
+    flags (common_premake_flags)
 
     filter "system:windows"
         defines {"PLATFORM_WINDOWS", "_WIN32"}
@@ -282,12 +284,12 @@ project (app_name)
         inlining ("Explicit")
         systemversion "latest"
 		cppdialect "C++20"
-        staticruntime "on"
+        staticruntime "off"
 
     if compiler == "clang" then
-        buildoptions (global_clang_build_options)
+        buildoptions (common_clang_compiler_flags)
     else
-        buildoptions (global_msvc_build_options)
+        buildoptions (common_msvc_compiler_flags)
     end
 
     filter "configurations:Debug"

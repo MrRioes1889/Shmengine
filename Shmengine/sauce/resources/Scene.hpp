@@ -4,8 +4,9 @@
 #include "containers/Darray.hpp"
 #include "utility/MathTypes.hpp"
 
-#include "Skybox.hpp"
-#include "Mesh.hpp"
+#include "resources/Skybox.hpp"
+#include "resources/Mesh.hpp"
+#include "resources/Terrain.hpp"
 
 struct FrameData;
 namespace Renderer 
@@ -17,9 +18,8 @@ namespace Renderer
 struct DirectionalLight; 
 struct PointLight;
 namespace GeometrySystem { struct GeometryConfig; }
-struct Mesh;
-struct Skybox;
 struct Camera;
+
 
 enum class SceneState
 {
@@ -41,16 +41,19 @@ struct SceneConfig
 
 	uint32 max_p_lights_count;
 	uint32 max_meshes_count;
+	uint32 max_terrains_count;
 
+	uint32 skybox_configs_count;
 	uint32 dir_light_count;
 	uint32 point_light_count;
 	uint32 mesh_configs_count;
-	uint32 skybox_configs_count;
+	uint32 terrain_configs_count;
 
 	SkyboxConfig* skybox_configs;
 	DirectionalLight* dir_lights;
 	PointLight* point_lights;
 	MeshConfig* mesh_configs;
+	TerrainConfig* terrain_configs;
 };
 
 struct Scene
@@ -69,6 +72,7 @@ struct Scene
 	Darray<DirectionalLight> dir_lights;
 	Darray<PointLight> p_lights;
 	Darray<Mesh> meshes;
+	Darray<Terrain> terrains;
 };
 
 SHMAPI bool32 scene_init(SceneConfig* config, Scene* out_scene);
@@ -90,11 +94,15 @@ SHMAPI bool32 scene_remove_point_light(Scene* scene, uint32 index);
 SHMAPI bool32 scene_add_mesh(Scene* scene, MeshConfig* config);
 SHMAPI bool32 scene_remove_mesh(Scene* scene, const char* name);
 
+SHMAPI bool32 scene_add_terrain(Scene* scene, TerrainConfig* config);
+SHMAPI bool32 scene_remove_terrain(Scene* scene, const char* name);
+
 SHMAPI bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config);
 SHMAPI bool32 scene_remove_skybox(Scene* scene, const char* name);
 
 SHMAPI Skybox* scene_get_skybox(Scene* scene, const char* name);
 SHMAPI Mesh* scene_get_mesh(Scene* scene, const char* name);
+SHMAPI Terrain* scene_get_terrain(Scene* scene, const char* name);
 SHMAPI DirectionalLight* scene_get_dir_light(Scene* scene, uint32 index);
 SHMAPI PointLight* scene_get_point_light(Scene* scene, uint32 index);
 

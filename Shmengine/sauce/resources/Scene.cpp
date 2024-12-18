@@ -5,6 +5,7 @@
 #include "utility/Math.hpp"
 #include "resources/loaders/SceneLoader.hpp"
 #include "resources/Mesh.hpp"
+#include "resources/Terrain.hpp"
 #include "resources/Skybox.hpp"
 #include "renderer/Camera.hpp"
 #include "systems/RenderViewSystem.hpp"
@@ -29,6 +30,7 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 	out_scene->dir_lights.init(1, DarrayFlags::NON_RESIZABLE);
 	out_scene->p_lights.init(config->max_p_lights_count, DarrayFlags::NON_RESIZABLE);
 	out_scene->meshes.init(config->max_meshes_count, DarrayFlags::NON_RESIZABLE);
+	out_scene->terrains.init(config->max_terrains_count, DarrayFlags::NON_RESIZABLE);
 
 	if (config->skybox_configs_count)
 	{
@@ -63,6 +65,23 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 		}
 	}
 
+	if (config->terrain_configs_count)
+	{
+		for (uint32 i = 0; i < config->terrain_configs_count; i++)
+		{
+
+			TerrainConfig* terrain_config = &config->terrain_configs[i];
+
+			if (!scene_add_terrain(out_scene, terrain_config))
+			{
+				SHMERROR("Failed to create terrain.");
+				return false;
+			}
+
+			Terrain* added_terrain = &out_scene->terrains[out_scene->terrains.count - 1];
+		}
+	}
+
 	if (config->mesh_configs_count)
 	{
 		for (uint32 i = 0; i < config->mesh_configs_count; i++)
@@ -93,7 +112,7 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 				}
 			}
 		}
-	}
+	}	
 
 	out_scene->state = SceneState::INITIALIZED;	
 	out_scene->id = global_scene_id++;
@@ -119,6 +138,7 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 	config.name = resource.name.c_str();
 	config.description = resource.description.c_str();
 	config.max_meshes_count = resource.max_meshes_count;
+	config.max_terrains_count = resource.max_terrains_count;
 	config.max_p_lights_count = resource.max_p_lights_count;
 	config.transform = resource.transform;
 
@@ -141,10 +161,29 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 		m_config->transform = resource.meshes[i].transform;
 	}
 
+	Sarray<TerrainConfig> terrain_configs(resource.terrains.capacity, 0);
+	for (uint32 i = 0; i < resource.terrains.capacity; i++)
+	{
+		TerrainConfig* t_config = &terrain_configs[i];
+		t_config->name = resource.terrains[i].name.c_str();
+
+		t_config->tile_count_x = 1;
+		t_config->tile_count_z = 1;
+		t_config->tile_scale_x = 1.0f;
+		t_config->tile_scale_z = 1.0f;
+		t_config->materials_count = 0;
+		t_config->material_names = 0;
+
+		Math::transform_translate(resource.terrains[i].xform, { -20.0f, 0.0f, 0.0f });
+		t_config->xform = resource.terrains[i].xform;
+	}
+
 	config.skybox_configs_count = skybox_configs.capacity;
 	config.skybox_configs = skybox_configs.data;
 	config.mesh_configs_count = mesh_configs.capacity;
 	config.mesh_configs = mesh_configs.data;
+	config.terrain_configs_count = terrain_configs.capacity;
+	config.terrain_configs = terrain_configs.data;
 	config.dir_light_count = resource.dir_lights.capacity;
 	config.dir_lights = resource.dir_lights.data;
 	config.point_light_count = resource.point_lights.capacity;
@@ -176,7 +215,16 @@ bool32 scene_destroy(Scene* scene)
 	{
 		if (!mesh_destroy(&scene->meshes[i]))
 		{
-			SHMERROR("Failed to destroy skybox.");
+			SHMERROR("Failed to destroy mesh.");
+			return false;
+		}
+	}
+
+	for (uint32 i = 0; i < scene->terrains.count; i++)
+	{
+		if (!terrain_destroy(&scene->terrains[i]))
+		{
+			SHMERROR("Failed to destroy terrain.");
 			return false;
 		}
 	}
@@ -184,6 +232,7 @@ bool32 scene_destroy(Scene* scene)
 	scene->dir_lights.free_data();
 	scene->p_lights.free_data();
 	scene->meshes.free_data();
+	scene->terrains.free_data();
 
 	scene->name.free_data();
 	scene->description.free_data();
@@ -211,6 +260,15 @@ bool32 scene_load(Scene* scene)
 		}
 	}
 
+	for (uint32 i = 0; i < scene->terrains.count; i++)
+	{
+		if (!terrain_load(&scene->terrains[i]))
+		{
+			SHMERROR("Failed to load terrain.");
+			return false;
+		}
+	}
+
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
 		if (!mesh_load(&scene->meshes[i]))
@@ -234,20 +292,29 @@ bool32 scene_unload(Scene* scene)
 
 	scene->state = SceneState::UNLOADING;
 
-	if (scene->skybox.state >= SkyboxState::INITIALIZED)
-	{
-		if (!skybox_unload(&scene->skybox))
-		{
-			SHMERROR("Failed to unload skybox.");
-			return false;
-		}
-	}
-
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
 		if (!mesh_unload(&scene->meshes[i]))
 		{
 			SHMERROR("Failed to unload mesh.");
+			return false;
+		}
+	}
+
+	for (uint32 i = 0; i < scene->terrains.count; i++)
+	{
+		if (!terrain_unload(&scene->terrains[i]))
+		{
+			SHMERROR("Failed to unload terrain.");
+			return false;
+		}
+	}
+
+	if (scene->skybox.state >= SkyboxState::INITIALIZED)
+	{
+		if (!skybox_unload(&scene->skybox))
+		{
+			SHMERROR("Failed to unload skybox.");
 			return false;
 		}
 	}
@@ -333,9 +400,6 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		}		
 	}
 
-	if (!scene->meshes.count)
-		return true;
-
 	Renderer::RenderViewPacket* world_view_packet = 0;
 	for (uint32 i = 0; i < packet->views.capacity; i++)
 	{
@@ -349,7 +413,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 	if (!world_view_packet)
 		return true;
 
-	uint32 geometries_count = 0;
+	uint32 mesh_geometries_count = 0;
 	Renderer::GeometryRenderData* geometries = 0;
 
 	for (uint32 i = 0; i < scene->meshes.count; i++)
@@ -375,24 +439,41 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 				render_data->material = g->material;
 				render_data->unique_id = m->unique_id;
 
-				geometries_count++;
+				mesh_geometries_count++;
 				if (!geometries)
 					geometries = render_data;
 			}
 		}
 	}
 
-	if (!geometries_count)
+	uint32 terrain_geometries_count = 0;
+	for (uint32 i = 0; i < scene->terrains.count; i++)
+	{
+		Terrain* t = &scene->terrains[i];
+
+		Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
+		render_data->model = Math::transform_get_world(t->xform);
+		render_data->geometry = &t->geometry;
+		render_data->material = 0;
+		render_data->unique_id = 0;
+
+		terrain_geometries_count++;
+		if (!geometries)
+			geometries = render_data;
+	}
+
+	if ((mesh_geometries_count + terrain_geometries_count) == 0)
 		return true;
 
 	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::WorldPacketData));
 	world_packet->geometries = geometries;
-	world_packet->geometries_count = geometries_count;
+	world_packet->mesh_geometries_count = mesh_geometries_count;
+	world_packet->terrain_geometries_count = terrain_geometries_count;
 	world_packet->dir_light = scene->dir_lights.count > 0 ? &scene->dir_lights[0] : 0;
 	world_packet->p_lights_count = scene->p_lights.count;
 	world_packet->p_lights = scene->p_lights.data;
 
-	frame_data->drawn_geometry_count += geometries_count;
+	frame_data->drawn_geometry_count += mesh_geometries_count + terrain_geometries_count;
 
 	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), frame_data->frame_allocator, world_packet, world_view_packet))
 	{
@@ -481,6 +562,28 @@ bool32 scene_add_mesh(Scene* scene, MeshConfig* config)
 	return true;
 }
 
+static bool32 scene_remove_mesh(Scene* scene, uint32 index)
+{
+	for (uint32 i = 0; i < scene->meshes.count; i++)
+	{
+		if (scene->meshes[i].transform.parent == &scene->meshes[index].transform)
+		{
+			SHMERROR("Failed to destroy mesh due to existing children!");
+			return false;
+		}		
+	}
+
+	if (!mesh_destroy(&scene->meshes[index]))
+	{
+		SHMERROR("Failed to destroy mesh!");
+		return false;
+	}
+
+	scene->meshes.remove_at(index);
+
+	return true;
+}
+
 bool32 scene_remove_mesh(Scene* scene, const char* name)
 {
 
@@ -496,14 +599,56 @@ bool32 scene_remove_mesh(Scene* scene, const char* name)
 	
 	if (mesh_index == INVALID_ID)
 		return false;
-	
-	if (!mesh_destroy(&scene->meshes[mesh_index]))
+
+	return scene_remove_mesh(scene, mesh_index);
+}
+
+bool32 scene_add_terrain(Scene* scene, TerrainConfig* config)
+{
+
+	Terrain* terrain = scene->terrains.emplace();
+
+	if (!terrain_init(config, terrain))
 	{
-		SHMERROR("Failed to destroy old skybox!");
+		SHMERROR("Failed to initialize terrain!");
 		return false;
 	}
 
-	scene->meshes.remove_at(mesh_index);
+	if (scene->state == SceneState::LOADED)
+	{
+		if (!terrain_load(terrain))
+		{
+			SHMERROR("Failed to initialize mesh!");
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool32 scene_remove_terrain(Scene* scene, const char* name)
+{
+
+	uint32 terrain_index = INVALID_ID;
+	for (uint32 i = 0; i < scene->terrains.count; i++)
+	{
+		if (scene->terrains[i].name.equal_i(name))
+		{
+			terrain_index = i;
+			break;
+		}
+	}
+
+	if (terrain_index == INVALID_ID)
+		return false;
+
+	if (!terrain_destroy(&scene->terrains[terrain_index]))
+	{
+		SHMERROR("Failed to destroy terrain!");
+		return false;
+	}
+
+	scene->terrains.remove_at(terrain_index);
 
 	return true;
 }
@@ -566,6 +711,17 @@ Mesh* scene_get_mesh(Scene* scene, const char* name)
 	{
 		if (scene->meshes[i].name.equal_i(name))
 			return &scene->meshes[i];
+	}
+
+	return 0;
+}
+
+Terrain* scene_get_terrain(Scene* scene, const char* name)
+{
+	for (uint32 i = 0; i < scene->terrains.count; i++)
+	{
+		if (scene->terrains[i].name.equal_i(name))
+			return &scene->terrains[i];
 	}
 
 	return 0;

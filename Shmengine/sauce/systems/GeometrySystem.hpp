@@ -10,7 +10,6 @@ struct GeometryData
 {
 
 	uint32 id;
-	uint32 generation;
 	uint32 internal_id;
 	Math::Vec3f center;
 	Math::Extents3D extents;
@@ -42,8 +41,7 @@ namespace GeometrySystem
 		char name[max_geometry_name_length];
 
 		Math::Vec3f center;
-		Math::Vec3f min_extents;
-		Math::Vec3f max_extents;
+		Math::Extents3D extents;
 	};
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);

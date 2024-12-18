@@ -14,7 +14,8 @@
 #include "utility/Sort.hpp"
 
 struct RenderViewWorldInternalData {
-	Renderer::Shader* shader;
+	Renderer::Shader* material_shader;
+	Renderer::Shader* terrain_shader;
 	float32 near_clip;
 	float32 far_clip;
 	float32 fov;
@@ -85,6 +86,7 @@ namespace Renderer
 		self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::RENDERER);
 		RenderViewWorldInternalData* data = (RenderViewWorldInternalData*)self->internal_data.data;
 
+
 		ShaderConfig s_config = {};
 		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_material, 0, &s_config))
 		{
@@ -92,15 +94,31 @@ namespace Renderer
 			return false;
 		}
 
-		if (!ShaderSystem::create_shader(&self->renderpasses[0], &s_config))
+		bool32 created = ShaderSystem::create_shader(&self->renderpasses[0], &s_config);
+		ResourceSystem::shader_loader_unload(&s_config);
+		if (!created)
 		{
 			SHMERROR("Failed to create world shader.");
-			ResourceSystem::shader_loader_unload(&s_config);
 			return false;
 		}
-		ResourceSystem::shader_loader_unload(&s_config);
 
-		data->shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_material);
+
+		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_terrain, 0, &s_config))
+		{
+			SHMERROR("Failed to load terrain shader config.");
+			return false;
+		}
+
+		created = ShaderSystem::create_shader(&self->renderpasses[0], &s_config);
+		ResourceSystem::shader_loader_unload(&s_config);
+		if (!created)
+		{
+			SHMERROR("Failed to create world shader.");
+			return false;
+		}
+
+		data->material_shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_material);
+		data->terrain_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_terrain);
 
 		data->near_clip = 0.1f;
 		data->far_clip = 1000.0f;
@@ -159,7 +177,7 @@ namespace Renderer
 		RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
 		uint32 total_geometry_count = 0;
-		total_geometry_count += packet_data->geometries_count;
+		total_geometry_count += packet_data->mesh_geometries_count + packet_data->terrain_geometries_count;
 
 		out_packet->extended_data = frame_allocator->allocate(sizeof(WorldPacketData));
 		Memory::copy_memory(packet_data, out_packet->extended_data, sizeof(WorldPacketData));
@@ -174,7 +192,7 @@ namespace Renderer
 
 		Darray<GeometryDistance> transparent_geometries(total_geometry_count, 0, AllocationTag::RENDERER);
 
-		for (uint32 i = 0; i < packet_data->geometries_count; i++)
+		for (uint32 i = 0; i < packet_data->mesh_geometries_count; i++)
 		{
 			GeometryRenderData* g_data = &packet_data->geometries[i];
 			if (!g_data->geometry)
@@ -193,13 +211,22 @@ namespace Renderer
 				g_dist->dist = Math::abs(distance);
 				g_dist->g = *g_data;
 			}
-		}
+		}		
 
 		quick_sort(transparent_geometries.data, 0, transparent_geometries.count - 1, false);
 		for (uint32 i = 0; i < transparent_geometries.count; i++)
 		{
 			GeometryRenderData* render_data = out_packet->geometries.emplace();
 			*render_data = transparent_geometries[i].g;
+		}
+
+		for (uint32 i = packet_data->mesh_geometries_count; i < total_geometry_count; i++)
+		{
+			GeometryRenderData* g_data = &packet_data->geometries[i];
+			if (!g_data->geometry)
+				continue;
+
+			out_packet->geometries.emplace(*g_data);
 		}
 
 		return true;
@@ -229,51 +256,103 @@ namespace Renderer
 				return false;
 			}
 
-			if (!ShaderSystem::use_shader(data->shader->id)) 
+			if (!ShaderSystem::use_shader(data->material_shader->id)) 
 			{
 				SHMERROR("render_view_world_on_render - Failed to use shader. Render frame failed.");
 				return false;
 			}
 
 			// Apply globals
-			if (!MaterialSystem::apply_globals(data->shader->id, frame_number, &packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode)) 
+			if (!MaterialSystem::apply_globals(data->material_shader->id, frame_number, &packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
 			{
 				SHMERROR("render_view_world_on_render - Failed to use apply globals for shader. Render frame failed.");
 				return false;
 			}
 
-			for (uint32 i = 0; i < packet.geometries.count; i++)
+			if (packet_data)
 			{
-				Material* m = 0;
-				if (packet.geometries[i].material) {
-					m = packet.geometries[i].material;
-				}
-				else {
-					m = MaterialSystem::get_default_material();
-				}
 
-				MaterialSystem::LightingInfo lighting = 
-				{ 
-					.dir_light = packet_data->dir_light,
-					.p_lights_count = packet_data->p_lights_count,
-					.p_lights = packet_data->p_lights
-				};
+				uint32 total_geometries_count = packet_data->mesh_geometries_count + packet_data->terrain_geometries_count;
 
-				// Apply the material
-				bool32 needs_update = (m->render_frame_number != (uint32)frame_number);
-				if (!MaterialSystem::apply_instance(m, lighting, needs_update))
+				for (uint32 i = 0; i < packet_data->mesh_geometries_count; i++)
 				{
-					SHMWARNV("render_view_world_on_render - Failed to apply material '%s'. Skipping draw.", m->name);
-					continue;
+					Material* m = 0;
+					if (packet.geometries[i].material) {
+						m = packet.geometries[i].material;
+					}
+					else {
+						m = MaterialSystem::get_default_material();
+					}
+
+					MaterialSystem::LightingInfo lighting =
+					{
+						.dir_light = packet_data->dir_light,
+						.p_lights_count = packet_data->p_lights_count,
+						.p_lights = packet_data->p_lights
+					};
+
+					// Apply the material
+					bool32 needs_update = (m->render_frame_number != (uint32)frame_number);
+					if (!MaterialSystem::apply_instance(m, lighting, needs_update))
+					{
+						SHMWARNV("render_view_world_on_render - Failed to apply material '%s'. Skipping draw.", m->name);
+						continue;
+					}
+
+					m->render_frame_number = (uint32)frame_number;
+
+					// Apply the locals
+					MaterialSystem::apply_local(m, packet.geometries[i].model);
+
+					// Draw it.
+					geometry_draw(packet.geometries[i]);
 				}
 
-				m->render_frame_number = (uint32)frame_number;
+				uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
+				if (terrain_shader_id == INVALID_ID)
+				{
+					SHMERROR("Failed to retrieve terrain shader id.");
+					return false;
+				}
+				ShaderSystem::use_shader(terrain_shader_id);
 
-				// Apply the locals
-				MaterialSystem::apply_local(m, packet.geometries[i].model);
+				ShaderSystem::TerrainShaderUniformLocations terrain_u_locations = ShaderSystem::get_terrain_shader_uniform_locations();
 
-				// Draw it.
-				geometry_draw(packet.geometries[i]);
+				for (uint32 i = packet_data->mesh_geometries_count; i < total_geometries_count; i++)
+				{
+
+					const Math::Vec4f diffuse_color = { 0.3f, 0.4f, 0.3f, 1.0f };
+					const float32 shininess = 32.0f;
+
+					ShaderSystem::set_uniform(terrain_u_locations.projection, &packet.projection_matrix);
+					ShaderSystem::set_uniform(terrain_u_locations.view, &packet.view_matrix);
+					ShaderSystem::set_uniform(terrain_u_locations.ambient_color, &packet.ambient_color);
+					ShaderSystem::set_uniform(terrain_u_locations.camera_position, &packet.view_position);
+					ShaderSystem::set_uniform(terrain_u_locations.render_mode, &data->render_mode);
+
+					ShaderSystem::set_uniform(terrain_u_locations.diffuse_color, &diffuse_color);
+					ShaderSystem::set_uniform(terrain_u_locations.shininess, &shininess);			
+
+					if (packet_data->dir_light)
+						ShaderSystem::set_uniform(terrain_u_locations.dir_light, packet_data->dir_light);
+
+					if (packet_data->p_lights && packet_data->p_lights_count)
+					{
+						ShaderSystem::set_uniform(terrain_u_locations.p_lights_count, &packet_data->p_lights_count);
+						ShaderSystem::set_uniform(terrain_u_locations.dir_light, packet_data->p_lights);
+					}
+					else
+					{
+						packet_data->p_lights_count = 0;
+						ShaderSystem::set_uniform(terrain_u_locations.p_lights_count, &packet_data->p_lights_count);
+					}
+
+					ShaderSystem::set_uniform(terrain_u_locations.model, &packet.geometries[i].model);
+					ShaderSystem::apply_global();
+						
+					Renderer::geometry_draw(packet.geometries[i]);
+					
+				}
 			}
 
 			if (!renderpass_end(renderpass))

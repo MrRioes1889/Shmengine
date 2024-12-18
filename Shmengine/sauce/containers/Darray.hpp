@@ -137,7 +137,7 @@ SHMINLINE Darray<T>::Darray(const Darray& other)
 {
 	init(other.count, other.flags, (AllocationTag)other.allocation_tag);
 	for (uint32 i = 0; i < other.count; i++)
-		push(other[i]);
+		emplace(other[i]);
 }
 
 template<typename T>
@@ -146,7 +146,7 @@ SHMINLINE Darray<T>& Darray<T>::operator=(const Darray& other)
 	free_data();
 	init(other.count, other.flags, (AllocationTag)other.allocation_tag);
 	for (uint32 i = 0; i < other.count; i++)
-		push(other[i]);
+		emplace(other[i]);
 	return *this;
 }
 

@@ -44,8 +44,8 @@ namespace Renderer::Vulkan
 	bool32 vk_texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 	void vk_texture_destroy(Texture* texture);
 
-	bool32 vk_geometry_create(GeometryData* geometry);
-	void vk_geometry_destroy(GeometryData* geometry);
+	bool32 vk_geometry_load(GeometryData* geometry);
+	void vk_geometry_unload(GeometryData* geometry);
 
 	void vk_geometry_draw(const GeometryRenderData& data);
 

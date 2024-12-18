@@ -11,18 +11,36 @@ namespace ShaderSystem
 	{
 		uint16 projection;
 		uint16 view;
+		uint16 model;
 		uint16 ambient_color;
 		uint16 camera_position;
-		uint16 shininess;
-		uint16 diffuse_color;
 		uint16 diffuse_texture;
 		uint16 specular_texture;
 		uint16 normal_texture;
-		uint16 model;
+		uint16 diffuse_color;
 		uint16 render_mode;
 		uint16 dir_light;
 		uint16 p_lights;
 		uint16 p_lights_count;
+		uint16 shininess;
+	};
+
+	struct TerrainShaderUniformLocations
+	{
+		uint16 projection;
+		uint16 view;
+		uint16 model;
+		uint16 ambient_color;
+		uint16 camera_position;
+		uint16 diffuse_texture;
+		uint16 specular_texture;
+		uint16 normal_texture;
+		uint16 diffuse_color;
+		uint16 render_mode;
+		uint16 dir_light;
+		uint16 p_lights;
+		uint16 p_lights_count;
+		uint16 shininess;
 	};
 
 	struct UIShaderUniformLocations
@@ -68,8 +86,10 @@ namespace ShaderSystem
 	SHMAPI bool32 bind_instance(uint32 instance_id);
 
 	uint32 get_material_shader_id();
+	uint32 get_terrain_shader_id();
 	uint32 get_ui_shader_id();
 	MaterialShaderUniformLocations get_material_shader_uniform_locations();
+	TerrainShaderUniformLocations get_terrain_shader_uniform_locations();
 	UIShaderUniformLocations get_ui_shader_uniform_locations();
 
 }

@@ -47,7 +47,6 @@ namespace GeometrySystem
         uint32 count = system_state->config.max_geometry_count;
         for (uint32 i = 0; i < count; ++i) {
             system_state->registered_geometries[i].geometry.id = INVALID_ID;
-            system_state->registered_geometries[i].geometry.generation = INVALID_ID;
             system_state->registered_geometries[i].geometry.internal_id = INVALID_ID;
         }
 
@@ -160,8 +159,8 @@ namespace GeometrySystem
 	{
 
 		g->center = config->center;
-		g->extents.min = config->min_extents;
-		g->extents.max = config->max_extents;
+		g->extents.min = config->extents.min;
+		g->extents.max = config->extents.max;
 
 		g->vertex_size = config->vertex_size;
 		g->vertex_count = config->vertex_count;
@@ -182,8 +181,8 @@ namespace GeometrySystem
 			CString::copy(max_geometry_name_length, out_config->name, g->name);
 
 			out_config->center = g->center;
-			out_config->min_extents = g->extents.min;
-			out_config->max_extents = g->extents.max;
+			out_config->extents.min = g->extents.min;
+			out_config->extents.max = g->extents.max;
 			out_config->vertex_count = g->vertex_count;
 			out_config->vertex_size = g->vertex_size;
 
@@ -192,7 +191,6 @@ namespace GeometrySystem
 		}
 		
 		g->internal_id = INVALID_ID;
-		g->generation = INVALID_ID;
 		g->id = INVALID_ID;
 
 		g->vertices.free_data();
@@ -242,8 +240,6 @@ namespace GeometrySystem
 		// Send the geometry off to the renderer to be uploaded to the GPU.
 		system_state->default_geometry.id = INVALID_ID;
 		system_state->default_geometry.internal_id = INVALID_ID;
-		system_state->default_geometry.generation = INVALID_ID;
-
 		
 		if (!Renderer::geometry_load(&system_state->default_geometry)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
@@ -285,7 +281,6 @@ namespace GeometrySystem
 		// Send the geometry off to the renderer to be uploaded to the GPU.
 		system_state->default_geometry_2d.id = INVALID_ID;
 		system_state->default_geometry_2d.internal_id = INVALID_ID;
-		system_state->default_geometry_2d.generation = INVALID_ID;
 		if (!Renderer::geometry_load(&system_state->default_geometry_2d)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;

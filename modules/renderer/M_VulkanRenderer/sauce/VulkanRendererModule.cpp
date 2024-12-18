@@ -36,8 +36,8 @@ namespace Renderer::Vulkan
 		out_module->texture_read_data = Vulkan::vk_texture_read_data;
 		out_module->texture_read_pixel = Vulkan::vk_texture_read_pixel;
 		out_module->texture_destroy = Vulkan::vk_texture_destroy;
-		out_module->geometry_create = Vulkan::vk_geometry_create;
-		out_module->geometry_destroy = Vulkan::vk_geometry_destroy;
+		out_module->geometry_load = Vulkan::vk_geometry_load;
+		out_module->geometry_unload = Vulkan::vk_geometry_unload;
 
 		out_module->shader_create = Vulkan::vk_shader_create;
 		out_module->shader_destroy = Vulkan::vk_shader_destroy;

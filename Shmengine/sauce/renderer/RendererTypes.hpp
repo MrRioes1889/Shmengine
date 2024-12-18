@@ -63,6 +63,7 @@ namespace Renderer
 	struct SHMAPI RendererConfig
 	{
 		static inline const char* builtin_shader_name_material = "Shader.Builtin.Material";
+		static inline const char* builtin_shader_name_terrain = "Shader.Builtin.Terrain";
 		static inline const char* builtin_shader_name_ui = "Shader.Builtin.UI";
 		static inline const char* builtin_shader_name_skybox = "Shader.Builtin.Skybox";
 		static inline const char* builtin_shader_name_world_pick = "Shader.Builtin.WorldPick";
@@ -491,7 +492,8 @@ namespace Renderer
 
 	struct WorldPacketData
 	{
-		uint32 geometries_count;
+		uint32 mesh_geometries_count;
+		uint32 terrain_geometries_count;
 		uint32 p_lights_count;
 
 		GeometryRenderData* geometries;
@@ -583,8 +585,8 @@ namespace Renderer
 		bool32(*texture_read_pixel)(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 		void (*texture_destroy)(Texture* texture);
 
-		bool32(*geometry_create)(GeometryData* geometry);
-		void (*geometry_destroy)(GeometryData* geometry);
+		bool32(*geometry_load)(GeometryData* geometry);
+		void (*geometry_unload)(GeometryData* geometry);
 
 		bool32(*shader_create)(Shader* shader, const ShaderConfig* config, const Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 		void (*shader_destroy)(Shader* shader);

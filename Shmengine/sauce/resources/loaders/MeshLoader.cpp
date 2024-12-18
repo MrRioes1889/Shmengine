@@ -361,8 +361,8 @@ namespace ResourceSystem
         out_data->vertex_count = 0;
         out_data->vertex_size = sizeof(Renderer::Vertex3D);
         bool32 extent_set = false;
-        out_data->min_extents = {};
-        out_data->max_extents = {};
+        out_data->extents.min = {};
+        out_data->extents.max = {};
 
         Darray<Renderer::Vertex3D> vertices(faces.count * 3, 0);
         Darray<uint32> indices(faces.count * 3, 0);
@@ -392,25 +392,25 @@ namespace ResourceSystem
                 vert.position = pos;
 
                 // Check extents - min
-                if (pos.x < out_data->min_extents.x || !extent_set) {
-                    out_data->min_extents.x = pos.x;
+                if (pos.x < out_data->extents.min.x || !extent_set) {
+                    out_data->extents.min.x = pos.x;
                 }
-                if (pos.y < out_data->min_extents.y || !extent_set) {
-                    out_data->min_extents.y = pos.y;
+                if (pos.y < out_data->extents.min.y || !extent_set) {
+                    out_data->extents.min.y = pos.y;
                 }
-                if (pos.z < out_data->min_extents.z || !extent_set) {
-                    out_data->min_extents.z = pos.z;
+                if (pos.z < out_data->extents.min.z || !extent_set) {
+                    out_data->extents.min.z = pos.z;
                 }
 
                 // Check extents - max
-                if (pos.x > out_data->max_extents.x || !extent_set) {
-                    out_data->max_extents.x = pos.x;
+                if (pos.x > out_data->extents.max.x || !extent_set) {
+                    out_data->extents.max.x = pos.x;
                 }
-                if (pos.y > out_data->max_extents.y || !extent_set) {
-                    out_data->max_extents.y = pos.y;
+                if (pos.y > out_data->extents.max.y || !extent_set) {
+                    out_data->extents.max.y = pos.y;
                 }
-                if (pos.z > out_data->max_extents.z || !extent_set) {
-                    out_data->max_extents.z = pos.z;
+                if (pos.z > out_data->extents.max.z || !extent_set) {
+                    out_data->extents.max.z = pos.z;
                 }
 
                 extent_set = true;
@@ -439,7 +439,7 @@ namespace ResourceSystem
 
         for (uint32 i = 0; i < 3; i++)
         {
-            out_data->center.e[i] = (out_data->min_extents.e[i] + out_data->max_extents.e[i]) / 2.0f;
+            out_data->center.e[i] = (out_data->extents.min.e[i] + out_data->extents.max.e[i]) / 2.0f;
         }
 
         uint32 vertex_count = vertices.count;
@@ -686,8 +686,8 @@ namespace ResourceSystem
 
             ShmeshFileGeometryHeader geo_header = {};
             geo_header.center = g_data.center;
-            geo_header.min_extents = g_data.min_extents;
-            geo_header.max_extents = g_data.max_extents;
+            geo_header.min_extents = g_data.extents.min;
+            geo_header.max_extents = g_data.extents.max;
             geo_header.vertex_size = g_data.vertex_size;
             geo_header.vertex_count = g_data.vertex_count;
             geo_header.index_size = sizeof(uint32);
@@ -764,8 +764,8 @@ namespace ResourceSystem
             read_bytes += sizeof(*geo_header);
 
             g->center = geo_header->center;
-            g->min_extents = geo_header->min_extents;
-            g->max_extents = geo_header->max_extents;
+            g->extents.min = geo_header->min_extents;
+            g->extents.max = geo_header->max_extents;
             g->vertex_size = geo_header->vertex_size;
             g->vertex_count = geo_header->vertex_count;
 

@@ -702,7 +702,7 @@ namespace Renderer::Vulkan
 	}
 
 
-	bool32 vk_geometry_create(GeometryData* geometry)
+	bool32 vk_geometry_load(GeometryData* geometry)
 	{
 
 		if (!geometry->vertices.data)
@@ -774,11 +774,6 @@ namespace Renderer::Vulkan
 			//context->geometry_index_offset += indices_size;
 		}
 
-		if (internal_data->generation == INVALID_ID)
-			internal_data->generation = 0;
-		else
-			internal_data->generation++;
-
 		if (is_reupload)
 		{
 			renderbuffer_free(&context->object_vertex_buffer, old_range.vertex_buffer_offset);
@@ -789,7 +784,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	void vk_geometry_destroy(GeometryData* geometry)
+	void vk_geometry_unload(GeometryData* geometry)
 	{
 		if (geometry->internal_id != INVALID_ID)
 		{
@@ -803,7 +798,6 @@ namespace Renderer::Vulkan
 
 			internal_data = {};
 			internal_data.id = INVALID_ID;
-			internal_data.generation = INVALID_ID;
 		}
 	}
 

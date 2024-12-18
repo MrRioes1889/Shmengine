@@ -8,6 +8,7 @@ name=test_scene
 description=A simple test scene.
 max_meshes_count=10
 max_p_lights_count=10
+max_terrains_count=5
 [/]
 
 [Skybox]
@@ -15,13 +16,13 @@ name=skybox_01
 cubemap_name=skybox
 [/]
 
-[Mesh]
-name=sponza
-resource_name=sponza
-position=15.0 0.0 1.0
-rotation=0.0 0.0 0.0 1.0
-scale=0.05 0.05 0.05
-[/]
+#[Mesh]
+#name=sponza
+#resource_name=sponza
+#position=15.0 0.0 1.0
+#rotation=0.0 0.0 0.0 1.0
+#scale=0.05 0.05 0.05
+#[/]
 
 [Mesh]
 name=falcon
