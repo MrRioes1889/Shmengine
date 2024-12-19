@@ -45,10 +45,8 @@ namespace GeometrySystem
 
         // Invalidate all geometries in the array.
         uint32 count = system_state->config.max_geometry_count;
-        for (uint32 i = 0; i < count; ++i) {
+        for (uint32 i = 0; i < count; ++i)
             system_state->registered_geometries[i].geometry.id = INVALID_ID;
-            system_state->registered_geometries[i].geometry.internal_id = INVALID_ID;
-        }
 
         if (!create_default_geometries()) {
             SHMFATAL("Failed to create default geometries. Application cannot continue.");
@@ -190,7 +188,6 @@ namespace GeometrySystem
 			out_config->indices.steal(g->indices);
 		}
 		
-		g->internal_id = INVALID_ID;
 		g->id = INVALID_ID;
 
 		g->vertices.free_data();
@@ -239,7 +236,6 @@ namespace GeometrySystem
 
 		// Send the geometry off to the renderer to be uploaded to the GPU.
 		system_state->default_geometry.id = INVALID_ID;
-		system_state->default_geometry.internal_id = INVALID_ID;
 		
 		if (!Renderer::geometry_load(&system_state->default_geometry)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
@@ -280,7 +276,6 @@ namespace GeometrySystem
 
 		// Send the geometry off to the renderer to be uploaded to the GPU.
 		system_state->default_geometry_2d.id = INVALID_ID;
-		system_state->default_geometry_2d.internal_id = INVALID_ID;
 		if (!Renderer::geometry_load(&system_state->default_geometry_2d)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;

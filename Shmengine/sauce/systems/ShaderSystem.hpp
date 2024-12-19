@@ -63,7 +63,7 @@ namespace ShaderSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI bool32 create_shader(const Renderer::Renderpass* renderpass,const Renderer::ShaderConfig* config);
+	SHMAPI bool32 create_shader(const Renderer::RenderPass* renderpass,const Renderer::ShaderConfig* config);
 
 	SHMAPI uint32 get_id(const char* shader_name);
 

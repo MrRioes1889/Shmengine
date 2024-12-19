@@ -25,7 +25,7 @@ namespace Renderer::Vulkan
 		VkBuffer handle;
 		VkDeviceMemory memory;
 		void* mapped_memory;
-		bool32 is_locked;		
+		bool32 is_locked;
 		VkBufferUsageFlags usage;
 		int32 memory_index;
 		uint32 memory_property_flags;
@@ -247,13 +247,6 @@ namespace Renderer::Vulkan
 
 	};
 
-	struct VulkanGeometryData
-	{
-		uint32 id;
-		uint64 vertex_buffer_offset;
-		uint64 index_buffer_offset;
-	};
-
 	struct VulkanContext
 	{
 		int32(*find_memory_index)(uint32 type_filter, uint32 property_flags);	
@@ -265,12 +258,7 @@ namespace Renderer::Vulkan
 
 		VulkanSwapchain swapchain;
 
-		Renderbuffer object_vertex_buffer;
-		Renderbuffer object_index_buffer;
-
 		Renderer::RenderTarget world_render_targets[RendererConfig::frames_count];
-
-		VulkanGeometryData geometries[RendererConfig::max_geometry_count];
 
 		Sarray<VulkanCommandBuffer> graphics_command_buffers = {};
 

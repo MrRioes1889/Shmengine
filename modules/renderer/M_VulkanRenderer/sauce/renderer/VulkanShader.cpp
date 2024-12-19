@@ -17,7 +17,7 @@ namespace Renderer::Vulkan
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
 
-	bool32 vk_shader_create(Shader* shader, const ShaderConfig* config, const Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
+	bool32 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
 	{
 
 		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::RENDERER);
@@ -590,7 +590,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_shader_acquire_instance_resources(Shader* s, TextureMap** maps, uint32* out_instance_id)
+	bool32 vk_shader_acquire_instance_resources(Shader* s, uint32 maps_count, TextureMap** maps, uint32* out_instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;

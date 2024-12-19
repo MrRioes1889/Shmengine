@@ -208,7 +208,7 @@ namespace RenderViewSystem
 	{
 		for (uint32 p = 0; p < view->renderpasses.capacity; p++)
 		{
-			Renderer::Renderpass* pass = &view->renderpasses[p];
+			Renderer::RenderPass* pass = &view->renderpasses[p];
 
 			for (uint32 rt = 0; rt < pass->render_targets.capacity; rt++)
 			{

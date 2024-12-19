@@ -143,7 +143,7 @@ bool32 application_boot(Application* app_inst)
 	skybox_view_config->name = "skybox";
 	skybox_view_config->view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
 
-	Renderer::RenderpassConfig* skybox_pass = &skybox_view_config->pass_configs[0];
+	Renderer::RenderPassConfig* skybox_pass = &skybox_view_config->pass_configs[0];
 	skybox_pass->name = "Renderpass.Builtin.Skybox";
 	skybox_pass->dim = { 1600, 900 };
 	skybox_pass->offset = { 0, 0 };
@@ -168,7 +168,7 @@ bool32 application_boot(Application* app_inst)
 	world_view_config->name = "world";
 	world_view_config->view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
 
-	Renderer::RenderpassConfig* world_pass = &world_view_config->pass_configs[0];
+	Renderer::RenderPassConfig* world_pass = &world_view_config->pass_configs[0];
 	world_pass->name = "Renderpass.Builtin.World";
 	world_pass->dim = { 1600, 900 };
 	world_pass->offset = { 0, 0 };
@@ -200,7 +200,7 @@ bool32 application_boot(Application* app_inst)
 	ui_view_config->name = "ui";
 	ui_view_config->view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
 
-	Renderer::RenderpassConfig* ui_pass = &ui_view_config->pass_configs[0];
+	Renderer::RenderPassConfig* ui_pass = &ui_view_config->pass_configs[0];
 	ui_pass->name = "Renderpass.Builtin.UI";
 	ui_pass->dim = { 1600, 900 };
 	ui_pass->offset = { 0, 0 };
@@ -226,8 +226,8 @@ bool32 application_boot(Application* app_inst)
 	pick_view_config->name = "pick";
 	pick_view_config->view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
 
-	Renderer::RenderpassConfig* world_pick_pass = &pick_view_config->pass_configs[0];
-	Renderer::RenderpassConfig* ui_pick_pass = &pick_view_config->pass_configs[1];
+	Renderer::RenderPassConfig* world_pick_pass = &pick_view_config->pass_configs[0];
+	Renderer::RenderPassConfig* ui_pick_pass = &pick_view_config->pass_configs[1];
 
 	world_pick_pass->name = "Renderpass.Builtin.WorldPick";
 	world_pick_pass->dim = { 1600, 900 };

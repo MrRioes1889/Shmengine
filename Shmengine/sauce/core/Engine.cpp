@@ -148,7 +148,7 @@ namespace Engine
 			Renderer::RenderViewConfig* view_config = &config->render_view_configs[i];
 			for (uint32 j = 0; j < view_config->pass_configs.capacity; j++)
 			{
-				Renderer::RenderpassConfig* pass_config = &view_config->pass_configs[j];
+				Renderer::RenderPassConfig* pass_config = &view_config->pass_configs[j];
 				pass_config->target_config.attachment_configs.free_data();
 			}
 			view_config->pass_configs.free_data();

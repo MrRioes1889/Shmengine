@@ -156,7 +156,7 @@ namespace Renderer
 		for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
 		{
 
-			Renderpass* renderpass = &self->renderpasses[rp];
+			RenderPass* renderpass = &self->renderpasses[rp];
 
 			if (!renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 			{

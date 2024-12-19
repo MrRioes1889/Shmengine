@@ -18,8 +18,8 @@ struct UIText
 	UniqueId unique_id;
 	uint32 instance_id;
 	FontAtlas* font_atlas;
-	Renderer::Renderbuffer vertex_buffer;
-	Renderer::Renderbuffer index_buffer;
+	Renderer::RenderBuffer vertex_buffer;
+	Renderer::RenderBuffer index_buffer;
 	String text;
 	Math::Transform transform;
 	uint64 render_frame_number;

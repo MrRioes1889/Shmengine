@@ -19,8 +19,9 @@ namespace Renderer::Vulkan
 
 		out_module->init = Vulkan::init;
 		out_module->shutdown = Vulkan::shutdown;
-		out_module->begin_frame = Vulkan::begin_frame;
-		out_module->end_frame = Vulkan::end_frame;
+		out_module->device_sleep_till_idle = Vulkan::vk_device_sleep_till_idle;
+		out_module->begin_frame = Vulkan::vk_begin_frame;
+		out_module->end_frame = Vulkan::vk_end_frame;
 		out_module->renderpass_create = Vulkan::vk_renderpass_create;
 		out_module->renderpass_destroy = Vulkan::vk_renderpass_destroy;
 		out_module->renderpass_begin = Vulkan::vk_renderpass_begin;
@@ -28,7 +29,7 @@ namespace Renderer::Vulkan
 		out_module->render_target_create = Vulkan::vk_render_target_create;
 		out_module->render_target_destroy = Vulkan::vk_render_target_destroy;
 		out_module->on_resized = Vulkan::on_resized;
-		out_module->geometry_draw = Vulkan::vk_geometry_draw;
+
 		out_module->texture_create = Vulkan::vk_texture_create;
 		out_module->texture_create_writable = Vulkan::vk_texture_create_writable;
 		out_module->texture_resize = Vulkan::vk_texture_resize;
@@ -36,8 +37,6 @@ namespace Renderer::Vulkan
 		out_module->texture_read_data = Vulkan::vk_texture_read_data;
 		out_module->texture_read_pixel = Vulkan::vk_texture_read_pixel;
 		out_module->texture_destroy = Vulkan::vk_texture_destroy;
-		out_module->geometry_load = Vulkan::vk_geometry_load;
-		out_module->geometry_unload = Vulkan::vk_geometry_unload;
 
 		out_module->shader_create = Vulkan::vk_shader_create;
 		out_module->shader_destroy = Vulkan::vk_shader_destroy;

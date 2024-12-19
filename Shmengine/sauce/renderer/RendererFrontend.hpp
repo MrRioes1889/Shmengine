@@ -25,7 +25,7 @@ namespace Renderer
 
 	bool32 draw_frame(RenderPacket* data, const FrameData* frame_data);
 
-	bool32 render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target);
+	bool32 render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, RenderPass* pass, uint32 width, uint32 height, RenderTarget* out_target);
 	void render_target_destroy(RenderTarget* target, bool32 free_internal_memory);
 
 	void set_viewport(Math::Vec4f rect);
@@ -39,11 +39,11 @@ namespace Renderer
 	uint32 get_window_attachment_index();
 	SHMAPI uint32 get_window_attachment_count();
 
-	bool32 renderpass_create(const RenderpassConfig* config, Renderpass* out_renderpass);
-	void renderpass_destroy(Renderpass* pass);
+	bool32 renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass);
+	void renderpass_destroy(RenderPass* pass);
 
-	bool32 renderpass_begin(Renderpass* pass, RenderTarget* target);
-	bool32 renderpass_end(Renderpass* pass);
+	bool32 renderpass_begin(RenderPass* pass, RenderTarget* target);
+	bool32 renderpass_end(RenderPass* pass);
 
 	void texture_create(const void* pixels, Texture* texture);
 	void texture_create_writable(Texture * texture);
@@ -58,7 +58,7 @@ namespace Renderer
 
 	void geometry_draw(const GeometryRenderData& data);
 
-	bool32 shader_create(Shader* shader, const ShaderConfig* config, const Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 	void shader_destroy(Shader* shader);
 
 	bool32 shader_init(Shader* shader);
@@ -70,7 +70,7 @@ namespace Renderer
 	bool32 shader_apply_globals(Shader* shader);
 	bool32 shader_apply_instance(Shader* shader, bool32 needs_update);
 
-	bool32 shader_acquire_instance_resources(Shader* shader, TextureMap** maps, uint32* out_instance_id);
+	bool32 shader_acquire_instance_resources(Shader* shader, uint32 maps_count, TextureMap** maps, uint32* out_instance_id);
 	bool32 shader_release_instance_resources(Shader* shader, uint32 instance_id);
 
 	bool32 shader_set_uniform(Shader* shader, ShaderUniform* uniform, const void* value);
@@ -78,20 +78,20 @@ namespace Renderer
 	bool32 texture_map_acquire_resources(TextureMap* out_map);
 	void texture_map_release_resources(TextureMap* out_map);
 
-	SHMAPI bool32 renderbuffer_create(RenderbufferType type, uint64 size, bool32 use_freelist, Renderbuffer* out_buffer);
-	SHMAPI void renderbuffer_destroy(Renderbuffer* buffer);
-	SHMAPI bool32 renderbuffer_bind(Renderbuffer* buffer, uint64 offset);
-	SHMAPI bool32 renderbuffer_unbind(Renderbuffer* buffer);
-	SHMAPI void* renderbuffer_map_memory(Renderbuffer* buffer, uint64 offset, uint64 size);
-	SHMAPI void renderbuffer_unmap_memory(Renderbuffer* buffer);
-	SHMAPI bool32 renderbuffer_flush(Renderbuffer* buffer, uint64 offset, uint64 size);
-	SHMAPI bool32 renderbuffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void* out_memory);
-	SHMAPI bool32 renderbuffer_resize(Renderbuffer* buffer, uint64 new_total_size);
-	SHMAPI bool32 renderbuffer_allocate(Renderbuffer* buffer, uint64 size, uint64* out_offset);
-	SHMAPI void renderbuffer_free(Renderbuffer* buffer, uint64 offset);
-	SHMAPI bool32 renderbuffer_load_range(Renderbuffer* buffer, uint64 offset, uint64 size, const void* data);
-	SHMAPI bool32 renderbuffer_copy_range(Renderbuffer* source, uint64 source_offset, Renderbuffer* dest, uint64 dest_offset, uint64 size);
-	SHMAPI bool32 renderbuffer_draw(Renderbuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only);
+	SHMAPI bool32 renderbuffer_create(const char* name, RenderBufferType type, uint64 size, bool32 use_freelist, RenderBuffer* out_buffer);
+	SHMAPI void renderbuffer_destroy(RenderBuffer* buffer);
+	SHMAPI bool32 renderbuffer_bind(RenderBuffer* buffer, uint64 offset);
+	SHMAPI bool32 renderbuffer_unbind(RenderBuffer* buffer);
+	SHMAPI void* renderbuffer_map_memory(RenderBuffer* buffer, uint64 offset, uint64 size);
+	SHMAPI void renderbuffer_unmap_memory(RenderBuffer* buffer);
+	SHMAPI bool32 renderbuffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size);
+	SHMAPI bool32 renderbuffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory);
+	SHMAPI bool32 renderbuffer_resize(RenderBuffer* buffer, uint64 new_total_size);
+	SHMAPI bool32 renderbuffer_allocate(RenderBuffer* buffer, uint64 size, uint64* out_offset);
+	SHMAPI void renderbuffer_free(RenderBuffer* buffer, uint64 offset);
+	SHMAPI bool32 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data);
+	SHMAPI bool32 renderbuffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size);
+	SHMAPI bool32 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only);
 
 	bool8 is_multithreaded();
 

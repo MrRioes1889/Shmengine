@@ -376,7 +376,7 @@ namespace MaterialSystem
         }
 
         TextureMap* maps[3] = { &m->diffuse_map, &m->specular_map, &m->normal_map };
-        if (!Renderer::shader_acquire_instance_resources(s, maps, &m->internal_id)) {
+        if (!Renderer::shader_acquire_instance_resources(s, 3, maps, &m->internal_id)) {
             SHMERRORV("Failed to acquire resources for material '%s'.", m->name);
             return false;
         }
@@ -438,7 +438,7 @@ namespace MaterialSystem
 
         Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material);
         TextureMap* maps[3] = { &system_state->default_material.diffuse_map, &system_state->default_material.specular_map, &system_state->default_material.normal_map };
-        if (!Renderer::shader_acquire_instance_resources(s, maps, &system_state->default_material.internal_id))
+        if (!Renderer::shader_acquire_instance_resources(s, 3, maps, &system_state->default_material.internal_id))
         {
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;

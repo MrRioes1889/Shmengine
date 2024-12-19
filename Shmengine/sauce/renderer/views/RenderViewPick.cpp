@@ -15,7 +15,7 @@
 
 struct RenderViewPickShaderInfo {
 	Renderer::Shader* shader;
-	Renderer::Renderpass* pass;
+	Renderer::RenderPass* pass;
 
 	uint16 id_color_location;
 	uint16 model_location;
@@ -76,13 +76,13 @@ namespace Renderer
 		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
 
 		uint32 instance_id;
-		if (!Renderer::shader_acquire_instance_resources(data->ui_shader_info.shader, 0, &instance_id))
+		if (!Renderer::shader_acquire_instance_resources(data->ui_shader_info.shader, 0, 0, &instance_id))
 		{
 			SHMFATAL("Failed to acquire shader instance resources.");
 			return;
 		}
 
-		if (!Renderer::shader_acquire_instance_resources(data->world_shader_info.shader, 0, &instance_id))
+		if (!Renderer::shader_acquire_instance_resources(data->world_shader_info.shader, 0, 0, &instance_id))
 		{
 			SHMFATAL("Failed to acquire shader instance resources.");
 			return;
@@ -292,7 +292,7 @@ namespace Renderer
 		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
 
 		uint32 pass_i = 0;
-		Renderpass* pass = &self->renderpasses[pass_i];
+		RenderPass* pass = &self->renderpasses[pass_i];
 
 		if (render_target_index == 0)
 		{

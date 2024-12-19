@@ -41,7 +41,7 @@ bool32 ui_text_create(UITextType type, const char* font_name, uint16 font_size, 
 
     Renderer::Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
     TextureMap* font_maps[1] = { &out_text->font_atlas->map };
-    if (!Renderer::shader_acquire_instance_resources(ui_shader, font_maps, &out_text->instance_id))
+    if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, font_maps, &out_text->instance_id))
     {
         SHMFATAL("ui_text_create - Unable to acquire shader resources for font texture map.");
         ui_text_destroy(out_text);
@@ -53,7 +53,9 @@ bool32 ui_text_create(UITextType type, const char* font_name, uint16 font_size, 
     if (text_length < 1)
         text_length = 1;
 
-    if (!Renderer::renderbuffer_create(Renderer::RenderbufferType::VERTEX, quad_vertex_size * text_length, true, &out_text->vertex_buffer))
+    char vertex_buffer_name[max_buffer_name_length];
+    CString::print_s(vertex_buffer_name, max_buffer_name_length, "%s_%u_%s", font_name, out_text->unique_id, "_v_buf");
+    if (!Renderer::renderbuffer_create(vertex_buffer_name, Renderer::RenderBufferType::VERTEX, quad_vertex_size * text_length, true, &out_text->vertex_buffer))
     {
         SHMFATAL("ui_text_create - Failed to create vertex buffer.");
         ui_text_destroy(out_text);
@@ -63,7 +65,9 @@ bool32 ui_text_create(UITextType type, const char* font_name, uint16 font_size, 
 
     static const uint64 quad_index_size = (sizeof(uint32) * quad_index_count);
 
-    if (!Renderer::renderbuffer_create(Renderer::RenderbufferType::INDEX, quad_index_size * text_length, true, &out_text->index_buffer))
+    char index_buffer_name[max_buffer_name_length];
+    CString::print_s(index_buffer_name, max_buffer_name_length, "%s_%u_%s", font_name, out_text->unique_id, "_i_buf");
+    if (!Renderer::renderbuffer_create(index_buffer_name, Renderer::RenderBufferType::INDEX, quad_index_size * text_length, true, &out_text->index_buffer))
     {
         SHMFATAL("ui_text_create - Failed to create index buffer.");
         ui_text_destroy(out_text);

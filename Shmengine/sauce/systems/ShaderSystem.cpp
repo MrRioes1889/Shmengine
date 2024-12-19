@@ -131,7 +131,7 @@ namespace ShaderSystem
 		system_state = 0;
 	}
 
-	bool32 create_shader(const Renderer::Renderpass* renderpass, const Renderer::ShaderConfig* config)
+	bool32 create_shader(const Renderer::RenderPass* renderpass, const Renderer::ShaderConfig* config)
 	{
 
 		using namespace Renderer;

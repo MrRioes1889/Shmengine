@@ -61,6 +61,7 @@ namespace Renderer::Vulkan
 		memory_allocate_info.allocationSize = out_image->memory_requirements.size;
 		memory_allocate_info.memoryTypeIndex = memory_type;
 		VK_CHECK(vkAllocateMemory(context->device.logical_device, &memory_allocate_info, context->allocator_callbacks, &out_image->memory));
+		//vk_debug_set_object_name(context, VK_OBJECT_TYPE_DEVICE_MEMORY, &out_image->memory, out_image->name)
 		VK_CHECK(vkBindImageMemory(context->device.logical_device, out_image->handle, out_image->memory, 0)); // TODO: Add configurable memory offset
 
 		bool32 is_device_memory = (out_image->memory_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

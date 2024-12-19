@@ -3,7 +3,7 @@
 #include "VulkanTypes.hpp"
 
 enum class TextureType;
-namespace Renderer { enum class RenderbufferType; }
+namespace Renderer { enum class RenderBufferType; }
 
 namespace Renderer::Vulkan
 {	
@@ -35,7 +35,7 @@ namespace Renderer::Vulkan
 	bool32 vk_swapchain_acquire_next_image_index(VulkanSwapchain* swapchain, uint64 timeout_ns, VkSemaphore image_available_semaphore, VkFence fence, uint32* out_image_index);
 	void vk_swapchain_present(VulkanSwapchain* swapchain, VkQueue present_queue, VkSemaphore render_complete_semaphore, uint32 present_image_index);
 
-	bool32 vk_buffer_create_internal(VulkanBuffer* buffer, RenderbufferType type, uint64 size);
+	bool32 vk_buffer_create_internal(VulkanBuffer* buffer, RenderBufferType type, uint64 size, const char* name);
 	void vk_buffer_destroy_internal(VulkanBuffer* buffer);
 	bool32 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size);
 	void* vk_buffer_map_memory_internal(VulkanBuffer* buffer, uint64 offset, uint64 size);

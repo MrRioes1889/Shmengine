@@ -10,7 +10,7 @@ struct GeometryData
 {
 
 	uint32 id;
-	uint32 internal_id;
+	bool8 loaded;
 	Math::Vec3f center;
 	Math::Extents3D extents;
 	char name[max_geometry_name_length];
@@ -19,6 +19,9 @@ struct GeometryData
 	uint32 vertex_count;
 	Sarray<byte> vertices;
 	Sarray<uint32> indices;
+
+	uint64 vertex_buffer_offset;
+	uint64 index_buffer_offset;
 
 };
 

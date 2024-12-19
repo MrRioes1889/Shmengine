@@ -27,10 +27,10 @@ namespace Renderer::Vulkan
 		return (buffer->memory_property_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
 
-	bool32 vk_buffer_create(Renderbuffer* buffer)
+	bool32 vk_buffer_create(RenderBuffer* buffer)
 	{
 		buffer->internal_data.init(sizeof(VulkanBuffer), 0, AllocationTag::VULKAN);
-		if (!vk_buffer_create_internal((VulkanBuffer*)buffer->internal_data.data, buffer->type, buffer->size))
+		if (!vk_buffer_create_internal((VulkanBuffer*)buffer->internal_data.data, buffer->type, buffer->size, buffer->name.c_str()))
 		{
 			buffer->internal_data.free_data();
 			return false;
@@ -39,44 +39,44 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_buffer_create_internal(VulkanBuffer* buffer, RenderbufferType type, uint64 size)
+	bool32 vk_buffer_create_internal(VulkanBuffer* buffer, RenderBufferType type, uint64 size, const char* name)
 	{
 
 		switch (type) {
-		case RenderbufferType::VERTEX:
+		case RenderBufferType::VERTEX:
 		{
 			buffer->usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			//buffer->memory_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; //| VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			buffer->memory_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			break;
 		}		
-		case RenderbufferType::INDEX:
+		case RenderBufferType::INDEX:
 		{
 			buffer->usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			//buffer->memory_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; //| VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			buffer->memory_property_flags =  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			break;
 		}		
-		case RenderbufferType::UNIFORM:
+		case RenderBufferType::UNIFORM:
 		{
 			uint32 device_local_bits = context->device.supports_device_local_host_visible ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
 			buffer->usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			buffer->memory_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | device_local_bits;
 			break;
 		}	
-		case RenderbufferType::STAGING:
+		case RenderBufferType::STAGING:
 		{
 			buffer->usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			buffer->memory_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			break;
 		}
-		case RenderbufferType::READ:
+		case RenderBufferType::READ:
 		{
 			buffer->usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			buffer->memory_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			break;
 		}
-		case RenderbufferType::STORAGE:
+		case RenderBufferType::STORAGE:
 		{
 			SHMERROR("Storage buffer not yet supported.");
 			return false;
@@ -127,7 +127,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	void vk_buffer_destroy(Renderbuffer* buffer)
+	void vk_buffer_destroy(RenderBuffer* buffer)
 	{
 		if (!buffer->internal_data.data)
 			return;
@@ -161,7 +161,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_buffer_resize(Renderbuffer* buffer, uint64 new_size)
+	bool32 vk_buffer_resize(RenderBuffer* buffer, uint64 new_size)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_resize_internal(internal_buffer, buffer->size, new_size);
@@ -233,7 +233,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_buffer_bind(Renderbuffer* buffer, uint64 offset)
+	bool32 vk_buffer_bind(RenderBuffer* buffer, uint64 offset)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_bind_internal(internal_buffer, offset);
@@ -245,7 +245,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_buffer_unbind(Renderbuffer* buffer)
+	bool32 vk_buffer_unbind(RenderBuffer* buffer)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_unbind_internal(internal_buffer);
@@ -256,7 +256,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	void* vk_buffer_map_memory(Renderbuffer* buffer, uint64 offset, uint64 size)
+	void* vk_buffer_map_memory(RenderBuffer* buffer, uint64 offset, uint64 size)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_map_memory_internal(internal_buffer, offset, size);
@@ -271,7 +271,7 @@ namespace Renderer::Vulkan
 		return buffer->mapped_memory;
 	}
 
-	void vk_buffer_unmap_memory(Renderbuffer* buffer)
+	void vk_buffer_unmap_memory(RenderBuffer* buffer)
 	{		
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		vk_buffer_unmap_memory_internal(internal_buffer);
@@ -286,7 +286,7 @@ namespace Renderer::Vulkan
 		buffer->mapped_memory = 0;
 	}
 
-	bool32 vk_buffer_flush(Renderbuffer* buffer, uint64 offset, uint64 size)
+	bool32 vk_buffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		if (!buffer_is_host_coherent(internal_buffer))
@@ -301,7 +301,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_buffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void* out_memory)
+	bool32 vk_buffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_read_internal(internal_buffer, offset, size, out_memory);
@@ -320,7 +320,7 @@ namespace Renderer::Vulkan
 		}
 
 		VulkanBuffer read;
-		if (!vk_buffer_create_internal(&read, RenderbufferType::READ, size)) {
+		if (!vk_buffer_create_internal(&read, RenderBufferType::READ, size, "temp_read_buffer")) {
 			SHMERROR("vk_buffer_read - Failed to create read buffer.");
 			return false;
 		}
@@ -342,7 +342,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_buffer_load_range(Renderbuffer* buffer, uint64 offset, uint64 size, const void* data)
+	bool32 vk_buffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
 
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
@@ -364,8 +364,8 @@ namespace Renderer::Vulkan
 		}
 		
 		VulkanBuffer staging;		
-		if (!vk_buffer_create_internal(&staging, RenderbufferType::STAGING, size)) {
-			SHMERROR("vk_buffer_read - failed to create read buffer.");
+		if (!vk_buffer_create_internal(&staging, RenderBufferType::STAGING, size, "load_range_staging_buffer")) {
+			SHMERROR("Failed to create staging buffer.");
 			return false;
 		}		
 		vk_buffer_bind_internal(&staging, 0);
@@ -380,20 +380,20 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_buffer_copy_range(Renderbuffer* source, uint64 source_offset, Renderbuffer* dest, uint64 dest_offset, uint64 size)
+	bool32 vk_buffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size)
 	{
 		VulkanBuffer* source_v_buffer = (VulkanBuffer*)source->internal_data.data;
 		VulkanBuffer* dest_v_buffer = (VulkanBuffer*)dest->internal_data.data;
 		return vk_buffer_copy_range_internal(source_v_buffer->handle, source_offset, dest_v_buffer->handle, dest_offset, size);
 	}
 
-	bool32 vk_buffer_draw(Renderbuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
+	bool32 vk_buffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
 	{
 
 		VulkanCommandBuffer& command_buffer = context->graphics_command_buffers[context->image_index];
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 
-		if (buffer->type == RenderbufferType::VERTEX)
+		if (buffer->type == RenderBufferType::VERTEX)
 		{
 			VkDeviceSize offsets[1] = { offset };
 			vkCmdBindVertexBuffers(command_buffer.handle, 0, 1, &internal_buffer->handle, offsets);
@@ -402,7 +402,7 @@ namespace Renderer::Vulkan
 			return true;
 		}
 
-		if (buffer->type == RenderbufferType::INDEX)
+		if (buffer->type == RenderBufferType::INDEX)
 		{
 			vkCmdBindIndexBuffer(command_buffer.handle, internal_buffer->handle, offset, VK_INDEX_TYPE_UINT32);
 			if (!bind_only)

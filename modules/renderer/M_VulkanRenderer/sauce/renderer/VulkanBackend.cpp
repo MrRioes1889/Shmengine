@@ -238,27 +238,6 @@ namespace Renderer::Vulkan
 		for (uint32 i = 0; i < 3; i++)
 			context->images_in_flight[i] = 0;
 
-		uint64 vertex_buffer_size = sizeof(Vertex3D) * 1024 * 1024;
-		if (!renderbuffer_create(RenderbufferType::VERTEX, vertex_buffer_size, true, &context->object_vertex_buffer))
-		{
-			SHMERROR("Error creating vertex buffer");
-			return false;
-		}
-		renderbuffer_bind(&context->object_vertex_buffer, 0);
-
-		uint64 index_buffer_size = sizeof(uint32) * 1024 * 1024;
-		if (!renderbuffer_create(RenderbufferType::INDEX, index_buffer_size, true, &context->object_index_buffer))
-		{
-			SHMERROR("Error creating index buffer");
-			return false;
-		}
-		renderbuffer_bind(&context->object_index_buffer, 0);
-
-		for (uint32 i = 0; i < RendererConfig::max_geometry_count; i++)
-		{
-			context->geometries[i].id = INVALID_ID;
-		}
-
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
 	}
@@ -267,10 +246,6 @@ namespace Renderer::Vulkan
 	{		
 
 		vkDeviceWaitIdle(context->device.logical_device);
-
-		SHMDEBUG("Destroying vulkan buffers...");
-		renderbuffer_destroy(&context->object_vertex_buffer);
-		renderbuffer_destroy(&context->object_index_buffer);
 
 		SHMDEBUG("Destroying vulkan semaphores and fences...");
 		for (uint32 i = 0; i < context->swapchain.max_frames_in_flight; i++)
@@ -324,6 +299,10 @@ namespace Renderer::Vulkan
 		}
 	}
 
+	void vk_device_sleep_till_idle()
+	{
+		vkDeviceWaitIdle(context->device.logical_device);
+	}
 
 	void on_config_changed()
 	{
@@ -339,7 +318,7 @@ namespace Renderer::Vulkan
 		//SHMINFOV("Vulkan renderer backend->resize: w/h/gen: %u/%u/%u", width, height, context->framebuffer_size_generation);
 	}
 
-	bool32 begin_frame(const FrameData* frame_data)
+	bool32 vk_begin_frame(const FrameData* frame_data)
 	{
 		
 		OPTICK_EVENT();
@@ -404,7 +383,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 end_frame(const FrameData* frame_data)
+	bool32 vk_end_frame(const FrameData* frame_data)
 	{
 		
 		OPTICK_EVENT("end_frame - pre fence wait");
@@ -597,7 +576,7 @@ namespace Renderer::Vulkan
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 
 		VulkanBuffer staging;
-		if (!vk_buffer_create_internal(&staging, RenderbufferType::STAGING, size)) {
+		if (!vk_buffer_create_internal(&staging, RenderBufferType::STAGING, size, "texture_write_staging_buffer")) {
 			SHMERROR("Failed to create staging buffer.");
 			return false;
 		}
@@ -630,7 +609,7 @@ namespace Renderer::Vulkan
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 
 		VulkanBuffer read;
-		if (!vk_buffer_create_internal(&read, RenderbufferType::READ, size)) {
+		if (!vk_buffer_create_internal(&read, RenderBufferType::READ, size, "rexture_read_data_read_buffer")) {
 			SHMERROR("Failed to create read buffer.");
 			return false;
 		}
@@ -664,7 +643,7 @@ namespace Renderer::Vulkan
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 
 		VulkanBuffer read;
-		if (!vk_buffer_create_internal(&read, RenderbufferType::READ, sizeof(uint32)))
+		if (!vk_buffer_create_internal(&read, RenderBufferType::READ, sizeof(uint32), "texture_read_pixel_read_buffer"))
 		{
 			SHMERROR("Failed to create read buffer.");
 			return false;
@@ -699,121 +678,6 @@ namespace Renderer::Vulkan
 		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 		if (image)
 			vk_image_destroy(image);			
-	}
-
-
-	bool32 vk_geometry_load(GeometryData* geometry)
-	{
-
-		if (!geometry->vertices.data)
-		{
-			SHMERROR("create_geometry - Supplied vertex and/or index buffer invalid!");
-			return false;
-		}
-
-		bool32 is_reupload = geometry->internal_id != INVALID_ID;
-		VulkanGeometryData old_range = {};
-
-		VulkanGeometryData* internal_data = 0;
-		if (is_reupload)
-		{
-			internal_data = &context->geometries[geometry->internal_id];
-			old_range = *internal_data;
-		}
-		else
-		{
-			for (uint32 i = 0; i < RendererConfig::max_geometry_count; i++)
-			{
-				if (context->geometries[i].id == INVALID_ID)
-				{
-					geometry->internal_id = i;
-					context->geometries[i].id = i;
-					internal_data = &context->geometries[i];
-					break;
-				}
-			}
-		}
-
-		if (!internal_data)
-		{
-			SHMFATAL("create_geometry - Could not find a free slot for creating vulkan geometry!");
-			return false;
-		}
-
-		uint32 vertices_size = geometry->vertex_count * geometry->vertex_size;
-
-		if (!renderbuffer_allocate(&context->object_vertex_buffer, vertices_size, &internal_data->vertex_buffer_offset))
-		{
-			SHMERROR("vk_geometry_create - Failed to allocate memory from vertex buffer.");
-			return false;
-		}
-
-		if (!renderbuffer_load_range(&context->object_vertex_buffer, internal_data->vertex_buffer_offset, vertices_size, geometry->vertices.data))
-		{
-			SHMERROR("vk_geometry_create - Failed to load data into vertex buffer.");
-			return false;
-		}
-
-		//context->geometry_vertex_offset += vertices_size;
-
-		if (geometry->indices.data)
-		{
-			uint32 indices_size = geometry->indices.capacity * sizeof(geometry->indices[0]);
-
-			if (!renderbuffer_allocate(&context->object_index_buffer, indices_size, &internal_data->index_buffer_offset))
-			{
-				SHMERROR("vk_geometry_create - Failed to allocate memory from index buffer.");
-				return false;
-			}
-
-			if (!renderbuffer_load_range(&context->object_index_buffer, internal_data->index_buffer_offset, indices_size, geometry->indices.data))
-			{
-				SHMERROR("vk_geometry_create - Failed to load data into index buffer.");
-				return false;
-			}
-			//context->geometry_index_offset += indices_size;
-		}
-
-		if (is_reupload)
-		{
-			renderbuffer_free(&context->object_vertex_buffer, old_range.vertex_buffer_offset);
-			if (geometry->indices.data)
-				renderbuffer_free(&context->object_index_buffer, old_range.index_buffer_offset);
-		}
-
-		return true;
-	}
-
-	void vk_geometry_unload(GeometryData* geometry)
-	{
-		if (geometry->internal_id != INVALID_ID)
-		{
-			vkDeviceWaitIdle(context->device.logical_device);
-
-			VulkanGeometryData& internal_data = context->geometries[geometry->internal_id];
-
-			renderbuffer_free(&context->object_vertex_buffer, internal_data.vertex_buffer_offset);
-			if (geometry->indices.data)
-				renderbuffer_free(&context->object_index_buffer, internal_data.index_buffer_offset);
-
-			internal_data = {};
-			internal_data.id = INVALID_ID;
-		}
-	}
-
-	void vk_geometry_draw(const GeometryRenderData& data)
-	{
-
-		if (!data.geometry || data.geometry->internal_id == INVALID_ID)
-			return;
-
-		VulkanGeometryData& buffer_data = context->geometries[data.geometry->internal_id];
-		bool32 includes_indices = data.geometry->indices.capacity > 0;
-
-		vk_buffer_draw(&context->object_vertex_buffer, buffer_data.vertex_buffer_offset, data.geometry->vertex_count, includes_indices);
-		if (includes_indices)
-			vk_buffer_draw(&context->object_index_buffer, buffer_data.index_buffer_offset, data.geometry->indices.capacity, false);
-
 	}
 
 	Texture* vk_get_color_attachment(uint32 index)

@@ -28,6 +28,9 @@ namespace Renderer
 		Renderer::Module module;
 		void* module_context;
 
+		RenderBuffer general_vertex_buffer;
+		RenderBuffer general_index_buffer;
+
 		uint32 framebuffer_width;
 		uint32 framebuffer_height;
 
@@ -72,6 +75,22 @@ namespace Renderer
 			return false;
 		}
 
+		uint64 vertex_buffer_size = Mebibytes(64);
+		if (!renderbuffer_create("s_general_vertex_buffer", RenderBufferType::VERTEX, vertex_buffer_size, true, &system_state->general_vertex_buffer))
+		{
+			SHMERROR("Error creating vertex buffer");
+			return false;
+		}
+		renderbuffer_bind(&system_state->general_vertex_buffer, 0);
+
+		uint64 index_buffer_size = Mebibytes(8);
+		if (!renderbuffer_create("s_general_index_buffer", RenderBufferType::INDEX, index_buffer_size, true, &system_state->general_index_buffer))
+		{
+			SHMERROR("Error creating index buffer");
+			return false;
+		}
+		renderbuffer_bind(&system_state->general_index_buffer, 0);
+
 		return true;
 	}
 
@@ -79,6 +98,9 @@ namespace Renderer
 	{
 		if (!system_state)
 			return;
+
+		renderbuffer_destroy(&system_state->general_vertex_buffer);
+		renderbuffer_destroy(&system_state->general_index_buffer);
 
 		system_state->module.shutdown();
 		if (system_state->module_context)
@@ -166,7 +188,7 @@ namespace Renderer
 		
 	}
 
-	bool32 render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, Renderpass* pass, uint32 width, uint32 height, RenderTarget* out_target)
+	bool32 render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, RenderPass* pass, uint32 width, uint32 height, RenderTarget* out_target)
 	{
 		return system_state->module.render_target_create(attachment_count, attachments, pass, width, height, out_target);
 	}
@@ -216,7 +238,7 @@ namespace Renderer
 		return system_state->module.get_window_attachment_count();
 	}
 
-	bool32 renderpass_create(const RenderpassConfig* config, Renderpass* out_renderpass)
+	bool32 renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass)
 	{
 
 		if (config->render_target_count <= 0)
@@ -253,7 +275,7 @@ namespace Renderer
 
 	}
 
-	void renderpass_destroy(Renderpass* pass)
+	void renderpass_destroy(RenderPass* pass)
 	{
 		system_state->module.renderpass_destroy(pass);
 
@@ -263,12 +285,12 @@ namespace Renderer
 		pass->name.free_data();
 	}
 
-	bool32 renderpass_begin(Renderpass* pass, RenderTarget* target)
+	bool32 renderpass_begin(RenderPass* pass, RenderTarget* target)
 	{
 		return system_state->module.renderpass_begin(pass, target);
 	}
 
-	bool32 renderpass_end(Renderpass* pass)
+	bool32 renderpass_end(RenderPass* pass)
 	{
 		return system_state->module.renderpass_end(pass);
 	}
@@ -311,23 +333,87 @@ namespace Renderer
 
 	bool32 geometry_load(GeometryData* geometry)
 	{
-		return system_state->module.geometry_load(geometry);
+		if (!geometry->vertices.data)
+		{
+			SHMERROR("Supplied vertex and/or index buffer invalid!");
+			return false;
+		}
+
+		uint32 vertices_size = geometry->vertex_count * geometry->vertex_size;
+		uint64 old_vertex_buffer_offset = geometry->vertex_buffer_offset;
+		uint64 old_index_buffer_offset = geometry->index_buffer_offset;
+
+		if (!renderbuffer_allocate(&system_state->general_vertex_buffer, vertices_size, &geometry->vertex_buffer_offset))
+		{
+			SHMERROR("Failed to allocate memory from vertex buffer.");
+			return false;
+		}
+
+		if (!renderbuffer_load_range(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, vertices_size, geometry->vertices.data))
+		{
+			SHMERROR("Failed to load data into vertex buffer.");
+			return false;
+		}
+
+		//context->geometry_vertex_offset += vertices_size;
+
+		if (geometry->indices.data)
+		{
+			uint32 indices_size = geometry->indices.capacity * sizeof(geometry->indices[0]);
+
+			if (!renderbuffer_allocate(&system_state->general_index_buffer, indices_size, &geometry->index_buffer_offset))
+			{
+				SHMERROR("Failed to allocate memory from index buffer.");
+				return false;
+			}
+
+			if (!renderbuffer_load_range(&system_state->general_index_buffer, geometry->index_buffer_offset, indices_size, geometry->indices.data))
+			{
+				SHMERROR("Failed to load data into index buffer.");
+				return false;
+			}
+			//context->geometry_index_offset += indices_size;
+		}
+
+		if (geometry->loaded)
+		{
+			renderbuffer_free(&system_state->general_vertex_buffer, old_vertex_buffer_offset);
+			if (geometry->indices.data)
+				renderbuffer_free(&system_state->general_index_buffer, old_index_buffer_offset);
+		}
+
+		geometry->loaded = true;
+
+		return true;
 	}
 
 	void geometry_unload(GeometryData* geometry)
 	{
-		system_state->module.geometry_unload(geometry);
+
+		system_state->module.device_sleep_till_idle();
+
+		renderbuffer_free(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset);
+		if (geometry->indices.data)
+			renderbuffer_free(&system_state->general_index_buffer, geometry->index_buffer_offset);
+
+		geometry->loaded = false;
+
 	}
 
 	void geometry_draw(const GeometryRenderData& data)
 	{
-		if (data.geometry->internal_id == INVALID_ID)
+
+		if (!data.geometry->loaded)
 			geometry_load(data.geometry);
 
-		system_state->module.geometry_draw(data);
+		bool32 includes_indices = data.geometry->indices.capacity > 0;
+
+		renderbuffer_draw(&system_state->general_vertex_buffer, data.geometry->vertex_buffer_offset, data.geometry->vertex_count, includes_indices);
+		if (includes_indices)
+			renderbuffer_draw(&system_state->general_index_buffer, data.geometry->index_buffer_offset, data.geometry->indices.capacity, false);
 	}
 
-	bool32 shader_create(Shader* shader, const ShaderConfig* config, const Renderpass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
+	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
 	{
 		return system_state->module.shader_create(shader, config, renderpass, stage_count, stage_filenames, stages);
 	}
@@ -348,7 +434,9 @@ namespace Renderer
 		// Uniform  buffer.
 		// TODO: max count should be configurable, or perhaps long term support of buffer resizing.
 		uint64 total_buffer_size = s->global_ubo_stride + (s->ubo_stride * RendererConfig::max_material_count);  // global + (locals)
-		if (!renderbuffer_create(RenderbufferType::UNIFORM, total_buffer_size, true, &s->uniform_buffer))
+		char u_buffer_name[max_buffer_name_length];
+		CString::print_s(u_buffer_name, max_buffer_name_length, "%s%s", s->name.c_str(), "_u_buf");
+		if (!renderbuffer_create(u_buffer_name, RenderBufferType::UNIFORM, total_buffer_size, true, &s->uniform_buffer))
 		{
 			SHMERROR("Vulkan buffer creation failed for object shader.");
 			return false;
@@ -395,9 +483,9 @@ namespace Renderer
 		return system_state->module.shader_apply_instance(s, needs_update);
 	}
 
-	bool32 shader_acquire_instance_resources(Shader* s, TextureMap** maps, uint32* out_instance_id)
+	bool32 shader_acquire_instance_resources(Shader* s, uint32 maps_count, TextureMap** maps, uint32* out_instance_id)
 	{
-		return system_state->module.shader_acquire_instance_resources(s, maps, out_instance_id);
+		return system_state->module.shader_acquire_instance_resources(s, maps_count, maps, out_instance_id);
 	}
 
 	bool32 shader_release_instance_resources(Shader* s, uint32 instance_id) 
@@ -420,9 +508,10 @@ namespace Renderer
 		return system_state->module.texture_map_release_resources(out_map);
 	}
 
-	bool32 renderbuffer_create(RenderbufferType type, uint64 size, bool32 use_freelist, Renderbuffer* out_buffer)
+	bool32 renderbuffer_create(const char* name, RenderBufferType type, uint64 size, bool32 use_freelist, RenderBuffer* out_buffer)
 	{
 
+		out_buffer->name = name;
 		out_buffer->size = size;
 		out_buffer->type = type;
 		out_buffer->has_freelist = use_freelist;
@@ -449,7 +538,7 @@ namespace Renderer
 		return true;
 	}
 
-	void renderbuffer_destroy(Renderbuffer* buffer)
+	void renderbuffer_destroy(RenderBuffer* buffer)
 	{	
 		renderbuffer_unmap_memory(buffer);
 		buffer->freelist.destroy();
@@ -457,37 +546,37 @@ namespace Renderer
 		system_state->module.renderbuffer_destroy_internal(buffer);
 	}
 
-	bool32 renderbuffer_bind(Renderbuffer* buffer, uint64 offset)
+	bool32 renderbuffer_bind(RenderBuffer* buffer, uint64 offset)
 	{
 		return system_state->module.renderbuffer_bind(buffer, offset);
 	}
 
-	bool32 renderbuffer_unbind(Renderbuffer* buffer)
+	bool32 renderbuffer_unbind(RenderBuffer* buffer)
 	{
 		return system_state->module.renderbuffer_unbind(buffer);
 	}
 
-	void* renderbuffer_map_memory(Renderbuffer* buffer, uint64 offset, uint64 size)
+	void* renderbuffer_map_memory(RenderBuffer* buffer, uint64 offset, uint64 size)
 	{		
 		return system_state->module.renderbuffer_map_memory(buffer, offset, size);
 	}
 
-	void renderbuffer_unmap_memory(Renderbuffer* buffer)
+	void renderbuffer_unmap_memory(RenderBuffer* buffer)
 	{
 		system_state->module.renderbuffer_unmap_memory(buffer);
 	}
 
-	bool32 renderbuffer_flush(Renderbuffer* buffer, uint64 offset, uint64 size)
+	bool32 renderbuffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size)
 	{
 		return system_state->module.renderbuffer_flush(buffer, offset, size);
 	}
 
-	bool32 renderbuffer_read(Renderbuffer* buffer, uint64 offset, uint64 size, void* out_memory)
+	bool32 renderbuffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
 	{
 		return system_state->module.renderbuffer_read(buffer, offset, size, out_memory);
 	}
 
-	bool32 renderbuffer_resize(Renderbuffer* buffer, uint64 new_total_size)
+	bool32 renderbuffer_resize(RenderBuffer* buffer, uint64 new_total_size)
 	{
 
 		if (new_total_size <= buffer->size) {
@@ -520,7 +609,7 @@ namespace Renderer
 
 	}
 
-	bool32 renderbuffer_allocate(Renderbuffer* buffer, uint64 size, uint64* out_offset)
+	bool32 renderbuffer_allocate(RenderBuffer* buffer, uint64 size, uint64* out_offset)
 	{
 		if (!buffer->has_freelist)
 		{
@@ -532,7 +621,7 @@ namespace Renderer
 		return true;
 	}
 
-	void renderbuffer_free(Renderbuffer* buffer, uint64 offset)
+	void renderbuffer_free(RenderBuffer* buffer, uint64 offset)
 	{
 		if (!buffer->has_freelist)
 		{
@@ -543,18 +632,18 @@ namespace Renderer
 		buffer->freelist.free(offset);
 	}
 
-	bool32 renderbuffer_load_range(Renderbuffer* buffer, uint64 offset, uint64 size, const void* data)
+	bool32 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
 		OPTICK_EVENT();
 		return system_state->module.renderbuffer_load_range(buffer, offset, size, data);
 	}
 
-	bool32 renderbuffer_copy_range(Renderbuffer* source, uint64 source_offset, Renderbuffer* dest, uint64 dest_offset, uint64 size)
+	bool32 renderbuffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size)
 	{
 		return system_state->module.renderbuffer_copy_range(source, source_offset, dest, dest_offset, size);
 	}
 
-	bool32 renderbuffer_draw(Renderbuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
+	bool32 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
 	{
 		return system_state->module.renderbuffer_draw(buffer, offset, element_count, bind_only);
 	}
