@@ -43,7 +43,6 @@ namespace ResourceSystem
 
         enum class ParserScope
         {
-            NONE,
             SCENE,
             SKYBOX,
             MESH,
@@ -53,7 +52,7 @@ namespace ResourceSystem
             TERRAIN
         };
 
-        ParserScope scope = ParserScope::NONE;
+        ParserScope scope = ParserScope::SCENE;
         // Read each line of the file.
         String line(512);
         uint64 line_length = 0;       
@@ -114,6 +113,8 @@ namespace ResourceSystem
         uint32 skybox_i = INVALID_ID;
         uint32 terrain_i = INVALID_ID;
 
+        out_resource->transform = Math::transform_create();
+
         line_number = 1;
         continue_ptr = 0;
         while (FileSystem::read_line(file_content.c_str(), line, &continue_ptr))
@@ -134,14 +135,9 @@ namespace ResourceSystem
             // Split into var/value
             if (line[0] == '[')
             {
-                if (scope == ParserScope::NONE)
+                if (scope == ParserScope::SCENE)
                 {
-                    if (line.equal_i("[Scene]"))
-                    {
-                        scope = ParserScope::SCENE;
-                        out_resource->transform = Math::transform_create();
-                    }
-                    else if (line.equal_i("[Skybox]"))
+                    if (line.equal_i("[Skybox]"))
                     {
                         scope = ParserScope::SKYBOX;
                         skybox_i++;
@@ -206,7 +202,7 @@ namespace ResourceSystem
                             }
                         }
 
-                        scope = ParserScope::NONE;
+                        scope = ParserScope::SCENE;
                     }                     
                     else
                     {
@@ -233,17 +229,14 @@ namespace ResourceSystem
             mid(value, line.c_str(), equal_index + 1);
             value.trim();
 
-            if (scope == ParserScope::NONE)
+            if (scope == ParserScope::SCENE)
             {
                 // Process the variable.
                 if (var_name.equal_i("version"))
                 {
                     // TODO: version
                 }
-            }
-            else if (scope == ParserScope::SCENE)
-            {
-                if (var_name.equal_i("name"))
+                else if (var_name.equal_i("name"))
                 {
                     out_resource->name = value;
                 }

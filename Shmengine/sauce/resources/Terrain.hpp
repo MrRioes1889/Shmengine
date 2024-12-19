@@ -7,7 +7,7 @@
 
 struct Material;
 
-inline static const uint32 max_terrain_materials_count = 8;
+inline static const uint32 max_terrain_materials_count = 4;
 
 enum class TerrainState
 {

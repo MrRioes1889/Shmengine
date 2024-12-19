@@ -393,11 +393,14 @@ bool32 application_update(FrameData* frame_data)
 	if (Input::is_cursor_clipped())
 	{
 		Math::Vec2i mouse_offset = Input::get_internal_mouse_offset();
-		float32 mouse_sensitivity = 3.0f;
-		float32 yaw = -mouse_offset.x * (float32)frame_data->delta_time * mouse_sensitivity;
-		float32 pitch = -mouse_offset.y * (float32)frame_data->delta_time * mouse_sensitivity;
-		app_state->world_camera->yaw(yaw);
-		app_state->world_camera->pitch(pitch);
+		const float32 mouse_sensitivity = 1.0f;
+		if (mouse_offset.x || mouse_offset.y)
+		{
+			float32 yaw = -mouse_offset.x * mouse_sensitivity * 0.02f;
+			float32 pitch = -mouse_offset.y * mouse_sensitivity * 0.02f;
+			app_state->world_camera->yaw(yaw);
+			app_state->world_camera->pitch(pitch);
+		}	
 	}
 
 	if (app_state->main_scene.state == SceneState::LOADED)

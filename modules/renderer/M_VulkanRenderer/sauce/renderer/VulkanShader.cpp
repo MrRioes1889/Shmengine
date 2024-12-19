@@ -531,23 +531,8 @@ namespace Renderer::Vulkan
 					TextureMap* map = v_shader->instance_states[s->bound_instance_id].instance_texture_maps[i];
 					Texture* t = map->texture;
 
-					if (t->generation == INVALID_ID) {
-						switch (map->use) {
-						case TextureUse::MAP_DIFFUSE:
-							t = TextureSystem::get_default_diffuse_texture();
-							break;
-						case TextureUse::MAP_SPECULAR:
-							t = TextureSystem::get_default_specular_texture();
-							break;
-						case TextureUse::MAP_NORMAL:
-							t = TextureSystem::get_default_normal_texture();
-							break;
-						default:
-							SHMWARNV("Undefined texture use %u", (uint32)map->use);
-							t = TextureSystem::get_default_texture();
-							break;
-						}
-					}
+					if (t->generation == INVALID_ID)
+						t = TextureSystem::get_default_texture();
 
 					VulkanImage* image = (VulkanImage*)t->internal_data.data;
 					image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -615,13 +600,13 @@ namespace Renderer::Vulkan
 		uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
 		uint32 instance_texture_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[sampler_binding_index].descriptorCount;
 
-		if (instance_texture_count)
+		if (maps_count)
 		{
 			// Wipe out the memory for the entire array, even if it isn't all used.
-			instance_state->instance_texture_maps.init(s->instance_texture_count, true, AllocationTag::RENDERER);
+			instance_state->instance_texture_maps.init(maps_count, true, AllocationTag::RENDERER);
 			Texture* default_texture = TextureSystem::get_default_texture();
 			// Set all the texture pointers to default until assigned.
-			for (uint32 i = 0; i < instance_texture_count; ++i)
+			for (uint32 i = 0; i < maps_count; ++i)
 			{
 				instance_state->instance_texture_maps[i] = maps[i];
 				if (!maps[i]->texture)

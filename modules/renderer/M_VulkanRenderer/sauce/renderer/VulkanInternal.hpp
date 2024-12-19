@@ -37,7 +37,7 @@ namespace Renderer::Vulkan
 
 	bool32 vk_buffer_create_internal(VulkanBuffer* buffer, RenderBufferType type, uint64 size, const char* name);
 	void vk_buffer_destroy_internal(VulkanBuffer* buffer);
-	bool32 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size);
+	bool32 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size, const char* name);
 	void* vk_buffer_map_memory_internal(VulkanBuffer* buffer, uint64 offset, uint64 size);
 	void vk_buffer_unmap_memory_internal(VulkanBuffer* buffer);
 	bool32 vk_buffer_bind_internal(VulkanBuffer* buffer, uint64 offset);

@@ -3,13 +3,11 @@
 
 version=1
 
-[Scene]
 name=test_scene
 description=A simple test scene.
 max_meshes_count=10
 max_p_lights_count=10
 max_terrains_count=5
-[/]
 
 [Skybox]
 name=skybox_01

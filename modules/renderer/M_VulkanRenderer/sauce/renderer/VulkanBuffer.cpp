@@ -116,6 +116,7 @@ namespace Renderer::Vulkan
 			SHMERROR("Unable to create vulkan buffer. Failed to allocate memory.");
 			return false;
 		}
+		VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_DEVICE_MEMORY, buffer->memory, name);
 
 		bool32 is_device_memory = buffer_is_device_local(buffer);
 		Memory::track_external_allocation(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_LOCAL : AllocationTag::VULKAN);
@@ -164,10 +165,10 @@ namespace Renderer::Vulkan
 	bool32 vk_buffer_resize(RenderBuffer* buffer, uint64 new_size)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
-		return vk_buffer_resize_internal(internal_buffer, buffer->size, new_size);
+		return vk_buffer_resize_internal(internal_buffer, buffer->size, new_size, buffer->name.c_str());
 	}
 
-	bool32 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size)
+	bool32 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size, const char* name)
 	{
 
 		// Create new buffer.
@@ -227,6 +228,7 @@ namespace Renderer::Vulkan
 		// Set new properties
 		buffer->memory = new_memory;
 		buffer->handle = new_buffer;
+		VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_DEVICE_MEMORY, buffer->memory, name);
 		vk_buffer_map_memory_internal(buffer, 0, new_size);
 
 		return true;

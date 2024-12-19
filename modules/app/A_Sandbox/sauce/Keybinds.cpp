@@ -34,6 +34,8 @@ static void on_allocation_count_check(KeyCode::Value key, Input::KeymapBindingTy
 	total_allocation_count = cur_allocation_count;
 }
 
+static float32 camera_turnspeed = 2.5f;
+
 static void on_camera_yaw(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	float32 f = 0.0f;
@@ -43,7 +45,7 @@ static void on_camera_yaw(KeyCode::Value key, Input::KeymapBindingType type, Inp
 		f = -1.0f;
 
 	float64 delta_time = Engine::get_frame_delta_time();
-	app_state->world_camera->yaw(f * (float32)delta_time);
+	app_state->world_camera->yaw(f * (float32)delta_time * camera_turnspeed);
 }
 
 static void on_camera_pitch(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
@@ -55,7 +57,7 @@ static void on_camera_pitch(KeyCode::Value key, Input::KeymapBindingType type, I
 		f = -1.0f;
 
 	float64 delta_time = Engine::get_frame_delta_time();
-	app_state->world_camera->pitch(f * (float32)delta_time);
+	app_state->world_camera->pitch(f * (float32)delta_time * camera_turnspeed);
 }
 
 static float32 camera_movespeed = 50.0f;
