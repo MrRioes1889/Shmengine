@@ -313,8 +313,8 @@ bool32 application_init(void* application_state)
 	// Load up some test UI geometry.
 	MeshGeometryConfig ui_config = {};
 	ui_config.data_config.vertex_size = sizeof(Renderer::Vertex2D);
-	CString::copy(max_material_name_length, ui_config.material_name, "test_ui_material");
-	CString::copy(max_geometry_name_length, ui_config.data_config.name, "test_ui_geometry");
+	CString::copy("test_ui_material", ui_config.material_name, max_material_name_length);
+	CString::copy("test_ui_geometry", ui_config.data_config.name, max_geometry_name_length);
 
 	ui_config.data_config.vertex_count = 4;
 	ui_config.data_config.vertices.init(ui_config.data_config.vertex_size * ui_config.data_config.vertex_count, 0);

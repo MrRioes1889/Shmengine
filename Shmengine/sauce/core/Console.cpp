@@ -130,7 +130,7 @@ namespace Console
 		Command* cmd = system_state->registered_commands.emplace();
 		cmd->arg_count = arg_count;
 		cmd->callback = callback;
-		CString::copy(Command::max_command_length, cmd->name, command);
+		CString::copy(command, cmd->name, Command::max_command_length);
 
 		return true;
 

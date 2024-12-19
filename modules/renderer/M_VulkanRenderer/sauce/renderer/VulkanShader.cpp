@@ -73,7 +73,7 @@ namespace Renderer::Vulkan
 			}
 
 			v_shader->config.stages[v_shader->config.stage_count].stage = stage_flag;
-			CString::copy(VulkanShaderStageConfig::max_filename_length, v_shader->config.stages[v_shader->config.stage_count].filename, stage_filenames[i].c_str());
+			CString::copy(stage_filenames[i].c_str(), v_shader->config.stages[v_shader->config.stage_count].filename, VulkanShaderStageConfig::max_filename_length);
 			v_shader->config.stage_count++;
 		}
 

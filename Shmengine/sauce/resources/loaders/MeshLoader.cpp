@@ -278,9 +278,9 @@ namespace ResourceSystem
                         name = mesh_name;
                         name += "_geo";
                     }
-                    CString::copy(max_geometry_name_length, new_data->data_config.name, name.c_str());
+                    CString::copy(name.c_str(), new_data->data_config.name, max_geometry_name_length);
 
-                    CString::copy(max_material_name_length, new_data->material_name, material_names[i].c_str());
+                    CString::copy(material_names[i].c_str(), new_data->material_name, max_material_name_length);
 
                     process_subobject(positions, normals, tex_coords, groups[i].faces, &new_data->data_config);
 
@@ -306,18 +306,18 @@ namespace ResourceSystem
         {
             
             MeshGeometryConfig* new_data = out_resource->configs.emplace();
-            CString::copy(max_geometry_name_length, new_data->data_config.name, name.c_str());
+            CString::copy(name.c_str(), new_data->data_config.name, max_geometry_name_length);
             if (!name[0])
             {
                 name = mesh_name;
                 name += "_geo";
             }
-            CString::copy(max_geometry_name_length, new_data->data_config.name, name.c_str());
+            CString::copy(name.c_str(), new_data->data_config.name, max_geometry_name_length);
 
             if (i > 0)
-                CString::append(max_geometry_name_length, new_data->data_config.name, CString::to_string(i));
+                CString::append(new_data->data_config.name, max_geometry_name_length, CString::to_string(i));
                 
-            CString::copy(max_material_name_length, new_data->material_name, material_names[i].c_str());
+            CString::copy(material_names[i].c_str(), new_data->material_name, max_material_name_length);
 
             process_subobject(positions, normals, tex_coords, groups[i].faces, &new_data->data_config);
 
@@ -523,21 +523,21 @@ namespace ResourceSystem
                 values.left_of_last('.');
                 values.right_of_last('/');
                 values.right_of_last('\\');
-                CString::copy(max_texture_name_length, current_config.diffuse_map_name, values.c_str());
+                CString::copy(values.c_str(), current_config.diffuse_map_name, max_texture_name_length);
             }
             else if (identifier.nequal_i("map_Ks", 6))
             {
                 values.left_of_last('.');
                 values.right_of_last('/');
                 values.right_of_last('\\');
-                CString::copy(max_texture_name_length, current_config.specular_map_name, values.c_str());
+                CString::copy(values.c_str(), current_config.specular_map_name, max_texture_name_length);
             }
             else if (identifier.nequal_i("map_bump", 6) || identifier.nequal_i("bump", 6))
             {
                 values.left_of_last('.');
                 values.right_of_last('/');
                 values.right_of_last('\\');
-                CString::copy(max_texture_name_length, current_config.normal_map_name, values.c_str());
+                CString::copy(values.c_str(), current_config.normal_map_name, max_texture_name_length);
             }
             else if (identifier.nequal_i("newmtl", 6))
             {                
@@ -562,7 +562,7 @@ namespace ResourceSystem
                 }
 
                 hit_name = true;
-                CString::copy(max_material_name_length, current_config.name, values.c_str());
+                CString::copy(values.c_str(), current_config.name, max_material_name_length);
             }
 
             line_number++;
@@ -779,10 +779,10 @@ namespace ResourceSystem
             g->vertices.init(g->vertex_count * g->vertex_size, 0);
             g->indices.init(geo_header->index_count, 0);
 
-            CString::copy(max_geometry_name_length, g->name, (char*)&read_ptr[read_bytes], (int32)geo_header->name_length);
+            CString::copy((char*)&read_ptr[read_bytes], g->name, max_geometry_name_length, (int32)geo_header->name_length);
             read_bytes += geo_header->name_length;
 
-            CString::copy(max_material_name_length, config->material_name, (char*)&read_ptr[read_bytes], (int32)geo_header->material_name_length);
+            CString::copy((char*)&read_ptr[read_bytes], config->material_name, max_material_name_length, (int32)geo_header->material_name_length);
             read_bytes += geo_header->material_name_length;
 
             g->vertices.copy_memory(&read_ptr[read_bytes], geo_header->vertex_count * geo_header->vertex_size);

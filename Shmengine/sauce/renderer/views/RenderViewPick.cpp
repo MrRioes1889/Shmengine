@@ -464,7 +464,7 @@ namespace Renderer
 
 		static uint32 texture_i = 0;
 		char texture_name[64] = "__pick_view_texture_";
-		CString::append(64, texture_name, CString::to_string(texture_i++));
+		CString::append(texture_name, 64, CString::to_string(texture_i++));
 
 		uint32 width = self->renderpasses[pass_index].dim.width;
 		uint32 height = self->renderpasses[pass_index].dim.height;
@@ -472,7 +472,7 @@ namespace Renderer
 
 		attachment->texture->id = INVALID_ID;
 		attachment->texture->type = TextureType::TYPE_2D;
-		CString::copy(max_texture_name_length, attachment->texture->name, texture_name);
+		CString::copy(texture_name, attachment->texture->name, max_texture_name_length);
 		attachment->texture->width = width;
 		attachment->texture->height = height;
 		attachment->texture->channel_count = 4;

@@ -96,10 +96,10 @@ namespace Renderer
 		}
 
 		if (name && CString::length(name) > 0) {
-			CString::copy(max_geometry_name_length, out_config.name, name);
+			CString::copy(name, out_config.name, max_geometry_name_length);
 		}
 		else {
-			CString::copy(max_geometry_name_length, out_config.name, GeometrySystem::SystemConfig::default_name);
+			CString::copy(GeometrySystem::SystemConfig::default_name, out_config.name, max_geometry_name_length);
 		}
 
 	}
@@ -260,10 +260,10 @@ namespace Renderer
 		geometry_generate_tangents(out_config);
 
 		if (name && CString::length(name) > 0) {
-			CString::copy(max_geometry_name_length, out_config.name, name);
+			CString::copy(name, out_config.name, max_geometry_name_length);
 		}
 		else {
-			CString::copy(max_geometry_name_length, out_config.name, GeometrySystem::SystemConfig::default_name);
+			CString::copy(GeometrySystem::SystemConfig::default_name, out_config.name, max_geometry_name_length);
 		}
 
 	}

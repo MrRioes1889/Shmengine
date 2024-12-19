@@ -68,7 +68,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::INT64)
 					{
 						int64 v = args[arg_i++].int64_value;         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v));
+						target_i += append(target_buffer, buffer_limit, to_string(v));
 					}
 					else
 						valid_format = false;
@@ -79,7 +79,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::INT16)
 					{
 						int16 v = args[arg_i++].int16_value[0];         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v));
+						target_i += append(target_buffer, buffer_limit, to_string(v));
 					}
 					else
 						valid_format = false;
@@ -90,7 +90,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::INT8)
 					{
 						int8 v = args[arg_i++].int8_value[0];         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v));
+						target_i += append(target_buffer, buffer_limit, to_string(v));
 					}
 					else
 						valid_format = false;
@@ -101,7 +101,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::INT32)
 					{
 						int32 v = args[arg_i++].int32_value[0];         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v));
+						target_i += append(target_buffer, buffer_limit, to_string(v));
 					}
 					else
 						valid_format = false;
@@ -121,7 +121,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::UINT64)
 					{
 						uint64 v = args[arg_i++].uint64_value;         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v));
+						target_i += append(target_buffer, buffer_limit, to_string(v));
 					}
 					else
 						valid_format = false;
@@ -132,7 +132,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::UINT16)
 					{
 						uint16 v = args[arg_i++].uint16_value[0];         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v));
+						target_i += append(target_buffer, buffer_limit, to_string(v));
 					}
 					else
 						valid_format = false;
@@ -143,7 +143,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::UINT8)
 					{
 						uint8 v = args[arg_i++].uint8_value[0];         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v));
+						target_i += append(target_buffer, buffer_limit, to_string(v));
 					}
 					else
 						valid_format = false;
@@ -154,7 +154,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::UINT32)
 					{
 						uint32 v = args[arg_i++].uint32_value[0];         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v));
+						target_i += append(target_buffer, buffer_limit, to_string(v));
 					}
 					else
 						valid_format = false;
@@ -173,7 +173,7 @@ namespace CString
 				}
 
 				const char* v = args[arg_i++].char_ptr;         //Fetch String argument
-				target_i += append(buffer_limit, target_buffer, v);
+				target_i += append(target_buffer, buffer_limit, v);
 
 				break;
 			}
@@ -186,7 +186,7 @@ namespace CString
 				}
 
 				char v = args[arg_i++].char_value[0];         //Fetch Character argument
-				target_i += append(buffer_limit, target_buffer, v);
+				target_i += append(target_buffer, buffer_limit, v);
 
 				break;
 			}
@@ -206,7 +206,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::FLOAT64)
 					{
 						float64 v = args[arg_i++].float64_value;         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v, decimals));
+						target_i += append(target_buffer, buffer_limit, to_string(v, decimals));
 					}
 					else
 						valid_format = false;
@@ -217,7 +217,7 @@ namespace CString
 					if (args[arg_i].type == Arg::Type::FLOAT32)
 					{
 						float32 v = args[arg_i++].float32_value[0];         //Fetch Integer argument
-						target_i += append(buffer_limit, target_buffer, to_string(v, decimals));
+						target_i += append(target_buffer, buffer_limit, to_string(v, decimals));
 					}
 					else
 						valid_format = false;
@@ -569,7 +569,7 @@ namespace CString
 					format++;
 					break;
 				}
-				case 's':
+				/*case 's':
 				{
 					if (args[ptr_i].type != Arg::Type::CHAR_PTR)
 					{
@@ -577,11 +577,11 @@ namespace CString
 						return false;
 					}
 
-					CString::copy(parse_buffer_size, args[ptr_i++].char_buffer, parse_buffer);
+					CString::copy(parse_buffer, parse_buffer_size, args[ptr_i++].char_buffer);
 
 					format++;
 					break;
-				}
+				}*/
 				}
 
 				if (!valid_format)

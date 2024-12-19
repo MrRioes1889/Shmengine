@@ -153,7 +153,7 @@ namespace FileSystem
 		if ((uint32)read_length > line_buffer_size - 1)
 			read_length = line_buffer_size - 1;
 			
-		CString::copy(line_buffer_size, line_buffer, source, (uint32)read_length);
+		CString::copy(source, line_buffer, line_buffer_size, (uint32)read_length);
 
 		if (out_continue_ptr)
 			*out_continue_ptr = &source[read_length + 1];

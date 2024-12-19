@@ -152,7 +152,7 @@ namespace TextureSystem
 
 		Texture* t = &system_state->registered_textures[id];
 		t->id = id;
-		CString::copy(max_texture_name_length, t->name, name);
+		CString::copy(name, t->name, max_texture_name_length);
 		t->width = width;
 		t->height = height;
 		t->channel_count = channel_count;
@@ -196,7 +196,7 @@ namespace TextureSystem
 		}
 
 		t->id = id;
-		CString::copy(max_texture_name_length, t->name, name);
+		CString::copy(name, t->name, max_texture_name_length);
 		t->width = width;
 		t->height = height;
 		t->channel_count = channel_count;
@@ -354,7 +354,7 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(max_texture_name_length, load_params->temp_texture.name, load_params->resource_name);
+		CString::copy(load_params->resource_name, load_params->temp_texture.name, max_texture_name_length);
 		load_params->temp_texture.generation = INVALID_ID;
 		load_params->temp_texture.flags = 0;
 		load_params->temp_texture.flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
@@ -372,7 +372,7 @@ namespace TextureSystem
 		TextureLoadParams* params = (TextureLoadParams*)job.params;
 		uint32 name_length = CString::length(texture_name);
 		params->resource_name = (char*)Memory::allocate(name_length + 1, AllocationTag::STRING);
-		CString::copy(name_length + 1, params->resource_name, texture_name);
+		CString::copy(texture_name, params->resource_name, name_length + 1);
 		params->out_texture = t;
 		params->config = {};
 		params->current_generation = t->generation;
@@ -407,7 +407,7 @@ namespace TextureSystem
 
 				t->generation = INVALID_ID;
 				t->flags = 0;
-				CString::copy(max_texture_name_length, t->name, texture_names[i]);
+				CString::copy(texture_names[i], t->name, max_texture_name_length);
 
 				image_size = t->width * t->height * t->channel_count;
 				pixels.init(image_size * 6, 0, AllocationTag::TEXTURE);			
@@ -470,7 +470,7 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(max_texture_name_length, system_state->default_texture.name, SystemConfig::default_name);
+		CString::copy(SystemConfig::default_name, system_state->default_texture.name, max_texture_name_length);
 		system_state->default_texture.width = tex_dim;
 		system_state->default_texture.height = tex_dim;
 		system_state->default_texture.channel_count = 4;
@@ -486,7 +486,7 @@ namespace TextureSystem
 		SHMTRACE("Creating default diffuse texture...");
 		uint8 diff_pixels[16 * 16 * 4];
 		Memory::set_memory(diff_pixels, 0xFF, sizeof(diff_pixels));
-		CString::copy(max_texture_name_length, system_state->default_diffuse.name, SystemConfig::default_diffuse_name);
+		CString::copy(SystemConfig::default_diffuse_name, system_state->default_diffuse.name, max_texture_name_length);
 		system_state->default_diffuse.width = 16;
 		system_state->default_diffuse.height = 16;
 		system_state->default_diffuse.channel_count = 4;
@@ -502,7 +502,7 @@ namespace TextureSystem
 		uint8 spec_pixels[16 * 16 * 4];
 		// Default spec map is black (no specular)
 		Memory::zero_memory(spec_pixels, sizeof(spec_pixels));
-		CString::copy(max_texture_name_length, system_state->default_specular.name, SystemConfig::default_specular_name);
+		CString::copy(SystemConfig::default_specular_name, system_state->default_specular.name, max_texture_name_length);
 		system_state->default_specular.width = 16;
 		system_state->default_specular.height = 16;
 		system_state->default_specular.channel_count = 4;
@@ -531,7 +531,7 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(max_texture_name_length, system_state->default_normal.name, SystemConfig::default_normal_name);
+		CString::copy(SystemConfig::default_normal_name, system_state->default_normal.name, max_texture_name_length);
 		system_state->default_normal.width = 16;
 		system_state->default_normal.height = 16;
 		system_state->default_normal.channel_count = 4;

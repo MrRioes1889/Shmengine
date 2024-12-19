@@ -213,7 +213,7 @@ namespace DebugConsole
 		uint32 buffer_offset = 0;
 		for (uint32 i = min_line; i <= max_line; ++i) {
 			// TODO: insert colour codes for the message type.		
-			uint32 copy_length = CString::copy(sizeof(buffer) - buffer_offset, &buffer[buffer_offset], console_state->lines[i].c_str());
+			uint32 copy_length = CString::copy(console_state->lines[i].c_str(), &buffer[buffer_offset], sizeof(buffer) - buffer_offset);
 			buffer[buffer_offset + copy_length] = '\n';
 			buffer_offset += copy_length + 1;
 		}

@@ -329,7 +329,7 @@ namespace ResourceSystem
         file_header.glyphs_offset = file_header.pages_offset + (file_header.pages_count * sizeof(BitmapFontPage));
         file_header.kernings_offset = file_header.glyphs_offset + (file_header.glyphs_count * sizeof(FontGlyph));
 
-        CString::copy(256, file_header.face, out_data->atlas.face);
+        CString::copy(out_data->atlas.face, file_header.face, 256);
         file_header.line_height = out_data->atlas.line_height;
         file_header.baseline = out_data->atlas.baseline;
         file_header.glyph_size = out_data->atlas.font_size;
@@ -386,7 +386,7 @@ namespace ResourceSystem
         ShmbmfFileHeader* file_header = (ShmbmfFileHeader*)&read_ptr[read_bytes];
         read_bytes += sizeof(ShmbmfFileHeader);
 
-        CString::copy(256, out_data->atlas.face, file_header->face);
+        CString::copy(file_header->face, out_data->atlas.face, 256);
         out_data->atlas.line_height = file_header->line_height;
         out_data->atlas.baseline = file_header->baseline;
         out_data->atlas.font_size = file_header->glyph_size;

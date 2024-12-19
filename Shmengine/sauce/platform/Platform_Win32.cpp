@@ -196,7 +196,7 @@ namespace Platform
             GetModuleFileNameA(0, buffer, (DWORD)buffer_length);
             CString::replace(buffer, '\\', '/');
             CString::left_of_last(buffer, buffer_length, '/');
-            CString::append(buffer_length, buffer, '/');            
+            CString::append(buffer, buffer_length, '/');            
         }
 
         return executable_path;   
@@ -419,8 +419,8 @@ namespace Platform
         if (!lib)
             return false;
 
-        CString::copy(sizeof(out_lib->name), out_lib->name, name);
-        CString::copy(MAX_FILEPATH_LENGTH, out_lib->filename, name);
+        CString::copy(name, out_lib->name, sizeof(out_lib->name));
+        CString::copy(name, out_lib->filename, MAX_FILEPATH_LENGTH);
         out_lib->handle = lib;
 
         SHMINFOV("Loaded dynamic library '%s'", name);

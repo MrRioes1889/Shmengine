@@ -124,7 +124,7 @@ namespace ResourceSystem
             return false;
         }
 
-        CString::copy(256, out_data->face, resource_name);
+        CString::copy(resource_name, out_data->face, 256);
 
         return write_shmttf_file(shmttf_filepath, resource_name, out_data);
 
@@ -146,7 +146,7 @@ namespace ResourceSystem
 
         ShmttfFileHeader file_header = {};
         file_header.version = 1;
-        CString::copy(256, file_header.face, out_data->face);
+        CString::copy(out_data->face, file_header.face, 256);
         file_header.binary_size = out_data->binary_data.size;
 
         FileSystem::write(&f, sizeof(file_header), &file_header, &written);
@@ -187,7 +187,7 @@ namespace ResourceSystem
         ShmttfFileHeader* file_header = (ShmttfFileHeader*)&read_ptr[read_bytes];
         read_bytes += sizeof(ShmttfFileHeader);
 
-        CString::copy(sizeof(out_data->face), out_data->face, file_header->face);
+        CString::copy(file_header->face, out_data->face, sizeof(out_data->face));
 
         check_buffer_size(file_header->binary_size);
         out_data->binary_data.init(file_header->binary_size, 0, AllocationTag::TRUETYPE_FONT);

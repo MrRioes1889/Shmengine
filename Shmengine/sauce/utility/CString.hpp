@@ -15,12 +15,12 @@ namespace CString
 	char* to_string(float32 val, int32 decimals = 2);
 	char* to_string(float64 val, int32 decimals = 2);
 
-	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, char appendage);
-	SHMAPI uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, int32 length = -1);
+	SHMAPI uint32 append(char* buffer_output, uint32 buffer_output_size, char appendage);
+	SHMAPI uint32 append(char* buffer_output, uint32 buffer_output_size, const char* buffer_source, int32 length = -1);
 
-	SHMAPI void concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b);
+	SHMAPI void concat(char* buffer_output, uint32 buffer_output_size, const char* buffer_a, const char* buffer_b);
 
-	SHMAPI uint32 copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, int32 length = -1);
+	SHMAPI uint32 copy(const char* buffer_source, char* buffer_output, uint32 buffer_output_size, int32 length = -1);
 
 	// Case insensitive version: equal_i()
 	SHMAPI bool32 equal(const char* a, const char* b);

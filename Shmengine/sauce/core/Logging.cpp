@@ -28,8 +28,8 @@ namespace Log
 
         //D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log
         char dir[MAX_FILEPATH_LENGTH];
-        CString::copy(MAX_FILEPATH_LENGTH, dir, Platform::get_root_dir());
-        CString::append(MAX_FILEPATH_LENGTH, dir, "console.log");
+        CString::copy(Platform::get_root_dir(), dir, MAX_FILEPATH_LENGTH);
+        CString::append(dir, MAX_FILEPATH_LENGTH, "console.log");
         if (!FileSystem::file_open(dir, FILE_MODE_WRITE, &system_state->log_file))
         {
             Platform::console_write_error("Error: Unable to open console.log file for writing", LOG_LEVEL_ERROR);
@@ -70,7 +70,7 @@ namespace Log
         const uint32 msg_length = 4096;
         char out_message[msg_length] = {};
 
-        CString::append(msg_length, out_message, level_strings[level]);
+        CString::append(out_message, msg_length, level_strings[level]);
 
         va_list arg_ptr;
         va_start(arg_ptr, message);
@@ -79,7 +79,7 @@ namespace Log
 
         Console::write_line(level, out_message);
 
-        CString::append(msg_length, out_message, "\n");
+        CString::append(out_message, msg_length, "\n");
 
         // Platform-specific output.
         if (is_error)

@@ -6,7 +6,7 @@
 namespace CString
 {
 
-	void concat(uint32 buffer_output_size, char* buffer_output, const char* buffer_a, const char* buffer_b)
+	void concat(char* buffer_output, uint32 buffer_output_size, const char* buffer_a, const char* buffer_b)
 	{
 		char* write_ptr = buffer_output;
 		uint32 write_output_size = buffer_output_size - 1;
@@ -27,7 +27,7 @@ namespace CString
 		*write_ptr = 0;
 	}
 
-	uint32 append(uint32 buffer_output_size, char* buffer_output, char appendage)
+	uint32 append(char* buffer_output, uint32 buffer_output_size, char appendage)
 	{
 		uint32 appendix_length = 1;
 		for (uint32 i = 0; i < buffer_output_size; i++)
@@ -42,7 +42,7 @@ namespace CString
 		return appendix_length;
 	}
 
-	uint32 append(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, int32 length)
+	uint32 append(char* buffer_output, uint32 buffer_output_size, const char* buffer_source, int32 length)
 	{
 		uint32 appendix_length = 0;
 		char* write_ptr = buffer_output;
@@ -68,7 +68,7 @@ namespace CString
 		return appendix_length;
 	}
 
-	uint32 copy(uint32 buffer_output_size, char* buffer_output, const char* buffer_source, int32 length)
+	uint32 copy(const char* buffer_source, char* buffer_output, uint32 buffer_output_size, int32 length)
 	{
 		char* write_ptr = buffer_output;
 		uint32 write_output_size = buffer_output_size - 1;

@@ -35,8 +35,8 @@ namespace ResourceSystem
 		char full_filepath_tmp[MAX_FILEPATH_LENGTH] = {};
 		for (uint32 i = 0; i < valid_extension_count; i++)
 		{			
-			CString::copy(MAX_FILEPATH_LENGTH, full_filepath_tmp, full_filepath);
-			CString::append(MAX_FILEPATH_LENGTH, full_filepath_tmp, extensions[i]);
+			CString::copy(full_filepath, full_filepath_tmp, MAX_FILEPATH_LENGTH);
+			CString::append(full_filepath_tmp, MAX_FILEPATH_LENGTH, extensions[i]);
 			if (FileSystem::file_exists(full_filepath_tmp))
 			{
 				found = true;
@@ -49,7 +49,7 @@ namespace ResourceSystem
 			return false;
 		}
 
-		CString::copy(MAX_FILEPATH_LENGTH, full_filepath, full_filepath_tmp);
+		CString::copy(full_filepath_tmp,full_filepath, MAX_FILEPATH_LENGTH);
 
 		int32 width;
 		int32 height;

@@ -176,7 +176,7 @@ namespace GeometrySystem
 
 		if (out_config)
 		{
-			CString::copy(max_geometry_name_length, out_config->name, g->name);
+			CString::copy(g->name, out_config->name, max_geometry_name_length);
 
 			out_config->center = g->center;
 			out_config->extents.min = g->extents.min;

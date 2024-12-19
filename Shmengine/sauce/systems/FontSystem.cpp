@@ -428,7 +428,7 @@ namespace FontSystem
 		out_variant->atlas_size_y = 1024;
 		out_variant->font_size = size;
 		out_variant->type = FontType::TRUETYPE;
-		CString::copy(sizeof(out_variant->face), out_variant->face, font_name);		
+		CString::copy(font_name, out_variant->face, sizeof(out_variant->face));
 
 		char font_texture_name[255];
 		CString::print_s(font_texture_name, sizeof(font_texture_name), "__truetype_fontatlas_%s_sz%hi__", font_name, size);

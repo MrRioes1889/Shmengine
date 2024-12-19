@@ -96,7 +96,7 @@ bool32 mesh_unload(Mesh* mesh)
         if (mesh->geometries[i].material)
         {      
             if (out_config)
-                CString::copy(max_material_name_length, out_config->material_name, mesh->geometries[i].material->name);
+                CString::copy(mesh->geometries[i].material->name, out_config->material_name, max_material_name_length);
 
             MaterialSystem::release(mesh->geometries[i].material->name);
             mesh->geometries[i].material = 0;
