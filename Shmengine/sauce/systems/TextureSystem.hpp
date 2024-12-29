@@ -39,43 +39,6 @@ struct Texture
 
 };
 
-enum class TextureUse
-{
-	UNKNOWN = 0,
-	MAP_DIFFUSE = 1,
-	MAP_SPECULAR = 2,
-	MAP_NORMAL = 3,
-	MAP_CUBEMAP = 3,
-};
-
-enum class TextureFilter
-{
-	NEAREST = 0,
-	LINEAR = 1,
-};
-
-enum class TextureRepeat
-{
-	REPEAT = 0,
-	MIRRORED_REPEAT = 1,
-	CLAMP_TO_EDGE = 2,
-	CLAMP_TO_BORDER = 3
-};
-
-struct TextureMap
-{
-	void* internal_data;
-	Texture* texture;
-	TextureUse use;
-
-	TextureFilter filter_minify;
-	TextureFilter filter_magnify;
-
-	TextureRepeat repeat_u;
-	TextureRepeat repeat_v;
-	TextureRepeat repeat_w;
-};
-
 namespace TextureSystem
 {
 	struct SystemConfig
@@ -106,6 +69,8 @@ namespace TextureSystem
 	SHMAPI Texture* get_default_diffuse_texture();
 	SHMAPI Texture* get_default_specular_texture();
 	SHMAPI Texture* get_default_normal_texture();
+
+	SHMAPI void sleep_until_all_textures_loaded();
 }
 
 

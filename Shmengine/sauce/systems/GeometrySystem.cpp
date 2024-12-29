@@ -211,23 +211,23 @@ namespace GeometrySystem
 
 		verts[0].position.x = -0.5f * f;  // 0    3
 		verts[0].position.y = -0.5f * f;  //
-		verts[0].texcoord.x = 0.0f;      //
-		verts[0].texcoord.y = 0.0f;      // 2    1
+		verts[0].tex_coords.x = 0.0f;      //
+		verts[0].tex_coords.y = 0.0f;      // 2    1
 
 		verts[1].position.y = 0.5f * f;
 		verts[1].position.x = 0.5f * f;
-		verts[1].texcoord.x = 1.0f;
-		verts[1].texcoord.y = 1.0f;
+		verts[1].tex_coords.x = 1.0f;
+		verts[1].tex_coords.y = 1.0f;
 
 		verts[2].position.x = -0.5f * f;
 		verts[2].position.y = 0.5f * f;
-		verts[2].texcoord.x = 0.0f;
-		verts[2].texcoord.y = 1.0f;
+		verts[2].tex_coords.x = 0.0f;
+		verts[2].tex_coords.y = 1.0f;
 
 		verts[3].position.x = 0.5f * f;
 		verts[3].position.y = -0.5f * f;
-		verts[3].texcoord.x = 1.0f;
-		verts[3].texcoord.y = 0.0f;
+		verts[3].tex_coords.x = 1.0f;
+		verts[3].tex_coords.y = 0.0f;
 
 		uint32 indices[6] = { 0, 1, 2, 0, 3, 1 };
 

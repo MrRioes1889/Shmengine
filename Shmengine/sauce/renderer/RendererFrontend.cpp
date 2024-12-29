@@ -544,6 +544,7 @@ namespace Renderer
 		buffer->freelist.destroy();
 		buffer->freelist_data.free_data();
 		system_state->module.renderbuffer_destroy_internal(buffer);
+		buffer->name.free_data();
 	}
 
 	bool32 renderbuffer_bind(RenderBuffer* buffer, uint64 offset)

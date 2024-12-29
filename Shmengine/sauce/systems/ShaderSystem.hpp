@@ -17,12 +17,12 @@ namespace ShaderSystem
 		uint16 diffuse_texture;
 		uint16 specular_texture;
 		uint16 normal_texture;
-		uint16 diffuse_color;
 		uint16 render_mode;
 		uint16 dir_light;
 		uint16 p_lights;
 		uint16 p_lights_count;
-		uint16 shininess;
+
+		uint16 properties;
 	};
 
 	struct TerrainShaderUniformLocations
@@ -32,24 +32,23 @@ namespace ShaderSystem
 		uint16 model;
 		uint16 ambient_color;
 		uint16 camera_position;
-		uint16 diffuse_texture;
-		uint16 specular_texture;
-		uint16 normal_texture;
-		uint16 diffuse_color;
 		uint16 render_mode;
 		uint16 dir_light;
 		uint16 p_lights;
 		uint16 p_lights_count;
-		uint16 shininess;
+
+		uint16 properties;
+		uint16 samplers[max_terrain_materials_count * 3];
 	};
 
 	struct UIShaderUniformLocations
 	{
 		uint16 projection;
 		uint16 view;
-		uint16 diffuse_color;
 		uint16 diffuse_texture;
 		uint16 model;
+
+		uint16 properties;
 	};
 
 	struct SystemConfig

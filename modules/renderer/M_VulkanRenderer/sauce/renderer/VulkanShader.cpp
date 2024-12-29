@@ -2,7 +2,7 @@
 
 #include "VulkanInternal.hpp"
 #include <resources/loaders/GenericLoader.hpp>
-#include <systems/TextureSystem.hpp>
+#include <systems/MaterialSystem.hpp>
 
 // TODO: Get rid of frontend include
 #include <renderer/RendererFrontend.hpp>
@@ -764,7 +764,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	static VkSamplerAddressMode convert_repeat_type(TextureRepeat repeat) {
+	static VkSamplerAddressMode convert_repeat_type(TextureRepeat::Value repeat) {
 		switch (repeat) {
 		case TextureRepeat::REPEAT:
 			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -780,7 +780,7 @@ namespace Renderer::Vulkan
 		}
 	}
 
-	static VkFilter convert_filter_type(TextureFilter filter) {
+	static VkFilter convert_filter_type(TextureFilter::Value filter) {
 		switch (filter) {
 		case TextureFilter::NEAREST:
 			return VK_FILTER_NEAREST;

@@ -19,7 +19,7 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 	if (out_scene->state >= SceneState::INITIALIZED)
 		return false;
 
-	*out_scene = {};
+	out_scene->state = SceneState::INITIALIZING;
 
 	out_scene->name = config->name;
 	out_scene->description = config->description;
@@ -114,8 +114,8 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 		}
 	}	
 
-	out_scene->state = SceneState::INITIALIZED;	
 	out_scene->id = global_scene_id++;
+	scene_update(out_scene);
 
 	return true;
 
@@ -125,6 +125,8 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 {
 	if (out_scene->state >= SceneState::INITIALIZED)
 		return false;
+
+	out_scene->state = SceneState::INITIALIZING;
 
 	SceneResourceData resource = {};
 	if (!ResourceSystem::scene_loader_load(resource_name, 0, &resource))
@@ -166,15 +168,7 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 	{
 		TerrainConfig* t_config = &terrain_configs[i];
 		t_config->name = resource.terrains[i].name.c_str();
-
-		t_config->tile_count_x = 1;
-		t_config->tile_count_z = 1;
-		t_config->tile_scale_x = 1.0f;
-		t_config->tile_scale_z = 1.0f;
-		t_config->materials_count = 0;
-		t_config->material_names = 0;
-
-		Math::transform_translate(resource.terrains[i].xform, { -20.0f, 0.0f, 0.0f });
+		t_config->resource_name = resource.terrains[i].resource_name.c_str();
 		t_config->xform = resource.terrains[i].xform;
 	}
 
@@ -328,7 +322,38 @@ bool32 scene_unload(Scene* scene)
 bool32 scene_update(Scene* scene)
 {
 
-	if (scene->state == SceneState::LOADING)
+	for (uint32 i = 0; i < scene->terrains.count; i++)
+		terrain_update(&scene->terrains[i]);
+
+	if (scene->state == SceneState::INITIALIZING)
+	{
+		bool32 objects_initialized = true;
+
+		if (scene->skybox.state != SkyboxState::INITIALIZED)
+			objects_initialized = false;
+
+		for (uint32 i = 0; i < scene->meshes.count; i++)
+		{
+			if (scene->meshes[i].state != MeshState::INITIALIZED)
+			{
+				objects_initialized = false;
+				break;
+			}
+		}
+
+		for (uint32 i = 0; i < scene->terrains.count; i++)
+		{
+			if (scene->terrains[i].state != TerrainState::INITIALIZED)
+			{
+				objects_initialized = false;
+				break;
+			}
+		}
+
+		if (objects_initialized)
+			scene->state = SceneState::INITIALIZED;
+	}
+	else if (scene->state == SceneState::LOADING)
 	{
 		bool32 objects_loaded = true;
 
@@ -338,6 +363,15 @@ bool32 scene_update(Scene* scene)
 		for (uint32 i = 0; i < scene->meshes.count; i++)
 		{
 			if (scene->meshes[i].state != MeshState::LOADED)
+			{
+				objects_loaded = false;
+				break;
+			}
+		}
+
+		for (uint32 i = 0; i < scene->terrains.count; i++)
+		{
+			if (scene->terrains[i].state != TerrainState::LOADED)
 			{
 				objects_loaded = false;
 				break;
@@ -454,7 +488,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
 		render_data->model = Math::transform_get_world(t->xform);
 		render_data->geometry = &t->geometry;
-		render_data->material = 0;
+		render_data->material = t->material;
 		render_data->unique_id = 0;
 
 		terrain_geometries_count++;
@@ -608,7 +642,13 @@ bool32 scene_add_terrain(Scene* scene, TerrainConfig* config)
 
 	Terrain* terrain = scene->terrains.emplace();
 
-	if (!terrain_init(config, terrain))
+	bool32 initialized = false;
+	if (config->resource_name)
+		initialized = terrain_init_from_resource(config->resource_name, terrain);
+	else
+		initialized = terrain_init(config, terrain);
+
+	if (!initialized)
 	{
 		SHMERROR("Failed to initialize terrain!");
 		return false;

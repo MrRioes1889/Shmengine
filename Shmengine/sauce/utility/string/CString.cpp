@@ -437,7 +437,7 @@ namespace CString
 
 	}
 
-	bool32 parse_f32(const char* s, float32& out)
+	bool32 parse(const char* s, float32* out)
 	{
 
 		int32 sign = 1;
@@ -490,11 +490,11 @@ namespace CString
 			}
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_f64(const char* s, float64& out)
+	bool32 parse(const char* s, float64* out)
 	{
 
 		int32 sign = 1;
@@ -547,11 +547,11 @@ namespace CString
 			}
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_i8(const char* s, int8& out)
+	bool32 parse(const char* s, int8* out)
 	{
 
 		int8 sign = 1;
@@ -576,11 +576,11 @@ namespace CString
 			multiplier *= 10;
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_i16(const char* s, int16& out)
+	bool32 parse(const char* s, int16* out)
 	{
 
 		int8 sign = 1;
@@ -605,11 +605,11 @@ namespace CString
 			multiplier *= 10;
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_i32(const char* s, int32& out)
+	bool32 parse(const char* s, int32* out)
 	{
 
 		int8 sign = 1;
@@ -634,11 +634,11 @@ namespace CString
 			multiplier *= 10;
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_i64(const char* s, int64& out)
+	bool32 parse(const char* s, int64* out)
 	{
 
 		int8 sign = 1;
@@ -663,11 +663,11 @@ namespace CString
 			multiplier *= 10;
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_u8(const char* s, uint8& out)
+	bool32 parse(const char* s, uint8* out)
 	{
 
 		int8 sign = 1;
@@ -692,11 +692,11 @@ namespace CString
 			multiplier *= 10;
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_u16(const char* s, uint16& out)
+	bool32 parse(const char* s, uint16* out)
 	{
 
 		int8 sign = 1;
@@ -721,11 +721,11 @@ namespace CString
 			multiplier *= 10;
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_u32(const char* s, uint32& out)
+	bool32 parse(const char* s, uint32* out)
 	{
 
 		int8 sign = 1;
@@ -750,11 +750,11 @@ namespace CString
 			multiplier *= 10;
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_u64(const char* s, uint64& out)
+	bool32 parse(const char* s, uint64* out)
 	{
 
 		int8 sign = 1;
@@ -779,26 +779,16 @@ namespace CString
 			multiplier *= 10;
 		}
 
-		out = ret * sign;
+		*out = ret * sign;
 		return true;
 	}
 
-	bool32 parse_b32(const char* s, bool32& out)
+	bool32 parse(const char* s, bool8* out)
 	{
 		if (equal_i(s, "true") || equal_i(s, "1"))
-			out = true;
+			*out = true;
 		else
-			out = false;
-
-		return true;
-	}
-
-	bool32 parse_b8(const char* s, bool8& out)
-	{
-		if (equal_i(s, "true") || equal_i(s, "1"))
-			out = true;
-		else
-			out = false;
+			*out = false;
 
 		return true;
 	}

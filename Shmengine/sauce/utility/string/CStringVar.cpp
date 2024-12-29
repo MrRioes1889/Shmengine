@@ -468,7 +468,7 @@ namespace CString
 					case ArgSize::LONG_LONG:
 					{
 						if (args[ptr_i].type == Arg::Type::FLOAT64_PTR)
-							parse_f64(parse_buffer, arg_copies[ptr_i++].float64_value);
+							parse(parse_buffer, &arg_copies[ptr_i++].float64_value);
 						else
 							valid_format = false;
 						break;
@@ -476,7 +476,7 @@ namespace CString
 					default:
 					{
 						if (args[ptr_i].type == Arg::Type::FLOAT32_PTR)	
-							parse_f32(parse_buffer, arg_copies[ptr_i++].float32_value[0]);
+							parse(parse_buffer, &arg_copies[ptr_i++].float32_value[0]);
 						else
 							valid_format = false;						
 						break;
@@ -493,7 +493,7 @@ namespace CString
 					case ArgSize::LONG_LONG:
 					{
 						if (args[ptr_i].type == Arg::Type::INT64_PTR)
-							parse_i64(parse_buffer, arg_copies[ptr_i++].int64_value);
+							parse(parse_buffer, &arg_copies[ptr_i++].int64_value);
 						else
 							valid_format = false;
 						break;
@@ -501,7 +501,7 @@ namespace CString
 					case ArgSize::SHORT:
 					{
 						if (args[ptr_i].type == Arg::Type::INT16_PTR)
-							parse_i16(parse_buffer, arg_copies[ptr_i++].int16_value[0]);
+							parse(parse_buffer, &arg_copies[ptr_i++].int16_value[0]);
 						else
 							valid_format = false;
 						break;
@@ -509,7 +509,7 @@ namespace CString
 					case ArgSize::SHORT_SHORT:
 					{
 						if (args[ptr_i].type == Arg::Type::INT8_PTR)
-							parse_i8(parse_buffer, arg_copies[ptr_i++].int8_value[0]);
+							parse(parse_buffer, &arg_copies[ptr_i++].int8_value[0]);
 						else
 							valid_format = false;
 						break;
@@ -517,7 +517,7 @@ namespace CString
 					default:
 					{
 						if (args[ptr_i].type == Arg::Type::INT32_PTR)
-							parse_i32(parse_buffer, arg_copies[ptr_i++].int32_value[0]);
+							parse(parse_buffer, &arg_copies[ptr_i++].int32_value[0]);
 						else
 							valid_format = false;
 						break;
@@ -535,7 +535,7 @@ namespace CString
 					case ArgSize::LONG_LONG:
 					{
 						if (args[ptr_i].type == Arg::Type::UINT64_PTR)
-							parse_u64(parse_buffer, arg_copies[ptr_i++].uint64_value);
+							parse(parse_buffer, &arg_copies[ptr_i++].uint64_value);
 						else
 							valid_format = false;
 						break;
@@ -543,7 +543,7 @@ namespace CString
 					case ArgSize::SHORT:
 					{
 						if (args[ptr_i].type == Arg::Type::UINT16_PTR)
-							parse_u16(parse_buffer, arg_copies[ptr_i++].uint16_value[0]);
+							parse(parse_buffer, &arg_copies[ptr_i++].uint16_value[0]);
 						else
 							valid_format = false;
 						break;
@@ -551,7 +551,7 @@ namespace CString
 					case ArgSize::SHORT_SHORT:
 					{
 						if (args[ptr_i].type == Arg::Type::UINT8_PTR)
-							parse_u8(parse_buffer, arg_copies[ptr_i++].uint8_value[0]);
+							parse(parse_buffer, &arg_copies[ptr_i++].uint8_value[0]);
 						else
 							valid_format = false;
 						break;
@@ -559,7 +559,7 @@ namespace CString
 					default:
 					{
 						if (args[ptr_i].type == Arg::Type::UINT32_PTR)
-							parse_u32(parse_buffer, arg_copies[ptr_i++].uint32_value[0]);
+							parse(parse_buffer, &arg_copies[ptr_i++].uint32_value[0]);
 						else
 							valid_format = false;
 						break;

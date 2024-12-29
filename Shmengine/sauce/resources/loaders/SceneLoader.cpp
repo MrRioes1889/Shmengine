@@ -132,7 +132,6 @@ namespace ResourceSystem
                 continue;
             }
 
-            // Split into var/value
             if (line[0] == '[')
             {
                 if (scope == ParserScope::SCENE)
@@ -246,7 +245,7 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("max_meshes_count"))
                 {
-                    if (!CString::parse_u32(value.c_str(), out_resource->max_meshes_count))
+                    if (!CString::parse(value.c_str(), &out_resource->max_meshes_count))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -255,7 +254,7 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("max_terrains_count"))
                 {
-                    if (!CString::parse_u32(value.c_str(), out_resource->max_terrains_count))
+                    if (!CString::parse(value.c_str(), &out_resource->max_terrains_count))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -264,7 +263,7 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("max_p_lights_count"))
                 {
-                    if (!CString::parse_u32(value.c_str(), out_resource->max_p_lights_count))
+                    if (!CString::parse(value.c_str(), &out_resource->max_p_lights_count))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -300,7 +299,7 @@ namespace ResourceSystem
                 else if (var_name.equal_i("position"))
                 {
                     Math::Vec3f position;
-                    if (!CString::parse(value.c_str(), position))
+                    if (!CString::parse(value.c_str(), &position))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -311,7 +310,7 @@ namespace ResourceSystem
                 else if (var_name.equal_i("rotation"))
                 {
                     Math::Vec4f rotation;
-                    if (!CString::parse(value.c_str(), rotation))
+                    if (!CString::parse(value.c_str(), &rotation))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -322,7 +321,7 @@ namespace ResourceSystem
                 else if (var_name.equal_i("scale"))
                 {
                     Math::Vec3f scalar;
-                    if (!CString::parse(value.c_str(), scalar))
+                    if (!CString::parse(value.c_str(), &scalar))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -342,7 +341,7 @@ namespace ResourceSystem
                 {
                     if (var_name.equal_i("dim"))
                     {
-                        if (!CString::parse(value.c_str(), cube_dim))
+                        if (!CString::parse(value.c_str(), &cube_dim))
                         {
                             SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                             success = false;
@@ -351,7 +350,7 @@ namespace ResourceSystem
                     }
                     if (var_name.equal_i("tiling"))
                     {
-                        if (!CString::parse(value.c_str(), cube_tiling))
+                        if (!CString::parse(value.c_str(), &cube_tiling))
                         {
                             SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                             success = false;
@@ -370,7 +369,7 @@ namespace ResourceSystem
 
                 if (var_name.equal_i("color"))
                 {
-                    if (!CString::parse(value.c_str(), dir_light->color))
+                    if (!CString::parse(value.c_str(), &dir_light->color))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -379,7 +378,7 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("direction"))
                 {
-                    if (!CString::parse(value.c_str(), dir_light->direction))
+                    if (!CString::parse(value.c_str(), &dir_light->direction))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -393,7 +392,7 @@ namespace ResourceSystem
 
                 if (var_name.equal_i("color"))
                 {
-                    if (!CString::parse(value.c_str(), point_light->color))
+                    if (!CString::parse(value.c_str(), &point_light->color))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -402,7 +401,7 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("position"))
                 {
-                    if (!CString::parse(value.c_str(), point_light->position))
+                    if (!CString::parse(value.c_str(), &point_light->position))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -411,7 +410,7 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("constant_f"))
                 {
-                    if (!CString::parse_f32(value.c_str(), point_light->constant_f))
+                    if (!CString::parse(value.c_str(), &point_light->constant_f))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -420,7 +419,7 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("linear"))
                 {
-                    if (!CString::parse_f32(value.c_str(), point_light->linear))
+                    if (!CString::parse(value.c_str(), &point_light->linear))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;
@@ -429,7 +428,7 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("quadratic"))
                 {
-                    if (!CString::parse_f32(value.c_str(), point_light->quadratic))
+                    if (!CString::parse(value.c_str(), &point_light->quadratic))
                     {
                         SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number);
                         success = false;

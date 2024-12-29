@@ -137,7 +137,7 @@ namespace Renderer
 		data->world_shader_info.view_location = ShaderSystem::get_uniform_index(data->world_shader_info.shader, "view");
 
 		data->world_shader_info.near_clip = 0.1f;
-		data->world_shader_info.far_clip = 1000.0f;
+		data->world_shader_info.far_clip = 4000.0f;
 		data->world_shader_info.fov = Math::deg_to_rad(45.0f);
 		data->world_shader_info.projection = Math::mat_perspective(data->world_shader_info.fov, 1280.0f / 720.0f, data->world_shader_info.near_clip, data->world_shader_info.far_clip);
 		data->world_shader_info.view = MAT4_IDENTITY;

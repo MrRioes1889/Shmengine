@@ -109,18 +109,17 @@ namespace CString
 		}
 	}
 
-	SHMAPI bool32 parse_f32(const char* s, float32& out);
-	SHMAPI bool32 parse_f64(const char* s, float64& out);
-	SHMAPI bool32 parse_i8(const char* s, int8& out);
-	SHMAPI bool32 parse_i16(const char* s, int16& out);
-	SHMAPI bool32 parse_i32(const char* s, int32& out);
-	SHMAPI bool32 parse_i64(const char* s, int64& out);
-	SHMAPI bool32 parse_u8(const char* s, uint8& out);
-	SHMAPI bool32 parse_u16(const char* s, uint16& out);
-	SHMAPI bool32 parse_u32(const char* s, uint32& out);
-	SHMAPI bool32 parse_u64(const char* s, uint64& out);
-	SHMAPI bool32 parse_b32(const char* s, bool32& out);
-	SHMAPI bool32 parse_b8(const char* s, bool8& out);
+	SHMAPI bool32 parse(const char* s, float32* out);
+	SHMAPI bool32 parse(const char* s, float64* out);
+	SHMAPI bool32 parse(const char* s, int8* out);
+	SHMAPI bool32 parse(const char* s, int16* out);
+	SHMAPI bool32 parse(const char* s, int32* out);
+	SHMAPI bool32 parse(const char* s, int64* out);
+	SHMAPI bool32 parse(const char* s, uint8* out);
+	SHMAPI bool32 parse(const char* s, uint16* out);
+	SHMAPI bool32 parse(const char* s, uint32* out);
+	SHMAPI bool32 parse(const char* s, uint64* out);
+	SHMAPI bool32 parse(const char* s, bool8* out);
 
 	struct Arg
 	{
@@ -214,19 +213,29 @@ namespace CString
 		return _scan_base(source, format, arg_array, sizeof...(Args));
 	}
 
-	SHMINLINE bool32 parse(const char* s, Math::Vec4f& out_f)
+	SHMINLINE bool32 parse(const char* s, Math::Mat4* out_f)
 	{
-		return safe_scan<float32*, float32*, float32*, float32*>(s, "%f %f %f %f", &out_f.e[0], &out_f.e[1], &out_f.e[2], &out_f.e[3]);
+		return safe_scan<float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*>
+			(s, "%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f", 
+				&out_f->data[0], &out_f->data[1], &out_f->data[2], &out_f->data[3],
+				&out_f->data[4], &out_f->data[5], &out_f->data[6], &out_f->data[7],
+				&out_f->data[8], &out_f->data[9], &out_f->data[10], &out_f->data[11],
+				&out_f->data[12], &out_f->data[13], &out_f->data[14], &out_f->data[15]);
 	}
 
-	SHMINLINE bool32 parse(const char* s, Math::Vec3f& out_f)
+	SHMINLINE bool32 parse(const char* s, Math::Vec4f* out_f)
 	{
-		return safe_scan<float32*, float32*, float32*>(s, "%f %f %f", &out_f.e[0], &out_f.e[1], &out_f.e[2]);
+		return safe_scan<float32*, float32*, float32*, float32*>(s, "%f %f %f %f", &out_f->e[0], &out_f->e[1], &out_f->e[2], &out_f->e[3]);
 	}
 
-	SHMINLINE bool32 parse(const char* s, Math::Vec2f& out_f)
+	SHMINLINE bool32 parse(const char* s, Math::Vec3f* out_f)
 	{
-		return safe_scan<float32*, float32*>(s, "%f %f", &out_f.e[0], &out_f.e[1]);
+		return safe_scan<float32*, float32*, float32*>(s, "%f %f %f", &out_f->e[0], &out_f->e[1], &out_f->e[2]);
+	}
+
+	SHMINLINE bool32 parse(const char* s, Math::Vec2f* out_f)
+	{
+		return safe_scan<float32*, float32*>(s, "%f %f", &out_f->e[0], &out_f->e[1]);
 	}
 
 	

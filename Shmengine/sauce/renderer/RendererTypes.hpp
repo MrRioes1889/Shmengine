@@ -394,7 +394,7 @@ namespace Renderer
 	{
 		Math::Vec3f position;
 		Math::Vec3f normal;
-		Math::Vec2f texcoord;
+		Math::Vec2f tex_coords;
 		Math::Vec4f color;
 		Math::Vec3f tangent;
 	};

@@ -4,11 +4,13 @@
 #include "utility/CString.hpp"
 #include "core/Memory.hpp"
 #include "containers/Hashtable.hpp"
+#include "platform/Platform.hpp"
 
 #include "renderer/RendererFrontend.hpp"
 
 #include "resources/loaders/ImageLoader.hpp"
 #include "systems/JobSystem.hpp"
+
 
 namespace TextureSystem
 {
@@ -39,6 +41,8 @@ namespace TextureSystem
 
 		Texture* registered_textures;
 		Hashtable<TextureReference> registered_texture_table = {};
+
+		uint32 textures_loading_count;
 	};	
 
 	static SystemState* system_state = 0;
@@ -59,6 +63,8 @@ namespace TextureSystem
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
 		system_state->config = *sys_config;
+
+		system_state->textures_loading_count = 0;
 
 		uint64 texture_array_size = sizeof(Texture) * sys_config->max_texture_count;
 		system_state->registered_textures = (Texture*)allocator_callback(allocator, texture_array_size);
@@ -103,10 +109,28 @@ namespace TextureSystem
 	Texture* acquire(const char* name, bool32 auto_release)
 	{
 		
-		if (CString::equal_i(name, SystemConfig::default_diffuse_name))
+		if (CString::equal_i(name, SystemConfig::default_name))
 		{
 			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
+			return &system_state->default_texture;
+		}
+
+		if (CString::equal_i(name, SystemConfig::default_diffuse_name))
+		{
+			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_diffuse_texture()' instead!");
 			return &system_state->default_diffuse;
+		}
+
+		if (CString::equal_i(name, SystemConfig::default_specular_name))
+		{
+			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_specular_texture()' instead!");
+			return &system_state->default_specular;
+		}
+
+		if (CString::equal_i(name, SystemConfig::default_normal_name))
+		{
+			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_normal_texture()' instead!");
+			return &system_state->default_normal;
 		}
 
 		uint32 id = INVALID_ID;
@@ -283,6 +307,12 @@ namespace TextureSystem
 		return &system_state->default_normal;
 	}
 
+	void sleep_until_all_textures_loaded()
+	{
+		while (system_state->textures_loading_count)
+			Platform::sleep(1);
+	}
+
 	static void texture_load_on_success(void* params)
 	{
 		TextureLoadParams* texture_params = (TextureLoadParams*)params;
@@ -302,10 +332,12 @@ namespace TextureSystem
 		else
 			texture_params->out_texture->generation = texture_params->current_generation + 1;
 
-		//SHMTRACEV("Successfully loaded texture '%s'.", texture_params->resource_name);
+		SHMTRACEV("Successfully loaded texture '%s'.", texture_params->resource_name);
 
 		ResourceSystem::image_loader_unload(config);
 		Memory::free_memory(texture_params->resource_name);
+
+		system_state->textures_loading_count--;
 	}
 
 	static void texture_load_on_failure(void* params)
@@ -317,6 +349,8 @@ namespace TextureSystem
 		ResourceSystem::image_loader_unload(&texture_params->config);
 		if (texture_params->resource_name)
 			Memory::free_memory(texture_params->resource_name);
+
+		system_state->textures_loading_count--;
 	}
 
 	static bool32 texture_load_job_start(void* params, void* results)
@@ -368,6 +402,7 @@ namespace TextureSystem
 
 	static bool32 load_texture(const char* texture_name, Texture* t)
 	{	
+		system_state->textures_loading_count++;
 		JobSystem::JobInfo job = JobSystem::job_create(texture_load_job_start, texture_load_on_success, texture_load_on_failure, sizeof(TextureLoadParams), sizeof(TextureLoadParams));
 		TextureLoadParams* params = (TextureLoadParams*)job.params;
 		uint32 name_length = CString::length(texture_name);

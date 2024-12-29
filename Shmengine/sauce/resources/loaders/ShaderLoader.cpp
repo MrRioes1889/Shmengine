@@ -87,11 +87,11 @@ namespace ResourceSystem
             }
             else if (var_name.equal_i("depth_test")) 
             {
-                 CString::parse_b8(value.c_str(), out_config->depth_test);
+                 CString::parse(value.c_str(), &out_config->depth_test);
             }
             else if (var_name.equal_i("depth_write")) 
             {
-                CString::parse_b8(value.c_str(), out_config->depth_write);
+                CString::parse(value.c_str(), &out_config->depth_write);
             }
             else if (var_name.equal_i("stages")) 
             {
@@ -283,7 +283,7 @@ namespace ResourceSystem
                             return false;
                         }
                         uint32 size = 0;
-                        if (!CString::parse_u32(&tmp[0][6], size))
+                        if (!CString::parse(&tmp[0][6], &size))
                         {
                             SHMERRORV("Failed to parse uniform struct size: '%s'", tmp[0].c_str());
                             return false;

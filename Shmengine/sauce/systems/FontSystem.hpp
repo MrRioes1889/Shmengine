@@ -3,7 +3,7 @@
 #include "Defines.hpp"
 #include "containers/Sarray.hpp"
 #include "containers/Darray.hpp"
-#include "systems/TextureSystem.hpp"
+#include "systems/MaterialSystem.hpp"
 #include "core/Subsystems.hpp"
 
 struct UIText;

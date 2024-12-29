@@ -1,5 +1,6 @@
 #include "MeshLoader.hpp"
 
+#include "MaterialLoader.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/ResourceSystem.hpp"
 #include "resources/Mesh.hpp"
@@ -67,12 +68,9 @@ namespace ResourceSystem
 
     static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, SceneMeshResourceData* out_resource);
     static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometrySystem::GeometryConfig* out_data);
-    static bool32 import_obj_material_library_file(const char* mtl_file_path);
-    static bool32 write_shmt_file(const char* directory, MaterialConfig* config);
 
     static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, SceneMeshResourceData* out_resource);
-    static bool32 write_shmesh_file(const char* path, const char* name, SceneMeshResourceData* resource);
-    
+    static bool32 write_shmesh_file(const char* path, const char* name, SceneMeshResourceData* resource);  
 
     bool32 mesh_loader_load(const char* name, void* params, SceneMeshResourceData* out_resource)
     {
@@ -218,19 +216,19 @@ namespace ResourceSystem
             if (identifier == "v")
             {
                 Math::Vec3f pos;
-                CString::parse(values.c_str(), pos);
+                CString::parse(values.c_str(), &pos);
                 positions.emplace(pos);
             }
             else if (identifier == "vn")
             {
                 Math::Vec3f norm;
-                CString::parse(values.c_str(), norm);
+                CString::parse(values.c_str(), &norm);
                 normals.emplace(norm);
             }
             else if (identifier == "vt")
             {
                 Math::Vec2f tex_c;
-                CString::parse(values.c_str(), tex_c);
+                CString::parse(values.c_str(), &tex_c);
                 tex_coords.emplace(tex_c);
             }
             else if (identifier == "s")
@@ -334,7 +332,7 @@ namespace ResourceSystem
             String directory;
             mid(directory, out_shmesh_filename, 0, CString::index_of_last(out_shmesh_filename, '/') + 1);
             directory.append(material_file_name);
-            if (!import_obj_material_library_file(directory.c_str()))
+            if (!material_loader_import_obj_material_library_file(directory.c_str()))
                 SHMERRORV("Error reading obj mtl file '%s'.", material_file_name.c_str());
         }
 
@@ -345,7 +343,7 @@ namespace ResourceSystem
             SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
 
             Renderer::geometry_deduplicate_vertices(*g);
-            Renderer::geometry_generate_tangents(*g);
+            Renderer::geometry_generate_mesh_tangents(g->vertex_count, (Renderer::Vertex3D*)g->vertices.data, g->indices.capacity, g->indices.data);
 
             // TODO: Maybe shrink down vertex array to count after deduplication!
         }
@@ -423,10 +421,10 @@ namespace ResourceSystem
                 }
 
                 if (skip_tex_coords) {
-                    vert.texcoord = VEC2_ZERO;
+                    vert.tex_coords = VEC2_ZERO;
                 }
                 else {
-                    vert.texcoord = tex_coords[index_data.texcoord_index - 1];
+                    vert.tex_coords = tex_coords[index_data.texcoord_index - 1];
                 }
 
                 // TODO: Color. Hardcode to white for now.
@@ -450,203 +448,6 @@ namespace ResourceSystem
         uint32* indices_ptr = indices.transfer_data();
         out_data->vertices.init(vertex_count * sizeof(Renderer::Vertex3D), 0, (AllocationTag)vertices.allocation_tag, vertices_ptr);
         out_data->indices.init(index_count, 0, (AllocationTag)indices.allocation_tag, indices_ptr);      
-
-    }
-
-    static bool32 import_obj_material_library_file(const char* mtl_file_path)
-    {
-
-        FileSystem::FileHandle f;
-        if (!FileSystem::file_open(mtl_file_path, FileMode::FILE_MODE_READ, &f))
-        {
-            SHMERRORV("import_obj_material_library_file - Failed to open file for loading material '%s'", mtl_file_path);
-            return false;
-        }
-
-        MaterialConfig current_config = {};
-
-        uint32 file_size = FileSystem::get_file_size32(&f);
-        String file_content(file_size + 1);
-        uint32 bytes_read = 0;
-        if (!FileSystem::read_all_bytes(&f, file_content, &bytes_read))
-        {
-            SHMERRORV("material_loader_load - failed to read from file: '%s'.", mtl_file_path);
-            return false;
-        }
-
-        // Read each line of the file.
-        bool32 hit_name = false;
-
-        String line(512);
-        uint32 line_number = 1;
-
-        String identifier;
-        String values;
-
-        const char* continue_ptr = 0;
-        while (FileSystem::read_line(file_content.c_str(), line, &continue_ptr))
-        {
-
-            line.trim();
-            if (line.len() < 1 || line[0] == '#')
-                continue;
-
-            int32 first_space_i = line.index_of(' ');
-            if (first_space_i == -1)
-                continue;
-
-            mid(identifier, line.c_str(), 0, first_space_i);
-            mid(values, line.c_str(), first_space_i + 1);
-            identifier.trim();
-            values.trim();
-
-            if (identifier == "Ka")
-            {
-
-            }
-            else if (identifier == "Kd")
-            {
-                CString::scan(values.c_str(), "%f %f %f", &current_config.diffuse_color.r, &current_config.diffuse_color.g, &current_config.diffuse_color.b);
-                current_config.diffuse_color.a = 1.0f;
-            }
-            else if (identifier == "Ks")
-            {
-                float32 spec;
-                CString::scan(values.c_str(), "%f %f %f", &spec, &spec, &spec);
-            }
-            else if (identifier == "Ns")
-            {
-                CString::parse_f32(values.c_str(), current_config.shininess);
-            }
-            else if (identifier.nequal_i("map_Kd", 6))
-            {
-                values.left_of_last('.');
-                values.right_of_last('/');
-                values.right_of_last('\\');
-                CString::copy(values.c_str(), current_config.diffuse_map_name, max_texture_name_length);
-            }
-            else if (identifier.nequal_i("map_Ks", 6))
-            {
-                values.left_of_last('.');
-                values.right_of_last('/');
-                values.right_of_last('\\');
-                CString::copy(values.c_str(), current_config.specular_map_name, max_texture_name_length);
-            }
-            else if (identifier.nequal_i("map_bump", 6) || identifier.nequal_i("bump", 6))
-            {
-                values.left_of_last('.');
-                values.right_of_last('/');
-                values.right_of_last('\\');
-                CString::copy(values.c_str(), current_config.normal_map_name, max_texture_name_length);
-            }
-            else if (identifier.nequal_i("newmtl", 6))
-            {                
-
-                current_config.shader_name = Renderer::RendererConfig::builtin_shader_name_material;
-
-                if (current_config.shininess == 0.0f)
-                    current_config.shininess = 8.0f;
-
-                if (hit_name)
-                {
-                    String directory;
-                    left_of_last(directory, mtl_file_path, '/');
-                    directory.left_of_last('\\');
-                    directory.append('/');
-                    if (!write_shmt_file(directory.c_str(), &current_config)) {
-                        SHMERROR("Unable to write kmt file.");
-                        return false;
-                    }
-
-                    current_config = {};
-                }
-
-                hit_name = true;
-                CString::copy(values.c_str(), current_config.name, max_material_name_length);
-            }
-
-            line_number++;
-        }
-
-        if (hit_name)
-        {
-            current_config.shader_name = Renderer::RendererConfig::builtin_shader_name_material;
-
-            if (current_config.shininess == 0.0f)
-                current_config.shininess = 8.0f;
-
-            String directory;
-            left_of_last(directory, mtl_file_path, '/');
-            directory.left_of_last('\\');
-            directory.append('/');
-
-            if (!write_shmt_file(directory.c_str(), &current_config)) {
-                SHMERROR("Unable to write kmt file.");
-                return false;
-            }
-        }
-        
-        FileSystem::file_close(&f);
-        return true;
-
-    }
-
-    // TODO: Move this function to a proper place and look for dynamic directory
-    static bool32 write_shmt_file(const char* directory, MaterialConfig* config)
-    {
-        
-        const char* format_str = "%s../materials/%s%s";
-        FileSystem::FileHandle f;
-
-        String full_file_path = directory;
-        full_file_path.append("../materials/");
-        full_file_path.append(config->name);
-        full_file_path.append(".shmt");
-
-        if (!FileSystem::file_open(full_file_path.c_str(), FILE_MODE_WRITE, &f)) {
-            SHMERRORV("Error opening material file for writing: '%s'", full_file_path.c_str());
-            return false;
-        }
-        SHMDEBUGV("Writing .shmt file '%s'...", full_file_path.c_str());
-
-        char line_buffer[512];
-        String content(512);
-        content += "#material file\n";
-        content += "\n";
-        content += "version=0.1\n";
-        content += "name=";
-        content += config->name;
-        content += "\n";
-  
-        CString::print_s(line_buffer, 512, "diffuse_color=%f6 %f6 %f6 %f6\n", config->diffuse_color.r, config->diffuse_color.g, config->diffuse_color.b, config->diffuse_color.a);
-        content += line_buffer;
-
-        CString::print_s(line_buffer, 512, "shininess=%f\n", config->shininess);
-        content += line_buffer;
-
-        if (config->diffuse_map_name[0]) {
-            CString::safe_print_s<const char*>(line_buffer, 512, "diffuse_map_name=%s\n", config->diffuse_map_name);
-            content += line_buffer;
-        }
-        if (config->specular_map_name[0]) {
-            CString::safe_print_s<const char*>(line_buffer, 512, "specular_map_name=%s\n", config->specular_map_name);
-            content += line_buffer;
-        }
-        if (config->normal_map_name[0]) {
-            CString::safe_print_s<const char*>(line_buffer, 512, "normal_map_name=%s\n", config->normal_map_name);
-            content += line_buffer;
-        }
-
-        CString::print_s(line_buffer, 512, "shader=%s\n", config->shader_name.c_str());
-        content += line_buffer;
-
-        uint32 bytes_written = 0;
-        content.update_len();
-        FileSystem::write(&f, content.len(), &content[0], &bytes_written);
-
-        FileSystem::file_close(&f);
-
-        return true;
 
     }
 

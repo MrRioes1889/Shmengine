@@ -19,7 +19,7 @@ struct RenderViewUIInternalData {
 	Math::Mat4 view_matrix;
 	Renderer::Shader* shader;
 	uint16 diffuse_map_location;
-	uint16 diffuse_color_location;
+	uint16 properties_location;
 	uint16 model_location;
 	// u32 render_mode;
 };
@@ -69,7 +69,7 @@ namespace Renderer
 	
 		data->shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
 		data->diffuse_map_location = ShaderSystem::get_uniform_index(data->shader, "diffuse_texture");
-		data->diffuse_color_location = ShaderSystem::get_uniform_index(data->shader, "diffuse_color");
+		data->properties_location = ShaderSystem::get_uniform_index(data->shader, "properties");
 		data->model_location = ShaderSystem::get_uniform_index(data->shader, "model");
 
 		data->near_clip = -100.0f;
@@ -169,8 +169,10 @@ namespace Renderer
 				return false;
 			}
 
+			MaterialSystem::LightingInfo lighting = {};
+
 			// Apply globals
-			if (!MaterialSystem::apply_globals(data->shader->id, frame_number, &packet.projection_matrix, &packet.view_matrix, 0, 0, 0)) {
+			if (!MaterialSystem::apply_globals(data->shader->id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, 0, 0, 0)) {
 				SHMERROR("render_view_ui_on_render - Failed to use apply globals for shader. Render frame failed.");
 				return false;
 			}
@@ -182,10 +184,8 @@ namespace Renderer
 					m = packet.geometries[i].material;
 				}
 				else {
-					m = MaterialSystem::get_default_material();
+					m = MaterialSystem::get_default_ui_material();
 				}
-
-				MaterialSystem::LightingInfo lighting = {};
 
 				// Apply the material			
 				bool32 needs_update = (m->render_frame_number != frame_number);
@@ -216,7 +216,7 @@ namespace Renderer
 
 				// TODO: font colour.
 				static Math::Vec4f white_colour = { 1.0f, 1.0f, 1.0f, 1.0f };  // white
-				if (!ShaderSystem::set_uniform(data->diffuse_color_location, &white_colour)) {
+				if (!ShaderSystem::set_uniform(data->properties_location, &white_colour)) {
 					SHMERROR("Failed to apply bitmap font diffuse colour uniform.");
 					return false;
 				}

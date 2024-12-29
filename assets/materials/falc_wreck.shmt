@@ -2,9 +2,41 @@
 
 version=0.1
 name=falc_wreck
-diffuse_color=0.800000 0.800000 0.800000 1.000000
-shininess=8.00
-diffuse_map_name=falc_wreck_low_DefaultMaterial_AlbedoTransparency
-specular_map_name=falc_wreck_low_DefaultMaterial_MetallicSmoothness
-normal_map_name=falc_wreck_low_DefaultMaterial_Normal
+type=phong
 shader=Shader.Builtin.Material
+
+[Properties]
+shininess=f32/8.000000
+diffuse_color=vec4/0.800000 0.800000 0.800000 1.000000
+[/]
+
+[TextureMap]
+name=diffuse
+texture_name=falc_wreck_low_DefaultMaterial_AlbedoTransparency
+filter_min=linear
+filter_mag=linear
+repeat_u=repeat
+repeat_v=repeat
+repeat_w=repeat
+[/]
+
+[TextureMap]
+name=specular
+texture_name=falc_wreck_low_DefaultMaterial_MetallicSmoothness
+filter_min=linear
+filter_mag=linear
+repeat_u=repeat
+repeat_v=repeat
+repeat_w=repeat
+[/]
+
+[TextureMap]
+name=normal
+texture_name=falc_wreck_low_DefaultMaterial_Normal
+filter_min=linear
+filter_mag=linear
+repeat_u=repeat
+repeat_v=repeat
+repeat_w=repeat
+[/]
+

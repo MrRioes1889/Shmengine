@@ -26,10 +26,14 @@ typedef uint32 UniqueId;
 
 typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
-inline static const uint32 max_geometry_name_length = 128;
-inline static const uint32 max_material_name_length = 128;
-inline static const uint32 max_texture_name_length = 128;
-inline static const uint32 max_buffer_name_length = 128;
+inline const uint32 max_geometry_name_length = 128;
+inline const uint32 max_material_name_length = 128;
+inline const uint32 max_shader_name_length = 128;
+inline const uint32 max_texture_name_length = 128;
+inline const uint32 max_terrain_name_length = 128;
+inline const uint32 max_buffer_name_length = 128;
+
+inline const uint32 max_terrain_materials_count = 4;
 
 #define PI 3.14159265358979323846f
 #define DOUBLE_PI (2.0f * PI)

@@ -381,7 +381,6 @@ namespace FontSystem
 
 		font->map.filter_magnify = font->map.filter_minify = TextureFilter::LINEAR;
 		font->map.repeat_u = font->map.repeat_v = font->map.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
-		font->map.use = TextureUse::MAP_DIFFUSE;
 		if (!Renderer::texture_map_acquire_resources(&font->map)) {
 			SHMERROR("setup_font_data - Unable to acquire resources for font atlas texture map.");
 			return false;

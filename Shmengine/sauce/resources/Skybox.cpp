@@ -16,7 +16,6 @@ bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 	out_skybox->cubemap.filter_minify = TextureFilter::LINEAR;
 	out_skybox->cubemap.filter_magnify = TextureFilter::LINEAR;
 	out_skybox->cubemap.repeat_u = out_skybox->cubemap.repeat_v = out_skybox->cubemap.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
-	out_skybox->cubemap.use = TextureUse::MAP_CUBEMAP;
 
 	out_skybox->instance_id = INVALID_ID;
 

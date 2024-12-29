@@ -2,7 +2,7 @@
 
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
-#include "systems/TextureSystem.hpp"
+#include "systems/MaterialSystem.hpp"
 
 struct GeometryData;
 

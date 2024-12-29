@@ -393,11 +393,11 @@ bool32 application_update(FrameData* frame_data)
 	if (Input::is_cursor_clipped())
 	{
 		Math::Vec2i mouse_offset = Input::get_internal_mouse_offset();
-		const float32 mouse_sensitivity = 1.0f;
+		const float32 mouse_sensitivity = 0.02f;
 		if (mouse_offset.x || mouse_offset.y)
 		{
-			float32 yaw = -mouse_offset.x * mouse_sensitivity * 0.02f;
-			float32 pitch = -mouse_offset.y * mouse_sensitivity * 0.02f;
+			float32 yaw = -mouse_offset.x * mouse_sensitivity;
+			float32 pitch = -mouse_offset.y * mouse_sensitivity * ((float32)app_state->height / (float32)app_state->width);
 			app_state->world_camera->yaw(yaw);
 			app_state->world_camera->pitch(pitch);
 		}	
@@ -417,12 +417,13 @@ bool32 application_update(FrameData* frame_data)
 
 		p_light->color =
 		{
-			(Math::sin((float32)frame_data->total_time + 0.0f) + 1.0f) * 0.5f,
-			(Math::sin((float32)frame_data->total_time + 0.3f) + 1.0f) * 0.5f,
-			(Math::sin((float32)frame_data->total_time + 0.6f) + 1.0f) * 0.5f,
+			clamp(Math::sin((float32)frame_data->total_time) * 0.75f + 0.5f, 0.0f, 1.0f),
+			clamp(Math::sin((float32)frame_data->total_time) - (PI * 2 / 3) * 0.75f + 0.5f, 0.0f, 1.0f),
+			clamp(Math::sin((float32)frame_data->total_time) * (PI * 4 / 3) * 0.75f + 0.5f, 0.0f, 1.0f),
 			1.0f
 		};
-		p_light->position.x = Math::sin((float32)frame_data->total_time);
+		static float32 starting_position = p_light->position.z;
+		p_light->position.z = starting_position + Math::sin((float32)frame_data->total_time);
 	}
 
 	Math::Vec2i mouse_pos = Input::get_mouse_position();

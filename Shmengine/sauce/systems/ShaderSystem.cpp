@@ -5,7 +5,7 @@
 
 #include "renderer/RendererFrontend.hpp"
 
-#include "TextureSystem.hpp"
+#include "MaterialSystem.hpp"
 
 namespace ShaderSystem
 {
@@ -58,41 +58,38 @@ namespace ShaderSystem
 		system_state->material_shader_id = INVALID_ID;
 		system_state->material_locations.view = INVALID_ID16;
 		system_state->material_locations.projection = INVALID_ID16;
-		system_state->material_locations.diffuse_color = INVALID_ID16;
 		system_state->material_locations.diffuse_texture = INVALID_ID16;
 		system_state->material_locations.specular_texture = INVALID_ID16;
 		system_state->material_locations.normal_texture = INVALID_ID16;
 		system_state->material_locations.camera_position = INVALID_ID16;
 		system_state->material_locations.ambient_color = INVALID_ID16;
-		system_state->material_locations.shininess = INVALID_ID16;
 		system_state->material_locations.model = INVALID_ID16;
 		system_state->material_locations.render_mode = INVALID_ID16;
 		system_state->material_locations.dir_light = INVALID_ID16;
 		system_state->material_locations.p_lights = INVALID_ID16;
 		system_state->material_locations.p_lights_count = INVALID_ID16;
+		system_state->material_locations.properties = INVALID_ID16;
 
 		system_state->terrain_shader_id = INVALID_ID;
 		system_state->terrain_locations.view = INVALID_ID16;
 		system_state->terrain_locations.projection = INVALID_ID16;
-		system_state->terrain_locations.diffuse_color = INVALID_ID16;
-		system_state->terrain_locations.diffuse_texture = INVALID_ID16;
-		system_state->terrain_locations.specular_texture = INVALID_ID16;
-		system_state->terrain_locations.normal_texture = INVALID_ID16;
 		system_state->terrain_locations.camera_position = INVALID_ID16;
 		system_state->terrain_locations.ambient_color = INVALID_ID16;
-		system_state->terrain_locations.shininess = INVALID_ID16;
 		system_state->terrain_locations.model = INVALID_ID16;
 		system_state->terrain_locations.render_mode = INVALID_ID16;
 		system_state->terrain_locations.dir_light = INVALID_ID16;
 		system_state->terrain_locations.p_lights = INVALID_ID16;
 		system_state->terrain_locations.p_lights_count = INVALID_ID16;
+		system_state->terrain_locations.properties = INVALID_ID16;
+		for (uint32 i = 0; i < max_terrain_materials_count * 3; i++)
+			system_state->terrain_locations.samplers[i] = INVALID_ID16;
 
 		system_state->ui_shader_id = INVALID_ID;
-		system_state->ui_locations.diffuse_color = INVALID_ID16;
 		system_state->ui_locations.diffuse_texture = INVALID_ID16;
 		system_state->ui_locations.view = INVALID_ID16;
 		system_state->ui_locations.projection = INVALID_ID16;
 		system_state->ui_locations.model = INVALID_ID16;
+		system_state->ui_locations.properties = INVALID_ID16;
 
 		uint64 hashtable_data_size = sizeof(uint32) * sys_config->max_shader_count;
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
@@ -206,16 +203,15 @@ namespace ShaderSystem
 			system_state->material_locations.view = ShaderSystem::get_uniform_index(shader, "view");
 			system_state->material_locations.ambient_color = ShaderSystem::get_uniform_index(shader, "ambient_color");
 			system_state->material_locations.camera_position = ShaderSystem::get_uniform_index(shader, "camera_position");
-			system_state->material_locations.diffuse_color = ShaderSystem::get_uniform_index(shader, "diffuse_color");
 			system_state->material_locations.diffuse_texture = ShaderSystem::get_uniform_index(shader, "diffuse_texture");
 			system_state->material_locations.specular_texture = ShaderSystem::get_uniform_index(shader, "specular_texture");
 			system_state->material_locations.normal_texture = ShaderSystem::get_uniform_index(shader, "normal_texture");
-			system_state->material_locations.shininess = ShaderSystem::get_uniform_index(shader, "shininess");
 			system_state->material_locations.model = ShaderSystem::get_uniform_index(shader, "model");
 			system_state->material_locations.render_mode = ShaderSystem::get_uniform_index(shader, "mode");
 			system_state->material_locations.dir_light = ShaderSystem::get_uniform_index(shader, "dir_light");
 			system_state->material_locations.p_lights = ShaderSystem::get_uniform_index(shader, "p_lights");
 			system_state->material_locations.p_lights_count = ShaderSystem::get_uniform_index(shader, "p_lights_count");
+			system_state->material_locations.properties = ShaderSystem::get_uniform_index(shader, "properties");
 		}
 		if (system_state->terrain_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_terrain)) {
 			system_state->terrain_shader_id = shader->id;
@@ -223,24 +219,33 @@ namespace ShaderSystem
 			system_state->terrain_locations.view = ShaderSystem::get_uniform_index(shader, "view");
 			system_state->terrain_locations.ambient_color = ShaderSystem::get_uniform_index(shader, "ambient_color");
 			system_state->terrain_locations.camera_position = ShaderSystem::get_uniform_index(shader, "camera_position");
-			system_state->terrain_locations.diffuse_color = ShaderSystem::get_uniform_index(shader, "diffuse_color");
-			system_state->terrain_locations.diffuse_texture = ShaderSystem::get_uniform_index(shader, "diffuse_texture");
-			system_state->terrain_locations.specular_texture = ShaderSystem::get_uniform_index(shader, "specular_texture");
-			system_state->terrain_locations.normal_texture = ShaderSystem::get_uniform_index(shader, "normal_texture");
-			system_state->terrain_locations.shininess = ShaderSystem::get_uniform_index(shader, "shininess");
 			system_state->terrain_locations.model = ShaderSystem::get_uniform_index(shader, "model");
 			system_state->terrain_locations.render_mode = ShaderSystem::get_uniform_index(shader, "mode");
 			system_state->terrain_locations.dir_light = ShaderSystem::get_uniform_index(shader, "dir_light");
 			system_state->terrain_locations.p_lights = ShaderSystem::get_uniform_index(shader, "p_lights");
 			system_state->terrain_locations.p_lights_count = ShaderSystem::get_uniform_index(shader, "p_lights_count");
+			system_state->terrain_locations.properties = ShaderSystem::get_uniform_index(shader, "properties");
+
+			system_state->terrain_locations.samplers[0] = ShaderSystem::get_uniform_index(shader, "diffuse_texture_0");
+			system_state->terrain_locations.samplers[1] = ShaderSystem::get_uniform_index(shader, "specular_texture_0");
+			system_state->terrain_locations.samplers[2] = ShaderSystem::get_uniform_index(shader, "normal_texture_0");
+			system_state->terrain_locations.samplers[3] = ShaderSystem::get_uniform_index(shader, "diffuse_texture_1");
+			system_state->terrain_locations.samplers[4] = ShaderSystem::get_uniform_index(shader, "specular_texture_1");
+			system_state->terrain_locations.samplers[5] = ShaderSystem::get_uniform_index(shader, "normal_texture_1");
+			system_state->terrain_locations.samplers[6] = ShaderSystem::get_uniform_index(shader, "diffuse_texture_2");
+			system_state->terrain_locations.samplers[7] = ShaderSystem::get_uniform_index(shader, "specular_texture_2");
+			system_state->terrain_locations.samplers[8] = ShaderSystem::get_uniform_index(shader, "normal_texture_2");
+			system_state->terrain_locations.samplers[9] = ShaderSystem::get_uniform_index(shader, "diffuse_texture_3");
+			system_state->terrain_locations.samplers[10] = ShaderSystem::get_uniform_index(shader, "specular_texture_3");
+			system_state->terrain_locations.samplers[11] = ShaderSystem::get_uniform_index(shader, "normal_texture_3");
 		}
 		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_ui)) {
 			system_state->ui_shader_id = shader->id;
 			system_state->ui_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
 			system_state->ui_locations.view = ShaderSystem::get_uniform_index(shader, "view");
-			system_state->ui_locations.diffuse_color = ShaderSystem::get_uniform_index(shader, "diffuse_color");
 			system_state->ui_locations.diffuse_texture = ShaderSystem::get_uniform_index(shader, "diffuse_texture");
 			system_state->ui_locations.model = ShaderSystem::get_uniform_index(shader, "model");
+			system_state->ui_locations.properties = ShaderSystem::get_uniform_index(shader, "properties");
 		}
 
 		return true;
@@ -629,7 +634,6 @@ namespace ShaderSystem
 		system_state->default_texture_map.repeat_u = TextureRepeat::REPEAT;
 		system_state->default_texture_map.repeat_v = TextureRepeat::REPEAT;
 		system_state->default_texture_map.repeat_w = TextureRepeat::REPEAT;
-		system_state->default_texture_map.use = TextureUse::UNKNOWN;
 
 		system_state->default_texture_map.texture = TextureSystem::get_default_diffuse_texture();
 

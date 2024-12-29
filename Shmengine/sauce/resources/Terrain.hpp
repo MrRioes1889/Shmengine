@@ -7,12 +7,11 @@
 
 struct Material;
 
-inline static const uint32 max_terrain_materials_count = 4;
-
 enum class TerrainState
 {
 	UNINITIALIZED,
 	DESTROYED,
+	INITIALIZING,
 	INITIALIZED,
 	LOADING,
 	LOADED,
@@ -28,31 +27,36 @@ struct TerrainVertex
 	Math::Vec4f color;
 	Math::Vec4f tangent;
 
-	//float32 material_weights[max_terrain_materials_count];
+	float32 material_weights[max_terrain_materials_count];
 };
 
-//struct TerrainVertexData
-//{
-//	float32 height;
-//};
+struct TerrainVertexInfo
+{
+	float32 height;
+};
 
 struct TerrainConfig
 {
 	const char* name;
+	const char* resource_name;
 	uint32 tile_count_x;
 	uint32 tile_count_z;
 	float32 tile_scale_x;
 	float32 tile_scale_z;
 
-	Math::Transform xform;
+	float32 scale_y;
 
-	uint32 materials_count;
-	const char** material_names;
+	uint32 sub_materials_count;
+	const char** sub_material_names;
+
+	const char* heightmap_name;
+
+	Math::Transform xform;
 };
 
 struct Terrain
 {
-	struct PendingMaterial
+	struct SubMaterial
 	{
 		char name[max_material_name_length];
 	};
@@ -66,13 +70,20 @@ struct Terrain
 	float32 tile_scale_x;
 	float32 tile_scale_z;
 
+	float32 scale_y;
+
 	GeometryData geometry;
+
+	Sarray<TerrainVertexInfo> vertex_infos;
 	
-	Darray<PendingMaterial> pending_materials;
-	Darray<Material*> materials;
+	Darray<SubMaterial> sub_material_names;
+	Material* material;
 };
 
 SHMAPI bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain);
+SHMAPI bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrain);
 SHMAPI bool32 terrain_destroy(Terrain* terrain);
 SHMAPI bool32 terrain_load(Terrain* terrain);
 SHMAPI bool32 terrain_unload(Terrain* terrain);
+
+SHMAPI bool32 terrain_update(Terrain* terrain);

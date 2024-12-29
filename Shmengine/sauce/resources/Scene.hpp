@@ -25,6 +25,7 @@ enum class SceneState
 {
 	UNINITIALIZED,
 	DESTROYED,
+	INITIALIZING,
 	INITIALIZED,
 	LOADING,
 	LOADED,
@@ -34,6 +35,12 @@ enum class SceneState
 
 struct SceneConfig
 {
+	struct TerrainResource
+	{
+		const char* name;
+		const char* resource_name;
+	};
+
 	const char* name;
 	const char* description;
 
@@ -48,6 +55,7 @@ struct SceneConfig
 	uint32 point_light_count;
 	uint32 mesh_configs_count;
 	uint32 terrain_configs_count;
+	uint32 terrain_resources_count;
 
 	SkyboxConfig* skybox_configs;
 	DirectionalLight* dir_lights;

@@ -26,6 +26,8 @@ namespace MaterialSystem
 		SystemConfig config;
 
 		Material default_material;
+		Material default_ui_material;
+		Material default_terrain_material;
 
 		Material* registered_materials;
 		Hashtable<MaterialReference> registered_material_table;
@@ -33,10 +35,14 @@ namespace MaterialSystem
 
 	static SystemState* system_state = 0;
 
-	static bool32 load_material(MaterialConfig config, Material* m);
+	static bool32 load_material(const MaterialConfig* config, Material* m);
 	static void destroy_material(Material* m);
 
 	static bool32 create_default_material();
+	static bool32 create_default_ui_material();
+	static bool32 create_default_terrain_material();
+
+    static bool32 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture);
 
     bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config) {
 
@@ -73,25 +79,38 @@ namespace MaterialSystem
             return false;
         }
 
+        if (!create_default_terrain_material()) {
+            SHMFATAL("Failed to create default terrain material. Application cannot continue.");
+            return false;
+        }
+
+        if (!create_default_ui_material()) {
+            SHMFATAL("Failed to create default ui material. Application cannot continue.");
+            return false;
+        }
+
         return true;
+
     }
 
     void system_shutdown(void* state) 
     {
 
-        if (system_state) 
-        {
-            // Invalidate all materials in the array.
-            uint32 count = system_state->config.max_material_count;
-            for (uint32 i = 0; i < count; ++i) 
-            {
-                if (system_state->registered_materials[i].id != INVALID_ID) 
-                    destroy_material(&system_state->registered_materials[i]);
-            }
+        if (!system_state)
+            return;
 
-            // Destroy the default material.
-            destroy_material(&system_state->default_material);
+        // Invalidate all materials in the array.
+        uint32 count = system_state->config.max_material_count;
+        for (uint32 i = 0; i < count; ++i) 
+        {
+            if (system_state->registered_materials[i].id != INVALID_ID) 
+                destroy_material(&system_state->registered_materials[i]);
         }
+
+        // Destroy the default material.
+        destroy_material(&system_state->default_ui_material);
+        destroy_material(&system_state->default_terrain_material);
+        destroy_material(&system_state->default_material);
 
         system_state = 0;
 
@@ -99,40 +118,65 @@ namespace MaterialSystem
 
     Material* acquire(const char* name) {
         // Load the given material configuration from disk.
-        MaterialConfig config;
+        MaterialResourceData resource;
 
-        if (!ResourceSystem::material_loader_load(name, 0, &config))
+        if (!ResourceSystem::material_loader_load(name, 0, &resource))
         {
             SHMERRORV("load_mt_file - Failed to load material resources for material '%s'", name);
             return 0;
         }
 
+        MaterialConfig config = {};
+
+        config.name = resource.name;
+        config.shader_name = resource.shader_name;
+        config.type = resource.type;
+        config.auto_release = resource.auto_release;
+        config.properties_count = resource.properties.count;
+        config.properties = resource.properties.data;
+
+        Sarray<TextureMapConfig> map_configs(resource.maps.count, 0);
+        for (uint32 i = 0; i < map_configs.capacity; i++)
+        {
+            map_configs[i].name = resource.maps[i].name;
+            map_configs[i].texture_name = resource.maps[i].texture_name;
+            map_configs[i].filter_min = resource.maps[i].filter_min;
+            map_configs[i].filter_mag = resource.maps[i].filter_mag;
+            map_configs[i].repeat_u = resource.maps[i].repeat_u;
+            map_configs[i].repeat_v = resource.maps[i].repeat_v;
+            map_configs[i].repeat_w = resource.maps[i].repeat_w;
+        }
+
+        config.maps_count = map_configs.capacity;
+        config.maps = map_configs.data;
+
         // Now acquire from loaded config.
-        Material* mat = acquire_from_config(config);
-        ResourceSystem::material_loader_unload(&config);
+        Material* mat = acquire_from_config(&config);
+
+        map_configs.free_data();
+        ResourceSystem::material_loader_unload(&resource);
         return mat;
     }
 
-    Material* acquire_from_config(const MaterialConfig& config) {
-        // Return default material.
-        if (CString::equal_i(config.name, SystemConfig::default_name)) {
-            return &system_state->default_material;
-        }
+    static Material* acquire_reference(const char* name, bool32 auto_release, bool32* found)
+    {
 
-        MaterialReference& ref = system_state->registered_material_table.get_ref(config.name);
+        MaterialReference& ref = system_state->registered_material_table.get_ref(name);
 
         // This can only be changed the first time a material is loaded.
-        if (ref.reference_count == 0) {
-            ref.auto_release = config.auto_release;
-        }
+        if (ref.reference_count == 0)
+            ref.auto_release = auto_release;
 
         ref.reference_count++;
-        if (ref.handle == INVALID_ID) {
+        if (ref.handle == INVALID_ID) 
+        {
             // This means no material exists here. Find a free index first.
             uint32 count = system_state->config.max_material_count;
             Material* m = 0;
-            for (uint32 i = 0; i < count; ++i) {
-                if (system_state->registered_materials[i].id == INVALID_ID) {
+            for (uint32 i = 0; i < count; ++i) 
+            {
+                if (system_state->registered_materials[i].id == INVALID_ID) 
+                {
                     // A free slot has been found. Use its index as the handle.
                     ref.handle = i;
                     m = &system_state->registered_materials[i];
@@ -141,39 +185,156 @@ namespace MaterialSystem
             }
 
             // Make sure an empty slot was actually found.
-            if (!m || ref.handle == INVALID_ID) {
+            if (!m || ref.handle == INVALID_ID)
+            {
                 SHMFATAL("material_system_acquire - Material system cannot hold anymore materials. Adjust configuration to allow more.");
                 return 0;
             }
-
-            // Create new material.
-            if (!load_material(config, m)) {
-                SHMERRORV("Failed to load material '%s'.", config.name);
-                return 0;
-            }
-
-            if (m->generation == INVALID_ID) {
-                m->generation = 0;
-            }
-            else {
-                m->generation++;
-            }
+            
 
             // Also use the handle as the material id.
             m->id = ref.handle;
-            //SHMTRACEV("Material '%s' does not yet exist. Created, and ref_count is now %i.", config.name, ref.reference_count);
         }
-        else {
-            //SHMTRACEV("Material '%s' already exists, ref_count increased to %i.", config.name, ref.reference_count);
+        else 
+        {
+            *found = true;
         }
 
-       return &system_state->registered_materials[ref.handle];
+        return &system_state->registered_materials[ref.handle];
+
+    }
+
+    Material* acquire_from_config(const MaterialConfig* config) 
+    {
+
+        if (CString::equal_i(config->name, SystemConfig::default_name))
+            return &system_state->default_material;    
+
+        if (CString::equal_i(config->name, SystemConfig::default_ui_name))
+            return &system_state->default_material;
+
+        if (CString::equal_i(config->name, SystemConfig::default_terrain_name))
+            return &system_state->default_material;
+
+        bool32 exists = false;
+        Material* m = acquire_reference(config->name, config->auto_release, &exists);
+
+        if (!exists)
+        {
+            if (!load_material(config, m)) 
+            {
+                SHMERRORV("Failed to load material '%s'.", config->name);
+                return 0;
+            }
+
+            if (m->generation == INVALID_ID) 
+                m->generation = 0;
+            else
+                m->generation++;
+        }
+
+        return m;
+
+    }
+
+    Material* acquire_terrain_material(const char* material_name, uint32 sub_material_count, const char** sub_material_names, bool32 auto_release)
+    {
+
+        if (CString::equal_i(material_name, SystemConfig::default_terrain_name))
+            return &system_state->default_material;
+
+        bool32 exists = false;
+        Material* m = acquire_reference(material_name, auto_release, &exists);
+
+        if (!exists)
+        {
+            
+            Material* sub_materials[max_terrain_materials_count] = {};
+            for (uint32 i = 0; i < sub_material_count; i++)
+                sub_materials[i] = acquire(sub_material_names[i]);
+
+            TextureSystem::sleep_until_all_textures_loaded();
+
+            *m = {};
+
+            CString::copy(material_name, m->name, max_material_name_length);
+
+            Renderer::Shader* shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_terrain);
+            m->shader_id = shader->id;
+            m->type = MaterialType::TERRAIN;
+
+            m->properties_size = sizeof(MaterialTerrainProperties);
+            m->properties = Memory::allocate(m->properties_size, AllocationTag::MATERIAL_INSTANCE);
+            MaterialTerrainProperties* properties = (MaterialTerrainProperties*)m->properties;
+            properties->materials_count = sub_material_count;
+
+            const uint32 max_map_count = max_terrain_materials_count * 3;
+            m->maps.init(max_map_count, 0);
+
+            const char* map_names[3] = { "diffuse", "specular", "normal" };
+            Texture* default_textures[3] = 
+            {
+                TextureSystem::get_default_diffuse_texture(),
+                TextureSystem::get_default_specular_texture(),
+                TextureSystem::get_default_normal_texture()
+            };
+
+            Material* default_material = get_default_material();
+
+            // Phong properties and maps for each material.
+            for (uint32 material_idx = 0; material_idx < max_terrain_materials_count; material_idx++) {
+                // Properties.
+                MaterialPhongProperties* mat_props = &properties->materials[material_idx];
+                // Use default material unless within the material count.
+                Material* sub_mat = default_material;
+                if (material_idx < sub_material_count)
+                    sub_mat = sub_materials[material_idx];
+
+                MaterialPhongProperties* sub_mat_properties = (MaterialPhongProperties*)sub_mat->properties;
+                mat_props->diffuse_color = sub_mat_properties->diffuse_color;
+                mat_props->shininess = sub_mat_properties->shininess;
+
+                // Maps, 3 for phong. Diffuse, spec, normal.
+                for (uint32 map_i = 0; map_i < 3; ++map_i) {
+                    TextureMapConfig map_config = { 0 };
+                    map_config.name = map_names[map_i];
+                    map_config.texture_name = sub_mat->maps[map_i].texture->name;
+                    map_config.repeat_u = sub_mat->maps[map_i].repeat_u;
+                    map_config.repeat_v = sub_mat->maps[map_i].repeat_v;
+                    map_config.repeat_w = sub_mat->maps[map_i].repeat_w;
+                    map_config.filter_min = sub_mat->maps[map_i].filter_minify;
+                    map_config.filter_mag = sub_mat->maps[map_i].filter_magnify;
+                    if (!assign_map(&m->maps[(material_idx * 3) + map_i], &map_config, m->name, default_textures[map_i])) {
+                        SHMERRORV("Failed to assign '%s' texture map for terrain material index %u", map_names[map_i], material_idx);
+                        return 0;
+                    }
+                }
+            }
+
+            for (uint32 i = 0; i < sub_material_count; i++)
+                MaterialSystem::release(sub_material_names[i]);
+
+            TextureMap* maps[max_map_count] = {};
+            for (uint32 i = 0; i < max_map_count; i++)
+                maps[i] = &m->maps[i];
+
+            if (!Renderer::shader_acquire_instance_resources(shader, max_map_count, maps, &m->internal_id))
+                SHMERRORV("Failed to acquire renderer resources for material '%s'.", m->name);
+
+            if (m->generation == INVALID_ID)
+                m->generation = 0;
+            else
+                m->generation++;
+
+        }
+
+        return m;
 
     }
 
     void release(const char* name) {
         // Ignore release requests for the default material.
-        if (CString::equal_i(name, SystemConfig::default_name)) {
+        if (CString::equal_i(name, SystemConfig::default_name) || CString::equal_i(name, SystemConfig::default_ui_name) || CString::equal_i(name, SystemConfig::default_terrain_name)) {
             return;
         }
         MaterialReference ref = system_state->registered_material_table.get_value(name);
@@ -212,7 +373,7 @@ namespace MaterialSystem
         return false;                                 \
     }
 
-    bool32 apply_globals(uint32 shader_id, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode)
+    bool32 apply_globals(uint32 shader_id, LightingInfo lighting, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode)
     {
         Renderer::Shader* s = ShaderSystem::get_shader(shader_id);
         if (!s)
@@ -221,7 +382,8 @@ namespace MaterialSystem
         if (s->renderer_frame_number == renderer_frame_number)
             return true;
 
-        if (shader_id == ShaderSystem::get_material_shader_id()) {
+        if (shader_id == ShaderSystem::get_material_shader_id()) 
+        {
             ShaderSystem::MaterialShaderUniformLocations u_locations = ShaderSystem::get_material_shader_uniform_locations();
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, projection));
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, view));
@@ -229,12 +391,28 @@ namespace MaterialSystem
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.camera_position, camera_position));
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.render_mode, &render_mode));
         }
-        else if (shader_id == ShaderSystem::get_ui_shader_id()) {
+        else if (shader_id == ShaderSystem::get_terrain_shader_id())
+        {
+            ShaderSystem::TerrainShaderUniformLocations u_locations = ShaderSystem::get_terrain_shader_uniform_locations();
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, projection));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, view));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.ambient_color, ambient_color));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.camera_position, camera_position));
+            MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.render_mode, &render_mode));
+
+            if (lighting.dir_light)
+            {
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, lighting.dir_light));
+            }
+        }
+        else if (shader_id == ShaderSystem::get_ui_shader_id()) 
+        {
             ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, projection));
             MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, view));
         }
-        else {
+        else 
+        {
             SHMERRORV("material_system_apply_global - Unrecognized shader id '%i' ", shader_id);
             return false;
         }
@@ -249,13 +427,13 @@ namespace MaterialSystem
         MATERIAL_APPLY_OR_FAIL(ShaderSystem::bind_instance(m->internal_id));
         if (needs_update)
         {
-            if (m->shader_id == ShaderSystem::get_material_shader_id()) {
+            if (m->shader_id == ShaderSystem::get_material_shader_id()) 
+            {
                 ShaderSystem::MaterialShaderUniformLocations u_locations = ShaderSystem::get_material_shader_uniform_locations();
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_color, &m->diffuse_color));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &m->diffuse_map));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.specular_texture, &m->specular_map));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.normal_texture, &m->normal_map));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.shininess, &m->shininess));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, m->properties));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &m->maps[0]));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.specular_texture, &m->maps[1]));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.normal_texture, &m->maps[2]));
 
                 if (lighting.dir_light)
                 {
@@ -273,10 +451,28 @@ namespace MaterialSystem
                 }
                 
             }
+            else if (m->shader_id == ShaderSystem::get_terrain_shader_id())
+            {
+                ShaderSystem::TerrainShaderUniformLocations u_locations = ShaderSystem::get_terrain_shader_uniform_locations();
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, m->properties));
+                for (uint32 i = 0; i < m->maps.capacity; i++)
+                    MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.samplers[i], &m->maps[i]));
+
+                if (lighting.p_lights)
+                {
+                    MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
+                    MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, lighting.p_lights));
+                }
+                else
+                {
+                    MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
+                }
+
+            }
             else if (m->shader_id == ShaderSystem::get_ui_shader_id()) {
                 ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_color, &m->diffuse_color));
-                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &m->diffuse_map));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, m->properties));
+                MATERIAL_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &m->maps[0]));
             }
             else {
                 SHMERRORV("material_system_apply_instance - Unrecognized shader id '%i' on shader '%s'.", m->shader_id, m->name);
@@ -290,10 +486,16 @@ namespace MaterialSystem
 
     bool32 apply_local(Material* m, const Math::Mat4& model)
     {
-        if (m->shader_id == ShaderSystem::get_material_shader_id()) {
+        if (m->shader_id == ShaderSystem::get_material_shader_id()) 
+        {
             return ShaderSystem::set_uniform(ShaderSystem::get_material_shader_uniform_locations().model, &model);
         }
-        else if (m->shader_id == ShaderSystem::get_ui_shader_id()) {
+        else if (m->shader_id == ShaderSystem::get_terrain_shader_id())
+        {
+            return ShaderSystem::set_uniform(ShaderSystem::get_terrain_shader_uniform_locations().model, &model);
+        }
+        else if (m->shader_id == ShaderSystem::get_ui_shader_id()) 
+        {
             return ShaderSystem::set_uniform(ShaderSystem::get_ui_shader_uniform_locations().model, &model);
         }
 
@@ -320,68 +522,201 @@ namespace MaterialSystem
         }
     }
 
-    static bool32 load_material(MaterialConfig config, Material* m)
+    static bool32 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture)
     {
-        Memory::zero_memory(m, sizeof(Material));
 
-        // name
-        CString::copy(config.name, m->name,max_material_name_length );
+        map->filter_minify = config->filter_min;
+        map->filter_magnify = config->filter_mag;
+        map->repeat_u = config->repeat_u;
+        map->repeat_v = config->repeat_v;
+        map->repeat_w = config->repeat_w;
 
-        m->shader_id = ShaderSystem::get_id(config.shader_name.c_str());
-        m->diffuse_color = config.diffuse_color;
-        m->shininess = config.shininess;
-
-        auto init_texture_map = [](const char* map_name, const char* material_name, TextureUse use, TextureMap& out_map, Texture* default_texture = 0) -> bool32
+        if (config->texture_name && config->texture_name[0])
+        {
+            map->texture = TextureSystem::acquire(config->texture_name, true);
+            if (!map->texture)
             {
-                out_map.use = use;
-                out_map.filter_minify = TextureFilter::LINEAR;
-                out_map.filter_magnify = TextureFilter::LINEAR;
-                out_map.repeat_u = TextureRepeat::REPEAT;
-                out_map.repeat_v = TextureRepeat::REPEAT;
-                out_map.repeat_w = TextureRepeat::REPEAT;
-                out_map.repeat_u = TextureRepeat::REPEAT;               
-
-                if (map_name[0]) {
-                    out_map.texture = TextureSystem::acquire(map_name, true);
-                    if (!out_map.texture) {
-                        SHMWARNV("load_material - Unable to load texture '%s' for material '%s', using default.", material_name);
-                        out_map.texture = TextureSystem::get_default_texture();
-                    }           
-                }
-                else {
-                    out_map.texture = default_texture;
-                }
-
-                if (!Renderer::texture_map_acquire_resources(&out_map))
-                {
-                    SHMERRORV("load_material - Failed to acquire resources for texture map: '%s'.", map_name);
-                    return false;
-                }
-
-                return true;
-            };
-
-        if (!init_texture_map(config.diffuse_map_name, m->name, TextureUse::MAP_DIFFUSE, m->diffuse_map, TextureSystem::get_default_diffuse_texture()))
-            return false;
-        if (!init_texture_map(config.specular_map_name, m->name, TextureUse::MAP_SPECULAR, m->specular_map, TextureSystem::get_default_specular_texture()))
-            return false;
-        if (!init_texture_map(config.normal_map_name, m->name, TextureUse::MAP_NORMAL, m->normal_map, TextureSystem::get_default_normal_texture()))
-            return false;
-
-        // Send it off to the renderer to acquire resources.
-        Renderer::Shader* s = ShaderSystem::get_shader(config.shader_name.c_str());
-        if (!s) {
-            SHMERRORV("Unable to load material because its shader was not found: '%s'. This is likely a problem with the material asset.", config.shader_name.c_str());
-            return false;
+                SHMWARNV("Unable to acquire texture '%s'.", config->texture_name);
+                map->texture = default_texture;
+            }
+        }
+        else
+        {
+            map->texture = default_texture;
         }
 
-        TextureMap* maps[3] = { &m->diffuse_map, &m->specular_map, &m->normal_map };
-        if (!Renderer::shader_acquire_instance_resources(s, 3, maps, &m->internal_id)) {
-            SHMERRORV("Failed to acquire resources for material '%s'.", m->name);
+        if (!Renderer::texture_map_acquire_resources(map))
+        {
+            SHMERROR("Unable to acquire resources for texture map.");
             return false;
         }
 
         return true;
+
+    }
+
+    static bool32 load_material(const MaterialConfig* config, Material* m)
+    {
+        Memory::zero_memory(m, sizeof(Material));
+
+        if (m->type == MaterialType::TERRAIN)
+        {
+            SHMERROR("Terrain Material type soon to be deprecated and not loadable as single material!");
+            return false;
+        }
+
+        // name
+        CString::copy(config->name, m->name, max_material_name_length);
+
+        m->shader_id = ShaderSystem::get_id(config->shader_name);
+        m->type = config->type;
+
+        if (m->type == MaterialType::PHONG)
+        {
+
+            m->properties_size = sizeof(MaterialPhongProperties);
+            m->properties = Memory::allocate(m->properties_size, AllocationTag::MATERIAL_INSTANCE);
+            MaterialPhongProperties* properties = (MaterialPhongProperties*)m->properties;
+
+            for (uint32 i = 0; i < config->properties_count; i++)
+            {
+                MaterialProperty* prop = &config->properties[i];
+
+                if (CString::equal_i(prop->name, "diffuse_color"))
+                    properties->diffuse_color = *(Math::Vec4f*)prop->f32;
+                else if (CString::equal_i(prop->name, "shininess"))
+                    properties->shininess = prop->f32[0];
+                else
+                    SHMWARNV("Material property named %s not included in ui material type!", prop->name);
+            }
+
+            m->maps.init(3, 0);
+
+            bool32 diffuse_assigned = false;
+            bool32 specular_assigned = false;
+            bool32 normal_assigned = false;
+
+            for (uint32 i = 0; i < config->maps_count; i++)
+            {
+                if (CString::equal_i(config->maps[i].name, "diffuse"))
+                {
+                    if (!assign_map(&m->maps[0], &config->maps[i], m->name, TextureSystem::get_default_diffuse_texture()))
+                        return false;
+                    diffuse_assigned = true;
+                }
+                else if (CString::equal_i(config->maps[i].name, "specular"))
+                {
+                    if (!assign_map(&m->maps[1], &config->maps[i], m->name, TextureSystem::get_default_specular_texture()))
+                        return false;
+                    specular_assigned = true;
+                }
+                else if (CString::equal_i(config->maps[i].name, "normal"))
+                {
+                    if (!assign_map(&m->maps[2], &config->maps[i], m->name, TextureSystem::get_default_normal_texture()))
+                        return false;
+                    normal_assigned = true;
+                }
+            }
+
+            TextureMapConfig default_map_config = { 0 };
+            default_map_config.filter_mag = default_map_config.filter_min = TextureFilter::LINEAR;
+            default_map_config.repeat_u = default_map_config.repeat_v = default_map_config.repeat_w = TextureRepeat::MIRRORED_REPEAT;
+            default_map_config.texture_name = 0;
+
+            if (!diffuse_assigned) {              
+                default_map_config.name = "diffuse";
+                if (!assign_map(&m->maps[0], &default_map_config, m->name, TextureSystem::get_default_diffuse_texture())) {
+                    return false;
+                }
+            }
+            if (!specular_assigned) {
+                default_map_config.name = "specular";
+                if (!assign_map(&m->maps[1], &default_map_config, m->name, TextureSystem::get_default_specular_texture())) {
+                    return false;
+                }
+            }
+            if (!normal_assigned) {
+                default_map_config.name = "normal";
+                if (!assign_map(&m->maps[2], &default_map_config, m->name, TextureSystem::get_default_normal_texture())) {
+                    return false;
+                }
+            }
+
+        }
+        else if (m->type == MaterialType::UI)
+        {
+
+            m->properties_size = sizeof(MaterialUIProperties);
+            m->properties = Memory::allocate(m->properties_size, AllocationTag::MATERIAL_INSTANCE);
+            MaterialUIProperties* properties = (MaterialUIProperties*)m->properties;
+
+            for (uint32 i = 0; i < config->properties_count; i++)
+            {
+                MaterialProperty* prop = &config->properties[i];
+
+                if (CString::equal_i(prop->name, "diffuse_color"))
+                    properties->diffuse_color = *(Math::Vec4f*)prop->f32;
+                else
+                    SHMWARNV("Material property named %s not included in ui material type!", prop->name);
+            }
+
+            m->maps.init(1, 0);
+
+            if (!assign_map(&m->maps[0], &config->maps[0], m->name, TextureSystem::get_default_diffuse_texture())) {
+                return false;
+            }
+        }
+        else
+        {
+            SHMERROR("Failed to load material. Type either unknown or not supported yet!");
+            return false;
+        }
+
+        Renderer::Shader* shader = 0;
+        if (m->type == MaterialType::PHONG)
+        {
+            shader = ShaderSystem::get_shader(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_material);
+        }
+        if (m->type == MaterialType::UI)
+        {
+            shader = ShaderSystem::get_shader(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
+        }
+        if (m->type == MaterialType::CUSTOM)
+        {
+            if (!*config->shader_name)
+            {
+                SHMERROR("Failed to load shader. Shader name is required for custom materials!");
+                return false;
+            }
+
+            shader = ShaderSystem::get_shader(config->shader_name);
+        }
+        else
+        {
+            if (!*config->shader_name)
+            {
+                SHMERROR("Failed to load material. Type either unknown or not supported yet!");
+                return false;
+            }
+        }
+
+        if (!shader)
+        {
+            SHMERROR("Failed to load material. No valid shader found!");
+            return false;
+        }
+
+        Sarray<TextureMap*> maps(m->maps.capacity, 0);
+        for (uint32 i = 0; i < m->maps.capacity; i++)
+            maps[i] = &m->maps[i];
+
+        bool32 res = Renderer::shader_acquire_instance_resources(shader, maps.capacity, maps.data, &m->internal_id);
+        if (!res)
+            SHMERRORV("Failed to acquire renderer resources for material '%s'.", m->name);
+
+        maps.free_data();
+
+        return res;
     }
 
     static void destroy_material(Material* m)
@@ -389,21 +724,11 @@ namespace MaterialSystem
         //SHMTRACEV("Destroying material '%s'...", m->name);
 
         // Release texture references.
-        if (m->diffuse_map.texture) {
-            TextureSystem::release(m->diffuse_map.texture->name);
+        for (uint32 i = 0; i < m->maps.capacity; i++)
+        {
+            TextureSystem::release(m->maps[i].texture->name);
+            Renderer::texture_map_release_resources(&m->maps[i]);
         }
-
-        if (m->specular_map.texture) {
-            TextureSystem::release(m->specular_map.texture->name);
-        }
-
-        if (m->normal_map.texture) {
-            TextureSystem::release(m->normal_map.texture->name);
-        }
-
-        Renderer::texture_map_release_resources(&m->diffuse_map);
-        Renderer::texture_map_release_resources(&m->specular_map);
-        Renderer::texture_map_release_resources(&m->normal_map);
 
         // Release renderer resources.
         if (m->shader_id != INVALID_ID && m->internal_id != INVALID_ID)
@@ -411,6 +736,9 @@ namespace MaterialSystem
             Renderer::shader_release_instance_resources(ShaderSystem::get_shader(m->shader_id), m->internal_id);
             m->shader_id = INVALID_ID;
         }
+
+        if (m->properties)
+            Memory::free_memory(m->properties);
 
         // Zero it out, invalidate IDs.
         Memory::zero_memory(m, sizeof(Material));
@@ -420,41 +748,147 @@ namespace MaterialSystem
         m->render_frame_number = INVALID_ID;
     }
 
-    static bool32 create_default_material() {
-        Memory::zero_memory(&system_state->default_material, sizeof(Material));
-        system_state->default_material.id = INVALID_ID;
-        system_state->default_material.generation = INVALID_ID;
-        CString::copy(SystemConfig::default_name, system_state->default_material.name, max_material_name_length);
-        system_state->default_material.diffuse_color = VEC4F_ONE;  // white
-
-        system_state->default_material.diffuse_map.use = TextureUse::MAP_DIFFUSE;
-        system_state->default_material.diffuse_map.texture = TextureSystem::get_default_texture();
-
-        system_state->default_material.specular_map.use = TextureUse::MAP_SPECULAR;
-        system_state->default_material.specular_map.texture = TextureSystem::get_default_specular_texture();
-
-        system_state->default_material.normal_map.use = TextureUse::MAP_NORMAL;
-        system_state->default_material.normal_map.texture = TextureSystem::get_default_normal_texture();
-
-        Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material);
-        TextureMap* maps[3] = { &system_state->default_material.diffuse_map, &system_state->default_material.specular_map, &system_state->default_material.normal_map };
-        if (!Renderer::shader_acquire_instance_resources(s, 3, maps, &system_state->default_material.internal_id))
-        {
-            SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
-            return false;
-        }
-
-        system_state->default_material.shader_id = s->id;
-
-        return true;
-    }
-
     Material* get_default_material()
     {
         return &system_state->default_material;
     }
 
-    
+    Material* get_default_terrain_material()
+    {
+        return &system_state->default_terrain_material;
+    }
 
+    Material* get_default_ui_material()
+    {
+        return &system_state->default_ui_material;
+    }
+    
+    static bool32 create_default_material() {
+
+        Material* mat = &system_state->default_material;
+
+        Memory::zero_memory(mat, sizeof(Material));
+        mat->id = INVALID_ID;
+        mat->type = MaterialType::PHONG;
+        mat->generation = INVALID_ID;
+        CString::copy(SystemConfig::default_name, mat->name, max_material_name_length);
+
+        mat->properties_size = sizeof(MaterialPhongProperties);
+        static MaterialPhongProperties default_properties = {};
+        default_properties.diffuse_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        default_properties.shininess = 8.0f;
+        mat->properties = &default_properties;
+
+        Texture* default_textures[3] = { TextureSystem::get_default_diffuse_texture(), TextureSystem::get_default_specular_texture(), TextureSystem::get_default_normal_texture() };
+        const uint32 maps_count = 3;
+        static TextureMap default_maps[maps_count] = {};
+        mat->maps.init(maps_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::MATERIAL_INSTANCE, default_maps);
+        for (uint32 i = 0; i < mat->maps.capacity; i++)
+        {
+            mat->maps[i].filter_minify = mat->maps[i].filter_magnify = TextureFilter::LINEAR;
+            mat->maps[i].repeat_u = mat->maps[i].repeat_v = mat->maps[i].repeat_w = TextureRepeat::REPEAT;
+            mat->maps[i].texture = default_textures[i % 3];
+        }
+
+        Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material);
+        TextureMap* maps[maps_count] = {};
+        for (uint32 i = 0; i < maps_count; i++)
+            maps[i] = &mat->maps[i];
+
+        if (!Renderer::shader_acquire_instance_resources(s, maps_count, maps, &mat->internal_id))
+        {
+            SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
+            return false;
+        }
+
+        mat->shader_id = s->id;
+
+        return true;
+    }
+
+    static bool32 create_default_terrain_material() {
+
+        Material* mat = &system_state->default_terrain_material;
+
+        Memory::zero_memory(mat, sizeof(Material));
+        mat->id = INVALID_ID;
+        mat->type = MaterialType::TERRAIN;
+        mat->generation = INVALID_ID;
+        CString::copy(SystemConfig::default_terrain_name, mat->name, max_material_name_length);
+
+        mat->properties_size = sizeof(MaterialTerrainProperties);
+        static MaterialTerrainProperties default_properties = {};
+        default_properties.materials_count = 1;
+        default_properties.materials[0].diffuse_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        default_properties.materials[0].shininess = 8.0f;
+        mat->properties = &default_properties;
+
+        Texture* default_textures[3] = { TextureSystem::get_default_diffuse_texture(), TextureSystem::get_default_specular_texture(), TextureSystem::get_default_normal_texture() };
+        const uint32 maps_count = max_terrain_materials_count * 3;
+        static TextureMap default_maps[maps_count] = {};
+        mat->maps.init(maps_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::MATERIAL_INSTANCE, default_maps);
+        for (uint32 i = 0; i < mat->maps.capacity; i++)
+        {
+            mat->maps[i].filter_minify = mat->maps[i].filter_magnify = TextureFilter::LINEAR;
+            mat->maps[i].repeat_u = mat->maps[i].repeat_v = mat->maps[i].repeat_w = TextureRepeat::REPEAT;
+            mat->maps[i].texture = default_textures[i % 3];
+        }
+
+        Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_terrain);
+        TextureMap* maps[maps_count] = {};
+        for (uint32 i = 0; i < maps_count; i++)
+            maps[i] = &mat->maps[i];
+
+        if (!Renderer::shader_acquire_instance_resources(s, maps_count, maps, &mat->internal_id))
+        {
+            SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
+            return false;
+        }
+
+        mat->shader_id = s->id;
+
+        return true;
+    }
+
+    static bool32 create_default_ui_material() {
+
+        Material* mat = &system_state->default_ui_material;
+
+        Memory::zero_memory(mat, sizeof(Material));
+        mat->id = INVALID_ID;
+        mat->type = MaterialType::UI;
+        mat->generation = INVALID_ID;
+        CString::copy(SystemConfig::default_ui_name, mat->name, max_material_name_length);
+
+        mat->properties_size = sizeof(MaterialUIProperties);
+        static MaterialUIProperties default_properties = {};
+        default_properties.diffuse_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        mat->properties = &default_properties;
+
+        const uint32 maps_count = 1;
+        static TextureMap default_maps[maps_count] = {};
+        mat->maps.init(maps_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::MATERIAL_INSTANCE, default_maps);
+        for (uint32 i = 0; i < mat->maps.capacity; i++)
+        {
+            mat->maps[i].filter_minify = mat->maps[i].filter_magnify = TextureFilter::LINEAR;
+            mat->maps[i].repeat_u = mat->maps[i].repeat_v = mat->maps[i].repeat_w = TextureRepeat::REPEAT;
+            mat->maps[i].texture = TextureSystem::get_default_texture();
+        }
+
+        Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
+        TextureMap* maps[maps_count] = {};
+        for (uint32 i = 0; i < maps_count; i++)
+            maps[i] = &mat->maps[i];
+
+        if (!Renderer::shader_acquire_instance_resources(s, maps_count, maps, &mat->internal_id))
+        {
+            SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
+            return false;
+        }
+
+        mat->shader_id = s->id;
+
+        return true;
+    }
 
 }

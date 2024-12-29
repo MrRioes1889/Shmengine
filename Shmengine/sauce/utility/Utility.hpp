@@ -73,6 +73,12 @@ SHMINLINE SHMAPI int32 clamp(int32 x, int32 min, int32 max)
 	return (x < min ? min : (x > max ? max : x));
 }
 
+SHMINLINE SHMAPI float32 smoothstep(float32 edge0, float32 edge1, float32 x)
+{
+	float32 r = clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+	return r * r * (3.0f - 2.0f * r);
+}
+
 SHMINLINE uint64 get_aligned(uint64 operand, uint64 granularity)
 {
 	return (granularity * (operand / granularity)) + (granularity * ((operand % granularity) != 0));

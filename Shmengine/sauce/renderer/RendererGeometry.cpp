@@ -66,23 +66,23 @@ namespace Renderer
 
 				v0->position.x = min_x;
 				v0->position.y = min_y;
-				v0->texcoord.x = min_uvx;
-				v0->texcoord.y = min_uvy;
+				v0->tex_coords.x = min_uvx;
+				v0->tex_coords.y = min_uvy;
 
 				v1->position.x = max_x;
 				v1->position.y = max_y;
-				v1->texcoord.x = max_uvx;
-				v1->texcoord.y = max_uvy;
+				v1->tex_coords.x = max_uvx;
+				v1->tex_coords.y = max_uvy;
 
 				v2->position.x = min_x;
 				v2->position.y = max_y;
-				v2->texcoord.x = min_uvx;
-				v2->texcoord.y = max_uvy;
+				v2->tex_coords.x = min_uvx;
+				v2->tex_coords.y = max_uvy;
 
 				v3->position.x = max_x;
 				v3->position.y = min_y;
-				v3->texcoord.x = max_uvx;
-				v3->texcoord.y = min_uvy;
+				v3->tex_coords.x = max_uvx;
+				v3->tex_coords.y = min_uvy;
 
 				// Generate indices
 				uint32 i_offset = ((y * x_segment_count) + x) * 6;
@@ -167,10 +167,10 @@ namespace Renderer
 		verts[(0 * 4) + 1].position = { max_x, max_y, max_z };
 		verts[(0 * 4) + 2].position = { min_x, max_y, max_z };
 		verts[(0 * 4) + 3].position = { max_x, min_y, max_z };
-		verts[(0 * 4) + 0].texcoord = { min_uvx, min_uvy };
-		verts[(0 * 4) + 1].texcoord = { max_uvx, max_uvy };
-		verts[(0 * 4) + 2].texcoord = { min_uvx, max_uvy };
-		verts[(0 * 4) + 3].texcoord = { max_uvx, min_uvy };
+		verts[(0 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+		verts[(0 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+		verts[(0 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+		verts[(0 * 4) + 3].tex_coords = { max_uvx, min_uvy };
 		verts[(0 * 4) + 0].normal = { 0.0f, 0.0f, 1.0f };
 		verts[(0 * 4) + 1].normal = { 0.0f, 0.0f, 1.0f };
 		verts[(0 * 4) + 2].normal = { 0.0f, 0.0f, 1.0f };
@@ -181,10 +181,10 @@ namespace Renderer
 		verts[(1 * 4) + 1].position = { min_x, max_y, min_z };
 		verts[(1 * 4) + 2].position = { max_x, max_y, min_z };
 		verts[(1 * 4) + 3].position = { min_x, min_y, min_z };
-		verts[(1 * 4) + 0].texcoord = { min_uvx, min_uvy };
-		verts[(1 * 4) + 1].texcoord = { max_uvx, max_uvy };
-		verts[(1 * 4) + 2].texcoord = { min_uvx, max_uvy };
-		verts[(1 * 4) + 3].texcoord = { max_uvx, min_uvy };
+		verts[(1 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+		verts[(1 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+		verts[(1 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+		verts[(1 * 4) + 3].tex_coords = { max_uvx, min_uvy };
 		verts[(1 * 4) + 0].normal = { 0.0f, 0.0f, -1.0f };
 		verts[(1 * 4) + 1].normal = { 0.0f, 0.0f, -1.0f };
 		verts[(1 * 4) + 2].normal = { 0.0f, 0.0f, -1.0f };
@@ -195,10 +195,10 @@ namespace Renderer
 		verts[(2 * 4) + 1].position = { min_x, max_y, max_z };
 		verts[(2 * 4) + 2].position = { min_x, max_y, min_z };
 		verts[(2 * 4) + 3].position = { min_x, min_y, max_z };
-		verts[(2 * 4) + 0].texcoord = { min_uvx, min_uvy };
-		verts[(2 * 4) + 1].texcoord = { max_uvx, max_uvy };
-		verts[(2 * 4) + 2].texcoord = { min_uvx, max_uvy };
-		verts[(2 * 4) + 3].texcoord = { max_uvx, min_uvy };
+		verts[(2 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+		verts[(2 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+		verts[(2 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+		verts[(2 * 4) + 3].tex_coords = { max_uvx, min_uvy };
 		verts[(2 * 4) + 0].normal = { -1.0f, 0.0f, 0.0f };
 		verts[(2 * 4) + 1].normal = { -1.0f, 0.0f, 0.0f };
 		verts[(2 * 4) + 2].normal = { -1.0f, 0.0f, 0.0f };
@@ -209,10 +209,10 @@ namespace Renderer
 		verts[(3 * 4) + 1].position = { max_x, max_y, min_z };
 		verts[(3 * 4) + 2].position = { max_x, max_y, max_z };
 		verts[(3 * 4) + 3].position = { max_x, min_y, min_z };
-		verts[(3 * 4) + 0].texcoord = { min_uvx, min_uvy };
-		verts[(3 * 4) + 1].texcoord = { max_uvx, max_uvy };
-		verts[(3 * 4) + 2].texcoord = { min_uvx, max_uvy };
-		verts[(3 * 4) + 3].texcoord = { max_uvx, min_uvy };
+		verts[(3 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+		verts[(3 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+		verts[(3 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+		verts[(3 * 4) + 3].tex_coords = { max_uvx, min_uvy };
 		verts[(3 * 4) + 0].normal = { 1.0f, 0.0f, 0.0f };
 		verts[(3 * 4) + 1].normal = { 1.0f, 0.0f, 0.0f };
 		verts[(3 * 4) + 2].normal = { 1.0f, 0.0f, 0.0f };
@@ -223,10 +223,10 @@ namespace Renderer
 		verts[(4 * 4) + 1].position = { min_x, min_y, min_z };
 		verts[(4 * 4) + 2].position = { max_x, min_y, min_z };
 		verts[(4 * 4) + 3].position = { min_x, min_y, max_z };
-		verts[(4 * 4) + 0].texcoord = { min_uvx, min_uvy };
-		verts[(4 * 4) + 1].texcoord = { max_uvx, max_uvy };
-		verts[(4 * 4) + 2].texcoord = { min_uvx, max_uvy };
-		verts[(4 * 4) + 3].texcoord = { max_uvx, min_uvy };
+		verts[(4 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+		verts[(4 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+		verts[(4 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+		verts[(4 * 4) + 3].tex_coords = { max_uvx, min_uvy };
 		verts[(4 * 4) + 0].normal = { 0.0f, -1.0f, 0.0f };
 		verts[(4 * 4) + 1].normal = { 0.0f, -1.0f, 0.0f };
 		verts[(4 * 4) + 2].normal = { 0.0f, -1.0f, 0.0f };
@@ -237,10 +237,10 @@ namespace Renderer
 		verts[(5 * 4) + 1].position = { max_x, max_y, min_z };
 		verts[(5 * 4) + 2].position = { min_x, max_y, min_z };
 		verts[(5 * 4) + 3].position = { max_x, max_y, max_z };
-		verts[(5 * 4) + 0].texcoord = { min_uvx, min_uvy };
-		verts[(5 * 4) + 1].texcoord = { max_uvx, max_uvy };
-		verts[(5 * 4) + 2].texcoord = { min_uvx, max_uvy };
-		verts[(5 * 4) + 3].texcoord = { max_uvx, min_uvy };
+		verts[(5 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+		verts[(5 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+		verts[(5 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+		verts[(5 * 4) + 3].tex_coords = { max_uvx, min_uvy };
 		verts[(5 * 4) + 0].normal = { 0.0f, 1.0f, 0.0f };
 		verts[(5 * 4) + 1].normal = { 0.0f, 1.0f, 0.0f };
 		verts[(5 * 4) + 2].normal = { 0.0f, 1.0f, 0.0f };
@@ -257,7 +257,7 @@ namespace Renderer
 			out_config.indices[i_offset + 5] = v_offset + 1;
 		}
 
-		geometry_generate_tangents(out_config);
+		geometry_generate_mesh_tangents(out_config.vertex_count, (Vertex3D*)out_config.vertices.data, out_config.indices.capacity, out_config.indices.data );
 
 		if (name && CString::length(name) > 0) {
 			CString::copy(name, out_config.name, max_geometry_name_length);
@@ -268,140 +268,120 @@ namespace Renderer
 
 	}
 
-	void generate_terrain_geometry(uint32 tile_count_x, uint32 tile_count_z, float32 tile_scale_x, float32 tile_scale_z, const char* name, GeometryData* out_geometry)
+	void geometry_generate_mesh_normals(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices)
 	{
-
-		if (!tile_count_x)
+		for (uint32 i = 0; i < indices_count; i += 3) 
 		{
-			SHMWARN("tile_count_x must be a positive number. Defaulting to one.");
-			tile_count_x = 1;
+			uint32 i0 = indices[i + 0];
+			uint32 i1 = indices[i + 1];
+			uint32 i2 = indices[i + 2];
+
+			Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
+			Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
+
+			Math::Vec3f normal = Math::normalized(Math::cross_product(edge1, edge2));
+
+			// NOTE: This just generates a face normal. Smoothing out should be done in a separate pass if desired.
+			vertices[i0].normal = normal;
+			vertices[i1].normal = normal;
+			vertices[i2].normal = normal;
 		}
-		if (!tile_count_z)
-		{
-			SHMWARN("tile_count_z must be a positive number. Defaulting to one.");
-			tile_count_z = 1;
-		}
-		if (!tile_scale_x)
-		{
-			SHMWARN("tile_scale_x must be nonzero. Defaulting to one.");
-			tile_scale_x = 1.0f;
-		}
-		if (!tile_scale_z)
-		{
-			SHMWARN("tile_scale_z must be nonzero. Defaulting to one.");
-			tile_scale_z = 1.0f;
-		}
-
-		out_geometry->extents = {};
-		out_geometry->center = {};
-
-		out_geometry->vertex_size = sizeof(TerrainVertex);
-		//out_geometry->vertex_count = (4 + 2 * (tile_count_x - 1)) + ((4 + 2 * (tile_count_x - 1)) * (tile_count_z - 1) / 2);
-		out_geometry->vertex_count = (tile_count_x + 1) * (tile_count_z + 1);
-		//out_geometry->vertex_count = 4 * tile_count_x * tile_count_z;
-		//out_geometry->vertex_count = tile_count_x * tile_count_z;
-		out_geometry->vertices.init(out_geometry->vertex_size * out_geometry->vertex_count, 0);
-
-		uint32 indices_count = out_geometry->vertex_count * 6;
-		out_geometry->indices.init(indices_count, 0);
-
-		for (uint32 z = 0, i = 0; z < tile_count_z + 1; z++) 
-		{
-			for (uint32 x = 0; x < tile_count_x + 1; x++, i++) 
-			{
-				TerrainVertex* v = &out_geometry->vertices.get_as<TerrainVertex>(i);
-				v->position.x = x * tile_scale_x;
-				v->position.z = z * tile_scale_z;
-				v->position.y = 0.0f;  // <-- this will be modified by a heightmap.
-
-				v->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
-				v->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
-				v->tex_coords.x = (float32)x;
-				v->tex_coords.y = (float32)z;
-
-				v->tangent = {};  // TODO: obviously wrong.
-			}
-		}
-
-		for (uint32 z = 0, i = 0; z < tile_count_z; z++) 
-		{
-			for (uint32 x = 0; x < tile_count_x; x++, i += 6) 
-			{
-				uint32 v0 = (z * (tile_count_x + 1)) + x;
-				uint32 v1 = (z * (tile_count_x + 1)) + x + 1;
-				uint32 v2 = ((z + 1) * (tile_count_x + 1)) + x;
-				uint32 v3 = ((z + 1) * (tile_count_x + 1)) + x + 1;
-
-				out_geometry->indices[i + 0] = v2;
-				out_geometry->indices[i + 1] = v1;
-				out_geometry->indices[i + 2] = v0;
-				out_geometry->indices[i + 3] = v3;
-				out_geometry->indices[i + 4] = v1;
-				out_geometry->indices[i + 5] = v2;
-			}
-		}
-		
 	}
 
-	void geometry_generate_normals(GeometrySystem::GeometryConfig& g_config)
+	void geometry_generate_mesh_tangents(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices)
 	{
-        Vertex3D* vertices = (Renderer::Vertex3D*)g_config.vertices.data;
-        uint32* indices = g_config.indices.data;
 
-        for (uint32 i = 0; i < g_config.indices.capacity; i += 3) {
-            uint32 i0 = indices[i + 0];
-            uint32 i1 = indices[i + 1];
-            uint32 i2 = indices[i + 2];
+		for (uint32 i = 0; i < indices_count; i += 3) {
+			uint32 i0 = indices[i + 0];
+			uint32 i1 = indices[i + 1];
+			uint32 i2 = indices[i + 2];
 
-            Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
-            Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
+			Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
+			Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
 
-            Math::Vec3f normal = Math::normalized(Math::cross_product(edge1, edge2));
+			float32 deltaU1 = vertices[i1].tex_coords.x - vertices[i0].tex_coords.x;
+			float32 deltaV1 = vertices[i1].tex_coords.y - vertices[i0].tex_coords.y;
 
-            // NOTE: This just generates a face normal. Smoothing out should be done in a separate pass if desired.
-            vertices[i0].normal = normal;
-            vertices[i1].normal = normal;
-            vertices[i2].normal = normal;
-        }
+			float32 deltaU2 = vertices[i2].tex_coords.x - vertices[i0].tex_coords.x;
+			float32 deltaV2 = vertices[i2].tex_coords.y - vertices[i0].tex_coords.y;
+
+			float32 dividend = (deltaU1 * deltaV2 - deltaU2 * deltaV1);
+			float32 fc = 1.0f / dividend;
+
+			Math::Vec3f tangent = {
+				(fc * (deltaV2 * edge1.x - deltaV1 * edge2.x)),
+				(fc * (deltaV2 * edge1.y - deltaV1 * edge2.y)),
+				(fc * (deltaV2 * edge1.z - deltaV1 * edge2.z)) };
+
+			tangent = Math::normalized(tangent);
+
+			float32 sx = deltaU1, sy = deltaU2;
+			float32 tx = deltaV1, ty = deltaV2;
+			float32 handedness = ((tx * sy - ty * sx) < 0.0f) ? -1.0f : 1.0f;
+			Math::Vec3f t4 = tangent * handedness;
+			vertices[i0].tangent = t4;
+			vertices[i1].tangent = t4;
+			vertices[i2].tangent = t4;
+		}
+
 	}
 
-	void geometry_generate_tangents(GeometrySystem::GeometryConfig& g_config)
+	void geometry_generate_terrain_normals(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices)
 	{
-        Vertex3D* vertices = (Renderer::Vertex3D*)g_config.vertices.data;
-        uint32* indices = g_config.indices.data;
 
-        for (uint32 i = 0; i < g_config.indices.capacity; i += 3) {
-            uint32 i0 = indices[i + 0];
-            uint32 i1 = indices[i + 1];
-            uint32 i2 = indices[i + 2];
+		for (uint32 i = 0; i < indices_count; i += 3)
+		{
+			uint32 i0 = indices[i];
+			uint32 i1 = indices[i + 1];
+			uint32 i2 = indices[i + 2];
 
-            Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
-            Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
+			Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
+			Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
+			Math::Vec3f normal = Math::normalized(Math::cross_product(edge1, edge2));
 
-            float32 deltaU1 = vertices[i1].texcoord.x - vertices[i0].texcoord.x;
-            float32 deltaV1 = vertices[i1].texcoord.y - vertices[i0].texcoord.y;
+			vertices[i0].normal = normal;
+			vertices[i1].normal = normal;
+			vertices[i2].normal = normal;
+		}
 
-            float32 deltaU2 = vertices[i2].texcoord.x - vertices[i0].texcoord.x;
-            float32 deltaV2 = vertices[i2].texcoord.y - vertices[i0].texcoord.y;
+	}
 
-            float32 dividend = (deltaU1 * deltaV2 - deltaU2 * deltaV1);
-            float32 fc = 1.0f / dividend;
+	void geometry_generate_terrain_tangents(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices)
+	{
 
-            Math::Vec3f tangent = {
-                (fc * (deltaV2 * edge1.x - deltaV1 * edge2.x)),
-                (fc * (deltaV2 * edge1.y - deltaV1 * edge2.y)),
-                (fc * (deltaV2 * edge1.z - deltaV1 * edge2.z)) };
+		for (uint32 i = 0; i < indices_count; i += 3) {
+			uint32 i0 = indices[i + 0];
+			uint32 i1 = indices[i + 1];
+			uint32 i2 = indices[i + 2];
 
-            tangent = Math::normalized(tangent);
+			Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
+			Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
 
-            float32 sx = deltaU1, sy = deltaU2;
-            float32 tx = deltaV1, ty = deltaV2;
-            float32 handedness = ((tx * sy - ty * sx) < 0.0f) ? -1.0f : 1.0f;
-            Math::Vec3f t4 = tangent * handedness;
-            vertices[i0].tangent = t4;
-            vertices[i1].tangent = t4;
-            vertices[i2].tangent = t4;
-        }
+			float32 deltaU1 = vertices[i1].tex_coords.x - vertices[i0].tex_coords.x;
+			float32 deltaV1 = vertices[i1].tex_coords.y - vertices[i0].tex_coords.y;
+
+			float32 deltaU2 = vertices[i2].tex_coords.x - vertices[i0].tex_coords.x;
+			float32 deltaV2 = vertices[i2].tex_coords.y - vertices[i0].tex_coords.y;
+
+			float32 dividend = (deltaU1 * deltaV2 - deltaU2 * deltaV1);
+			float32 fc = 1.0f / dividend;
+
+			Math::Vec3f tangent = {
+				(fc * (deltaV2 * edge1.x - deltaV1 * edge2.x)),
+				(fc * (deltaV2 * edge1.y - deltaV1 * edge2.y)),
+				(fc * (deltaV2 * edge1.z - deltaV1 * edge2.z)) };
+
+			tangent = Math::normalized(tangent);
+
+			float32 sx = deltaU1, sy = deltaU2;
+			float32 tx = deltaV1, ty = deltaV2;
+			float32 handedness = ((tx * sy - ty * sx) < 0.0f) ? -1.0f : 1.0f;
+			Math::Vec3f t4_ = tangent * handedness;
+			Math::Vec4f t4 = { t4_.x, t4_.y, t4_.z, 0.0f };
+			vertices[i0].tangent = t4;
+			vertices[i1].tangent = t4;
+			vertices[i2].tangent = t4;
+		}
 
 	}
 
@@ -409,7 +389,7 @@ namespace Renderer
         return 
             (Math::vec_compare(vert_0.position, vert_1.position, FLOAT_EPSILON) &&
             Math::vec_compare(vert_0.normal, vert_1.normal, FLOAT_EPSILON) &&
-            Math::vec_compare(vert_0.texcoord, vert_1.texcoord, FLOAT_EPSILON) &&
+            Math::vec_compare(vert_0.tex_coords, vert_1.tex_coords, FLOAT_EPSILON) &&
             Math::vec_compare(vert_0.color, vert_1.color, FLOAT_EPSILON));
     }
 

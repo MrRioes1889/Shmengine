@@ -2,9 +2,41 @@
 
 version=0.1
 name=vase_hanging
-diffuse_color=0.588000 0.588000 0.588000 1.000000
-shininess=10.00
-diffuse_map_name=vase_hanging
-specular_map_name=vase_hanging_spec
-normal_map_name=vase_hanging_ddn
+type=phong
 shader=Shader.Builtin.Material
+
+[Properties]
+shininess=f32/10.000000
+diffuse_color=vec4/0.588000 0.588000 0.588000 1.000000
+[/]
+
+[TextureMap]
+name=diffuse
+texture_name=vase_hanging
+filter_min=linear
+filter_mag=linear
+repeat_u=repeat
+repeat_v=repeat
+repeat_w=repeat
+[/]
+
+[TextureMap]
+name=specular
+texture_name=vase_hanging_spec
+filter_min=linear
+filter_mag=linear
+repeat_u=repeat
+repeat_v=repeat
+repeat_w=repeat
+[/]
+
+[TextureMap]
+name=normal
+texture_name=vase_hanging_ddn
+filter_min=linear
+filter_mag=linear
+repeat_u=repeat
+repeat_v=repeat
+repeat_w=repeat
+[/]
+
