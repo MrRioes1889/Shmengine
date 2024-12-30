@@ -253,8 +253,6 @@ namespace MaterialSystem
             for (uint32 i = 0; i < sub_material_count; i++)
                 sub_materials[i] = acquire(sub_material_names[i]);
 
-            TextureSystem::sleep_until_all_textures_loaded();
-
             *m = {};
 
             CString::copy(material_name, m->name, max_material_name_length);
@@ -296,16 +294,23 @@ namespace MaterialSystem
 
                 // Maps, 3 for phong. Diffuse, spec, normal.
                 for (uint32 map_i = 0; map_i < 3; ++map_i) {
-                    TextureMapConfig map_config = { 0 };
-                    map_config.name = map_names[map_i];
-                    map_config.texture_name = sub_mat->maps[map_i].texture->name;
-                    map_config.repeat_u = sub_mat->maps[map_i].repeat_u;
-                    map_config.repeat_v = sub_mat->maps[map_i].repeat_v;
-                    map_config.repeat_w = sub_mat->maps[map_i].repeat_w;
-                    map_config.filter_min = sub_mat->maps[map_i].filter_minify;
-                    map_config.filter_mag = sub_mat->maps[map_i].filter_magnify;
-                    if (!assign_map(&m->maps[(material_idx * 3) + map_i], &map_config, m->name, default_textures[map_i])) {
-                        SHMERRORV("Failed to assign '%s' texture map for terrain material index %u", map_names[map_i], material_idx);
+                    TextureMap* map = &m->maps[(material_idx * 3) + map_i];
+                    map->repeat_u = sub_mat->maps[map_i].repeat_u;
+                    map->repeat_v = sub_mat->maps[map_i].repeat_v;
+                    map->repeat_w = sub_mat->maps[map_i].repeat_w;
+                    map->filter_minify = sub_mat->maps[map_i].filter_minify;
+                    map->filter_magnify = sub_mat->maps[map_i].filter_magnify;
+
+                    map->texture = TextureSystem::acquire(sub_mat->maps[map_i].texture->id, true);
+                    if (!map->texture)
+                    {
+                        SHMWARN("Unable to acquire texture from terrain sub material.");
+                        map->texture = default_textures[map_i];
+                    }
+
+                    if (!Renderer::texture_map_acquire_resources(map))
+                    {
+                        SHMERROR("Unable to acquire resources for texture map.");
                         return 0;
                     }
                 }

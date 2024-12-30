@@ -14,46 +14,46 @@ name=skybox_01
 cubemap_name=skybox
 [/]
 
-#[Mesh]
-#name=sponza
-#resource_name=sponza
-#position=50.0 2.5 50.0
-#rotation=0.0 0.0 0.0 1.0
-#scale=0.01 0.01 0.01
-#[/]
+[Mesh]
+name=sponza
+resource_name=sponza
+position=50.0 2.5 50.0
+rotation=0.0 0.0 0.0 1.0
+scale=0.03 0.03 0.03
+[/]
 
-#[Mesh]
-#name=falcon
-#resource_name=falcon
-#position=59.0 5.8 70.0
-#rotation=0.0 0.0 0.0 1.0
-#scale=1.0 1.0 1.0
-#[/]
+[Mesh]
+name=falcon
+resource_name=falcon
+position=59.0 5.8 70.0
+rotation=0.0 0.0 0.0 1.0
+scale=1.0 1.0 1.0
+[/]
 
-#[PrimitiveCube]
-#name=cube_1
-#dim=10.0 10.0 10.0
-#tiling=1.0 1.0
-#material_name=test_material
-#[/]
+[PrimitiveCube]
+name=cube_1
+dim=10.0 10.0 10.0
+tiling=1.0 1.0
+material_name=test_material
+[/]
 
-#[PrimitiveCube]
-#name=cube_2
-#parent_name=cube_1
-#position=10.0 0.0, 1.0
-#dim=5.0 5.0 5.0
-#tiling=1.0 1.0
-#material_name=test_material
-#[/]
+[PrimitiveCube]
+name=cube_2
+parent_name=cube_1
+position=10.0 0.0, 1.0
+dim=5.0 5.0 5.0
+tiling=1.0 1.0
+material_name=test_material
+[/]
 
-#[PrimitiveCube]
-#name=cube_3
-#parent_name=cube_1
-#position=15.0 0.0, 1.0
-#dim=2.0 2.0 2.0
-#tiling=1.0 1.0
-#material_name=test_material
-#[/]
+[PrimitiveCube]
+name=cube_3
+parent_name=cube_1
+position=15.0 0.0, 1.0
+dim=2.0 2.0 2.0
+tiling=1.0 1.0
+material_name=test_material
+[/]
 
 [DirectionalLight]
 name=dir_light

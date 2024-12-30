@@ -6,7 +6,7 @@ name=test_terrain
 heightmap_resource_name=terrain_heightmap_256
 
 scale_x=2.0
-scale_y=10.0
+scale_y=30.0
 scale_z=2.0
 
 material=river_rock1

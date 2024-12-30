@@ -125,10 +125,10 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 			v->tex_coords.x = (float32)x;
 			v->tex_coords.y = (float32)z;
 
-			v->material_weights[0] = smoothstep(0.0f, 0.25f, out_terrain->vertex_infos[i].height);
-			v->material_weights[1] = smoothstep(0.25f, 0.5f, out_terrain->vertex_infos[i].height);
-			v->material_weights[2] = smoothstep(0.5f, 0.75f, out_terrain->vertex_infos[i].height);
-			v->material_weights[3] = smoothstep(0.75f, 1.0f, out_terrain->vertex_infos[i].height);
+			v->material_weights[0] = 1.0f - smoothstep(0.0f, 0.25f, out_terrain->vertex_infos[i].height);
+			v->material_weights[1] = smoothstep(0.0f, 0.25f, out_terrain->vertex_infos[i].height) - smoothstep(0.25f, 0.5f, out_terrain->vertex_infos[i].height);
+			v->material_weights[2] = smoothstep(0.25f, 0.5f, out_terrain->vertex_infos[i].height) - smoothstep(0.5f, 0.75f, out_terrain->vertex_infos[i].height);
+			v->material_weights[3] = smoothstep(0.5f, 0.75f, out_terrain->vertex_infos[i].height) - smoothstep(0.75f, 1.0f, out_terrain->vertex_infos[i].height);
 		}
 	}
 

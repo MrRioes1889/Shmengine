@@ -6,7 +6,7 @@
 #include "core/FrameData.hpp"
 #include "containers/RingQueue.hpp"
 
-#define MT_ENABLED 0
+#define MT_ENABLED 1
 
 namespace JobSystem
 {

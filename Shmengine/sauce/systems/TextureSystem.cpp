@@ -144,6 +144,20 @@ namespace TextureSystem
 
 	}
 
+	Texture* acquire(uint32 texture_id, bool32 auto_release)
+	{
+		Texture* t = &system_state->registered_textures[texture_id];
+		if (t->id == texture_id)
+		{
+			return t;
+		}		
+		else
+		{
+			SHMWARNV("Failed to acquire texture by id %u.", texture_id);
+			return 0;
+		}
+	}
+
 	Texture* acquire_cube(const char* name, bool32 auto_release)
 	{
 
