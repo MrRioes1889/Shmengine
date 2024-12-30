@@ -16,9 +16,9 @@ namespace ResourceSystem
 
     static const char* loader_type_path = "terrains/";
 
-#define PARSE_VALUE(v) if (!CString::parse(value.c_str(), &v)) \
+#define PARSE_VALUE(s, v) if (!CString::parse(s, v)) \
     { \
-        SHMERRORV("Failed parsing value for %s on line %u", value.c_str(), line_number); \
+        SHMERRORV("Failed parsing value for %s on line %u", s, line_number); \
         success = false; \
         continue; \
     }
@@ -73,7 +73,6 @@ namespace ResourceSystem
         out_resource->scale_y = 1.0f;
 
         out_resource->sub_materials_count = 0;
-        out_resource->xform = Math::transform_create();
 
         uint32 line_number = 1;
         const char* continue_ptr = 0;
@@ -121,23 +120,23 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("tile_count_x"))
                 {
-                    PARSE_VALUE(out_resource->tile_count_x);
+                    PARSE_VALUE(value.c_str(), &out_resource->tile_count_x);
                 }
                 else if (var_name.equal_i("tile_count_z"))
                 {
-                    PARSE_VALUE(out_resource->tile_count_z);
+                    PARSE_VALUE(value.c_str(), &out_resource->tile_count_z);
                 }
                 else if (var_name.equal_i("scale_x"))
                 {
-                    PARSE_VALUE(out_resource->tile_scale_x);
+                    PARSE_VALUE(value.c_str(), &out_resource->tile_scale_x);
                 }
                 else if (var_name.equal_i("scale_z"))
                 {
-                    PARSE_VALUE(out_resource->tile_scale_z);
+                    PARSE_VALUE(value.c_str(), &out_resource->tile_scale_z);
                 }
                 else if (var_name.equal_i("scale_y"))
                 {
-                    PARSE_VALUE(out_resource->scale_y);
+                    PARSE_VALUE(value.c_str(), &out_resource->scale_y);
                 }
                 else if (var_name.equal_i("material"))
                 {

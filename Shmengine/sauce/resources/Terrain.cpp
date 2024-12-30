@@ -93,7 +93,14 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 			uint8 r = image_config.pixels[(i * 4) + 0];
 			float32 height = r / 255.0f;
 			out_terrain->vertex_infos[i].height = height;
+			if (height > geometry->extents.max.y)
+				geometry->extents.max.y = height;
 		}
+
+		/*geometry->extents.max.y *= out_terrain->scale_y * 0.5f;
+		geometry->extents.min.y = -geometry->extents.max.y;*/
+		geometry->extents.max.y *= out_terrain->scale_y;
+		geometry->extents.min.y = 0.0f;
 
 		ResourceSystem::image_loader_unload(&image_config);
 	}
@@ -102,6 +109,11 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		geometry->vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
 		out_terrain->vertex_infos.init(geometry->vertex_count, 0);
 	}
+
+	geometry->extents.max.x = out_terrain->tile_count_x * out_terrain->tile_scale_x * 0.5f;
+	geometry->extents.min.x = -geometry->extents.max.x;
+	geometry->extents.max.z = out_terrain->tile_count_z * out_terrain->tile_scale_z * 0.5f;
+	geometry->extents.min.z = -geometry->extents.max.z;
 	
 	//geometry->vertex_count = 4 * tile_count_x * tile_count_z;
 	geometry->vertices.init(geometry->vertex_size * geometry->vertex_count, 0);
@@ -116,9 +128,9 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		for (uint32 x = 0; x < out_terrain->tile_count_x + 1; x++, i++)
 		{
 			TerrainVertex* v = &geometry->vertices.get_as<TerrainVertex>(i);
-			v->position.x = x * out_terrain->tile_scale_x;
-			v->position.z = z * out_terrain->tile_scale_z;
-			v->position.y = out_terrain->vertex_infos[i].height * out_terrain->scale_y;
+			v->position.x = x * out_terrain->tile_scale_x + geometry->extents.min.x;		
+			v->position.y = out_terrain->vertex_infos[i].height * out_terrain->scale_y + geometry->extents.min.y;
+			v->position.z = z * out_terrain->tile_scale_z + geometry->extents.min.z;
 
 			v->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
 			v->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
@@ -156,9 +168,9 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 	//	{
 	//		// Bottom Left
 	//		TerrainVertex* v = &out_geometry->vertices.get_as<TerrainVertex>(i++);
-	//		v->position.x = x * tile_scale_x;
-	//		v->position.y = 0.0f;  // <-- this will be modified by a heightmap.
-	//		v->position.z = z * tile_scale_z;	
+	//		v->position.x = x * tile_scale_x  + geometry->extents.min.x;
+	//		v->position.y = out_terrain->vertex_infos[i].height * out_terrain->scale_y + geometry->extents.min.y;  // <-- this will be modified by a heightmap.
+	//		v->position.z = z * tile_scale_z  + geometry->extents.min.z;	
 
 	//		v->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
 	//		v->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
@@ -269,7 +281,7 @@ bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrai
         submaterial_names[i] = resource.sub_material_names[i].name;
 
     config.sub_material_names = submaterial_names;
-    config.xform = resource.xform;
+    config.xform = Math::transform_create();
 
     terrain_init(&config, out_terrain);
     ResourceSystem::terrain_loader_unload(&resource);

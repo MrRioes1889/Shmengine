@@ -447,9 +447,25 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 	if (!world_view_packet)
 		return true;
 
-	uint32 mesh_geometries_count = 0;
 	Renderer::GeometryRenderData* geometries = 0;
 
+	uint32 terrain_geometries_count = 0;
+	for (uint32 i = 0; i < scene->terrains.count; i++)
+	{
+		Terrain* t = &scene->terrains[i];
+
+		Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
+		render_data->model = Math::transform_get_world(t->xform);
+		render_data->geometry = &t->geometry;
+		render_data->material = t->material;
+		render_data->unique_id = 0;
+
+		terrain_geometries_count++;
+		if (!geometries)
+			geometries = render_data;
+	}
+
+	uint32 mesh_geometries_count = 0;
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
 		Mesh* m = &scene->meshes[i];
@@ -480,21 +496,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		}
 	}
 
-	uint32 terrain_geometries_count = 0;
-	for (uint32 i = 0; i < scene->terrains.count; i++)
-	{
-		Terrain* t = &scene->terrains[i];
-
-		Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
-		render_data->model = Math::transform_get_world(t->xform);
-		render_data->geometry = &t->geometry;
-		render_data->material = t->material;
-		render_data->unique_id = 0;
-
-		terrain_geometries_count++;
-		if (!geometries)
-			geometries = render_data;
-	}
+	
 
 	if ((mesh_geometries_count + terrain_geometries_count) == 0)
 		return true;
@@ -644,9 +646,15 @@ bool32 scene_add_terrain(Scene* scene, TerrainConfig* config)
 
 	bool32 initialized = false;
 	if (config->resource_name)
+	{
 		initialized = terrain_init_from_resource(config->resource_name, terrain);
+		terrain->xform = config->xform;
+	}		
 	else
+	{
 		initialized = terrain_init(config, terrain);
+	}
+		
 
 	if (!initialized)
 	{

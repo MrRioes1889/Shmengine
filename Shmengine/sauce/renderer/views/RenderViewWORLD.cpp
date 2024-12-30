@@ -270,51 +270,9 @@ namespace Renderer
 					.p_lights = packet_data->p_lights
 				};
 
-				if (!ShaderSystem::use_shader(data->material_shader->id)) 
-				{
-					SHMERROR("render_view_world_on_render - Failed to use shader. Render frame failed.");
-					return false;
-				}
+				uint32 geometry_i = 0;
 
-				// Apply globals
-				if (!MaterialSystem::apply_globals(data->material_shader->id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
-				{
-					SHMERROR("render_view_world_on_render - Failed to use apply globals for shader. Render frame failed.");
-					return false;
-				}		
-
-				uint32 total_geometries_count = packet_data->mesh_geometries_count + packet_data->terrain_geometries_count;
-
-				for (uint32 i = 0; i < packet_data->mesh_geometries_count; i++)
-				{
-
-					Material* m = 0;
-					if (packet.geometries[i].material) {
-						m = packet.geometries[i].material;
-					}
-					else {
-						m = MaterialSystem::get_default_material();
-					}		
-
-					// Apply the material
-					bool32 needs_update = (m->render_frame_number != (uint32)frame_number);
-					if (!MaterialSystem::apply_instance(m, lighting, needs_update))
-					{
-						SHMWARNV("render_view_world_on_render - Failed to apply material '%s'. Skipping draw.", m->name);
-						continue;
-					}
-
-					m->render_frame_number = (uint32)frame_number;
-
-					// Apply the locals
-					MaterialSystem::apply_local(m, packet.geometries[i].model);
-
-					// Draw it.
-					geometry_draw(packet.geometries[i]);
-
-				}
-
-				if (total_geometries_count > packet_data->mesh_geometries_count)
+				if (packet_data->terrain_geometries_count)
 				{
 					uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
 					if (terrain_shader_id == INVALID_ID)
@@ -324,8 +282,6 @@ namespace Renderer
 					}
 					ShaderSystem::use_shader(terrain_shader_id);
 
-					ShaderSystem::TerrainShaderUniformLocations terrain_u_locations = ShaderSystem::get_terrain_shader_uniform_locations();
-
 					if (!MaterialSystem::apply_globals(terrain_shader_id, lighting, frame_number,
 						&packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
 					{
@@ -333,12 +289,12 @@ namespace Renderer
 						return false;
 					}
 
-					for (uint32 i = packet_data->mesh_geometries_count; i < total_geometries_count; i++)
+					for (uint32 i = 0; i < packet_data->terrain_geometries_count; i++, geometry_i++)
 					{
 
 						Material* m = 0;
-						if (packet.geometries[i].material) {
-							m = packet.geometries[i].material;
+						if (packet.geometries[geometry_i].material) {
+							m = packet.geometries[geometry_i].material;
 						}
 						else {
 							m = MaterialSystem::get_default_terrain_material();
@@ -355,13 +311,61 @@ namespace Renderer
 						m->render_frame_number = (uint32)frame_number;
 
 						// Apply the locals
-						MaterialSystem::apply_local(m, packet.geometries[i].model);
+						MaterialSystem::apply_local(m, packet.geometries[geometry_i].model);
 
 						// Draw it.
-						geometry_draw(packet.geometries[i]);
+						geometry_draw(packet.geometries[geometry_i]);
 
 					}
 				}
+
+				if (packet_data->mesh_geometries_count)
+				{
+
+					uint32 material_shader_id = ShaderSystem::get_material_shader_id();
+					if (!ShaderSystem::use_shader(material_shader_id))
+					{
+						SHMERROR("render_view_world_on_render - Failed to use shader. Render frame failed.");
+						return false;
+					}
+
+					// Apply globals
+					if (!MaterialSystem::apply_globals(material_shader_id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
+					{
+						SHMERROR("render_view_world_on_render - Failed to use apply globals for shader. Render frame failed.");
+						return false;
+					}
+
+					for (uint32 i = 0; i < packet_data->mesh_geometries_count; i++, geometry_i++)
+					{
+
+						Material* m = 0;
+						if (packet.geometries[geometry_i].material) {
+							m = packet.geometries[geometry_i].material;
+						}
+						else {
+							m = MaterialSystem::get_default_material();
+						}
+
+						// Apply the material
+						bool32 needs_update = (m->render_frame_number != (uint32)frame_number);
+						if (!MaterialSystem::apply_instance(m, lighting, needs_update))
+						{
+							SHMWARNV("render_view_world_on_render - Failed to apply material '%s'. Skipping draw.", m->name);
+							continue;
+						}
+
+						m->render_frame_number = (uint32)frame_number;
+
+						// Apply the locals
+						MaterialSystem::apply_local(m, packet.geometries[geometry_i].model);
+
+						// Draw it.
+						geometry_draw(packet.geometries[geometry_i]);
+
+					}
+
+				}		
 				
 			}
 

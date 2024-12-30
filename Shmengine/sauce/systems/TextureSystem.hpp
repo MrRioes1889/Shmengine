@@ -55,7 +55,6 @@ namespace TextureSystem
 	void system_shutdown(void* state);
 
 	SHMAPI Texture* acquire(const char* name, bool32 auto_release);
-	SHMAPI Texture* acquire(uint32 texture_id, bool32 auto_release);
 	SHMAPI Texture* acquire_cube(const char* name, bool32 auto_release);
 	SHMAPI Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency);
 

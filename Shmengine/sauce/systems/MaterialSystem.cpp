@@ -301,7 +301,7 @@ namespace MaterialSystem
                     map->filter_minify = sub_mat->maps[map_i].filter_minify;
                     map->filter_magnify = sub_mat->maps[map_i].filter_magnify;
 
-                    map->texture = TextureSystem::acquire(sub_mat->maps[map_i].texture->id, true);
+                    map->texture = TextureSystem::acquire(sub_mat->maps[map_i].texture->name, true);
                     if (!map->texture)
                     {
                         SHMWARN("Unable to acquire texture from terrain sub material.");

@@ -24,8 +24,6 @@ struct TerrainResourceData
 	SubMaterial sub_material_names[max_terrain_materials_count];
 
 	char heightmap_name[max_texture_name_length];
-
-	Math::Transform xform;
 };
 
 namespace ResourceSystem
