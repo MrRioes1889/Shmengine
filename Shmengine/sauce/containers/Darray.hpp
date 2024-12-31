@@ -59,19 +59,19 @@ struct Darray
 		count = new_count;
 	}
 
-	SHMINLINE T* push(const T& obj);
-	SHMINLINE T* push(T&& obj);
-	SHMINLINE T* push_steal(T& obj);
+	SHMINLINE uint32 push(const T& obj);
+	SHMINLINE uint32 push(T&& obj);
+	SHMINLINE uint32 push_steal(T& obj);
 
 	template <typename... Args>
-	SHMINLINE T* emplace(Args&&... args)
+	SHMINLINE uint32 emplace(Args&&... args)
 	{
 		if (count + 1 > capacity)
 			resize();
 
 		T* ret = new(&data[count]) T(std::forward<Args>(args)...);
 		count++;
-		return ret;
+		return count-1;
 	}
 
 	SHMINLINE void pop();
@@ -262,7 +262,7 @@ inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 }
 
 template<typename T>
-inline SHMINLINE T* Darray<T>::push(const T& obj)
+inline SHMINLINE uint32 Darray<T>::push(const T& obj)
 {
 
 	if (!capacity)
@@ -273,12 +273,12 @@ inline SHMINLINE T* Darray<T>::push(const T& obj)
 
 	data[count] = obj;
 	count++;
-	return &data[count - 1];
+	return count - 1;
 
 }
 
 template<typename T>
-inline SHMINLINE T* Darray<T>::push(T&& obj)
+inline SHMINLINE uint32 Darray<T>::push(T&& obj)
 {
 
 	if (!capacity)
@@ -289,12 +289,12 @@ inline SHMINLINE T* Darray<T>::push(T&& obj)
 
 	data[count] = std::move(obj);
 	count++;
-	return &data[count - 1];
+	return count - 1;
 
 }
 
 template<typename T>
-inline SHMINLINE T* Darray<T>::push_steal(T& obj)
+inline SHMINLINE uint32 Darray<T>::push_steal(T& obj)
 {
 
 	if (!capacity)
@@ -306,7 +306,7 @@ inline SHMINLINE T* Darray<T>::push_steal(T& obj)
 	Memory::copy_memory(&obj, &data[count], sizeof(T));
 	Memory::zero_memory(&obj, sizeof(T));
 	count++;
-	return &data[count - 1];
+	return count - 1;
 
 }
 

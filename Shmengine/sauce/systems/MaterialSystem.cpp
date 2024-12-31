@@ -27,7 +27,6 @@ namespace MaterialSystem
 
 		Material default_material;
 		Material default_ui_material;
-		Material default_terrain_material;
 
 		Material* registered_materials;
 		Hashtable<MaterialReference> registered_material_table;
@@ -69,7 +68,7 @@ namespace MaterialSystem
         for (uint32 i = 0; i < count; ++i) {
             system_state->registered_materials[i].id = INVALID_ID;
             system_state->registered_materials[i].generation = INVALID_ID;
-            system_state->registered_materials[i].internal_id = INVALID_ID;
+            system_state->registered_materials[i].shader_instance_id = INVALID_ID;
             system_state->registered_materials[i].render_frame_number = INVALID_ID;
         }
 
@@ -103,7 +102,6 @@ namespace MaterialSystem
 
         // Destroy the default material.
         destroy_material(&system_state->default_ui_material);
-        destroy_material(&system_state->default_terrain_material);
         destroy_material(&system_state->default_material);
 
         system_state = 0;
@@ -467,7 +465,7 @@ namespace MaterialSystem
         for (uint32 i = 0; i < m->maps.capacity; i++)
             maps[i] = &m->maps[i];
 
-        bool32 res = Renderer::shader_acquire_instance_resources(shader, maps.capacity, maps.data, &m->internal_id);
+        bool32 res = Renderer::shader_acquire_instance_resources(shader, maps.capacity, maps.data, &m->shader_instance_id);
         if (!res)
             SHMERRORV("Failed to acquire renderer resources for material '%s'.", m->name);
 
@@ -488,9 +486,9 @@ namespace MaterialSystem
         }
 
         // Release renderer resources.
-        if (m->shader_id != INVALID_ID && m->internal_id != INVALID_ID)
+        if (m->shader_id != INVALID_ID && m->shader_instance_id != INVALID_ID)
         {
-            Renderer::shader_release_instance_resources(ShaderSystem::get_shader(m->shader_id), m->internal_id);
+            Renderer::shader_release_instance_resources(ShaderSystem::get_shader(m->shader_id), m->shader_instance_id);
             m->shader_id = INVALID_ID;
         }
 
@@ -501,18 +499,13 @@ namespace MaterialSystem
         Memory::zero_memory(m, sizeof(Material));
         m->id = INVALID_ID;
         m->generation = INVALID_ID;
-        m->internal_id = INVALID_ID;
+        m->shader_instance_id = INVALID_ID;
         m->render_frame_number = INVALID_ID;
     }
 
     Material* get_default_material()
     {
         return &system_state->default_material;
-    }
-
-    Material* get_default_terrain_material()
-    {
-        return &system_state->default_terrain_material;
     }
 
     Material* get_default_ui_material()
@@ -552,7 +545,7 @@ namespace MaterialSystem
         for (uint32 i = 0; i < maps_count; i++)
             maps[i] = &mat->maps[i];
 
-        if (!Renderer::shader_acquire_instance_resources(s, maps_count, maps, &mat->internal_id))
+        if (!Renderer::shader_acquire_instance_resources(s, maps_count, maps, &mat->shader_instance_id))
         {
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;
@@ -593,7 +586,7 @@ namespace MaterialSystem
         for (uint32 i = 0; i < maps_count; i++)
             maps[i] = &mat->maps[i];
 
-        if (!Renderer::shader_acquire_instance_resources(s, maps_count, maps, &mat->internal_id))
+        if (!Renderer::shader_acquire_instance_resources(s, maps_count, maps, &mat->shader_instance_id))
         {
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;

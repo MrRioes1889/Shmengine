@@ -273,7 +273,7 @@ namespace Platform
         if (!FindClose(file_handle))
             return get_last_error();
 
-        FileWatch* watch = plat_state->file_watches.emplace();
+        FileWatch* watch = &plat_state->file_watches[plat_state->file_watches.emplace()];
         watch->file_path = path;
         watch->last_write_timestamp = find_data.ftLastWriteTime;
 

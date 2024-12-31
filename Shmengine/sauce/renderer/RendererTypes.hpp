@@ -72,7 +72,7 @@ namespace Renderer
 		inline static const uint32 max_material_count = 0x400;
 		inline static const uint32 max_ui_count = 0x400;
 		inline static const uint32 max_geometry_count = 0x1000;
-		inline static const uint32 frames_count = 3;
+		inline static const uint32 framebuffer_count = 3;
 
 		inline static const uint32 shader_max_instances = max_material_count;
 		inline static const uint32 shader_max_stages = 8;

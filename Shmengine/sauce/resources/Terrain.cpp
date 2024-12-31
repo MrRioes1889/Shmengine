@@ -140,10 +140,11 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 			v->tex_coords.x = (float32)x;
 			v->tex_coords.y = (float32)z;
 
-			v->material_weights[0] = 1.0f - smoothstep(0.0f, 0.25f, out_terrain->vertex_infos[i].height);
-			v->material_weights[1] = smoothstep(0.0f, 0.25f, out_terrain->vertex_infos[i].height) - smoothstep(0.25f, 0.5f, out_terrain->vertex_infos[i].height);
-			v->material_weights[2] = smoothstep(0.25f, 0.5f, out_terrain->vertex_infos[i].height) - smoothstep(0.5f, 0.75f, out_terrain->vertex_infos[i].height);
-			v->material_weights[3] = smoothstep(0.5f, 0.75f, out_terrain->vertex_infos[i].height) - smoothstep(0.75f, 1.0f, out_terrain->vertex_infos[i].height);
+			float32 step_size = 1.0f / (float32)out_terrain->material_names.count;
+			v->material_weights[0] = 1.0f - smoothstep(0.0f, step_size, out_terrain->vertex_infos[i].height);
+			for (uint32 w = 1; w < out_terrain->material_names.count; w++)
+				v->material_weights[w] = smoothstep(step_size * (w - 1), step_size * w, out_terrain->vertex_infos[i].height) - smoothstep(step_size * w, step_size * (w + 1), out_terrain->vertex_infos[i].height);
+
 		}
 	}
 
@@ -417,16 +418,16 @@ bool32 terrain_unload(Terrain* terrain)
 
     terrain->state = TerrainState::UNLOADING;
 
-	for (uint32 map_i = 0; map_i < max_terrain_materials_count * 3; map_i++)
-	{
-		if (terrain->texture_maps[map_i].texture->id != INVALID_ID)
-			TextureSystem::release(terrain->texture_maps[map_i].texture->name);
-		Renderer::texture_map_release_resources(&terrain->texture_maps[map_i]);
-	}
-
 	Renderer::Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
 	Renderer::shader_release_instance_resources(terrain_shader, terrain->shader_instance_id);
-    terrain->shader_instance_id = INVALID_ID;
+	terrain->shader_instance_id = INVALID_ID;
+
+	for (uint32 map_i = 0; map_i < max_terrain_materials_count * 3; map_i++)
+	{
+		Renderer::texture_map_release_resources(&terrain->texture_maps[map_i]);
+		if (terrain->texture_maps[map_i].texture->id != INVALID_ID)
+			TextureSystem::release(terrain->texture_maps[map_i].texture->name);
+	}
 
     Renderer::geometry_unload(&terrain->geometry);
 

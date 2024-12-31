@@ -491,7 +491,7 @@ namespace ResourceSystem
             }
             else if (identifier == "Kd")
             {
-                MaterialProperty* prop = current_resource.properties.emplace();
+                MaterialProperty* prop = &current_resource.properties[current_resource.properties.emplace()];
                 CString::copy("diffuse_color", prop->name, prop->max_name_length);
                 prop->type = MaterialPropertyType::FLOAT32_4;
                 CString::scan(values.c_str(), "%f %f %f", &prop->f32[0], &prop->f32[1], &prop->f32[2]);
@@ -502,7 +502,7 @@ namespace ResourceSystem
             }
             else if (identifier == "Ns")
             {
-                MaterialProperty* prop = current_resource.properties.emplace();
+                MaterialProperty* prop = &current_resource.properties[current_resource.properties.emplace()];
                 CString::copy("shininess", prop->name, prop->max_name_length);
                 prop->type = MaterialPropertyType::FLOAT32;
                 CString::parse(values.c_str(), &prop->f32[0]);
@@ -514,7 +514,7 @@ namespace ResourceSystem
                 values.left_of_last('.');
                 values.right_of_last('/');
                 values.right_of_last('\\');
-                TextureMapResourceData* map = current_resource.maps.emplace();
+                TextureMapResourceData* map = &current_resource.maps[current_resource.maps.emplace()];
                 *map = default_map;
                 CString::copy(values.c_str(), map->texture_name, max_texture_name_length);
                 CString::copy("diffuse", map->name, max_texture_name_length);
@@ -525,7 +525,7 @@ namespace ResourceSystem
                 values.left_of_last('.');
                 values.right_of_last('/');
                 values.right_of_last('\\');
-                TextureMapResourceData* map = current_resource.maps.emplace();
+                TextureMapResourceData* map = &current_resource.maps[current_resource.maps.emplace()];
                 *map = default_map;
                 CString::copy(values.c_str(), map->texture_name, max_texture_name_length);
                 CString::copy("specular", map->name, max_texture_name_length);
@@ -536,7 +536,7 @@ namespace ResourceSystem
                 values.left_of_last('.');
                 values.right_of_last('/');
                 values.right_of_last('\\');
-                TextureMapResourceData* map = current_resource.maps.emplace();
+                TextureMapResourceData* map = &current_resource.maps[current_resource.maps.emplace()];
                 *map = default_map;
                 CString::copy(values.c_str(), map->texture_name, max_texture_name_length);
                 CString::copy("normal", map->name, max_texture_name_length);

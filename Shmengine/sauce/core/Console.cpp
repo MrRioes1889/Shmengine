@@ -127,7 +127,7 @@ namespace Console
 				return true;
 		}
 
-		Command* cmd = system_state->registered_commands.emplace();
+		Command* cmd = &system_state->registered_commands[system_state->registered_commands.emplace()];
 		cmd->arg_count = arg_count;
 		cmd->callback = callback;
 		CString::copy(command, cmd->name, Command::max_command_length);

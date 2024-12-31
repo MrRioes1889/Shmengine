@@ -460,7 +460,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		render_data->render_frame_number = &t->render_frame_number;
 		render_data->shader_instance_id = t->shader_instance_id;
 		render_data->texture_maps = t->texture_maps;
-		render_data->texture_maps_count = max_terrain_materials_count;
+		render_data->texture_maps_count = max_terrain_materials_count * 3;
 		render_data->properties = &t->material_properties;
 		render_data->unique_id = 0;
 
@@ -491,7 +491,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 				render_data->model = model;
 				render_data->geometry = g->g_data;
 				render_data->render_frame_number = &g->material->render_frame_number;
-				render_data->shader_instance_id = g->material->internal_id;
+				render_data->shader_instance_id = g->material->shader_instance_id;
 				render_data->texture_maps = g->material->maps.data;
 				render_data->texture_maps_count = g->material->maps.capacity;
 				render_data->properties = g->material->properties;
@@ -569,7 +569,7 @@ bool32 scene_remove_point_light(Scene* scene, uint32 index)
 bool32 scene_add_mesh(Scene* scene, MeshConfig* config)
 {
 
-	Mesh* mesh = scene->meshes.emplace();
+	Mesh* mesh = &scene->meshes[scene->meshes.emplace()];
 
 	if (!mesh_init(config, mesh))
 	{
@@ -650,7 +650,7 @@ bool32 scene_remove_mesh(Scene* scene, const char* name)
 bool32 scene_add_terrain(Scene* scene, TerrainConfig* config)
 {
 
-	Terrain* terrain = scene->terrains.emplace();
+	Terrain* terrain = &scene->terrains[scene->terrains.emplace()];
 
 	bool32 initialized = false;
 	if (config->resource_name)

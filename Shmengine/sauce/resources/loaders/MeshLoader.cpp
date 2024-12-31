@@ -270,7 +270,7 @@ namespace ResourceSystem
             {
                 for (uint32 i = 0; i < groups.count; i++)
                 {
-                    MeshGeometryConfig* new_data = out_resource->configs.emplace();
+                    MeshGeometryConfig* new_data = &out_resource->configs[out_resource->configs.emplace()];
                     if (!name[0])
                     {
                         name = mesh_name;
@@ -291,7 +291,7 @@ namespace ResourceSystem
             }
             else if (identifier == "usemtl")
             {
-                MeshGroupData* new_group = groups.emplace();
+                MeshGroupData* new_group = &groups[groups.emplace()];
                 new_group->faces.init(0xF000, 0);      
 
                 material_names.emplace(values);
@@ -303,7 +303,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < groups.count; i++)
         {
             
-            MeshGeometryConfig* new_data = out_resource->configs.emplace();
+            MeshGeometryConfig* new_data = &out_resource->configs[out_resource->configs.emplace()];
             CString::copy(name.c_str(), new_data->data_config.name, max_geometry_name_length);
             if (!name[0])
             {
@@ -557,7 +557,7 @@ namespace ResourceSystem
 
         for (uint32 i = 0; i < file_header->geometry_count; i++)
         {
-            MeshGeometryConfig* config = out_resource->configs.emplace();
+            MeshGeometryConfig* config = &out_resource->configs[out_resource->configs.emplace()];
             GeometrySystem::GeometryConfig* g = &config->data_config;
 
             check_buffer_size(sizeof(ShmeshFileGeometryHeader));

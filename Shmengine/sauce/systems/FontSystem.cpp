@@ -184,7 +184,7 @@ namespace FontSystem
 		for (uint32 i = 0; i < 95; i++)
 			lookup->codepoints.push(i + 32);
 
-		FontAtlas* variant = lookup->size_variants.emplace();
+		FontAtlas* variant = &lookup->size_variants[lookup->size_variants.emplace()];
 		if (!create_truetype_font_variant(lookup, config.default_size, config.name, variant)) 
 		{
 			SHMERRORV("load_truetype_font - Failed to create variant: %s", lookup->resource_data.face);
@@ -290,7 +290,7 @@ namespace FontSystem
 				return true;
 			}
 			
-			variant = lookup->size_variants.emplace();
+			variant = &lookup->size_variants[lookup->size_variants.emplace()];
 			if (!create_truetype_font_variant(lookup, font_size, font_name, variant)) {
 				SHMERRORV("Failed to create variant: %s", font_name);
 				return false;
@@ -514,7 +514,7 @@ namespace FontSystem
 
 			for (uint32 i = 0; i < kerning_count; i++)
 			{
-				FontKerning* k = variant->kernings.emplace();
+				FontKerning* k = &variant->kernings[variant->kernings.emplace()];
 				k->codepoint_0 = kerning_entries[i].glyph1;
 				k->codepoint_1 = kerning_entries[i].glyph2;
 				k->advance = (int16)kerning_entries[i].advance;

@@ -91,7 +91,7 @@ bool32 mesh_unload(Mesh* mesh)
     {
         MeshGeometryConfig* out_config = 0;
         if (GeometrySystem::get_ref_count(mesh->geometries[i].g_data) <= 1)
-            out_config = mesh->pending_g_configs.emplace();
+            out_config = &mesh->pending_g_configs[mesh->pending_g_configs.emplace()];
              
         if (mesh->geometries[i].material)
         {      
@@ -128,7 +128,7 @@ static void mesh_load_job_success(void* params) {
     mesh->geometries.init(configs.count + mesh->pending_g_configs.count, 0);
 
     for (uint32 i = 0; i < configs.count; ++i) {
-        MeshGeometry* g = mesh->geometries.emplace();
+        MeshGeometry* g = &mesh->geometries[mesh->geometries.emplace()];
         g->g_data = GeometrySystem::acquire_from_config(&configs[i].data_config, true);
 
         if (*configs[i].material_name)
@@ -140,7 +140,7 @@ static void mesh_load_job_success(void* params) {
     }
 
     for (uint32 i = 0; i < mesh->pending_g_configs.count; ++i) {
-        MeshGeometry* g = mesh->geometries.emplace();
+        MeshGeometry* g = &mesh->geometries[mesh->geometries.emplace()];
         g->g_data = GeometrySystem::acquire_from_config(&mesh->pending_g_configs[i].data_config, true);
 
         if (*mesh->pending_g_configs[i].material_name)

@@ -88,7 +88,7 @@ namespace Renderer
 			return;
 		}
 
-		data->instances.push({ true });
+		data->instances.emplace(true);
 	}
 
 	static void release_shader_instances(const RenderView* self)
@@ -248,11 +248,11 @@ namespace Renderer
 			Mesh* m = packet_data->ui_mesh_data.meshes[i];
 			for (uint32 g = 0; g < m->geometries.count; g++)
 			{
-				GeometryRenderData* render_data = out_packet->geometries.emplace();
+				GeometryRenderData* render_data = &out_packet->geometries[out_packet->geometries.emplace()];
 				render_data->geometry = m->geometries[g].g_data;
 				render_data->model = Math::transform_get_world(m->transform);
 				render_data->render_frame_number = &m->geometries[g].material->render_frame_number;
-				render_data->shader_instance_id = m->geometries[g].material->internal_id;
+				render_data->shader_instance_id = m->geometries[g].material->shader_instance_id;
 				render_data->texture_maps = m->geometries[g].material->maps.data;
 				render_data->texture_maps_count = m->geometries[g].material->maps.capacity;
 				render_data->properties = m->geometries[g].material->properties;

@@ -574,9 +574,6 @@ namespace Renderer::Vulkan
 
 		// Bind the descriptor set to be updated, or in case the shader changed.
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipeline.layout, 1, 1, &object_descriptor_set, 0, 0);
-		// TODO: Wait idle prevents from flickering fissures in meshes by waiting for all uniforms to be set first and/or changes to frame being drawn currently.
-		// THis solution is clearly not adequate and efficient.
-		vkDeviceWaitIdle(context->device.logical_device);
 		return true;
 
 	}
@@ -646,7 +643,7 @@ namespace Renderer::Vulkan
 		}
 
 		// Allocate 3 descriptor sets (one per frame).
-		VkDescriptorSetLayout layouts[3] =
+		VkDescriptorSetLayout layouts[Renderer::RendererConfig::framebuffer_count] =
 		{
 			v_shader->descriptor_set_layouts[desc_set_index_instance],
 			v_shader->descriptor_set_layouts[desc_set_index_instance],

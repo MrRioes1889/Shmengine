@@ -183,9 +183,9 @@ struct Material
 
 	uint32 id;
 	MaterialType type;
-	uint32 generation;
-	uint32 internal_id;
+	uint32 generation;	
 	uint32 shader_id;
+	uint32 shader_instance_id;
 	uint32 render_frame_number;
 	char name[max_material_name_length];
 	
@@ -217,7 +217,6 @@ namespace MaterialSystem
 
 	SHMAPI Material* get_default_material();
 	SHMAPI Material* get_default_ui_material();
-	SHMAPI Material* get_default_terrain_material();
 
 	void dump_system_stats();
 

@@ -98,7 +98,7 @@ namespace Renderer::Vulkan
 
 	struct VulkanSwapchain
 	{
-		RenderTarget render_targets[RendererConfig::frames_count];
+		RenderTarget render_targets[RendererConfig::framebuffer_count];
 
 		VkSurfaceFormatKHR image_format;
 		VkSwapchainKHR handle;
@@ -164,13 +164,13 @@ namespace Renderer::Vulkan
 
 	struct VulkanDescriptorState
 	{
-		uint8 generations[RendererConfig::frames_count];
-		uint32 ids[RendererConfig::frames_count];
+		uint8 generations[RendererConfig::framebuffer_count];
+		uint32 ids[RendererConfig::framebuffer_count];
 	};
 
 	struct VulkanShaderDescriptorSetState
 	{
-		VkDescriptorSet descriptor_sets[RendererConfig::frames_count];
+		VkDescriptorSet descriptor_sets[RendererConfig::framebuffer_count];
 		VulkanDescriptorState descriptor_states[RendererConfig::shader_max_bindings];
 	};
 
@@ -236,7 +236,7 @@ namespace Renderer::Vulkan
 
 		VkDescriptorSetLayout descriptor_set_layouts[2];
 
-		VkDescriptorSet global_descriptor_sets[RendererConfig::frames_count];
+		VkDescriptorSet global_descriptor_sets[RendererConfig::framebuffer_count];
 
 		void* mapped_uniform_buffer;
 		//Renderbuffer uniform_buffer;
@@ -258,15 +258,15 @@ namespace Renderer::Vulkan
 
 		VulkanSwapchain swapchain;
 
-		Renderer::RenderTarget world_render_targets[RendererConfig::frames_count];
+		Renderer::RenderTarget world_render_targets[RendererConfig::framebuffer_count];
 
 		Sarray<VulkanCommandBuffer> graphics_command_buffers = {};
 
 		Sarray<VkSemaphore> image_available_semaphores = {};
 		Sarray<VkSemaphore> queue_complete_semaphores = {};
 
-		VkFence fences_in_flight[RendererConfig::frames_count - 1];
-		VkFence images_in_flight[RendererConfig::frames_count];
+		VkFence fences_in_flight[RendererConfig::framebuffer_count - 1];
+		VkFence images_in_flight[RendererConfig::framebuffer_count];
 
 #if defined(_DEBUG)
 		VkDebugUtilsMessengerEXT debug_messenger;
