@@ -246,12 +246,16 @@ namespace Renderer
 		for (uint32 i = 0; i < packet_data->ui_mesh_data.mesh_count; i++)
 		{
 			Mesh* m = packet_data->ui_mesh_data.meshes[i];
-			for (uint32 j = 0; j < m->geometries.count; j++)
+			for (uint32 g = 0; g < m->geometries.count; g++)
 			{
 				GeometryRenderData* render_data = out_packet->geometries.emplace();
-				render_data->geometry = m->geometries[j].g_data;
-				render_data->material = m->geometries[j].material;
+				render_data->geometry = m->geometries[g].g_data;
 				render_data->model = Math::transform_get_world(m->transform);
+				render_data->render_frame_number = &m->geometries[g].material->render_frame_number;
+				render_data->shader_instance_id = m->geometries[g].material->internal_id;
+				render_data->texture_maps = m->geometries[g].material->maps.data;
+				render_data->texture_maps_count = m->geometries[g].material->maps.capacity;
+				render_data->properties = m->geometries[g].material->properties;
 				render_data->unique_id = m->unique_id;
 				packet_data->ui_geometries_count++;
 			}
@@ -286,7 +290,7 @@ namespace Renderer
 		packet->extended_data = 0;
 	}
 
-	bool32 render_view_pick_on_render(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
+	bool32 render_view_pick_on_render(RenderView* self, RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
 	{
 
 		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
@@ -318,7 +322,7 @@ namespace Renderer
 
 			ShaderSystem::set_uniform(data->world_shader_info.projection_location, &data->world_shader_info.projection);
 			ShaderSystem::set_uniform(data->world_shader_info.view_location, &data->world_shader_info.view);
-			ShaderSystem::apply_global();
+			Renderer::shader_apply_globals(data->world_shader_info.shader);
 
 			for (uint32 i = 0; i < packet_data->world_geometries_count; i++)
 			{
@@ -331,7 +335,7 @@ namespace Renderer
 				Math::uint32_to_rgb(cur_instance_id, &r, &g, &b);
 				Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
 				ShaderSystem::set_uniform(data->world_shader_info.id_color_location, &id_color);
-				ShaderSystem::apply_instance(data->instances[cur_instance_id].is_dirty);
+				Renderer::shader_apply_instance(data->world_shader_info.shader, data->instances[cur_instance_id].is_dirty);
 				data->instances[cur_instance_id].is_dirty = false;
 
 				ShaderSystem::set_uniform(data->world_shader_info.model_location, &render_data->model);
@@ -362,7 +366,7 @@ namespace Renderer
 
 			ShaderSystem::set_uniform(data->ui_shader_info.projection_location, &data->ui_shader_info.projection);
 			ShaderSystem::set_uniform(data->ui_shader_info.view_location, &data->ui_shader_info.view);
-			ShaderSystem::apply_global();
+			Renderer::shader_apply_globals(data->ui_shader_info.shader);
 
 			for (uint32 i = packet_data->world_geometries_count; i < packet.geometries.count; i++)
 			{
@@ -375,7 +379,7 @@ namespace Renderer
 				Math::uint32_to_rgb(cur_instance_id, &r, &g, &b);
 				Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
 				ShaderSystem::set_uniform(data->ui_shader_info.id_color_location, &id_color);
-				ShaderSystem::apply_instance(data->instances[cur_instance_id].is_dirty);
+				Renderer::shader_apply_instance(data->ui_shader_info.shader, data->instances[cur_instance_id].is_dirty);
 				data->instances[cur_instance_id].is_dirty = false;
 
 				ShaderSystem::set_uniform(data->ui_shader_info.model_location, &render_data->model);
@@ -394,7 +398,7 @@ namespace Renderer
 				Math::uint32_to_rgb(cur_instance_id, &r, &g, &b);
 				Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
 				ShaderSystem::set_uniform(data->ui_shader_info.id_color_location, &id_color);
-				ShaderSystem::apply_instance(true);
+				Renderer::shader_apply_instance(data->ui_shader_info.shader, true);
 
 				Math::Mat4 model = Math::transform_get_world(text->transform);
 				ShaderSystem::set_uniform(data->ui_shader_info.model_location, &model);

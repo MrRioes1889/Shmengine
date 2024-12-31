@@ -77,7 +77,6 @@ enum class MaterialType
 	PHONG,
 	PBR,
 	UI,
-	TERRAIN,
 	CUSTOM
 };
 
@@ -208,30 +207,17 @@ namespace MaterialSystem
 		inline static const char* default_terrain_name = "default_terrain";
 	};
 
-	struct LightingInfo
-	{
-		DirectionalLight* dir_light;
-		uint32 p_lights_count;
-		PointLight* p_lights;
-	};
-
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
 	SHMAPI Material* acquire(const char* name);
 	SHMAPI Material* acquire_from_config(const MaterialConfig* config);
 
-	SHMAPI Material* acquire_terrain_material(const char* name, uint32 material_count, const char** material_names, bool32 auto_release);
-
 	SHMAPI void release(const char* name);
 
 	SHMAPI Material* get_default_material();
 	SHMAPI Material* get_default_ui_material();
 	SHMAPI Material* get_default_terrain_material();
-
-	bool32 apply_globals(uint32 shader_id, LightingInfo lighting, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode);
-	bool32 apply_instance(Material* m, LightingInfo lighting, bool32 needs_update);
-	bool32 apply_local(Material* m, const Math::Mat4& model);
 
 	void dump_system_stats();
 

@@ -199,8 +199,8 @@ namespace Renderer
 				continue;
 
 			bool32 has_transparency = false;
-			if (g_data->material->type == MaterialType::PHONG)
-				has_transparency = (g_data->material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
+			if (g_data->texture_maps_count)
+				has_transparency = (g_data->texture_maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
 
 			if (!has_transparency)
 			{
@@ -243,7 +243,7 @@ namespace Renderer
 		packet->extended_data = 0;
 	}
 
-	bool32 render_view_world_on_render(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
+	bool32 render_view_world_on_render(RenderView* self, RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
 	{
 
 		RenderViewWorldInternalData* data = (RenderViewWorldInternalData*)self->internal_data.data;
@@ -263,7 +263,7 @@ namespace Renderer
 			if (packet_data)
 			{
 
-				MaterialSystem::LightingInfo lighting =
+				ShaderSystem::LightingInfo lighting =
 				{
 					.dir_light = packet_data->dir_light,
 					.p_lights_count = packet_data->p_lights_count,
@@ -282,7 +282,7 @@ namespace Renderer
 					}
 					ShaderSystem::use_shader(terrain_shader_id);
 
-					if (!MaterialSystem::apply_globals(terrain_shader_id, lighting, frame_number,
+					if (!ShaderSystem::apply_globals(terrain_shader_id, lighting, frame_number,
 						&packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
 					{
 						SHMERROR("Failed to apply globals to terrain shader.");
@@ -292,26 +292,21 @@ namespace Renderer
 					for (uint32 i = 0; i < packet_data->terrain_geometries_count; i++, geometry_i++)
 					{
 
-						Material* m = 0;
-						if (packet.geometries[geometry_i].material) {
-							m = packet.geometries[geometry_i].material;
-						}
-						else {
-							m = MaterialSystem::get_default_terrain_material();
-						}
+						GeometryRenderData* g = &packet.geometries[geometry_i];
 
 						// Apply the material
-						bool32 needs_update = (m->render_frame_number != (uint32)frame_number);
-						if (!MaterialSystem::apply_instance(m, lighting, needs_update))
+						bool32 needs_update = (*g->render_frame_number != (uint32)frame_number);
+						if (!ShaderSystem::apply_instance(terrain_shader_id, g->shader_instance_id, g->properties,
+							g->texture_maps, g->texture_maps_count, lighting, needs_update))
 						{
-							SHMWARNV("render_view_world_on_render - Failed to apply material '%s'. Skipping draw.", m->name);
+							SHMWARN("Failed to apply instance. Skipping draw.");
 							continue;
 						}
 
-						m->render_frame_number = (uint32)frame_number;
+						*g->render_frame_number = (uint32)frame_number;
 
 						// Apply the locals
-						MaterialSystem::apply_local(m, packet.geometries[geometry_i].model);
+						ShaderSystem::apply_local(terrain_shader_id, packet.geometries[geometry_i].model);
 
 						// Draw it.
 						geometry_draw(packet.geometries[geometry_i]);
@@ -330,7 +325,7 @@ namespace Renderer
 					}
 
 					// Apply globals
-					if (!MaterialSystem::apply_globals(material_shader_id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
+					if (!ShaderSystem::apply_globals(material_shader_id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
 					{
 						SHMERROR("render_view_world_on_render - Failed to use apply globals for shader. Render frame failed.");
 						return false;
@@ -339,26 +334,21 @@ namespace Renderer
 					for (uint32 i = 0; i < packet_data->mesh_geometries_count; i++, geometry_i++)
 					{
 
-						Material* m = 0;
-						if (packet.geometries[geometry_i].material) {
-							m = packet.geometries[geometry_i].material;
-						}
-						else {
-							m = MaterialSystem::get_default_material();
-						}
+						GeometryRenderData* g = &packet.geometries[geometry_i];
 
 						// Apply the material
-						bool32 needs_update = (m->render_frame_number != (uint32)frame_number);
-						if (!MaterialSystem::apply_instance(m, lighting, needs_update))
+						bool32 needs_update = (*g->render_frame_number != (uint32)frame_number);
+						if (!ShaderSystem::apply_instance(material_shader_id, g->shader_instance_id, g->properties,
+							g->texture_maps, g->texture_maps_count, lighting, needs_update))
 						{
-							SHMWARNV("render_view_world_on_render - Failed to apply material '%s'. Skipping draw.", m->name);
+							SHMWARN("Failed to apply instance. Skipping draw.");
 							continue;
 						}
 
-						m->render_frame_number = (uint32)frame_number;
+						*g->render_frame_number = (uint32)frame_number;
 
 						// Apply the locals
-						MaterialSystem::apply_local(m, packet.geometries[geometry_i].model);
+						ShaderSystem::apply_local(material_shader_id, packet.geometries[geometry_i].model);
 
 						// Draw it.
 						geometry_draw(packet.geometries[geometry_i]);

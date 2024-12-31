@@ -27,10 +27,6 @@ namespace ResourceSystem
             SHMWARNV("PBR material type not upported yet. Setting to default phong.", line_number);
             return MaterialType::PHONG;
         }
-        if (s->equal_i("terrain"))
-        {
-            return MaterialType::TERRAIN;
-        }
         if (s->equal_i("ui"))
         {
             return MaterialType::UI;

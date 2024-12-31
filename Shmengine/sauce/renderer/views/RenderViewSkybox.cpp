@@ -138,7 +138,7 @@ namespace Renderer
 		packet->extended_data = 0;
 	}
 
-	bool32 render_view_skybox_on_render(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
+	bool32 render_view_skybox_on_render(RenderView* self, RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
 	{
 
 		RenderViewSkyboxInternalData* data = (RenderViewSkyboxInternalData*)self->internal_data.data;
@@ -175,7 +175,7 @@ namespace Renderer
 				SHMERROR("render_view_skybox_on_render - Failed to apply skybox view uniform.");
 				return false;
 			}
-			ShaderSystem::apply_global();
+			Renderer::shader_apply_globals(data->shader);
 
 			// Instance
 			if (skybox_data)
@@ -186,7 +186,7 @@ namespace Renderer
 					return false;
 				}
 				bool8 needs_update = skybox_data->skybox->renderer_frame_number != frame_number;
-				ShaderSystem::apply_instance(needs_update);
+				Renderer::shader_apply_instance(data->shader, needs_update);
 
 				// Sync the frame number.
 				skybox_data->skybox->renderer_frame_number = frame_number;

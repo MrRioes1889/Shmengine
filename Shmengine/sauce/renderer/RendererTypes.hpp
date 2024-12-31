@@ -461,16 +461,20 @@ namespace Renderer
 		void (*on_resize)(RenderView* self, uint32 width, uint32 height);
 		bool32(*on_build_packet)(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet);
 		void (*on_destroy_packet)(const RenderView* self, RenderViewPacket* packet);
-		bool32(*on_render)(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
+		bool32(*on_render)(RenderView* self, RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
 		bool32(*regenerate_attachment_target)(const RenderView* self, uint32 pass_index, RenderTargetAttachment* attachment);
 	};
 
 	struct GeometryRenderData
-	{
-		Math::Mat4 model;
-		GeometryData* geometry;
-		Material* material;
+	{		
 		UniqueId unique_id;
+		uint32 shader_instance_id;
+		uint32 texture_maps_count;
+		GeometryData* geometry;
+		void* properties;
+		TextureMap* texture_maps;
+		uint32* render_frame_number;
+		Math::Mat4 model;
 	};
 
 	struct RenderViewPacket

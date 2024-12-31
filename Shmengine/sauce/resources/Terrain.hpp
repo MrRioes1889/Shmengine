@@ -4,6 +4,7 @@
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
 #include "systems/GeometrySystem.hpp"
+#include "systems/MaterialSystem.hpp"
 
 struct Material;
 
@@ -46,8 +47,8 @@ struct TerrainConfig
 
 	float32 scale_y;
 
-	uint32 sub_materials_count;
-	const char** sub_material_names;
+	uint32 materials_count;
+	const char** material_names;
 
 	const char* heightmap_name;
 
@@ -75,9 +76,14 @@ struct Terrain
 	GeometryData geometry;
 
 	Sarray<TerrainVertexInfo> vertex_infos;
+
+	MaterialTerrainProperties material_properties;
 	
-	Darray<SubMaterial> sub_material_names;
-	Material* material;
+	Darray<SubMaterial> material_names;
+	TextureMap texture_maps[max_terrain_materials_count * 3];
+	uint32 shader_instance_id;
+
+	uint32 render_frame_number;
 };
 
 SHMAPI bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain);

@@ -133,8 +133,13 @@ namespace Renderer
 			{
 				GeometryRenderData* render_data = out_packet->geometries.emplace();
 				render_data->geometry = m->geometries[g].g_data;
-				render_data->material = m->geometries[g].material;
 				render_data->model = Math::transform_get_world(m->transform);
+				render_data->render_frame_number = &m->geometries[g].material->render_frame_number;
+				render_data->shader_instance_id = m->geometries[g].material->internal_id;
+				render_data->texture_maps = m->geometries[g].material->maps.data;
+				render_data->texture_maps_count = m->geometries[g].material->maps.capacity;
+				render_data->properties = m->geometries[g].material->properties;
+				render_data->unique_id = m->unique_id;
 			}
 		}
 
@@ -148,7 +153,7 @@ namespace Renderer
 		packet->extended_data = 0;
 	}
 
-	bool32 render_view_ui_on_render(RenderView* self, const RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
+	bool32 render_view_ui_on_render(RenderView* self, RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
 	{
 
 		RenderViewUIInternalData* data = (RenderViewUIInternalData*)self->internal_data.data;
@@ -169,39 +174,34 @@ namespace Renderer
 				return false;
 			}
 
-			MaterialSystem::LightingInfo lighting = {};
+			ShaderSystem::LightingInfo lighting = {};
 
 			// Apply globals
-			if (!MaterialSystem::apply_globals(data->shader->id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, 0, 0, 0)) {
+			if (!ShaderSystem::apply_globals(data->shader->id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, 0, 0, 0)) {
 				SHMERROR("render_view_ui_on_render - Failed to use apply globals for shader. Render frame failed.");
 				return false;
 			}
 
-			for (uint32 i = 0; i < packet.geometries.count; i++)
+			for (uint32 geo_i = 0; geo_i < packet.geometries.count; geo_i++)
 			{
-				Material* m = 0;
-				if (packet.geometries[i].material) {
-					m = packet.geometries[i].material;
-				}
-				else {
-					m = MaterialSystem::get_default_ui_material();
-				}
+				GeometryRenderData* g = &packet.geometries[geo_i];
 
-				// Apply the material			
-				bool32 needs_update = (m->render_frame_number != frame_number);
-				if (!MaterialSystem::apply_instance(m, lighting, needs_update))
+				// Apply the material
+				bool32 needs_update = (*g->render_frame_number != (uint32)frame_number);
+				if (!ShaderSystem::apply_instance(data->shader->id, g->shader_instance_id, g->properties,
+					g->texture_maps, g->texture_maps_count, lighting, needs_update))
 				{
-					SHMWARNV("render_view_ui_on_render - Failed to apply material '%s'. Skipping draw.", m->name);
+					SHMWARN("Failed to apply instance. Skipping draw.");
 					continue;
 				}
 
-				m->render_frame_number = (uint32)frame_number;
+				*g->render_frame_number = (uint32)frame_number;
 
 				// Apply the locals
-				MaterialSystem::apply_local(m, packet.geometries[i].model);
+				ShaderSystem::apply_local(data->shader->id, packet.geometries[geo_i].model);
 
 				// Draw it.
-				geometry_draw(packet.geometries[i]);
+				geometry_draw(packet.geometries[geo_i]);
 			}
 
 			UIPacketData* packet_data = (UIPacketData*)packet.extended_data;  // array of texts
@@ -221,7 +221,7 @@ namespace Renderer
 					return false;
 				}
 				bool32 needs_update = text->render_frame_number != frame_number;
-				ShaderSystem::apply_instance(needs_update);
+				Renderer::shader_apply_instance(data->shader, needs_update);
 
 				// Sync the frame number.
 				text->render_frame_number = frame_number;

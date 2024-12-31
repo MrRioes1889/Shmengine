@@ -457,7 +457,11 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
 		render_data->model = Math::transform_get_world(t->xform);
 		render_data->geometry = &t->geometry;
-		render_data->material = t->material;
+		render_data->render_frame_number = &t->render_frame_number;
+		render_data->shader_instance_id = t->shader_instance_id;
+		render_data->texture_maps = t->texture_maps;
+		render_data->texture_maps_count = max_terrain_materials_count;
+		render_data->properties = &t->material_properties;
 		render_data->unique_id = 0;
 
 		terrain_geometries_count++;
@@ -486,7 +490,11 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 				Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
 				render_data->model = model;
 				render_data->geometry = g->g_data;
-				render_data->material = g->material;
+				render_data->render_frame_number = &g->material->render_frame_number;
+				render_data->shader_instance_id = g->material->internal_id;
+				render_data->texture_maps = g->material->maps.data;
+				render_data->texture_maps_count = g->material->maps.capacity;
+				render_data->properties = g->material->properties;
 				render_data->unique_id = m->unique_id;
 
 				mesh_geometries_count++;

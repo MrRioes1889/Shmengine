@@ -9,7 +9,7 @@
 #include "resources/loaders/ImageLoader.hpp"
 #include "resources/loaders/TerrainLoader.hpp"
 
-#include "systems/MaterialSystem.hpp"
+#include "systems/ShaderSystem.hpp"
 
 bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 {
@@ -31,18 +31,21 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     out_terrain->name = config->name;
     out_terrain->xform = config->xform;
 
+	out_terrain->shader_instance_id = INVALID_ID;
+	out_terrain->render_frame_number = INVALID_ID;
+
+	out_terrain->material_properties = {};
+
     out_terrain->tile_count_x = config->tile_count_x;
     out_terrain->tile_count_z = config->tile_count_z;
     out_terrain->tile_scale_x = config->tile_scale_x;
     out_terrain->tile_scale_z = config->tile_scale_z;
     out_terrain->scale_y = config->scale_y;
 
-    out_terrain->sub_material_names.init(config->sub_materials_count, DarrayFlags::NON_RESIZABLE);
-    out_terrain->sub_material_names.set_count(config->sub_materials_count);
-    for (uint32 i = 0; i < config->sub_materials_count; i++)
-        CString::copy(config->sub_material_names[i], out_terrain->sub_material_names[i].name, max_material_name_length);
-
-    out_terrain->material = 0;
+    out_terrain->material_names.init(config->materials_count, DarrayFlags::NON_RESIZABLE);
+    out_terrain->material_names.set_count(config->materials_count);
+    for (uint32 i = 0; i < config->materials_count; i++)
+        CString::copy(config->material_names[i], out_terrain->material_names[i].name, max_material_name_length);
 
 	if (!out_terrain->tile_count_x)
 	{
@@ -275,12 +278,12 @@ bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrai
     config.tile_scale_z = resource.tile_scale_z;
     config.scale_y = resource.scale_y;
 
-    config.sub_materials_count = resource.sub_materials_count;
+    config.materials_count = resource.sub_materials_count;
     const char* submaterial_names[max_terrain_materials_count];
-    for (uint32 i = 0; i < config.sub_materials_count; i++)
+    for (uint32 i = 0; i < config.materials_count; i++)
         submaterial_names[i] = resource.sub_material_names[i].name;
 
-    config.sub_material_names = submaterial_names;
+    config.material_names = submaterial_names;
     config.xform = Math::transform_create();
 
     terrain_init(&config, out_terrain);
@@ -299,7 +302,7 @@ bool32 terrain_destroy(Terrain* terrain)
     terrain->geometry.indices.free_data();
     terrain->vertex_infos.free_data();
 
-    terrain->sub_material_names.free_data();
+    terrain->material_names.free_data();
 
     terrain->name.free_data();
 
@@ -323,18 +326,80 @@ bool32 terrain_load(Terrain* terrain)
         return false;
     }
 
-    char terrain_material_name[max_material_name_length] = {};
-    CString::print_s(terrain_material_name, max_material_name_length, "terrain_mat_%s", terrain->name.c_str());
-    const char* submaterial_names[max_terrain_materials_count];
-    for (uint32 i = 0; i < terrain->sub_material_names.count; i++)
-        submaterial_names[i] = terrain->sub_material_names[i].name;
+	uint32 material_count = terrain->material_names.count;
 
-    terrain->material = MaterialSystem::acquire_terrain_material(terrain_material_name, terrain->sub_material_names.count, submaterial_names, true);
-    if (!terrain->material)
-    {
-        SHMWARN("Failed to load terrain material. Using default.");
-        terrain->material = MaterialSystem::get_default_terrain_material();
-    }
+	Material* sub_materials[max_terrain_materials_count] = {};
+	for (uint32 i = 0; i < material_count; i++)
+		sub_materials[i] = MaterialSystem::acquire(terrain->material_names[i].name);
+
+	terrain->material_properties.materials_count = material_count;
+
+	const char* map_names[3] = { "diffuse", "specular", "normal" };
+	Texture* default_textures[3] =
+	{
+		TextureSystem::get_default_diffuse_texture(),
+		TextureSystem::get_default_specular_texture(),
+		TextureSystem::get_default_normal_texture()
+	};
+
+	Material* default_material = MaterialSystem::get_default_material();
+
+	// Phong properties and maps for each material.
+	for (uint32 mat_i = 0; mat_i < max_terrain_materials_count; mat_i++) {
+		// Properties.
+		MaterialPhongProperties* mat_props = &terrain->material_properties.materials[mat_i];
+		// Use default material unless within the material count.
+		Material* sub_mat = default_material;
+		if (mat_i < material_count && sub_mat->maps.capacity >= 3)
+			sub_mat = sub_materials[mat_i];
+
+		MaterialPhongProperties* sub_mat_properties = (MaterialPhongProperties*)sub_mat->properties;
+		mat_props->diffuse_color = sub_mat_properties->diffuse_color;
+		mat_props->shininess = sub_mat_properties->shininess;
+
+		// Maps, 3 for phong. Diffuse, spec, normal.
+		for (uint32 map_i = 0; map_i < 3; ++map_i) {
+			TextureMap* map = &terrain->texture_maps[(mat_i * 3) + map_i];
+			map->repeat_u = sub_mat->maps[map_i].repeat_u;
+			map->repeat_v = sub_mat->maps[map_i].repeat_v;
+			map->repeat_w = sub_mat->maps[map_i].repeat_w;
+			map->filter_minify = sub_mat->maps[map_i].filter_minify;
+			map->filter_magnify = sub_mat->maps[map_i].filter_magnify;
+
+			if (sub_mat == default_material)
+			{
+				map->texture = default_textures[map_i];
+			}
+			else
+			{
+				map->texture = TextureSystem::acquire(sub_mat->maps[map_i].texture->name, true);
+				if (!map->texture)
+				{
+					SHMWARN("Unable to acquire texture from terrain sub material.");
+					map->texture = default_textures[map_i];
+				}
+			}
+
+			if (!Renderer::texture_map_acquire_resources(map))
+			{
+				SHMERROR("Unable to acquire resources for texture map.");
+				return 0;
+			}
+		}
+	}
+
+	for (uint32 i = 0; i < material_count; i++)
+		MaterialSystem::release(terrain->material_names[i].name);
+
+	Renderer::Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
+	
+	const uint32 max_map_count = max_terrain_materials_count * 3;
+	TextureMap* maps[max_map_count] = {};
+	for (uint32 i = 0; i < max_map_count; i++)
+		maps[i] = &terrain->texture_maps[i];
+
+	if (!Renderer::shader_acquire_instance_resources(terrain_shader, max_map_count, maps, &terrain->shader_instance_id))
+		SHMERRORV("Failed to acquire renderer resources for terrain '%s'.", terrain->name.c_str());
 
     terrain->state = TerrainState::LOADED;
 
@@ -352,8 +417,17 @@ bool32 terrain_unload(Terrain* terrain)
 
     terrain->state = TerrainState::UNLOADING;
 
-    MaterialSystem::release(terrain->material->name);
-    terrain->material = 0;
+	for (uint32 map_i = 0; map_i < max_terrain_materials_count * 3; map_i++)
+	{
+		if (terrain->texture_maps[map_i].texture->id != INVALID_ID)
+			TextureSystem::release(terrain->texture_maps[map_i].texture->name);
+		Renderer::texture_map_release_resources(&terrain->texture_maps[map_i]);
+	}
+
+	Renderer::Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
+	Renderer::shader_release_instance_resources(terrain_shader, terrain->shader_instance_id);
+    terrain->shader_instance_id = INVALID_ID;
+
     Renderer::geometry_unload(&terrain->geometry);
 
     terrain->state = TerrainState::UNLOADED;
