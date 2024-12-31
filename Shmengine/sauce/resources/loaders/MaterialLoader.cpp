@@ -494,7 +494,7 @@ namespace ResourceSystem
                 MaterialProperty* prop = &current_resource.properties[current_resource.properties.emplace()];
                 CString::copy("diffuse_color", prop->name, prop->max_name_length);
                 prop->type = MaterialPropertyType::FLOAT32_4;
-                CString::scan(values.c_str(), "%f %f %f", &prop->f32[0], &prop->f32[1], &prop->f32[2]);
+                CString::parse_arr(values.c_str(), ' ', 3, prop->f32);
                 prop->f32[3] = 1.0f;
             }
             else if (identifier == "Ks")

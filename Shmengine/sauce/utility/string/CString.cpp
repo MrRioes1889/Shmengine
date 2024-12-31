@@ -793,5 +793,214 @@ namespace CString
 		return true;
 	}
 
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, float32* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+			
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, float64* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int8* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int16* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int32* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int64* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint8* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint16* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint32* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint64* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
+	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, bool8* out_arr)
+	{
+		const char* read = s;
+		char parse_buffer[32];
+		uint32 c = 0;
+
+		for (uint32 i = 0; i < arr_count; i++)
+		{
+			uint32 next_del_index = CString::index_of(read, delimiter);
+			CString::copy(read, parse_buffer, 32, next_del_index);
+			if (!parse(parse_buffer, &out_arr[i]))
+				return false;
+
+			read = &read[next_del_index + 1];
+		}
+
+		return true;
+	}
+
 }
 
