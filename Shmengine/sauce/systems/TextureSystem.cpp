@@ -111,25 +111,25 @@ namespace TextureSystem
 		
 		if (CString::equal_i(name, SystemConfig::default_name))
 		{
-			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
+			SHMWARN("acquire - using regular acquire to receive default texture. Should use 'get_default_texture()' instead!");
 			return &system_state->default_texture;
 		}
 
 		if (CString::equal_i(name, SystemConfig::default_diffuse_name))
 		{
-			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_diffuse_texture()' instead!");
+			SHMWARN("acquire - using regular acquire to receive default texture. Should use 'get_default_diffuse_texture()' instead!");
 			return &system_state->default_diffuse;
 		}
 
 		if (CString::equal_i(name, SystemConfig::default_specular_name))
 		{
-			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_specular_texture()' instead!");
+			SHMWARN("acquire - using regular acquire to receive default texture. Should use 'get_default_specular_texture()' instead!");
 			return &system_state->default_specular;
 		}
 
 		if (CString::equal_i(name, SystemConfig::default_normal_name))
 		{
-			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_normal_texture()' instead!");
+			SHMWARN("acquire - using regular acquire to receive default texture. Should use 'get_default_normal_texture()' instead!");
 			return &system_state->default_normal;
 		}
 
@@ -146,12 +146,6 @@ namespace TextureSystem
 
 	Texture* acquire_cube(const char* name, bool32 auto_release)
 	{
-
-		if (CString::equal_i(name, SystemConfig::default_diffuse_name))
-		{
-			SHMWARN("acquire - using regular acquire to recieve default texture. Should use 'get_default_texture()' instead!");
-			return &system_state->default_diffuse;
-		}
 
 		uint32 id = INVALID_ID;
 		if (!add_texture_reference(name, TextureType::TYPE_CUBE, auto_release, false, &id))

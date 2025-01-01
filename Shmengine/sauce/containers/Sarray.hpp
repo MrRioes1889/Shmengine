@@ -163,6 +163,10 @@ SHMINLINE void Sarray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 	allocation_tag = (uint16)tag;
 	capacity = reserve_count;
 	flags = (uint16)creation_flags;
+
+	if (memory)
+		flags |= SarrayFlags::EXTERNAL_MEMORY;
+
 	if (!memory)
 		data = (T*)Memory::allocate(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
 	else

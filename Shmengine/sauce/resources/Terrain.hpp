@@ -39,7 +39,6 @@ struct TerrainVertexInfo
 struct TerrainConfig
 {
 	const char* name;
-	const char* resource_name;
 	uint32 tile_count_x;
 	uint32 tile_count_z;
 	float32 tile_scale_x;
@@ -51,8 +50,6 @@ struct TerrainConfig
 	const char** material_names;
 
 	const char* heightmap_name;
-
-	Math::Transform xform;
 };
 
 struct Terrain

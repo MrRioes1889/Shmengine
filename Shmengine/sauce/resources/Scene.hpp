@@ -20,7 +20,6 @@ struct PointLight;
 namespace GeometrySystem { struct GeometryConfig; }
 struct Camera;
 
-
 enum class SceneState
 {
 	UNINITIALIZED,
@@ -31,6 +30,22 @@ enum class SceneState
 	LOADED,
 	UNLOADING,
 	UNLOADED
+};
+
+struct SceneTerrainConfig
+{
+	const char* resource_name;
+	TerrainConfig t_config;
+	Math::Transform xform;
+};
+
+struct SceneMeshConfig
+{
+	const char* resource_name;
+	const char* parent_name;
+	MeshConfig m_config;
+
+	Math::Transform transform;
 };
 
 struct SceneConfig
@@ -60,8 +75,8 @@ struct SceneConfig
 	SkyboxConfig* skybox_configs;
 	DirectionalLight* dir_lights;
 	PointLight* point_lights;
-	MeshConfig* mesh_configs;
-	TerrainConfig* terrain_configs;
+	SceneMeshConfig* mesh_configs;
+	SceneTerrainConfig* terrain_configs;
 };
 
 struct Scene
@@ -99,10 +114,10 @@ SHMAPI bool32 scene_remove_directional_light(Scene* scene, uint32 index);
 SHMAPI bool32 scene_add_point_light(Scene* scene, PointLight light);
 SHMAPI bool32 scene_remove_point_light(Scene* scene, uint32 index);
 
-SHMAPI bool32 scene_add_mesh(Scene* scene, MeshConfig* config);
+SHMAPI bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config);
 SHMAPI bool32 scene_remove_mesh(Scene* scene, const char* name);
 
-SHMAPI bool32 scene_add_terrain(Scene* scene, TerrainConfig* config);
+SHMAPI bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config);
 SHMAPI bool32 scene_remove_terrain(Scene* scene, const char* name);
 
 SHMAPI bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config);

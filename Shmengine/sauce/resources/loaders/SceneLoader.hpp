@@ -9,7 +9,7 @@ struct SkyboxConfig;
 struct MeshConfig;
 struct DirectionalLight;
 struct PointLight;
-struct MeshGeometryConfig;
+struct MeshGeometryResourceData;
 
 namespace GeometrySystem { struct GeometryConfig; }
 
@@ -24,7 +24,7 @@ struct SceneMeshResourceData
 	String name;
 	String parent_name;
 	String resource_name;
-	Darray<MeshGeometryConfig> g_configs;
+	Darray<MeshGeometryResourceData> geometries;
 	Math::Transform transform;
 };
 

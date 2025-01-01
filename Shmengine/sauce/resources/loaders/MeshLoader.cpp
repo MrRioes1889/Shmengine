@@ -66,13 +66,13 @@ namespace ResourceSystem
 
     static const char* loader_type_path = "models/";
 
-    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, SceneMeshResourceData* out_resource);
+    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, MeshResourceData* out_resource);
     static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometrySystem::GeometryConfig* out_data);
 
-    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, SceneMeshResourceData* out_resource);
-    static bool32 write_shmesh_file(const char* path, const char* name, SceneMeshResourceData* resource);  
+    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, MeshResourceData* out_resource);
+    static bool32 write_shmesh_file(const char* path, const char* name, MeshResourceData* resource);
 
-    bool32 mesh_loader_load(const char* name, void* params, SceneMeshResourceData* out_resource)
+    bool32 mesh_loader_load(const char* name, void* params, MeshResourceData* out_resource)
     {
 
         const char* format = "%s%s%s";
@@ -111,7 +111,7 @@ namespace ResourceSystem
             return false;
         }
 
-        out_resource->configs.init(1, 0, AllocationTag::RESOURCE);
+        out_resource->geometries.init(1, 0, AllocationTag::RESOURCE);
 
         bool32 res = false;
         switch (file_type)
@@ -149,20 +149,20 @@ namespace ResourceSystem
 
     }
 
-    void mesh_loader_unload(SceneMeshResourceData* resource)
+    void mesh_loader_unload(MeshResourceData* resource)
     {
 
-        for (uint32 i = 0; i < resource->configs.count; i++)
+        for (uint32 i = 0; i < resource->geometries.count; i++)
         {
-            GeometrySystem::GeometryConfig* g_config = &resource->configs[i].data_config;
+            GeometrySystem::GeometryConfig* g_config = &resource->geometries[i].data_config;
             g_config->indices.free_data();
             g_config->vertices.free_data();
         }
-        resource->configs.free_data();
+        resource->geometries.free_data();
 
     }
 
-    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, SceneMeshResourceData* out_resource)
+    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, MeshResourceData* out_resource)
     {
         
         uint32 file_size = FileSystem::get_file_size32(obj_file);
@@ -270,7 +270,7 @@ namespace ResourceSystem
             {
                 for (uint32 i = 0; i < groups.count; i++)
                 {
-                    MeshGeometryConfig* new_data = &out_resource->configs[out_resource->configs.emplace()];
+                    MeshGeometryResourceData* new_data = &out_resource->geometries[out_resource->geometries.emplace()];
                     if (!name[0])
                     {
                         name = mesh_name;
@@ -303,7 +303,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < groups.count; i++)
         {
             
-            MeshGeometryConfig* new_data = &out_resource->configs[out_resource->configs.emplace()];
+            MeshGeometryResourceData* new_data = &out_resource->geometries[out_resource->geometries.emplace()];
             CString::copy(name.c_str(), new_data->data_config.name, max_geometry_name_length);
             if (!name[0])
             {
@@ -338,8 +338,8 @@ namespace ResourceSystem
 
         // De-duplicate geometry
 
-        for (uint32 i = 0; i < out_resource->configs.count; ++i) {
-            GeometrySystem::GeometryConfig* g = &out_resource->configs[i].data_config;
+        for (uint32 i = 0; i < out_resource->geometries.count; ++i) {
+            GeometrySystem::GeometryConfig* g = &out_resource->geometries[i].data_config;
             SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
 
             Renderer::geometry_deduplicate_vertices(*g);
@@ -451,7 +451,7 @@ namespace ResourceSystem
 
     }
 
-    static bool32 write_shmesh_file(const char* path, const char* name, SceneMeshResourceData* resource)
+    static bool32 write_shmesh_file(const char* path, const char* name, MeshResourceData* resource)
     {
 
         FileSystem::FileHandle f;
@@ -468,7 +468,7 @@ namespace ResourceSystem
         ShmeshFileHeader file_header = {};
         file_header.version = 1;
         file_header.name_length = (uint16)CString::length(name);
-        file_header.geometry_count = resource->configs.count;
+        file_header.geometry_count = resource->geometries.count;
 
         file_header.name_offset = sizeof(ShmeshFileHeader);
         file_header.geometries_offset = file_header.name_offset + file_header.name_length;
@@ -480,9 +480,9 @@ namespace ResourceSystem
         written_total += written;
 
 
-        for (uint32 i = 0; i < resource->configs.count; i++)
+        for (uint32 i = 0; i < resource->geometries.count; i++)
         {
-            MeshGeometryConfig& config = resource->configs[i];
+            MeshGeometryResourceData& config = resource->geometries[i];
             GeometrySystem::GeometryConfig& g_data = config.data_config;
 
             ShmeshFileGeometryHeader geo_header = {};
@@ -524,7 +524,7 @@ namespace ResourceSystem
 
 
 
-    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, SceneMeshResourceData* out_resource)
+    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, MeshResourceData* out_resource)
     {
 
         uint32 file_size = FileSystem::get_file_size32(shmesh_file);
@@ -557,7 +557,7 @@ namespace ResourceSystem
 
         for (uint32 i = 0; i < file_header->geometry_count; i++)
         {
-            MeshGeometryConfig* config = &out_resource->configs[out_resource->configs.emplace()];
+            MeshGeometryResourceData* config = &out_resource->geometries[out_resource->geometries.emplace()];
             GeometrySystem::GeometryConfig* g = &config->data_config;
 
             check_buffer_size(sizeof(ShmeshFileGeometryHeader));

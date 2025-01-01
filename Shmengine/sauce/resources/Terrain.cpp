@@ -29,7 +29,7 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     out_terrain->state = TerrainState::INITIALIZING;
   
     out_terrain->name = config->name;
-    out_terrain->xform = config->xform;
+    out_terrain->xform = Math::transform_create();
 
 	out_terrain->shader_instance_id = INVALID_ID;
 	out_terrain->render_frame_number = INVALID_ID;
@@ -166,82 +166,6 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		}
 	}
 
-	//for (uint32 z = 0, i = 0; z < tile_count_z; z++) 
-	//{
-	//	for (uint32 x = 0; x < tile_count_x; x++) 
-	//	{
-	//		// Bottom Left
-	//		TerrainVertex* v = &out_geometry->vertices.get_as<TerrainVertex>(i++);
-	//		v->position.x = x * tile_scale_x  + geometry->extents.min.x;
-	//		v->position.y = out_terrain->vertex_infos[i].height * out_terrain->scale_y + geometry->extents.min.y;  // <-- this will be modified by a heightmap.
-	//		v->position.z = z * tile_scale_z  + geometry->extents.min.z;	
-
-	//		v->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
-	//		v->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
-	//		v->tex_coords.x = (float32)x;
-	//		v->tex_coords.y = (float32)z;
-
-	//		v->tangent = {};  // TODO: obviously wrong.
-
-	//		// Bottom Right
-	//		TerrainVertex* v1 = &out_geometry->vertices.get_as<TerrainVertex>(i++);
-	//		v1->position.x = (x + 1) * tile_scale_x;
-	//		v1->position.y = 0.0f;  // <-- this will be modified by a heightmap.
-	//		v1->position.z = z * tile_scale_z;
-
-	//		v1->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
-	//		v1->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
-	//		v1->tex_coords.x = (float32)x;
-	//		v1->tex_coords.y = (float32)z;
-
-	//		v1->tangent = {};  // TODO: obviously wrong.
-
-	//		// Top Left
-	//		TerrainVertex* v2 = &out_geometry->vertices.get_as<TerrainVertex>(i++);
-	//		v2->position.x = x * tile_scale_x;
-	//		v2->position.y = 0.0f;  // <-- this will be modified by a heightmap.
-	//		v2->position.z = (z + 1) * tile_scale_z;
-
-	//		v2->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
-	//		v2->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
-	//		v2->tex_coords.x = (float32)x;
-	//		v2->tex_coords.y = (float32)z;
-
-	//		v2->tangent = {};  // TODO: obviously wrong.
-
-	//		// Top Right
-	//		TerrainVertex* v3 = &out_geometry->vertices.get_as<TerrainVertex>(i++);
-	//		v3->position.x = (x + 1) * tile_scale_x;
-	//		v3->position.y = 0.0f;  // <-- this will be modified by a heightmap.
-	//		v3->position.z = (z + 1) * tile_scale_z;
-
-	//		v3->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
-	//		v3->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
-	//		v3->tex_coords.x = (float32)x;
-	//		v3->tex_coords.y = (float32)z;
-
-	//		v3->tangent = {};  // TODO: obviously wrong.
-	//	}
-	//}
-
-	//for (uint32 z = 0, i = 0, v = 0; z < tile_count_z; z++) 
-	//{
-	//	for (uint32 x = 0; x < tile_count_x; x++, i += 6) 
-	//	{
-	//		uint32 v0 = v++;
-	//		uint32 v1 = v++;
-	//		uint32 v2 = v++;
-	//		uint32 v3 = v++;
-
-	//		out_geometry->indices[i + 0] = v2;
-	//		out_geometry->indices[i + 1] = v1;
-	//		out_geometry->indices[i + 2] = v0;
-	//		out_geometry->indices[i + 3] = v3;
-	//		out_geometry->indices[i + 4] = v1;
-	//		out_geometry->indices[i + 5] = v2;
-	//	}
-	//}
-
     Renderer::geometry_generate_terrain_normals(out_terrain->geometry.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
         out_terrain->geometry.indices.capacity, out_terrain->geometry.indices.data);
     Renderer::geometry_generate_terrain_tangents(out_terrain->geometry.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
@@ -285,7 +209,6 @@ bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrai
         submaterial_names[i] = resource.sub_material_names[i].name;
 
     config.material_names = submaterial_names;
-    config.xform = Math::transform_create();
 
     terrain_init(&config, out_terrain);
     ResourceSystem::terrain_loader_unload(&resource);
@@ -367,7 +290,7 @@ bool32 terrain_load(Terrain* terrain)
 			map->filter_minify = sub_mat->maps[map_i].filter_minify;
 			map->filter_magnify = sub_mat->maps[map_i].filter_magnify;
 
-			if (sub_mat == default_material)
+			if (sub_mat == default_material || sub_mat->maps[map_i].texture == default_textures[map_i])
 			{
 				map->texture = default_textures[map_i];
 			}

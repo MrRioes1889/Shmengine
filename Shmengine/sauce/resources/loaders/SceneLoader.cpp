@@ -10,6 +10,7 @@
 #include "renderer/RendererGeometry.hpp"
 #include "systems/GeometrySystem.hpp"
 #include "resources/Mesh.hpp"
+#include "resources/loaders/MeshLoader.hpp"
 
 namespace ResourceSystem
 {
@@ -196,10 +197,10 @@ namespace ResourceSystem
                             SceneMeshResourceData* cube_mesh = &out_resource->meshes[mesh_i];
                             if (!cube_material_name.is_empty() && !cube_mesh->name.is_empty())
                             {
-                                cube_mesh->g_configs.init(1, 0);
-                                cube_mesh->g_configs.emplace();
-                                Renderer::generate_cube_config(cube_dim.x, cube_dim.y, cube_dim.z, cube_tiling.x, cube_tiling.y, cube_mesh->name.c_str(), cube_mesh->g_configs[0].data_config);
-                                CString::copy(cube_material_name.c_str(), cube_mesh->g_configs[0].material_name, max_material_name_length);
+                                cube_mesh->geometries.init(1, 0);
+                                cube_mesh->geometries.emplace();
+                                Renderer::generate_cube_config(cube_dim.x, cube_dim.y, cube_dim.z, cube_tiling.x, cube_tiling.y, cube_mesh->name.c_str(), cube_mesh->geometries[0].data_config);
+                                CString::copy(cube_material_name.c_str(), cube_mesh->geometries[0].material_name, max_material_name_length);
                             }
                             else
                             {
@@ -432,7 +433,12 @@ namespace ResourceSystem
             resource->meshes[i].resource_name.free_data();
             resource->meshes[i].parent_name.free_data();
 
-            resource->meshes[i].g_configs.free_data();
+            for (uint32 g = 0; g < resource->meshes[i].geometries.count; g++)
+            {
+                resource->meshes[i].geometries[g].data_config.vertices.free_data();
+                resource->meshes[i].geometries[g].data_config.indices.free_data();
+            }
+            resource->meshes[i].geometries.free_data();
         }
 
         for (uint32 i = 0; i < resource->terrains.capacity; i++)

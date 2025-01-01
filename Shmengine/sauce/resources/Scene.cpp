@@ -3,6 +3,7 @@
 #include "core/Logging.hpp"
 #include "core/FrameData.hpp"
 #include "utility/Math.hpp"
+#include "resources/loaders/MeshLoader.hpp"
 #include "resources/loaders/SceneLoader.hpp"
 #include "resources/Mesh.hpp"
 #include "resources/Terrain.hpp"
@@ -70,7 +71,7 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 		for (uint32 i = 0; i < config->terrain_configs_count; i++)
 		{
 
-			TerrainConfig* terrain_config = &config->terrain_configs[i];
+			SceneTerrainConfig* terrain_config = &config->terrain_configs[i];
 
 			if (!scene_add_terrain(out_scene, terrain_config))
 			{
@@ -87,7 +88,7 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 		for (uint32 i = 0; i < config->mesh_configs_count; i++)
 		{
 
-			MeshConfig* mesh_config = &config->mesh_configs[i];
+			SceneMeshConfig* mesh_config = &config->mesh_configs[i];
 
 			if (!scene_add_mesh(out_scene, mesh_config))
 			{
@@ -152,22 +153,50 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 		sb_config->cubemap_name = resource.skyboxes[i].cubemap_name.c_str();
 	}
 	
-	Sarray<MeshConfig> mesh_configs(resource.meshes.capacity, 0);
-	for (uint32 i = 0; i < resource.meshes.capacity; i++)
+	Sarray<SceneMeshConfig> mesh_configs(resource.meshes.capacity, 0);
+
+	uint32 mesh_geometry_count = 0;
+	for (uint32 mesh_i = 0; mesh_i < resource.meshes.capacity; mesh_i++)
 	{
-		MeshConfig* m_config = &mesh_configs[i];
-		m_config->name = resource.meshes[i].name.c_str();
-		m_config->resource_name = resource.meshes[i].resource_name.c_str();
-		m_config->parent_name = resource.meshes[i].parent_name.c_str();
-		m_config->g_configs.steal(resource.meshes[i].g_configs);
-		m_config->transform = resource.meshes[i].transform;
+		if (!resource.meshes[mesh_i].resource_name.is_empty())
+			continue;
+
+		mesh_geometry_count += resource.meshes[mesh_i].geometries.count;
+	}
+	
+	Sarray<MeshGeometryConfig> mesh_geometry_configs(mesh_geometry_count, 0);
+	uint32 mesh_geometry_configs_i = 0;
+
+	for (uint32 mesh_i = 0; mesh_i < resource.meshes.capacity; mesh_i++)
+	{
+		SceneMeshConfig* m_config = &mesh_configs[mesh_i];
+
+		m_config->parent_name = resource.meshes[mesh_i].parent_name.c_str();
+		m_config->transform = resource.meshes[mesh_i].transform;
+		if (!resource.meshes[mesh_i].resource_name.is_empty())
+		{
+			m_config->resource_name = resource.meshes[mesh_i].resource_name.c_str();
+			continue;
+		}
+
+		for (uint32 geo_i = 0; geo_i < resource.meshes[mesh_i].geometries.count; geo_i++)
+		{
+			mesh_geometry_configs[mesh_geometry_configs_i].material_name = resource.meshes[mesh_i].geometries[geo_i].material_name;
+			mesh_geometry_configs[mesh_geometry_configs_i].data_config = &resource.meshes[mesh_i].geometries[geo_i].data_config;
+		}		
+
+		m_config->m_config.name = resource.meshes[mesh_i].name.c_str();
+		m_config->m_config.g_configs_count = resource.meshes[mesh_i].geometries.count;
+		m_config->m_config.g_configs = &mesh_geometry_configs[mesh_geometry_configs_i];
+
+		mesh_geometry_configs_i += resource.meshes[mesh_i].geometries.count;
 	}
 
-	Sarray<TerrainConfig> terrain_configs(resource.terrains.capacity, 0);
+	Sarray<SceneTerrainConfig> terrain_configs(resource.terrains.capacity, 0);
 	for (uint32 i = 0; i < resource.terrains.capacity; i++)
 	{
-		TerrainConfig* t_config = &terrain_configs[i];
-		t_config->name = resource.terrains[i].name.c_str();
+		SceneTerrainConfig* t_config = &terrain_configs[i];
+		t_config->t_config.name = resource.terrains[i].name.c_str();
 		t_config->resource_name = resource.terrains[i].resource_name.c_str();
 		t_config->xform = resource.terrains[i].xform;
 	}
@@ -184,7 +213,10 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 	config.point_lights = resource.point_lights.data;
 
 	bool32 success = scene_init(&config, out_scene);
-
+	skybox_configs.free_data();
+	mesh_configs.free_data();
+	mesh_geometry_configs.free_data();
+	terrain_configs.free_data();
 	ResourceSystem::scene_loader_unload(&resource);
 	return success;
 
@@ -566,16 +598,28 @@ bool32 scene_remove_point_light(Scene* scene, uint32 index)
 	return true;
 }
 
-bool32 scene_add_mesh(Scene* scene, MeshConfig* config)
+bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 {
 
 	Mesh* mesh = &scene->meshes[scene->meshes.emplace()];
 
-	if (!mesh_init(config, mesh))
+	bool32 initialized = false;
+	if (config->resource_name)
 	{
-		SHMERROR("Failed to initialize mesh!");
+		initialized = mesh_init_from_resource(config->resource_name, mesh);		
+	}
+	else
+	{
+		initialized = mesh_init(&config->m_config, mesh);
+	}
+
+	if (!initialized)
+	{
+		SHMERROR("Failed to initialize terrain!");
 		return false;
 	}
+
+	mesh->transform = config->transform;
 
 	if (scene->state == SceneState::LOADED)
 	{
@@ -647,7 +691,7 @@ bool32 scene_remove_mesh(Scene* scene, const char* name)
 	return scene_remove_mesh(scene, mesh_index);
 }
 
-bool32 scene_add_terrain(Scene* scene, TerrainConfig* config)
+bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 {
 
 	Terrain* terrain = &scene->terrains[scene->terrains.emplace()];
@@ -655,20 +699,20 @@ bool32 scene_add_terrain(Scene* scene, TerrainConfig* config)
 	bool32 initialized = false;
 	if (config->resource_name)
 	{
-		initialized = terrain_init_from_resource(config->resource_name, terrain);
-		terrain->xform = config->xform;
+		initialized = terrain_init_from_resource(config->resource_name, terrain);		
 	}		
 	else
 	{
-		initialized = terrain_init(config, terrain);
-	}
-		
+		initialized = terrain_init(&config->t_config, terrain);
+	}		
 
 	if (!initialized)
 	{
 		SHMERROR("Failed to initialize terrain!");
 		return false;
 	}
+
+	terrain->xform = config->xform;
 
 	if (scene->state == SceneState::LOADED)
 	{

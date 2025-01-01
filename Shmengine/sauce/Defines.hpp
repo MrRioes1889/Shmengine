@@ -26,6 +26,7 @@ typedef uint32 UniqueId;
 
 typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
+inline const uint32 max_mesh_name_length = 128;
 inline const uint32 max_geometry_name_length = 128;
 inline const uint32 max_material_name_length = 128;
 inline const uint32 max_shader_name_length = 128;

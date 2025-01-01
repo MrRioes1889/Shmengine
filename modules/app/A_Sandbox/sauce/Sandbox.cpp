@@ -311,45 +311,45 @@ bool32 application_init(void* application_state)
 	}
 
 	// Load up some test UI geometry.
-	MeshGeometryConfig ui_config = {};
-	ui_config.data_config.vertex_size = sizeof(Renderer::Vertex2D);
-	CString::copy("test_ui_material", ui_config.material_name, max_material_name_length);
-	CString::copy("test_ui_geometry", ui_config.data_config.name, max_geometry_name_length);
+	//MeshGeometryConfig ui_config = {};
+	//ui_config.data_config.vertex_size = sizeof(Renderer::Vertex2D);
+	//CString::copy("test_ui_material", ui_config.material_name, max_material_name_length);
+	//CString::copy("test_ui_geometry", ui_config.data_config.name, max_geometry_name_length);
 
-	ui_config.data_config.vertex_count = 4;
-	ui_config.data_config.vertices.init(ui_config.data_config.vertex_size * ui_config.data_config.vertex_count, 0);
-	ui_config.data_config.indices.init(6, 0);
-	Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)&ui_config.data_config.vertices[0];
+	//ui_config.data_config.vertex_count = 4;
+	//ui_config.data_config.vertices.init(ui_config.data_config.vertex_size * ui_config.data_config.vertex_count, 0);
+	//ui_config.data_config.indices.init(6, 0);
+	//Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)&ui_config.data_config.vertices[0];
 
-	const float32 w = 100.0f;//1077.0f * 0.25f;
-	const float32 h = 100.0f;//1278.0f * 0.25f;
-	uiverts[0].position.x = 0.0f;  // 0    3
-	uiverts[0].position.y = 0.0f;  //
-	uiverts[0].tex_coordinates.x = 0.0f;  //
-	uiverts[0].tex_coordinates.y = 0.0f;  // 2    1
+	//const float32 w = 100.0f;//1077.0f * 0.25f;
+	//const float32 h = 100.0f;//1278.0f * 0.25f;
+	//uiverts[0].position.x = 0.0f;  // 0    3
+	//uiverts[0].position.y = 0.0f;  //
+	//uiverts[0].tex_coordinates.x = 0.0f;  //
+	//uiverts[0].tex_coordinates.y = 0.0f;  // 2    1
 
-	uiverts[1].position.y = h;
-	uiverts[1].position.x = w;
-	uiverts[1].tex_coordinates.x = 1.0f;
-	uiverts[1].tex_coordinates.y = 1.0f;
+	//uiverts[1].position.y = h;
+	//uiverts[1].position.x = w;
+	//uiverts[1].tex_coordinates.x = 1.0f;
+	//uiverts[1].tex_coordinates.y = 1.0f;
 
-	uiverts[2].position.x = 0.0f;
-	uiverts[2].position.y = h;
-	uiverts[2].tex_coordinates.x = 0.0f;
-	uiverts[2].tex_coordinates.y = 1.0f;
+	//uiverts[2].position.x = 0.0f;
+	//uiverts[2].position.y = h;
+	//uiverts[2].tex_coordinates.x = 0.0f;
+	//uiverts[2].tex_coordinates.y = 1.0f;
 
-	uiverts[3].position.x = w;
-	uiverts[3].position.y = 0.0;
-	uiverts[3].tex_coordinates.x = 1.0f;
-	uiverts[3].tex_coordinates.y = 0.0f;
+	//uiverts[3].position.x = w;
+	//uiverts[3].position.y = 0.0;
+	//uiverts[3].tex_coordinates.x = 1.0f;
+	//uiverts[3].tex_coordinates.y = 0.0f;
 
-	// Indices - counter-clockwise
-	ui_config.data_config.indices[0] = 2;
-	ui_config.data_config.indices[1] = 1;
-	ui_config.data_config.indices[2] = 0;
-	ui_config.data_config.indices[3] = 3;
-	ui_config.data_config.indices[4] = 0;
-	ui_config.data_config.indices[5] = 1;
+	//// Indices - counter-clockwise
+	//ui_config.data_config.indices[0] = 2;
+	//ui_config.data_config.indices[1] = 1;
+	//ui_config.data_config.indices[2] = 0;
+	//ui_config.data_config.indices[3] = 3;
+	//ui_config.data_config.indices[4] = 0;
+	//ui_config.data_config.indices[5] = 1;
 
 	// Get UI geometry from config.
 	app_state->ui_meshes.init(1, 0);

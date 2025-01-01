@@ -59,6 +59,10 @@ namespace GeometrySystem
 
 	void system_shutdown(void* state)
 	{
+		Renderer::geometry_unload(&system_state->default_geometry);
+		Renderer::geometry_unload(&system_state->default_geometry_2d);
+		destroy_geometry(&system_state->default_geometry, 0);
+		destroy_geometry(&system_state->default_geometry_2d, 0);
 		system_state = 0;
 	}
 
@@ -171,8 +175,6 @@ namespace GeometrySystem
 
 	static void destroy_geometry(GeometryData* g, GeometryConfig* out_config)
 	{
-
-		Renderer::geometry_unload(g);
 
 		if (out_config)
 		{
