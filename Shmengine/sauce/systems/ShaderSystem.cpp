@@ -311,9 +311,6 @@ namespace ShaderSystem
 	bool32 use_shader(uint32 shader_id)
 	{
 
-		if (system_state->bound_shader_id == shader_id)
-			return true;
-
 		Renderer::Shader* shader = get_shader(shader_id);
 		if (!Renderer::shader_use(shader))
 		{

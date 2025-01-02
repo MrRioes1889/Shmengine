@@ -138,6 +138,7 @@ namespace Renderer
 
 	void render_view_skybox_on_destroy_packet(const RenderView* self, RenderViewPacket* packet)
 	{
+		packet->geometries.free_data();
 		packet->extended_data = 0;
 	}
 
@@ -164,11 +165,6 @@ namespace Renderer
 			if (!renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 			{
 				SHMERROR("Failed to begin renderpass!");
-				return false;
-			}
-
-			if (!ShaderSystem::use_shader(data->shader->id)) {
-				SHMERROR("Failed to use shader. Render frame failed.");
 				return false;
 			}
 

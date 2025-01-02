@@ -470,6 +470,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 
 			Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::SkyboxPacketData));
 			skybox_data->geometries = render_data;
+			skybox_data->geometries_count = 1;
 			if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), frame_data->frame_allocator, skybox_data, skybox_view_packet))
 			{
 				SHMERROR("Failed to build packet for view 'skybox'.");
