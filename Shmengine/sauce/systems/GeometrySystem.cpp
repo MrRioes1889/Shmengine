@@ -166,6 +166,7 @@ namespace GeometrySystem
 
 		g->vertex_size = config->vertex_size;
 		g->vertex_count = config->vertex_count;
+		g->index_count = config->index_count;
 		g->vertices.steal(config->vertices);
 		g->indices.steal(config->indices);
 
@@ -184,6 +185,7 @@ namespace GeometrySystem
 			out_config->extents.min = g->extents.min;
 			out_config->extents.max = g->extents.max;
 			out_config->vertex_count = g->vertex_count;
+			out_config->index_count = g->index_count;
 			out_config->vertex_size = g->vertex_size;
 
 			out_config->vertices.steal(g->vertices);
@@ -196,6 +198,7 @@ namespace GeometrySystem
 		g->indices.free_data();
 		g->vertex_size = 0;
 		g->vertex_count = 0;
+		g->index_count = 0;
 
 		CString::empty(g->name);
 
@@ -205,6 +208,7 @@ namespace GeometrySystem
 	{
 
 		system_state->default_geometry.vertex_count = 4;
+		system_state->default_geometry.index_count = 6;
 		system_state->default_geometry.vertex_size = sizeof(Renderer::Vertex3D);
 
 		Renderer::Vertex3D verts[4] = {};
@@ -233,8 +237,8 @@ namespace GeometrySystem
 
 		uint32 indices[6] = { 0, 1, 2, 0, 3, 1 };
 
-		system_state->default_geometry.vertices.init(sizeof(verts), 0, AllocationTag::ARRAY, verts);
-		system_state->default_geometry.indices.init(6, 0, AllocationTag::ARRAY, indices);
+		system_state->default_geometry.vertices.init(sizeof(Renderer::Vertex3D) * system_state->default_geometry.vertex_count, 0, AllocationTag::ARRAY, verts);
+		system_state->default_geometry.indices.init(system_state->default_geometry.index_count, 0, AllocationTag::ARRAY, indices);
 
 		// Send the geometry off to the renderer to be uploaded to the GPU.
 		system_state->default_geometry.id = INVALID_ID;
@@ -245,6 +249,7 @@ namespace GeometrySystem
 		}
 
 		system_state->default_geometry_2d.vertex_count = 4;
+		system_state->default_geometry_2d.index_count = 6;
 		system_state->default_geometry_2d.vertex_size = sizeof(Renderer::Vertex2D);
 
 		Renderer::Vertex2D verts_2d[4] = {};
@@ -273,8 +278,8 @@ namespace GeometrySystem
 
 		uint32 indices_2d[6] = { 2, 1, 0, 3, 0, 1 };
 
-		system_state->default_geometry_2d.vertices.init(sizeof(verts_2d), 0, AllocationTag::ARRAY, verts_2d);
-		system_state->default_geometry_2d.indices.init(6, 0, AllocationTag::ARRAY, indices_2d);
+		system_state->default_geometry_2d.vertices.init(sizeof(Renderer::Vertex2D) * system_state->default_geometry_2d.vertex_count, 0, AllocationTag::ARRAY, verts_2d);
+		system_state->default_geometry_2d.indices.init(system_state->default_geometry_2d.index_count, 0, AllocationTag::ARRAY, indices_2d);
 
 		// Send the geometry off to the renderer to be uploaded to the GPU.
 		system_state->default_geometry_2d.id = INVALID_ID;

@@ -32,7 +32,7 @@ void Camera::reset()
 	view = MAT4_IDENTITY;
 }
 
-Math::Mat4 Camera::get_view()
+Math::Mat4& Camera::get_view()
 {	
 	update_view();
 	return view;

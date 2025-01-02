@@ -57,6 +57,13 @@ namespace ShaderSystem
 		uint16 properties;
 	};
 
+	struct SkyboxShaderUniformLocations
+	{
+		uint16 projection;
+		uint16 view;
+		uint16 cube_map;
+	};
+
 	struct SystemConfig
 	{
 		uint16 max_shader_count;
@@ -91,9 +98,11 @@ namespace ShaderSystem
 
 	uint32 get_material_shader_id();
 	uint32 get_terrain_shader_id();
-	uint32 get_ui_shader_id();
+	SHMAPI uint32 get_ui_shader_id();
+	SHMAPI uint32 get_skybox_shader_id();
 	MaterialShaderUniformLocations get_material_shader_uniform_locations();
 	TerrainShaderUniformLocations get_terrain_shader_uniform_locations();
 	UIShaderUniformLocations get_ui_shader_uniform_locations();
+	SkyboxShaderUniformLocations get_skybox_shader_uniform_locations();
 
 }

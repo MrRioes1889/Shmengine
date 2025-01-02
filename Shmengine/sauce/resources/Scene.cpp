@@ -455,10 +455,21 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 			}
 		}
 
+		uint32 skybox_shader_id = ShaderSystem::get_skybox_shader_id();
+
 		if (skybox_view_packet)
-		{
+		{		
+			Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
+			render_data->model = {};
+			render_data->shader_id = skybox_shader_id;
+			render_data->render_object = &scene->skybox;
+			render_data->on_render = skybox_on_render;
+			render_data->geometry_data = scene->skybox.geometry;
+			render_data->has_transparency = 0;
+			render_data->unique_id = 0;
+
 			Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::SkyboxPacketData));
-			skybox_data->skybox = &scene->skybox;
+			skybox_data->geometries = render_data;
 			if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), frame_data->frame_allocator, skybox_data, skybox_view_packet))
 			{
 				SHMERROR("Failed to build packet for view 'skybox'.");
@@ -482,7 +493,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 
 	Renderer::GeometryRenderData* geometries = 0;
 
-	uint32 terrain_geometries_count = 0;
+	uint32 geometries_count = 0;
 	uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
 	for (uint32 i = 0; i < scene->terrains.count; i++)
 	{
@@ -495,15 +506,13 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		render_data->on_render = terrain_on_render;
 		render_data->geometry_data = &t->geometry;
 		render_data->has_transparency = 0;
-		render_data->unique_id = 0;
-		
+		render_data->unique_id = 0;	
 
-		terrain_geometries_count++;
+		geometries_count++;
 		if (!geometries)
 			geometries = render_data;
 	}
 
-	uint32 mesh_geometries_count = 0;
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
 		Mesh* m = &scene->meshes[i];
@@ -532,27 +541,24 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 				render_data->has_transparency = (g->material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);			
 				render_data->unique_id = m->unique_id;			
 
-				mesh_geometries_count++;
+				geometries_count++;
 				if (!geometries)
 					geometries = render_data;
 			}
 		}
 	}
 
-	
-
-	if ((mesh_geometries_count + terrain_geometries_count) == 0)
+	if (!geometries_count)
 		return true;
 
 	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::WorldPacketData));
 	world_packet->geometries = geometries;
-	world_packet->mesh_geometries_count = mesh_geometries_count;
-	world_packet->terrain_geometries_count = terrain_geometries_count;
+	world_packet->geometries_count = geometries_count;
 	world_packet->dir_light = scene->dir_lights.count > 0 ? &scene->dir_lights[0] : 0;
 	world_packet->p_lights_count = scene->p_lights.count;
 	world_packet->p_lights = scene->p_lights.data;
 
-	frame_data->drawn_geometry_count += mesh_geometries_count + terrain_geometries_count;
+	frame_data->drawn_geometry_count += geometries_count;
 
 	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), frame_data->frame_allocator, world_packet, world_view_packet))
 	{

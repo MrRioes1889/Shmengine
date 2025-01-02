@@ -332,60 +332,103 @@ namespace Renderer
 	}
 
 	bool32 geometry_load(GeometryData* geometry)
-	{
-		if (!geometry->vertices.data)
-		{
-			SHMERROR("Supplied vertex and/or index buffer invalid!");
-			return false;
-		}
+	{	
 
-		uint32 vertices_size = geometry->vertex_count * geometry->vertex_size;
-		uint64 old_vertex_buffer_offset = geometry->vertex_buffer_offset;
-		uint64 old_index_buffer_offset = geometry->index_buffer_offset;
+		bool32 is_reload = geometry->loaded;
 
-		if (!renderbuffer_allocate(&system_state->general_vertex_buffer, vertices_size, &geometry->vertex_buffer_offset))
-		{
-			SHMERROR("Failed to allocate memory from vertex buffer.");
-			return false;
-		}
+		uint64 vertex_buffer_size = geometry->vertex_count * (uint64)geometry->vertex_size;
+		uint64 index_buffer_size = geometry->index_count * sizeof(geometry->indices[0]);
 
-		if (!renderbuffer_load_range(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, vertices_size, geometry->vertices.data))
-		{
-			SHMERROR("Failed to load data into vertex buffer.");
-			return false;
-		}
+		if (!is_reload)
+		{		
 
-		//context->geometry_vertex_offset += vertices_size;
-
-		if (geometry->indices.data)
-		{
-			uint32 indices_size = geometry->indices.capacity * sizeof(geometry->indices[0]);
-
-			if (!renderbuffer_allocate(&system_state->general_index_buffer, indices_size, &geometry->index_buffer_offset))
+			if (!renderbuffer_allocate(&system_state->general_vertex_buffer, vertex_buffer_size, &geometry->vertex_buffer_offset))
 			{
-				SHMERROR("Failed to allocate memory from index buffer.");
+				SHMERROR("Failed to allocate memory from vertex buffer.");
 				return false;
 			}
 
-			if (!renderbuffer_load_range(&system_state->general_index_buffer, geometry->index_buffer_offset, indices_size, geometry->indices.data))
+			if (!renderbuffer_load_range(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, vertex_buffer_size, geometry->vertices.data))
 			{
-				SHMERROR("Failed to load data into index buffer.");
+				SHMERROR("Failed to load data into vertex buffer.");
 				return false;
 			}
-			//context->geometry_index_offset += indices_size;
-		}
 
-		if (geometry->loaded)
-		{
-			renderbuffer_free(&system_state->general_vertex_buffer, old_vertex_buffer_offset);
-			if (geometry->indices.data)
-				renderbuffer_free(&system_state->general_index_buffer, old_index_buffer_offset);
+			if (index_buffer_size)
+			{
+				if (!renderbuffer_allocate(&system_state->general_index_buffer, index_buffer_size, &geometry->index_buffer_offset))
+				{
+					SHMERROR("Failed to allocate memory from index buffer.");
+					return false;
+				}
+
+				if (!renderbuffer_load_range(&system_state->general_index_buffer, geometry->index_buffer_offset, index_buffer_size, geometry->indices.data))
+				{
+					SHMERROR("Failed to load data into index buffer.");
+					return false;
+				}
+			}
+
 		}
+		else
+		{
+			return geometry_reload(geometry);
+		}	
 
 		geometry->loaded = true;
 
 		return true;
+
 	}
+
+	bool32 geometry_reload(GeometryData* geometry)
+	{
+		
+		bool32 is_reload = geometry->loaded;
+
+		uint64 new_vertex_buffer_size = geometry->vertex_count * (uint64)geometry->vertex_size;
+		uint64 new_index_buffer_size = geometry->index_count * sizeof(geometry->indices[0]);
+
+		if (is_reload)
+		{
+
+			if (!renderbuffer_reallocate(&system_state->general_vertex_buffer, new_vertex_buffer_size, geometry->vertex_buffer_offset, &geometry->vertex_buffer_offset))
+			{
+				SHMERROR("Failed to reallocate memory from vertex buffer.");
+				return false;
+			}
+
+			if (!renderbuffer_load_range(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, new_vertex_buffer_size, geometry->vertices.data))
+			{
+				SHMERROR("Failed to load data into vertex buffer.");
+				return false;
+			}
+
+			if (new_index_buffer_size)
+			{
+				if (!renderbuffer_reallocate(&system_state->general_index_buffer, new_index_buffer_size, geometry->index_buffer_offset, &geometry->index_buffer_offset))
+				{
+					SHMERROR("Failed to allocate memory from index buffer.");
+					return false;
+				}
+
+				if (!renderbuffer_load_range(&system_state->general_index_buffer, geometry->index_buffer_offset, new_index_buffer_size, geometry->indices.data))
+				{
+					SHMERROR("Failed to load data into index buffer.");
+					return false;
+				}
+			}
+
+		}
+		else
+		{
+			return geometry_load(geometry);
+		}
+
+		return true;
+
+	}
+
 
 	void geometry_unload(GeometryData* geometry)
 	{
@@ -405,11 +448,11 @@ namespace Renderer
 		if (!geometry->loaded)
 			geometry_load(geometry);
 
-		bool32 includes_indices = geometry->indices.capacity > 0;
+		bool32 includes_indices = geometry->index_count > 0;
 
 		renderbuffer_draw(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, geometry->vertex_count, includes_indices);
 		if (includes_indices)
-			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_offset, geometry->indices.capacity, false);
+			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_offset, geometry->index_count, false);
 	}
 
 	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
@@ -618,6 +661,19 @@ namespace Renderer
 		}
 
 		buffer->freelist.allocate(size, out_offset);
+		return true;
+	}
+
+	bool32 renderbuffer_reallocate(RenderBuffer* buffer, uint64 new_size, uint64 old_offset, uint64* new_offset)
+	{
+		if (!buffer->has_freelist)
+		{
+			SHMERROR("renderbuffer_allocate - Cannot allocate for a buffer without attached freelist!");
+			return false;
+		}
+
+		buffer->freelist.free(old_offset);
+		buffer->freelist.allocate(new_size, new_offset);
 		return true;
 	}
 

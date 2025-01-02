@@ -194,7 +194,7 @@ SHMINLINE void Darray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 	flags = (uint16)creation_flags;
 	if (memory)
 		flags |= DarrayFlags::EXTERNAL_MEMORY;
-	if (creation_flags & DarrayFlags::EXTERNAL_MEMORY)
+	if (flags & DarrayFlags::EXTERNAL_MEMORY)
 		flags |= DarrayFlags::NON_RESIZABLE;
 
 	if (memory)

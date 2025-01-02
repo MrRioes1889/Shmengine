@@ -157,7 +157,7 @@ void String::append(char appendage)
 	uint32 total_length = 1 + arr.count;
 	if (total_length + 1 > arr.capacity)
 		arr.resize(total_length + 1);
-	CString::append(arr.data, arr.capacity, appendage);
+	CString::append(arr.data + arr.count, arr.capacity - arr.count, appendage);
 	arr.count = total_length;
 }
 
@@ -167,7 +167,7 @@ void String::append(const char* appendage, int32 length)
 	uint32 total_length = append_length + arr.count;
 	if (total_length + 1 > arr.capacity)
 		arr.resize(total_length + 1);
-	CString::append(arr.data, arr.capacity, appendage, length);
+	CString::append(arr.data + arr.count, arr.capacity - arr.count, appendage, length);
 	arr.count = total_length;
 }
 

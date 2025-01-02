@@ -225,7 +225,8 @@ namespace Renderer
 		for (uint32 i = 0; i < packet_data->ui_mesh_data.mesh_count; i++)
 			total_geometry_count += packet_data->ui_mesh_data.meshes[i]->geometries.count;
 
-		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER);
+		void* geometries_block = frame_allocator->allocate(sizeof(GeometryRenderData) * total_geometry_count);
+		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER, geometries_block);
 		out_packet->view = self;
 
 		Camera* world_camera = CameraSystem::get_default_camera();
@@ -405,7 +406,7 @@ namespace Renderer
 				Math::Mat4 model = Math::transform_get_world(text->transform);
 				ShaderSystem::set_uniform(data->ui_shader_info.model_location, &model);
 
-				ui_text_draw(text);
+				Renderer::geometry_draw(&text->geometry);
 			}
 
 			if (!renderpass_end(pass))

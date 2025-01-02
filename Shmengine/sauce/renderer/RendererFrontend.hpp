@@ -54,6 +54,7 @@ namespace Renderer
 	void texture_destroy(Texture* texture);
 
 	bool32 geometry_load(GeometryData* geometry);
+	bool32 geometry_reload(GeometryData* geometry);
 	void geometry_unload(GeometryData* geometry);
 
 	void geometry_draw(GeometryData* geometry);
@@ -88,6 +89,7 @@ namespace Renderer
 	SHMAPI bool32 renderbuffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory);
 	SHMAPI bool32 renderbuffer_resize(RenderBuffer* buffer, uint64 new_total_size);
 	SHMAPI bool32 renderbuffer_allocate(RenderBuffer* buffer, uint64 size, uint64* out_offset);
+	SHMAPI bool32 renderbuffer_reallocate(RenderBuffer* buffer, uint64 new_size, uint64 old_offset, uint64* new_offset);
 	SHMAPI void renderbuffer_free(RenderBuffer* buffer, uint64 offset);
 	SHMAPI bool32 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data);
 	SHMAPI bool32 renderbuffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size);

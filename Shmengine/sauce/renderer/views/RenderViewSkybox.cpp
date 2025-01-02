@@ -123,12 +123,15 @@ namespace Renderer
 
 		out_packet->view = self;
 
-		out_packet->projection_matrix = internal_data->projection_matrix;
-		out_packet->view_matrix = internal_data->camera->get_view();
+		out_packet->projection_matrix = &internal_data->projection_matrix;
+		out_packet->view_matrix = &internal_data->camera->get_view();
 		out_packet->view_position = internal_data->camera->get_position();
 
-		out_packet->extended_data = frame_allocator->allocate(sizeof(SkyboxPacketData));
-		Memory::copy_memory(skybox_data, out_packet->extended_data, sizeof(SkyboxPacketData));
+		out_packet->lighting = {};
+
+		out_packet->geometries.init(skybox_data->geometries_count, 0, AllocationTag::RENDERER, skybox_data->geometries);
+		out_packet->geometries.set_count(skybox_data->geometries_count);
+	
 		return true;
 
 	}
@@ -144,10 +147,14 @@ namespace Renderer
 		RenderViewSkyboxInternalData* data = (RenderViewSkyboxInternalData*)self->internal_data.data;
 		SkyboxPacketData* skybox_data = (SkyboxPacketData*)packet.extended_data;
 
-		Math::Mat4 view_matrix = data->camera->get_view();
-		view_matrix.data[12] = 0.0f;
-		view_matrix.data[13] = 0.0f;
-		view_matrix.data[14] = 0.0f;
+		Math::Mat4 view_matrix = {};
+		if (packet.geometries.count)
+		{
+			view_matrix = *packet.view_matrix;
+			view_matrix.data[12] = 0.0f;
+			view_matrix.data[13] = 0.0f;
+			view_matrix.data[14] = 0.0f;
+		}
 
 		for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
 		{
@@ -156,43 +163,39 @@ namespace Renderer
 
 			if (!renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 			{
-				SHMERROR("render_view_skybox_on_render - failed to begin renderpass!");
+				SHMERROR("Failed to begin renderpass!");
 				return false;
 			}
 
 			if (!ShaderSystem::use_shader(data->shader->id)) {
-				SHMERROR("render_view_skybox_on_render - Failed to use shader. Render frame failed.");
+				SHMERROR("Failed to use shader. Render frame failed.");
 				return false;
 			}
 
-			// Apply globals
-			Renderer::shader_bind_globals(ShaderSystem::get_shader(data->shader->id));
-			if (!ShaderSystem::set_uniform(data->projection_location, &packet.projection_matrix)) {
-				SHMERROR("render_view_skybox_on_render - Failed to apply skybox projection uniform.");
-				return false;
-			}
-			if (!ShaderSystem::set_uniform(data->view_location, &view_matrix)) {
-				SHMERROR("render_view_skybox_on_render - Failed to apply skybox view uniform.");
-				return false;
-			}
-			Renderer::shader_apply_globals(data->shader);
+			uint32 shader_id = INVALID_ID;
 
-			// Instance
-			if (skybox_data)
+			for (uint32 geometry_i = 0; geometry_i < packet.geometries.count; geometry_i++)
 			{
-				ShaderSystem::bind_instance(skybox_data->skybox->instance_id);
-				if (!ShaderSystem::set_uniform(data->cube_map_location, &skybox_data->skybox->cubemap)) {
-					SHMERROR("render_view_skybox_on_render - Failed to apply skybox cube map uniform.");
-					return false;
+				GeometryRenderData* g = &packet.geometries[geometry_i];
+
+				if (g->shader_id != shader_id)
+				{
+					shader_id = g->shader_id;
+					ShaderSystem::use_shader(shader_id);
+
+					if (!ShaderSystem::apply_globals(shader_id, packet.lighting, frame_number,
+						packet.projection_matrix, &view_matrix, 0, 0, 0))
+					{
+						SHMERROR("Failed to apply globals to shader.");
+						return false;
+					}
 				}
-				bool8 needs_update = skybox_data->skybox->renderer_frame_number != frame_number;
-				Renderer::shader_apply_instance(data->shader, needs_update);
 
-				// Sync the frame number.
-				skybox_data->skybox->renderer_frame_number = frame_number;
+				// Apply instance
+				g->on_render(shader_id, packet.lighting, &g->model, g->render_object, frame_number);
 
-				Renderer::geometry_draw(skybox_data->skybox->g);
-			}	
+				geometry_draw(packet.geometries[geometry_i].geometry_data);
+			}
 
 			if (!renderpass_end(renderpass))
 			{

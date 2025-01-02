@@ -23,6 +23,7 @@
 #include <systems/GeometrySystem.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <systems/FontSystem.hpp>
+#include <systems/ShaderSystem.hpp>
 #include <resources/Mesh.hpp>
 // end
 
@@ -487,38 +488,86 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 		}
 	}
 
-	Mesh** ui_meshes_ptr = (Mesh**)frame_data->frame_allocator->allocate(app_state->ui_meshes.count * sizeof(Mesh*));
-	Sarray<Mesh*> ui_meshes(app_state->ui_meshes.count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, ui_meshes_ptr);
+	uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
 
-	Renderer::UIPacketData* ui_mesh_data = (Renderer::UIPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::UIPacketData));
-	ui_mesh_data->mesh_data.mesh_count = 0;
-	for (uint32 i = 0; i < app_state->ui_meshes.count; i++)
+	Renderer::UIPacketData* ui_packet_data = (Renderer::UIPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::UIPacketData));
+	ui_packet_data->geometries = 0;
+	ui_packet_data->geometries_count = 0;
+
+	for (uint32 mesh_i = 0; mesh_i < app_state->ui_meshes.count; mesh_i++)
 	{
-		if (app_state->ui_meshes[i].generation != INVALID_ID8)
+		if (app_state->ui_meshes[mesh_i].generation == INVALID_ID8)
+			continue;
+
+		Mesh* mesh = &app_state->ui_meshes[mesh_i];
+
+		for (uint32 geo_i = 0; geo_i < app_state->ui_meshes[mesh_i].geometries.count; geo_i++)
 		{
-			ui_meshes[ui_mesh_data->mesh_data.mesh_count] = &app_state->ui_meshes[i];
-			ui_mesh_data->mesh_data.mesh_count++;
+			MeshGeometry* geometry = &mesh->geometries[geo_i];
+			Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
+			render_data->model = Math::transform_get_world(mesh->transform);
+			render_data->shader_id = ui_shader_id;
+			render_data->render_object = geometry->material;
+			render_data->on_render = MaterialSystem::material_on_render;
+			render_data->geometry_data = geometry->g_data;
+			render_data->has_transparency = (geometry->material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
+			render_data->unique_id = mesh->unique_id;
+
+			ui_packet_data->geometries_count++;
+
+			if (!ui_packet_data->geometries)
+				ui_packet_data->geometries = render_data;
 		}
 	}
-	ui_mesh_data->mesh_data.meshes = ui_meshes.data;
 
-	const uint32 max_text_count = 3;
-	UIText** ui_texts_ptr = (UIText**)frame_data->frame_allocator->allocate(max_text_count * sizeof(UIText*));
-	Sarray<UIText*> ui_texts(max_text_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, ui_texts_ptr);
-	ui_texts[0] = &app_state->test_truetype_text;
-	ui_texts[1] = &app_state->test_bitmap_text;
+	GeometryData* geometry = &app_state->test_truetype_text.geometry;
+	Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
+	render_data->model = Math::transform_get_world(app_state->test_truetype_text.transform);
+	render_data->shader_id = ui_shader_id;
+	render_data->render_object = &app_state->test_truetype_text;
+	render_data->on_render = ui_text_on_render;
+	render_data->geometry_data = &app_state->test_truetype_text.geometry;
+	render_data->has_transparency = true;
+	render_data->unique_id = app_state->test_truetype_text.unique_id;
 
-	ui_mesh_data->text_count = 1;
-	ui_mesh_data->texts = ui_texts.data;
+	ui_packet_data->geometries_count++;
+
+	if (!ui_packet_data->geometries)
+		ui_packet_data->geometries = render_data;
 
 	if (DebugConsole::is_visible(&app_state->debug_console))
 	{
-		ui_mesh_data->text_count += 2;
-		ui_texts[1] = DebugConsole::get_text(&app_state->debug_console);
-		ui_texts[2] = DebugConsole::get_entry_text(&app_state->debug_console);
+		UIText* console_text = DebugConsole::get_text(&app_state->debug_console);
+		geometry = &app_state->test_truetype_text.geometry;
+		render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
+		render_data->model = Math::transform_get_world(console_text->transform);
+		render_data->shader_id = ui_shader_id;
+		render_data->render_object = console_text;
+		render_data->on_render = ui_text_on_render;
+		render_data->geometry_data = &console_text->geometry;
+		render_data->has_transparency = true;
+		render_data->unique_id = console_text->unique_id;
+
+		ui_packet_data->geometries_count++;
+
+		if (!ui_packet_data->geometries)
+			ui_packet_data->geometries = render_data;
+
+		UIText* entry_text = DebugConsole::get_entry_text(&app_state->debug_console);
+		geometry = &app_state->test_truetype_text.geometry;
+		render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
+		render_data->model = Math::transform_get_world(entry_text->transform);
+		render_data->shader_id = ui_shader_id;
+		render_data->render_object = entry_text;
+		render_data->on_render = ui_text_on_render;
+		render_data->geometry_data = &entry_text->geometry;
+		render_data->has_transparency = true;
+		render_data->unique_id = entry_text->unique_id;
+
+		ui_packet_data->geometries_count++;
 	}
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), frame_data->frame_allocator, ui_mesh_data, &packet->views[2]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), frame_data->frame_allocator, ui_packet_data, &packet->views[2]))
 	{
 		SHMERROR("Failed to build packet for view 'ui'.");
 		return false;

@@ -121,8 +121,9 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 	//geometry->vertex_count = 4 * tile_count_x * tile_count_z;
 	geometry->vertices.init(geometry->vertex_size * geometry->vertex_count, 0);
 
-	uint32 indices_count = geometry->vertex_count * 6;
-	geometry->indices.init(indices_count, 0);
+	geometry->index_count = out_terrain->tile_count_x * out_terrain->tile_count_z * 6;
+	geometry->indices.init(geometry->index_count, 0);
+
 
 	// TODO: read from heightmap 
 
@@ -167,9 +168,9 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 	}
 
     Renderer::geometry_generate_terrain_normals(out_terrain->geometry.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
-        out_terrain->geometry.indices.capacity, out_terrain->geometry.indices.data);
+        out_terrain->geometry.index_count, out_terrain->geometry.indices.data);
     Renderer::geometry_generate_terrain_tangents(out_terrain->geometry.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
-        out_terrain->geometry.indices.capacity, out_terrain->geometry.indices.data);
+        out_terrain->geometry.index_count, out_terrain->geometry.indices.data);
 
     out_terrain->geometry.id = INVALID_ID;
 

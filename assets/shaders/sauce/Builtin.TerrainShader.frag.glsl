@@ -61,15 +61,14 @@ struct MaterialPhongProperties {
 struct MaterialTerrainProperties {
     MaterialPhongProperties materials[max_terrain_materials_count];
     vec3 padding;
-    int num_materials;
+    int materials_count;
     vec4 padding2;
 };
 
 layout(set = 1, binding = 0) uniform instance_uniform_object {
     MaterialTerrainProperties properties;
     PointLight p_lights[max_point_lights_count];
-    vec3 padding;
-    int p_lights_count;
+    uint p_lights_count;
 } instance_ubo;
 
 const int samp_diffuse_index = 0;
@@ -153,7 +152,7 @@ void main()
     vec4 diff = vec4(1);
     vec4 spec = vec4(0.5);
     vec3 norm = vec3(0, 0, 1);
-    for(int m = 0; m < instance_ubo.properties.num_materials; ++m) {
+    for(int m = 0; m < instance_ubo.properties.materials_count; ++m) {
         normals[m] = normalize(TBN * (2.0 * texture(samplers[(m * 3) + samp_normal_index], in_dto.texcoord).rgb - 1.0));
         diffuses[m] = texture(samplers[(m * 3) + samp_diffuse_index], in_dto.texcoord);
         specs[m] = texture(samplers[(m * 3) + samp_specular_index], in_dto.texcoord);

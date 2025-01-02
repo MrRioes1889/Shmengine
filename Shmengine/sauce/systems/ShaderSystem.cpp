@@ -26,6 +26,9 @@ namespace ShaderSystem
 
 		ShaderSystem::UIShaderUniformLocations ui_locations;
 		uint32 ui_shader_id;
+
+		ShaderSystem::SkyboxShaderUniformLocations skybox_locations;
+		uint32 skybox_shader_id;
 	};
 
 	static SystemState* system_state = 0;
@@ -90,6 +93,11 @@ namespace ShaderSystem
 		system_state->ui_locations.projection = INVALID_ID16;
 		system_state->ui_locations.model = INVALID_ID16;
 		system_state->ui_locations.properties = INVALID_ID16;
+
+		system_state->skybox_shader_id = INVALID_ID;
+		system_state->skybox_locations.projection = INVALID_ID16;
+		system_state->skybox_locations.view = INVALID_ID16;
+		system_state->skybox_locations.cube_map = INVALID_ID16;
 
 		uint64 hashtable_data_size = sizeof(uint32) * sys_config->max_shader_count;
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
@@ -197,7 +205,8 @@ namespace ShaderSystem
 			return false;
 		}
 
-		if (system_state->material_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_material)) {
+		if (system_state->material_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_material)) 
+		{
 			system_state->material_shader_id = shader->id;
 			system_state->material_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
 			system_state->material_locations.view = ShaderSystem::get_uniform_index(shader, "view");
@@ -213,7 +222,8 @@ namespace ShaderSystem
 			system_state->material_locations.p_lights_count = ShaderSystem::get_uniform_index(shader, "p_lights_count");
 			system_state->material_locations.properties = ShaderSystem::get_uniform_index(shader, "properties");
 		}
-		if (system_state->terrain_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_terrain)) {
+		else if (system_state->terrain_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_terrain)) 
+		{
 			system_state->terrain_shader_id = shader->id;
 			system_state->terrain_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
 			system_state->terrain_locations.view = ShaderSystem::get_uniform_index(shader, "view");
@@ -239,13 +249,21 @@ namespace ShaderSystem
 			system_state->terrain_locations.samplers[10] = ShaderSystem::get_uniform_index(shader, "specular_texture_3");
 			system_state->terrain_locations.samplers[11] = ShaderSystem::get_uniform_index(shader, "normal_texture_3");
 		}
-		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_ui)) {
+		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_ui)) 
+		{
 			system_state->ui_shader_id = shader->id;
 			system_state->ui_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
 			system_state->ui_locations.view = ShaderSystem::get_uniform_index(shader, "view");
 			system_state->ui_locations.diffuse_texture = ShaderSystem::get_uniform_index(shader, "diffuse_texture");
 			system_state->ui_locations.model = ShaderSystem::get_uniform_index(shader, "model");
 			system_state->ui_locations.properties = ShaderSystem::get_uniform_index(shader, "properties");
+		}
+		else if (system_state->skybox_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_skybox)) 
+		{
+			system_state->skybox_shader_id = shader->id;
+			system_state->skybox_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
+			system_state->skybox_locations.view = ShaderSystem::get_uniform_index(shader, "view");
+			system_state->skybox_locations.cube_map = ShaderSystem::get_uniform_index(shader, "cube_texture");
 		}
 
 		return true;
@@ -423,6 +441,12 @@ namespace ShaderSystem
 			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.projection, projection));
 			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.view, view));
 		}
+		else if (shader_id == system_state->skybox_shader_id)
+		{
+			UIShaderUniformLocations u_locations = system_state->ui_locations;
+			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.projection, projection));
+			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.view, view));
+		}
 		else
 		{
 			SHMERRORV("Unrecognized shader id '%i' ", shader_id);
@@ -458,6 +482,11 @@ namespace ShaderSystem
 		return system_state->ui_shader_id;
 	}
 
+	uint32 get_skybox_shader_id()
+	{
+		return system_state->skybox_shader_id;
+	}
+
 	MaterialShaderUniformLocations get_material_shader_uniform_locations()
 	{
 		return system_state->material_locations;
@@ -471,6 +500,11 @@ namespace ShaderSystem
 	UIShaderUniformLocations get_ui_shader_uniform_locations()
 	{
 		return system_state->ui_locations;
+	}
+
+	SkyboxShaderUniformLocations get_skybox_shader_uniform_locations()
+	{
+		return system_state->skybox_locations;
 	}
 
 	static bool32 add_attribute(Renderer::Shader* shader, const Renderer::ShaderAttributeConfig& config)

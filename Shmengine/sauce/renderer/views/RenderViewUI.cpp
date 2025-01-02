@@ -110,39 +110,15 @@ namespace Renderer
 
 	bool32 render_view_ui_on_build_packet(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet)
 	{		
+		UIPacketData* packet_data = (UIPacketData*)data;
 		RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
 
-		out_packet->extended_data = frame_allocator->allocate(sizeof(UIPacketData));
-		Memory::copy_memory(data, out_packet->extended_data, sizeof(UIPacketData));
-		UIPacketData* packet_data = (UIPacketData*)out_packet->extended_data;
-
-		uint32 total_geometry_count = 0;
-		for (uint32 i = 0; i < packet_data->mesh_data.mesh_count; i++)
-			total_geometry_count += packet_data->mesh_data.meshes[i]->geometries.count;
-
-		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER);
+		out_packet->geometries.init(packet_data->geometries_count, 0, AllocationTag::RENDERER, packet_data->geometries);
+		out_packet->geometries.set_count(packet_data->geometries_count);
 		out_packet->view = self;
 
-		out_packet->projection_matrix = internal_data->projection_matrix;
-		out_packet->view_matrix = internal_data->view_matrix;	
-
-		uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
-
-		for (uint32 i = 0; i < packet_data->mesh_data.mesh_count; i++)
-		{
-			Mesh* m = packet_data->mesh_data.meshes[i];
-			for (uint32 g = 0; g < m->geometries.count; g++)
-			{
-				GeometryRenderData* render_data = &out_packet->geometries[out_packet->geometries.emplace()];
-				render_data->model = Math::transform_get_world(m->transform);
-				render_data->shader_id = ui_shader_id;
-				render_data->render_object = m->geometries[g].material;
-				render_data->on_render = MaterialSystem::material_on_render;
-				render_data->geometry_data = m->geometries[g].g_data;
-				render_data->has_transparency = (m->geometries[g].material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
-				render_data->unique_id = m->unique_id;		
-			}
-		}
+		out_packet->projection_matrix = &internal_data->projection_matrix;
+		out_packet->view_matrix = &internal_data->view_matrix;
 
 		return true;
 
@@ -170,7 +146,6 @@ namespace Renderer
 				return false;
 			}
 
-			LightingInfo lighting =	{};
 			uint32 shader_id = INVALID_ID;
 
 			for (uint32 geometry_i = 0; geometry_i < packet.geometries.count; geometry_i++)
@@ -182,57 +157,18 @@ namespace Renderer
 					shader_id = g->shader_id;
 					ShaderSystem::use_shader(shader_id);
 
-					if (!ShaderSystem::apply_globals(shader_id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, 0, 0, 0)) {
-						SHMERROR("Failed to use apply globals for shader. Render frame failed.");
+					if (!ShaderSystem::apply_globals(shader_id, packet.lighting, frame_number,
+						packet.projection_matrix, packet.view_matrix, 0, 0, 0))
+					{
+						SHMERROR("Failed to apply globals to shader.");
 						return false;
 					}
 				}
 
 				// Apply instance
-				g->on_render(shader_id, lighting, &g->model, g->render_object, frame_number);
+				g->on_render(shader_id, packet.lighting, &g->model, g->render_object, frame_number);
 
-				// Draw it.
 				geometry_draw(packet.geometries[geometry_i].geometry_data);
-
-			}
-
-			UIPacketData* packet_data = (UIPacketData*)packet.extended_data;  // array of texts
-			shader_id = ShaderSystem::get_ui_shader_id();
-			ShaderSystem::use_shader(shader_id);
-
-			if (!ShaderSystem::apply_globals(shader_id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, 0, 0, 0)) {
-				SHMERROR("Failed to use apply globals for shader. Render frame failed.");
-				return false;
-			}
-
-			for (uint32 i = 0; i < packet_data->text_count; ++i) {
-				UIText* text = packet_data->texts[i];
-				ShaderSystem::bind_instance(text->instance_id);
-
-				if (!ShaderSystem::set_uniform(data->diffuse_map_location, &text->font_atlas->map)) {
-					SHMERROR("Failed to apply bitmap font diffuse map uniform.");
-					return false;
-				}
-
-				// TODO: font colour.
-				static Math::Vec4f white_colour = { 1.0f, 1.0f, 1.0f, 1.0f };  // white
-				if (!ShaderSystem::set_uniform(data->properties_location, &white_colour)) {
-					SHMERROR("Failed to apply bitmap font diffuse colour uniform.");
-					return false;
-				}
-				bool32 needs_update = text->render_frame_number != frame_number;
-				Renderer::shader_apply_instance(data->shader, needs_update);
-
-				// Sync the frame number.
-				text->render_frame_number = frame_number;
-
-				// Apply the locals
-				Math::Mat4 model = Math::transform_get_world(text->transform);
-				if (!ShaderSystem::set_uniform(data->model_location, &model)) {
-					SHMERROR("Failed to apply model matrix for text");
-				}
-
-				ui_text_draw(text);
 			}
 
 			if (!renderpass_end(renderpass))

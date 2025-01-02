@@ -15,7 +15,7 @@ public:
 	SHMINLINE Math::Vec3f get_rotation() { return euler_rotation; }
 	SHMINLINE void set_rotation(Math::Vec3f rot) { euler_rotation = rot; is_dirty = true; }
 
-	Math::Mat4 get_view();
+	Math::Mat4& get_view();
 
 	SHMINLINE Math::Vec3f get_forward();
 	SHMINLINE Math::Vec3f get_backward();

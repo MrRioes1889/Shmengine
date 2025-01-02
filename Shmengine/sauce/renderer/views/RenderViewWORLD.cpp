@@ -176,24 +176,30 @@ namespace Renderer
 		WorldPacketData* packet_data = (WorldPacketData*)data;
 		RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
-		uint32 total_geometry_count = 0;
-		total_geometry_count += packet_data->mesh_geometries_count + packet_data->terrain_geometries_count;
-
 		out_packet->extended_data = frame_allocator->allocate(sizeof(WorldPacketData));
 		Memory::copy_memory(packet_data, out_packet->extended_data, sizeof(WorldPacketData));
 
 		// TODO: frame_allocator for packet geometries
-		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER);
+		void* geometries_block = frame_allocator->allocate(sizeof(GeometryRenderData) * packet_data->geometries_count);
+		out_packet->geometries.init(packet_data->geometries_count, 0, AllocationTag::RENDERER, geometries_block);
 		out_packet->view = self;
 
-		out_packet->projection_matrix = internal_data->projection_matrix;
-		out_packet->view_matrix = internal_data->camera->get_view();
+		out_packet->projection_matrix = &internal_data->projection_matrix;
+		out_packet->view_matrix = &internal_data->camera->get_view();
 		out_packet->view_position = internal_data->camera->get_position();
 		out_packet->ambient_color = internal_data->ambient_color;
 
-		Darray<GeometryDistance> transparent_geometries(total_geometry_count, 0, AllocationTag::RENDERER);
+		out_packet->lighting =
+		{
+			.dir_light = packet_data->dir_light,
+			.p_lights_count = packet_data->p_lights_count,
+			.p_lights = packet_data->p_lights
+		};
 
-		for (uint32 i = 0; i < packet_data->mesh_geometries_count; i++)
+		void* transparent_geometries_block = frame_allocator->allocate(sizeof(GeometryRenderData) * packet_data->geometries_count);
+		Darray<GeometryDistance> transparent_geometries(packet_data->geometries_count, 0, AllocationTag::RENDERER, transparent_geometries_block);
+
+		for (uint32 i = 0; i < packet_data->geometries_count; i++)
 		{
 			GeometryRenderData* g_data = &packet_data->geometries[i];
 
@@ -217,12 +223,6 @@ namespace Renderer
 		{
 			GeometryRenderData* render_data = &out_packet->geometries[out_packet->geometries.emplace()];
 			*render_data = transparent_geometries[i].g;
-		}
-
-		for (uint32 i = packet_data->mesh_geometries_count; i < total_geometry_count; i++)
-		{
-			GeometryRenderData* g_data = &packet_data->geometries[i];
-			out_packet->geometries.emplace(*g_data);
 		}
 
 		return true;
@@ -252,43 +252,30 @@ namespace Renderer
 				return false;
 			}
 
-			if (packet_data)
+			uint32 shader_id = INVALID_ID;
+
+			for (uint32 geometry_i = 0; geometry_i < packet.geometries.count; geometry_i++)
 			{
-		
-				LightingInfo lighting =
+				GeometryRenderData* g = &packet.geometries[geometry_i];
+
+				if (g->shader_id != shader_id)
 				{
-					.dir_light = packet_data->dir_light,
-					.p_lights_count = packet_data->p_lights_count,
-					.p_lights = packet_data->p_lights
-				};
+					shader_id = g->shader_id;
+					ShaderSystem::use_shader(shader_id);
 
-				uint32 shader_id = INVALID_ID;
-				uint32 total_geometry_count = packet_data->mesh_geometries_count + packet_data->terrain_geometries_count;
-
-				for (uint32 geometry_i = 0; geometry_i < total_geometry_count; geometry_i++)
-				{
-					GeometryRenderData* g = &packet.geometries[geometry_i];
-
-					if (g->shader_id != shader_id)
+					if (!ShaderSystem::apply_globals(shader_id, packet.lighting, frame_number,
+						packet.projection_matrix, packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
 					{
-						shader_id = g->shader_id;
-						ShaderSystem::use_shader(shader_id);
-
-						if (!ShaderSystem::apply_globals(shader_id, lighting, frame_number,
-							&packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
-						{
-							SHMERROR("Failed to apply globals to shader.");
-							return false;
-						}
+						SHMERROR("Failed to apply globals to shader.");
+						return false;
 					}
+				}
 
-					// Apply instance
-					g->on_render(shader_id, lighting, &g->model, g->render_object, frame_number);
+				// Apply instance
+				g->on_render(shader_id, packet.lighting, &g->model, g->render_object, frame_number);
 
-					geometry_draw(packet.geometries[geometry_i].geometry_data);
-				}	
-				
-			}
+				geometry_draw(packet.geometries[geometry_i].geometry_data);
+			}	
 
 			if (!renderpass_end(renderpass))
 			{

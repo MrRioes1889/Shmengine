@@ -497,10 +497,11 @@ namespace Renderer
 	struct RenderViewPacket
 	{
 		RenderView* view;
-		Math::Mat4 view_matrix;
-		Math::Mat4 projection_matrix;
+		Math::Mat4* view_matrix;
+		Math::Mat4* projection_matrix;
 		Math::Vec3f view_position;
 		Math::Vec4f ambient_color;
+		LightingInfo lighting;
 		Darray<GeometryRenderData> geometries;
 		const char* custom_shader_name;
 		void* extended_data;
@@ -514,8 +515,7 @@ namespace Renderer
 
 	struct WorldPacketData
 	{
-		uint32 mesh_geometries_count;
-		uint32 terrain_geometries_count;
+		uint32 geometries_count;
 		uint32 p_lights_count;
 
 		GeometryRenderData* geometries;
@@ -525,15 +525,14 @@ namespace Renderer
 
 	struct SkyboxPacketData
 	{
-		Skybox* skybox;
+		uint32 geometries_count;
+		GeometryRenderData* geometries;
 	};
 
 	struct UIPacketData {
-		MeshPacketData mesh_data;
-		// TODO: temp
-		uint32 text_count;
-		UIText** texts;
-		// end
+		uint32 geometries_count;
+
+		GeometryRenderData* geometries;
 	};
 
 	struct PickPacketData {

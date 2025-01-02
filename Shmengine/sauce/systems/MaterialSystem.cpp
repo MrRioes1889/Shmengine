@@ -601,10 +601,10 @@ namespace MaterialSystem
     {
         Material* mat = (Material*)material;
 
+        ShaderSystem::bind_instance(mat->shader_instance_id);
+
         if (shader_id == ShaderSystem::get_material_shader_id())
         {
-            ShaderSystem::bind_instance(mat->shader_instance_id);
-
             ShaderSystem::MaterialShaderUniformLocations u_locations = ShaderSystem::get_material_shader_uniform_locations();
             UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, mat->properties));
 

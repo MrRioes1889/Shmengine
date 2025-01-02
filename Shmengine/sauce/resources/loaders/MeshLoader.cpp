@@ -343,7 +343,7 @@ namespace ResourceSystem
             SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
 
             Renderer::geometry_deduplicate_vertices(*g);
-            Renderer::geometry_generate_mesh_tangents(g->vertex_count, (Renderer::Vertex3D*)g->vertices.data, g->indices.capacity, g->indices.data);
+            Renderer::geometry_generate_mesh_tangents(g->vertex_count, (Renderer::Vertex3D*)g->vertices.data, g->index_count, g->indices.data);
 
             // TODO: Maybe shrink down vertex array to count after deduplication!
         }
@@ -440,14 +440,13 @@ namespace ResourceSystem
             out_data->center.e[i] = (out_data->extents.min.e[i] + out_data->extents.max.e[i]) / 2.0f;
         }
 
-        uint32 vertex_count = vertices.count;
-        uint32 index_count = indices.count;
+        out_data->vertex_count = vertices.count;
+        out_data->index_count = indices.count;
 
-        out_data->vertex_count = vertex_count;
         Renderer::Vertex3D* vertices_ptr = vertices.transfer_data();
         uint32* indices_ptr = indices.transfer_data();
-        out_data->vertices.init(vertex_count * sizeof(Renderer::Vertex3D), 0, (AllocationTag)vertices.allocation_tag, vertices_ptr);
-        out_data->indices.init(index_count, 0, (AllocationTag)indices.allocation_tag, indices_ptr);      
+        out_data->vertices.init(out_data->vertex_count * sizeof(Renderer::Vertex3D), 0, (AllocationTag)vertices.allocation_tag, vertices_ptr);
+        out_data->indices.init(out_data->index_count, 0, (AllocationTag)indices.allocation_tag, indices_ptr);
 
     }
 
@@ -492,7 +491,7 @@ namespace ResourceSystem
             geo_header.vertex_size = g_data.vertex_size;
             geo_header.vertex_count = g_data.vertex_count;
             geo_header.index_size = sizeof(uint32);
-            geo_header.index_count = g_data.indices.capacity;
+            geo_header.index_count = g_data.index_count;
             geo_header.name_length = (uint16)CString::length(g_data.name);
             geo_header.material_name_length = (uint16)CString::length(config.material_name);
 
@@ -569,6 +568,7 @@ namespace ResourceSystem
             g->extents.max = geo_header->max_extents;
             g->vertex_size = geo_header->vertex_size;
             g->vertex_count = geo_header->vertex_count;
+            g->index_count = geo_header->index_count;
 
             check_buffer_size(
                 (geo_header->name_length +
@@ -578,7 +578,7 @@ namespace ResourceSystem
             );
 
             g->vertices.init(g->vertex_count * g->vertex_size, 0);
-            g->indices.init(geo_header->index_count, 0);
+            g->indices.init(g->index_count, 0);
 
             CString::copy((char*)&read_ptr[read_bytes], g->name, max_geometry_name_length, (int32)geo_header->name_length);
             read_bytes += geo_header->name_length;
@@ -589,7 +589,7 @@ namespace ResourceSystem
             g->vertices.copy_memory(&read_ptr[read_bytes], geo_header->vertex_count * geo_header->vertex_size);
             read_bytes += geo_header->vertex_count * geo_header->vertex_size;
 
-            g->indices.copy_memory(&read_ptr[read_bytes], geo_header->index_count * geo_header->index_size);
+            g->indices.copy_memory(&read_ptr[read_bytes], g->index_count * geo_header->index_size);
             read_bytes += geo_header->index_count * geo_header->index_size;
         }
 

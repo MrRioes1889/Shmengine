@@ -17,6 +17,8 @@ struct GeometryData
 
 	uint32 vertex_size;
 	uint32 vertex_count;
+	uint32 index_count;
+
 	Sarray<byte> vertices;
 	Sarray<uint32> indices;
 
@@ -39,6 +41,8 @@ namespace GeometrySystem
 	{
 		uint32 vertex_size;
 		uint32 vertex_count;
+		uint32 index_count;
+
 		Sarray<byte> vertices;	
 		Sarray<uint32> indices;
 		char name[max_geometry_name_length];

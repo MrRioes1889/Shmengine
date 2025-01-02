@@ -194,9 +194,9 @@ template<typename T>
 SHMINLINE void Sarray<T>::resize(uint32 new_count, void* memory)
 {
 	if (data && !(flags & SarrayFlags::EXTERNAL_MEMORY))
-		data = Memory::reallocate(new_count * sizeof(T), memory);
+		data = (T*)Memory::reallocate(new_count * sizeof(T), data);
 	else
-		data = memory;
+		data = (T*)memory;
 
 	capacity = new_count;
 }

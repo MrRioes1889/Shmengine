@@ -36,44 +36,32 @@ bool32 ui_text_create(UITextType type, const char* font_name, uint16 font_size, 
     out_text->text = text_content;
     out_text->transform = Math::transform_create();
 
-    out_text->instance_id = INVALID_ID;
-    out_text->render_frame_number = INVALID_ID64;
+    out_text->shader_instance_id = INVALID_ID;
+    out_text->render_frame_number = INVALID_ID;
 
     Renderer::Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
     TextureMap* font_maps[1] = { &out_text->font_atlas->map };
-    if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, font_maps, &out_text->instance_id))
+    if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, font_maps, &out_text->shader_instance_id))
     {
         SHMFATAL("ui_text_create - Unable to acquire shader resources for font texture map.");
         ui_text_destroy(out_text);
         return false;
     }
 
-    static const uint64 quad_vertex_size = (sizeof(Renderer::Vertex2D) * quad_vertex_count);
     uint32 text_length = out_text->text.len();
     if (text_length < 1)
         text_length = 1;
 
-    char vertex_buffer_name[max_buffer_name_length];
-    CString::print_s(vertex_buffer_name, max_buffer_name_length, "%s_%u_%s", font_name, out_text->unique_id, "_v_buf");
-    if (!Renderer::renderbuffer_create(vertex_buffer_name, Renderer::RenderBufferType::VERTEX, quad_vertex_size * text_length, true, &out_text->vertex_buffer))
-    {
-        SHMFATAL("ui_text_create - Failed to create vertex buffer.");
-        ui_text_destroy(out_text);
-        return false;
-    }
-    Renderer::renderbuffer_bind(&out_text->vertex_buffer, 0);
+    GeometryData* geometry = &out_text->geometry;
+    geometry->extents = {};
+    geometry->center = {};
 
-    static const uint64 quad_index_size = (sizeof(uint32) * quad_index_count);
+    geometry->vertex_size = sizeof(Renderer::Vertex2D);
+    geometry->vertex_count = quad_vertex_count * text_length;
+    geometry->vertices.init(geometry->vertex_size * geometry->vertex_count, 0);
 
-    char index_buffer_name[max_buffer_name_length];
-    CString::print_s(index_buffer_name, max_buffer_name_length, "%s_%u_%s", font_name, out_text->unique_id, "_i_buf");
-    if (!Renderer::renderbuffer_create(index_buffer_name, Renderer::RenderBufferType::INDEX, quad_index_size * text_length, true, &out_text->index_buffer))
-    {
-        SHMFATAL("ui_text_create - Failed to create index buffer.");
-        ui_text_destroy(out_text);
-        return false;
-    }
-    Renderer::renderbuffer_bind(&out_text->index_buffer, 0);
+    geometry->index_count = text_length * 6;
+    geometry->indices.init(geometry->index_count, 0);
 
     if (!FontSystem::verify_atlas(out_text->font_atlas, out_text->text.c_str()))
     {
@@ -95,11 +83,13 @@ void ui_text_destroy(UIText* text)
 
     text->text.free_data();
 
-    Renderer::renderbuffer_destroy(&text->vertex_buffer);
-    Renderer::renderbuffer_destroy(&text->index_buffer);
+    Renderer::geometry_unload(&text->geometry);
+
+    text->geometry.vertices.free_data();
+    text->geometry.indices.free_data();
 
     Renderer::Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
-    Renderer::shader_release_instance_resources(ui_shader, text->instance_id);
+    Renderer::shader_release_instance_resources(ui_shader, text->shader_instance_id);
 
     identifier_release_id(text->unique_id);
     text->unique_id = 0;
@@ -132,67 +122,32 @@ void ui_text_refresh(UIText* ui_text)
     regenerate_geometry(ui_text);
 }
 
-void ui_text_draw(UIText* ui_text)
-{
-
-    uint32 text_length = ui_text->text.len();
-    if (text_length > 0)
-    {
-        if (!Renderer::renderbuffer_draw(&ui_text->vertex_buffer, 0, text_length * quad_vertex_count, true))
-        {
-            SHMERROR("ui_text_draw - failed to draw vertex renderbuffer");
-            return;
-        }
-
-        if (!Renderer::renderbuffer_draw(&ui_text->index_buffer, 0, text_length * quad_index_count, false))
-        {
-            SHMERROR("ui_text_draw - failed to draw index renderbuffer");
-            return;
-        }
-    }
-    
-
-}
-
 static void regenerate_geometry(UIText* ui_text)
 {
 
     OPTICK_EVENT();
+
     uint32 char_length = ui_text->text.len();
     uint32 utf8_length = FontSystem::utf8_string_length(ui_text->text.c_str());
 
     if (utf8_length < 1)
         return;
 
-    uint32 vertices_count = quad_vertex_count * utf8_length;
-    uint32 indices_count = quad_index_count * utf8_length;
-    uint64 vertex_buffer_size = sizeof(Renderer::Vertex2D) * vertices_count;
-    uint64 index_buffer_size = sizeof(uint32) * indices_count;
+    GeometryData* geometry = &ui_text->geometry;
 
-    if (vertex_buffer_size > ui_text->vertex_buffer.size)
-    {
-        if (!Renderer::renderbuffer_resize(&ui_text->vertex_buffer, vertex_buffer_size))
-        {
-            SHMERROR("regenerate_geometry - Failed to resize vertex buffer.");
-            return;
-        }
-    }
+    geometry->vertex_count = quad_vertex_count * utf8_length;
+    geometry->index_count = quad_index_count * utf8_length;
+    uint64 vertex_buffer_size = sizeof(Renderer::Vertex2D) * geometry->vertex_count;
 
-    if (index_buffer_size > ui_text->index_buffer.size)
+    if (vertex_buffer_size > geometry->vertices.capacity)
     {
-        if (!Renderer::renderbuffer_resize(&ui_text->index_buffer, index_buffer_size))
-        {
-            SHMERROR("regenerate_geometry - Failed to resize index buffer.");
-            return;
-        }
-    }
+        geometry->vertices.resize((uint32)vertex_buffer_size);
+        geometry->indices.resize(geometry->index_count);
+    }  
 
     // Generate new geometry for each character.
     float32 x = 0;
     float32 y = 0;
-    // Temp arrays to hold vertex/index data.
-    Sarray<Renderer::Vertex2D> vertex_buffer_data(vertices_count, 0);
-    Sarray<uint32> index_buffer_data(indices_count, 0);
 
     // Take the length in chars and get the correct codepoint from it.
     for (uint32 c = 0, uc = 0; c < char_length; ++c) {
@@ -202,7 +157,6 @@ static void regenerate_geometry(UIText* ui_text)
         if (codepoint == '\n') {
             x = 0;
             y += ui_text->font_atlas->line_height;
-            // Increment utf-8 character count.
             uc++;
             continue;
         }
@@ -260,10 +214,10 @@ static void regenerate_geometry(UIText* ui_text)
             Renderer::Vertex2D p2 = { {maxx, maxy}, {tmaxx, tmaxy} };
             Renderer::Vertex2D p3 = { {minx, maxy}, {tminx, tmaxy} };
 
-            vertex_buffer_data[(uc * 4) + 0] = p0;  // 0    3
-            vertex_buffer_data[(uc * 4) + 1] = p2;  //
-            vertex_buffer_data[(uc * 4) + 2] = p3;  //
-            vertex_buffer_data[(uc * 4) + 3] = p1;  // 2    1
+            geometry->vertices.get_as<Renderer::Vertex2D>((uc * 4) + 0) = p0;  // 0    3
+            geometry->vertices.get_as<Renderer::Vertex2D>((uc * 4) + 1) = p2;  //
+            geometry->vertices.get_as<Renderer::Vertex2D>((uc * 4) + 2) = p3;  //
+            geometry->vertices.get_as<Renderer::Vertex2D>((uc * 4) + 3) = p1;  // 2    1
 
             // Try to find kerning
             int32 kerning = 0;
@@ -300,12 +254,12 @@ static void regenerate_geometry(UIText* ui_text)
         }
 
         // Index data 210301
-        index_buffer_data[(uc * 6) + 0] = (uc * 4) + 2;
-        index_buffer_data[(uc * 6) + 1] = (uc * 4) + 1;
-        index_buffer_data[(uc * 6) + 2] = (uc * 4) + 0;
-        index_buffer_data[(uc * 6) + 3] = (uc * 4) + 3;
-        index_buffer_data[(uc * 6) + 4] = (uc * 4) + 0;
-        index_buffer_data[(uc * 6) + 5] = (uc * 4) + 1;
+        geometry->indices[(uc * 6) + 0] = (uc * 4) + 2;
+        geometry->indices[(uc * 6) + 1] = (uc * 4) + 1;
+        geometry->indices[(uc * 6) + 2] = (uc * 4) + 0;
+        geometry->indices[(uc * 6) + 3] = (uc * 4) + 3;
+        geometry->indices[(uc * 6) + 4] = (uc * 4) + 0;
+        geometry->indices[(uc * 6) + 5] = (uc * 4) + 1;
 
         // Now advance c
         c += advance - 1;  // Subtracting 1 because the loop always increments once for single-byte anyway.
@@ -313,16 +267,37 @@ static void regenerate_geometry(UIText* ui_text)
         uc++;
     }
 
-    if (!Renderer::renderbuffer_load_range(&ui_text->vertex_buffer, 0, vertex_buffer_size, vertex_buffer_data.data))
+    if (ui_text->geometry.loaded)
+        Renderer::geometry_reload(&ui_text->geometry);
+    else
+        Renderer::geometry_load(&ui_text->geometry);
+
+}
+
+bool32 ui_text_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* in_text, uint32 frame_number)
+{
+    UIText* text = (UIText*)in_text;
+
+    ShaderSystem::bind_instance(text->shader_instance_id);
+
+    if (shader_id == ShaderSystem::get_ui_shader_id())
     {
-        SHMERROR("regenerate_geometry - Failed to load vertex buffer data");
-        return;
+        ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();
+
+        static Math::Vec4f white_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, &white_color));
+        UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &text->font_atlas->map));
+        UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
+    }
+    else
+    {
+        SHMERRORV("Unknown shader id %u for rendering mesh. Skipping uniforms.", shader_id);
+        return false;
     }
 
-    if (!Renderer::renderbuffer_load_range(&ui_text->index_buffer, 0, index_buffer_size, index_buffer_data.data))
-    {
-        SHMERROR("regenerate_geometry - Failed to load index buffer data");
-        return;
-    }
+    bool32 needs_update = (text->render_frame_number != (uint32)frame_number);
+    UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update));
+    text->render_frame_number = frame_number;
 
+    return true;
 }

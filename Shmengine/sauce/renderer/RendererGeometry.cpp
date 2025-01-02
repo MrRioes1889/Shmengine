@@ -38,8 +38,8 @@ namespace Renderer
 		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
 		out_config.vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
 		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0);
-		uint32 index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
-		out_config.indices.init(index_count, 0);
+		out_config.index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
+		out_config.indices.init(out_config.index_count, 0);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 seg_width = width / x_segment_count;
@@ -132,8 +132,8 @@ namespace Renderer
 		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
 		out_config.vertex_count = 4 * 6;  // 4 verts per segment
 		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0);
-		uint32 index_count = 6 * 6;  // 6 indices per segment
-		out_config.indices.init(index_count, 0);
+		out_config.index_count = 6 * 6;  // 6 indices per segment
+		out_config.indices.init(out_config.index_count, 0);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 half_width = width * 0.5f;
@@ -257,7 +257,7 @@ namespace Renderer
 			out_config.indices[i_offset + 5] = v_offset + 1;
 		}
 
-		geometry_generate_mesh_tangents(out_config.vertex_count, (Vertex3D*)out_config.vertices.data, out_config.indices.capacity, out_config.indices.data );
+		geometry_generate_mesh_tangents(out_config.vertex_count, (Vertex3D*)out_config.vertices.data, out_config.index_count, out_config.indices.data );
 
 		if (name && CString::length(name) > 0) {
 			CString::copy(name, out_config.name, max_geometry_name_length);
@@ -412,8 +412,6 @@ namespace Renderer
         Vertex3D* old_vertices = (Renderer::Vertex3D*)g_config.vertices.transfer_data();        
         uint32 old_vertex_count = g_config.vertex_count;
 
-        uint32* indices = g_config.indices.data;
-
         uint32 found_count = 0;
         for (uint32 o = 0; o < old_vertex_count; o++)
         {
@@ -422,7 +420,7 @@ namespace Renderer
             {
                 if (vertex3d_equal(new_vertices[n], old_vertices[o]))
                 {
-                    reassign_index(g_config.indices.capacity, indices, o - found_count, n);
+                    reassign_index(g_config.index_count, g_config.indices.data, o - found_count, n);
                     found = true;
                     found_count++;
                     break;
