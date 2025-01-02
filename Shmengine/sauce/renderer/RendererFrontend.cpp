@@ -55,7 +55,7 @@ namespace Renderer
 
 		system_state->flags = RendererConfigFlags::VSYNC; //| RendererConfigFlags::POWER_SAVING;
 
-		system_state->module.frame_count = 0;
+		system_state->module.frame_number = 0;
 		system_state->module = sys_config->renderer_module;
 
 		system_state->framebuffer_width = 1280;
@@ -124,7 +124,7 @@ namespace Renderer
 	{
 		OPTICK_EVENT();
 		Module& backend = system_state->module;
-		backend.frame_count++;
+		backend.frame_number++;
 		bool32 did_resize = false;
 
 		if (system_state->resizing) {
@@ -157,7 +157,7 @@ namespace Renderer
 
 		for (uint32 i = 0; i < data->views.capacity; i++)
 		{
-			if (!RenderViewSystem::on_render(data->views[i].view, data->views[i], system_state->module.frame_count, render_target_index))
+			if (!RenderViewSystem::on_render(data->views[i].view, data->views[i], system_state->module.frame_number, render_target_index))
 			{
 				SHMERRORV("Error rendering view index: %u", i);
 				return false;
@@ -400,17 +400,16 @@ namespace Renderer
 
 	}
 
-	void geometry_draw(const GeometryRenderData& data)
+	void geometry_draw(GeometryData* geometry)
 	{
+		if (!geometry->loaded)
+			geometry_load(geometry);
 
-		if (!data.geometry->loaded)
-			geometry_load(data.geometry);
+		bool32 includes_indices = geometry->indices.capacity > 0;
 
-		bool32 includes_indices = data.geometry->indices.capacity > 0;
-
-		renderbuffer_draw(&system_state->general_vertex_buffer, data.geometry->vertex_buffer_offset, data.geometry->vertex_count, includes_indices);
+		renderbuffer_draw(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, geometry->vertex_count, includes_indices);
 		if (includes_indices)
-			renderbuffer_draw(&system_state->general_index_buffer, data.geometry->index_buffer_offset, data.geometry->indices.capacity, false);
+			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_offset, geometry->indices.capacity, false);
 	}
 
 	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)

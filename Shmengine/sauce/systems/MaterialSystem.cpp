@@ -597,4 +597,57 @@ namespace MaterialSystem
         return true;
     }
 
+    bool32 material_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* material, uint32 frame_number)
+    {
+        Material* mat = (Material*)material;
+
+        if (shader_id == ShaderSystem::get_material_shader_id())
+        {
+            ShaderSystem::bind_instance(mat->shader_instance_id);
+
+            ShaderSystem::MaterialShaderUniformLocations u_locations = ShaderSystem::get_material_shader_uniform_locations();
+            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, mat->properties));
+
+            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &mat->maps[0]));
+            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.specular_texture, &mat->maps[1]));
+            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.normal_texture, &mat->maps[2]));
+
+            if (lighting.dir_light)
+            {
+                UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, lighting.dir_light));
+            }
+
+            if (lighting.p_lights)
+            {
+                UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
+                UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, lighting.p_lights));
+            }
+            else
+            {
+                UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
+            }
+
+            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
+        }
+        else if (shader_id == ShaderSystem::get_ui_shader_id())
+        {
+            ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();
+            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, mat->properties));
+            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &mat->maps[0]));
+
+            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
+        }
+        else
+        {
+            SHMERRORV("Unknown shader id %u for rendering mesh. Skipping uniforms.", shader_id);
+            return false;
+        }
+
+        bool32 needs_update = (mat->render_frame_number != (uint32)frame_number);
+        UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update));
+        mat->render_frame_number = frame_number;      
+
+        return true;
+    }
+
 }

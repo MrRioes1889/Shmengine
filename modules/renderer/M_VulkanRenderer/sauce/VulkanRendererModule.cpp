@@ -13,7 +13,7 @@ namespace Renderer::Vulkan
 	bool32 create_module(Module* out_module)
 	{
 
-		out_module->frame_count = 0;
+		out_module->frame_number = 0;
 
 		out_module->get_context_size_requirement = get_context_size_requirement;
 

@@ -9,6 +9,7 @@
 #include "systems/JobSystem.hpp"
 #include "systems/GeometrySystem.hpp"
 #include "systems/MaterialSystem.hpp"
+#include "systems/ShaderSystem.hpp"
 
 static void mesh_load_job_success(void* params);
 static void mesh_load_job_fail(void* params);

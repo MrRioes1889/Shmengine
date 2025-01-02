@@ -42,10 +42,10 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     out_terrain->tile_scale_z = config->tile_scale_z;
     out_terrain->scale_y = config->scale_y;
 
-    out_terrain->material_names.init(config->materials_count, DarrayFlags::NON_RESIZABLE);
-    out_terrain->material_names.set_count(config->materials_count);
+    out_terrain->materials.init(config->materials_count, DarrayFlags::NON_RESIZABLE);
+    out_terrain->materials.set_count(config->materials_count);
     for (uint32 i = 0; i < config->materials_count; i++)
-        CString::copy(config->material_names[i], out_terrain->material_names[i].name, max_material_name_length);
+        CString::copy(config->material_names[i], out_terrain->materials[i].name, max_material_name_length);
 
 	if (!out_terrain->tile_count_x)
 	{
@@ -140,9 +140,9 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 			v->tex_coords.x = (float32)x;
 			v->tex_coords.y = (float32)z;
 
-			float32 step_size = 1.0f / (float32)out_terrain->material_names.count;
+			float32 step_size = 1.0f / (float32)out_terrain->materials.count;
 			v->material_weights[0] = 1.0f - smoothstep(0.0f, step_size, out_terrain->vertex_infos[i].height);
-			for (uint32 w = 1; w < out_terrain->material_names.count; w++)
+			for (uint32 w = 1; w < out_terrain->materials.count; w++)
 				v->material_weights[w] = smoothstep(step_size * (w - 1), step_size * w, out_terrain->vertex_infos[i].height) - smoothstep(step_size * w, step_size * (w + 1), out_terrain->vertex_infos[i].height);
 
 		}
@@ -226,7 +226,7 @@ bool32 terrain_destroy(Terrain* terrain)
     terrain->geometry.indices.free_data();
     terrain->vertex_infos.free_data();
 
-    terrain->material_names.free_data();
+    terrain->materials.free_data();
 
     terrain->name.free_data();
 
@@ -250,11 +250,11 @@ bool32 terrain_load(Terrain* terrain)
         return false;
     }
 
-	uint32 material_count = terrain->material_names.count;
+	uint32 material_count = terrain->materials.count;
 
 	Material* sub_materials[max_terrain_materials_count] = {};
 	for (uint32 i = 0; i < material_count; i++)
-		sub_materials[i] = MaterialSystem::acquire(terrain->material_names[i].name);
+		sub_materials[i] = MaterialSystem::acquire(terrain->materials[i].name);
 
 	terrain->material_properties.materials_count = material_count;
 
@@ -313,7 +313,7 @@ bool32 terrain_load(Terrain* terrain)
 	}
 
 	for (uint32 i = 0; i < material_count; i++)
-		MaterialSystem::release(terrain->material_names[i].name);
+		MaterialSystem::release(terrain->materials[i].name);
 
 	Renderer::Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
 	
@@ -363,4 +363,48 @@ bool32 terrain_unload(Terrain* terrain)
 bool32 terrain_update(Terrain* terrain)
 {
     return true;
+}
+
+bool32 terrain_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* terrain, uint32 frame_number)
+{
+
+	Terrain* t = (Terrain*)terrain;
+
+	if (shader_id == ShaderSystem::get_terrain_shader_id())
+	{
+		ShaderSystem::bind_instance(t->shader_instance_id);
+
+		ShaderSystem::TerrainShaderUniformLocations u_locations = ShaderSystem::get_terrain_shader_uniform_locations();
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, &t->material_properties));
+
+		for (uint32 mat_i = 0; mat_i < t->materials.count; mat_i++)
+		{
+			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.samplers[mat_i * 3], &t->texture_maps[mat_i * 3]));
+			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.samplers[mat_i * 3 + 1], &t->texture_maps[mat_i * 3 + 1]));
+			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.samplers[mat_i * 3 + 2], &t->texture_maps[mat_i * 3 + 2]));
+		}
+
+		if (lighting.p_lights)
+		{
+			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
+			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, lighting.p_lights));
+		}
+		else
+		{
+			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
+		}
+
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
+	}
+	else
+	{
+		SHMERRORV("Unknown shader id %u for rendering terrain. Skipping uniforms.", shader_id);
+		return false;
+	}
+
+	bool32 needs_update = (t->render_frame_number != (uint32)frame_number);
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update));
+	t->render_frame_number = frame_number;
+
+	return true;
 }

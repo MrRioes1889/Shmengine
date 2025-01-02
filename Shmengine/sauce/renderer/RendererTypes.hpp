@@ -47,6 +47,13 @@ struct PointLight
 	float32 padding;
 };
 
+struct LightingInfo
+{
+	DirectionalLight* dir_light;
+	uint32 p_lights_count;
+	PointLight* p_lights;
+};
+
 namespace Renderer
 {
 
@@ -461,20 +468,30 @@ namespace Renderer
 		void (*on_resize)(RenderView* self, uint32 width, uint32 height);
 		bool32(*on_build_packet)(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet);
 		void (*on_destroy_packet)(const RenderView* self, RenderViewPacket* packet);
-		bool32(*on_render)(RenderView* self, RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
+		bool32(*on_render)(RenderView* self, RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index);
 		bool32(*regenerate_attachment_target)(const RenderView* self, uint32 pass_index, RenderTargetAttachment* attachment);
 	};
 
+	
+
 	struct GeometryRenderData
 	{		
-		UniqueId unique_id;
+		/*UniqueId unique_id;
 		uint32 shader_instance_id;
 		uint32 texture_maps_count;
 		GeometryData* geometry;
 		void* properties;
 		TextureMap* texture_maps;
 		uint32* render_frame_number;
-		Math::Mat4 model;
+		Math::Mat4 model;*/
+
+		UniqueId unique_id;
+		uint32 shader_id;	
+		void* render_object;
+		bool32(*on_render)(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* render_object, uint32 frame_number);
+		GeometryData* geometry_data;
+		Math::Mat4 model;	
+		bool8 has_transparency;	
 	};
 
 	struct RenderViewPacket
@@ -546,7 +563,7 @@ namespace Renderer
 	struct Module
 	{
 
-		uint64 frame_count;
+		uint32 frame_number;
 
 		uint64(*get_context_size_requirement)();
 

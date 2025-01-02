@@ -56,7 +56,7 @@ namespace Renderer
 	bool32 geometry_load(GeometryData* geometry);
 	void geometry_unload(GeometryData* geometry);
 
-	void geometry_draw(const GeometryRenderData& data);
+	void geometry_draw(GeometryData* geometry);
 
 	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
 	void shader_destroy(Shader* shader);

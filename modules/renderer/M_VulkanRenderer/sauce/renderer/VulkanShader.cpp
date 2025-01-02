@@ -398,7 +398,6 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		// Global UBO is always at the beginning, but use this anyway.
 		s->bound_ubo_offset = s->global_ubo_offset;
 		return true;
 	}

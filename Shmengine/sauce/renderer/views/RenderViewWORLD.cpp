@@ -182,6 +182,7 @@ namespace Renderer
 		out_packet->extended_data = frame_allocator->allocate(sizeof(WorldPacketData));
 		Memory::copy_memory(packet_data, out_packet->extended_data, sizeof(WorldPacketData));
 
+		// TODO: frame_allocator for packet geometries
 		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER);
 		out_packet->view = self;
 
@@ -195,20 +196,14 @@ namespace Renderer
 		for (uint32 i = 0; i < packet_data->mesh_geometries_count; i++)
 		{
 			GeometryRenderData* g_data = &packet_data->geometries[i];
-			if (!g_data->geometry)
-				continue;
 
-			bool32 has_transparency = false;
-			if (g_data->texture_maps_count)
-				has_transparency = (g_data->texture_maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
-
-			if (!has_transparency)
+			if (!g_data->has_transparency)
 			{
 				out_packet->geometries.emplace(*g_data);
 			}
 			else
 			{
-				Math::Vec3f center = Math::vec_transform(g_data->geometry->center, g_data->model);
+				Math::Vec3f center = Math::vec_transform(g_data->geometry_data->center, g_data->model);
 				float32 distance = Math::vec_distance(center, internal_data->camera->get_position());
 
 				GeometryDistance* g_dist = &transparent_geometries[transparent_geometries.emplace()];
@@ -227,9 +222,6 @@ namespace Renderer
 		for (uint32 i = packet_data->mesh_geometries_count; i < total_geometry_count; i++)
 		{
 			GeometryRenderData* g_data = &packet_data->geometries[i];
-			if (!g_data->geometry)
-				continue;
-
 			out_packet->geometries.emplace(*g_data);
 		}
 
@@ -243,7 +235,7 @@ namespace Renderer
 		packet->extended_data = 0;
 	}
 
-	bool32 render_view_world_on_render(RenderView* self, RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
+	bool32 render_view_world_on_render(RenderView* self, RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index)
 	{
 
 		RenderViewWorldInternalData* data = (RenderViewWorldInternalData*)self->internal_data.data;
@@ -262,100 +254,39 @@ namespace Renderer
 
 			if (packet_data)
 			{
-
-				ShaderSystem::LightingInfo lighting =
+		
+				LightingInfo lighting =
 				{
 					.dir_light = packet_data->dir_light,
 					.p_lights_count = packet_data->p_lights_count,
 					.p_lights = packet_data->p_lights
 				};
 
-				uint32 geometry_i = 0;
+				uint32 shader_id = INVALID_ID;
+				uint32 total_geometry_count = packet_data->mesh_geometries_count + packet_data->terrain_geometries_count;
 
-				if (packet_data->terrain_geometries_count)
+				for (uint32 geometry_i = 0; geometry_i < total_geometry_count; geometry_i++)
 				{
-					uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
-					if (terrain_shader_id == INVALID_ID)
+					GeometryRenderData* g = &packet.geometries[geometry_i];
+
+					if (g->shader_id != shader_id)
 					{
-						SHMERROR("Failed to retrieve terrain shader id.");
-						return false;
-					}
-					ShaderSystem::use_shader(terrain_shader_id);
+						shader_id = g->shader_id;
+						ShaderSystem::use_shader(shader_id);
 
-					if (!ShaderSystem::apply_globals(terrain_shader_id, lighting, frame_number,
-						&packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
-					{
-						SHMERROR("Failed to apply globals to terrain shader.");
-						return false;
-					}
-
-					for (uint32 i = 0; i < packet_data->terrain_geometries_count; i++, geometry_i++)
-					{
-
-						GeometryRenderData* g = &packet.geometries[geometry_i];
-
-						// Apply the material
-						bool32 needs_update = (*g->render_frame_number != (uint32)frame_number);
-						if (!ShaderSystem::apply_instance(terrain_shader_id, g->shader_instance_id, g->properties,
-							g->texture_maps, g->texture_maps_count, lighting, needs_update))
+						if (!ShaderSystem::apply_globals(shader_id, lighting, frame_number,
+							&packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
 						{
-							SHMWARN("Failed to apply instance. Skipping draw.");
-							continue;
+							SHMERROR("Failed to apply globals to shader.");
+							return false;
 						}
-
-						*g->render_frame_number = (uint32)frame_number;
-
-						// Apply the locals
-						ShaderSystem::apply_local(terrain_shader_id, packet.geometries[geometry_i].model);
-
-						// Draw it.
-						geometry_draw(packet.geometries[geometry_i]);
-
-					}
-				}
-
-				if (packet_data->mesh_geometries_count)
-				{
-
-					uint32 material_shader_id = ShaderSystem::get_material_shader_id();
-					if (!ShaderSystem::use_shader(material_shader_id))
-					{
-						SHMERROR("render_view_world_on_render - Failed to use shader. Render frame failed.");
-						return false;
 					}
 
-					// Apply globals
-					if (!ShaderSystem::apply_globals(material_shader_id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, &packet.ambient_color, &packet.view_position, data->render_mode))
-					{
-						SHMERROR("render_view_world_on_render - Failed to use apply globals for shader. Render frame failed.");
-						return false;
-					}
+					// Apply instance
+					g->on_render(shader_id, lighting, &g->model, g->render_object, frame_number);
 
-					for (uint32 i = 0; i < packet_data->mesh_geometries_count; i++, geometry_i++)
-					{
-
-						GeometryRenderData* g = &packet.geometries[geometry_i];
-
-						// Apply the material
-						bool32 needs_update = (*g->render_frame_number != (uint32)frame_number);
-						if (!ShaderSystem::apply_instance(material_shader_id, g->shader_instance_id, g->properties,
-							g->texture_maps, g->texture_maps_count, lighting, needs_update))
-						{
-							SHMWARN("Failed to apply instance. Skipping draw.");
-							continue;
-						}
-
-						*g->render_frame_number = (uint32)frame_number;
-
-						// Apply the locals
-						ShaderSystem::apply_local(material_shader_id, packet.geometries[geometry_i].model);
-
-						// Draw it.
-						geometry_draw(packet.geometries[geometry_i]);
-
-					}
-
-				}		
+					geometry_draw(packet.geometries[geometry_i].geometry_data);
+				}	
 				
 			}
 

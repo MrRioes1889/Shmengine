@@ -198,7 +198,7 @@ namespace RenderViewSystem
 		}
 	}
 
-	bool32 on_render(Renderer::RenderView* view, Renderer::RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
+	bool32 on_render(Renderer::RenderView* view, Renderer::RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index)
 	{
 		OPTICK_EVENT();
 		return view->on_render(view, packet, frame_number, render_target_index);

@@ -11,6 +11,7 @@
 #include "renderer/Camera.hpp"
 #include "systems/RenderViewSystem.hpp"
 #include "systems/GeometrySystem.hpp"
+#include "systems/ShaderSystem.hpp"
 
 static uint32 global_scene_id = 0;
 
@@ -482,19 +483,20 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 	Renderer::GeometryRenderData* geometries = 0;
 
 	uint32 terrain_geometries_count = 0;
+	uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
 	for (uint32 i = 0; i < scene->terrains.count; i++)
 	{
 		Terrain* t = &scene->terrains[i];
 
 		Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
 		render_data->model = Math::transform_get_world(t->xform);
-		render_data->geometry = &t->geometry;
-		render_data->render_frame_number = &t->render_frame_number;
-		render_data->shader_instance_id = t->shader_instance_id;
-		render_data->texture_maps = t->texture_maps;
-		render_data->texture_maps_count = max_terrain_materials_count * 3;
-		render_data->properties = &t->material_properties;
+		render_data->shader_id = terrain_shader_id;
+		render_data->render_object = t;
+		render_data->on_render = terrain_on_render;
+		render_data->geometry_data = &t->geometry;
+		render_data->has_transparency = 0;
 		render_data->unique_id = 0;
+		
 
 		terrain_geometries_count++;
 		if (!geometries)
@@ -507,6 +509,8 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		Mesh* m = &scene->meshes[i];
 		if (m->generation == INVALID_ID8)
 			continue;
+
+		uint32 material_shader_id = ShaderSystem::get_material_shader_id();
 
 		Math::Mat4 model = Math::transform_get_world(m->transform);
 		for (uint32 j = 0; j < m->geometries.count; j++)
@@ -521,13 +525,12 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 			{
 				Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
 				render_data->model = model;
-				render_data->geometry = g->g_data;
-				render_data->render_frame_number = &g->material->render_frame_number;
-				render_data->shader_instance_id = g->material->shader_instance_id;
-				render_data->texture_maps = g->material->maps.data;
-				render_data->texture_maps_count = g->material->maps.capacity;
-				render_data->properties = g->material->properties;
-				render_data->unique_id = m->unique_id;
+				render_data->shader_id = material_shader_id;
+				render_data->render_object = g->material;
+				render_data->on_render = MaterialSystem::material_on_render;
+				render_data->geometry_data = g->g_data;
+				render_data->has_transparency = (g->material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);			
+				render_data->unique_id = m->unique_id;			
 
 				mesh_geometries_count++;
 				if (!geometries)

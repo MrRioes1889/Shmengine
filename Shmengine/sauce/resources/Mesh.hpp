@@ -5,6 +5,8 @@
 #include "utility/math/Transform.hpp"
 #include "systems/GeometrySystem.hpp"
 
+struct LightingInfo;
+
 enum class MeshState
 {
 	UNINITIALIZED,

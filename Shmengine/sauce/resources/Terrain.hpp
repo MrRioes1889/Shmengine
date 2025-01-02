@@ -7,6 +7,7 @@
 #include "systems/MaterialSystem.hpp"
 
 struct Material;
+struct LightinInfo;
 
 enum class TerrainState
 {
@@ -76,7 +77,7 @@ struct Terrain
 
 	MaterialTerrainProperties material_properties;
 	
-	Darray<SubMaterial> material_names;
+	Darray<SubMaterial> materials;
 	TextureMap texture_maps[max_terrain_materials_count * 3];
 	uint32 shader_instance_id;
 
@@ -90,3 +91,5 @@ SHMAPI bool32 terrain_load(Terrain* terrain);
 SHMAPI bool32 terrain_unload(Terrain* terrain);
 
 SHMAPI bool32 terrain_update(Terrain* terrain);
+
+SHMAPI bool32 terrain_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* terrain, uint32 frame_number);

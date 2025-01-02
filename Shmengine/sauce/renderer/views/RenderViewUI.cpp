@@ -126,20 +126,21 @@ namespace Renderer
 		out_packet->projection_matrix = internal_data->projection_matrix;
 		out_packet->view_matrix = internal_data->view_matrix;	
 
+		uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
+
 		for (uint32 i = 0; i < packet_data->mesh_data.mesh_count; i++)
 		{
 			Mesh* m = packet_data->mesh_data.meshes[i];
 			for (uint32 g = 0; g < m->geometries.count; g++)
 			{
 				GeometryRenderData* render_data = &out_packet->geometries[out_packet->geometries.emplace()];
-				render_data->geometry = m->geometries[g].g_data;
 				render_data->model = Math::transform_get_world(m->transform);
-				render_data->render_frame_number = &m->geometries[g].material->render_frame_number;
-				render_data->shader_instance_id = m->geometries[g].material->shader_instance_id;
-				render_data->texture_maps = m->geometries[g].material->maps.data;
-				render_data->texture_maps_count = m->geometries[g].material->maps.capacity;
-				render_data->properties = m->geometries[g].material->properties;
-				render_data->unique_id = m->unique_id;
+				render_data->shader_id = ui_shader_id;
+				render_data->render_object = m->geometries[g].material;
+				render_data->on_render = MaterialSystem::material_on_render;
+				render_data->geometry_data = m->geometries[g].g_data;
+				render_data->has_transparency = (m->geometries[g].material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
+				render_data->unique_id = m->unique_id;		
 			}
 		}
 
@@ -153,7 +154,7 @@ namespace Renderer
 		packet->extended_data = 0;
 	}
 
-	bool32 render_view_ui_on_render(RenderView* self, RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
+	bool32 render_view_ui_on_render(RenderView* self, RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index)
 	{
 
 		RenderViewUIInternalData* data = (RenderViewUIInternalData*)self->internal_data.data;
@@ -169,42 +170,41 @@ namespace Renderer
 				return false;
 			}
 
-			if (!ShaderSystem::use_shader(data->shader->id)) {
-				SHMERROR("render_view_ui_on_render - Failed to use shader. Render frame failed.");
-				return false;
-			}
+			LightingInfo lighting =	{};
+			uint32 shader_id = INVALID_ID;
 
-			ShaderSystem::LightingInfo lighting = {};
-
-			// Apply globals
-			if (!ShaderSystem::apply_globals(data->shader->id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, 0, 0, 0)) {
-				SHMERROR("render_view_ui_on_render - Failed to use apply globals for shader. Render frame failed.");
-				return false;
-			}
-
-			for (uint32 geo_i = 0; geo_i < packet.geometries.count; geo_i++)
+			for (uint32 geometry_i = 0; geometry_i < packet.geometries.count; geometry_i++)
 			{
-				GeometryRenderData* g = &packet.geometries[geo_i];
+				GeometryRenderData* g = &packet.geometries[geometry_i];
 
-				// Apply the material
-				bool32 needs_update = (*g->render_frame_number != (uint32)frame_number);
-				if (!ShaderSystem::apply_instance(data->shader->id, g->shader_instance_id, g->properties,
-					g->texture_maps, g->texture_maps_count, lighting, needs_update))
+				if (g->shader_id != shader_id)
 				{
-					SHMWARN("Failed to apply instance. Skipping draw.");
-					continue;
+					shader_id = g->shader_id;
+					ShaderSystem::use_shader(shader_id);
+
+					if (!ShaderSystem::apply_globals(shader_id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, 0, 0, 0)) {
+						SHMERROR("Failed to use apply globals for shader. Render frame failed.");
+						return false;
+					}
 				}
 
-				*g->render_frame_number = (uint32)frame_number;
-
-				// Apply the locals
-				ShaderSystem::apply_local(data->shader->id, packet.geometries[geo_i].model);
+				// Apply instance
+				g->on_render(shader_id, lighting, &g->model, g->render_object, frame_number);
 
 				// Draw it.
-				geometry_draw(packet.geometries[geo_i]);
+				geometry_draw(packet.geometries[geometry_i].geometry_data);
+
 			}
 
 			UIPacketData* packet_data = (UIPacketData*)packet.extended_data;  // array of texts
+			shader_id = ShaderSystem::get_ui_shader_id();
+			ShaderSystem::use_shader(shader_id);
+
+			if (!ShaderSystem::apply_globals(shader_id, lighting, frame_number, &packet.projection_matrix, &packet.view_matrix, 0, 0, 0)) {
+				SHMERROR("Failed to use apply globals for shader. Render frame failed.");
+				return false;
+			}
+
 			for (uint32 i = 0; i < packet_data->text_count; ++i) {
 				UIText* text = packet_data->texts[i];
 				ShaderSystem::bind_instance(text->instance_id);

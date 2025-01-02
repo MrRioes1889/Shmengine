@@ -26,7 +26,7 @@ namespace RenderViewSystem
 	SHMAPI bool32 build_packet(Renderer::RenderView* view, Memory::LinearAllocator* frame_allocator, void* data, Renderer::RenderViewPacket* out_packet);
 
 	void on_window_resize(uint32 width, uint32 height);
-	bool32 on_render(Renderer::RenderView* view, Renderer::RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index);
+	bool32 on_render(Renderer::RenderView* view, Renderer::RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index);
 
 	void regenerate_render_targets(Renderer::RenderView* view);
 

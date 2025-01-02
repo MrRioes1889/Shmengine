@@ -4,6 +4,12 @@
 #include "renderer/RendererTypes.hpp"
 #include "core/Subsystems.hpp"
 
+#define UNIFORM_APPLY_OR_FAIL(expr)                  \
+    if ((!expr)) {                                      \
+        SHMERRORV("Failed to apply uniform: %s", expr); \
+        return false;                                 \
+    }
+
 namespace ShaderSystem
 {
 
@@ -59,13 +65,6 @@ namespace ShaderSystem
 		uint16 max_instance_textures;
 	};
 
-	struct LightingInfo
-	{
-		DirectionalLight* dir_light;
-		uint32 p_lights_count;
-		PointLight* p_lights;
-	};
-
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
@@ -87,8 +86,6 @@ namespace ShaderSystem
 	SHMAPI bool32 set_sampler(uint16 index, const void* value);
 
 	SHMAPI bool32 apply_globals(uint32 shader_id, LightingInfo lighting, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode);
-	SHMAPI bool32 apply_instance(uint32 shader_id, uint32 shader_instance_id, void* properties, TextureMap* texture_maps, uint32 texture_maps_count, LightingInfo lighting, bool32 needs_update);
-	SHMAPI bool32 apply_local(uint32 shader_id, const Math::Mat4& model);
 
 	SHMAPI bool32 bind_instance(uint32 instance_id);
 

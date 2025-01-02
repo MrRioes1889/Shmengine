@@ -8,6 +8,7 @@
 
 struct DirectionalLight;
 struct PointLight;
+struct LightingInfo;
 
 namespace TextureFilter
 {
@@ -219,5 +220,7 @@ namespace MaterialSystem
 	SHMAPI Material* get_default_ui_material();
 
 	void dump_system_stats();
+
+	SHMAPI bool32 material_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* material, uint32 frame_number);
 
 }

@@ -243,20 +243,22 @@ namespace Renderer
 				max_instance_id = packet_data->world_geometries[i].unique_id;
 		}
 
+		uint32 ui_pick_shader_id = 0;
+
 		for (uint32 i = 0; i < packet_data->ui_mesh_data.mesh_count; i++)
 		{
 			Mesh* m = packet_data->ui_mesh_data.meshes[i];
 			for (uint32 g = 0; g < m->geometries.count; g++)
 			{
 				GeometryRenderData* render_data = &out_packet->geometries[out_packet->geometries.emplace()];
-				render_data->geometry = m->geometries[g].g_data;
 				render_data->model = Math::transform_get_world(m->transform);
-				render_data->render_frame_number = &m->geometries[g].material->render_frame_number;
-				render_data->shader_instance_id = m->geometries[g].material->shader_instance_id;
-				render_data->texture_maps = m->geometries[g].material->maps.data;
-				render_data->texture_maps_count = m->geometries[g].material->maps.capacity;
-				render_data->properties = m->geometries[g].material->properties;
+				render_data->shader_id = ui_pick_shader_id;
+				render_data->render_object = m->geometries[g].material;
+				render_data->on_render = MaterialSystem::material_on_render;
+				render_data->geometry_data = m->geometries[g].g_data;
+				render_data->has_transparency = (m->geometries[g].material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
 				render_data->unique_id = m->unique_id;
+
 				packet_data->ui_geometries_count++;
 			}
 
@@ -290,7 +292,7 @@ namespace Renderer
 		packet->extended_data = 0;
 	}
 
-	bool32 render_view_pick_on_render(RenderView* self, RenderViewPacket& packet, uint64 frame_number, uint64 render_target_index)
+	bool32 render_view_pick_on_render(RenderView* self, RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index)
 	{
 
 		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
@@ -340,7 +342,7 @@ namespace Renderer
 
 				ShaderSystem::set_uniform(data->world_shader_info.model_location, &render_data->model);
 
-				Renderer::geometry_draw(packet.geometries[i]);
+				Renderer::geometry_draw(packet.geometries[i].geometry_data);
 			}
 
 			if (!renderpass_end(pass))
@@ -384,7 +386,7 @@ namespace Renderer
 
 				ShaderSystem::set_uniform(data->ui_shader_info.model_location, &render_data->model);
 
-				Renderer::geometry_draw(packet.geometries[i]);
+				Renderer::geometry_draw(packet.geometries[i].geometry_data);
 			}
 
 			for (uint32 i = 0; i < packet_data->text_count; i++)

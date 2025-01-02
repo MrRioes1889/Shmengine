@@ -385,12 +385,6 @@ namespace ShaderSystem
 		return set_uniform(sampler_name, value);
 	}
 
-#define UNIFORM_APPLY_OR_FAIL(expr)                  \
-    if ((!expr)) {                                      \
-        SHMERRORV("Failed to apply uniform: %s", expr); \
-        return false;                                 \
-    }
-
 	bool32 apply_globals(uint32 shader_id, LightingInfo lighting, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode)
 	{
 		Renderer::Shader* s = get_shader(shader_id);
@@ -438,111 +432,6 @@ namespace ShaderSystem
 
 		s->renderer_frame_number = renderer_frame_number;
 		return true;
-	}
-
-	bool32 apply_instance(uint32 shader_id, uint32 shader_instance_id, void* properties, TextureMap* texture_maps, uint32 texture_maps_count, LightingInfo lighting, bool32 needs_update)
-	{
-		UNIFORM_APPLY_OR_FAIL(bind_instance(shader_instance_id));
-		if (needs_update)
-		{
-			if (shader_id == system_state->material_shader_id)
-			{
-				MaterialShaderUniformLocations u_locations = system_state->material_locations;
-				UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.properties, properties));
-				if (texture_maps_count == 3)
-				{
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.diffuse_texture, &texture_maps[0]));
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.specular_texture, &texture_maps[1]));
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.normal_texture, &texture_maps[2]));
-				}
-				else
-				{
-					SHMWARNV("Texture maps count %u does not match expected value 3. Not applying samplers.", texture_maps_count);
-				}
-
-				if (lighting.dir_light)
-				{
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.dir_light, lighting.dir_light));
-				}
-
-				if (lighting.p_lights)
-				{
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.p_lights, lighting.p_lights));
-				}
-				else
-				{
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.p_lights_count, 0));
-				}
-
-			}
-			else if (shader_id == system_state->terrain_shader_id)
-			{
-				TerrainShaderUniformLocations u_locations = system_state->terrain_locations;
-				UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.properties, properties));
-
-				if (texture_maps_count == 12)
-				{
-					for (uint32 i = 0; i < texture_maps_count; i++)
-						UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.samplers[i], &texture_maps[i]));
-				}
-				else
-				{
-					SHMWARNV("Texture maps count %u does not match expected value 12. Not applying samplers.", texture_maps_count);
-				}
-
-				if (lighting.p_lights)
-				{
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.p_lights, lighting.p_lights));
-				}
-				else
-				{
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.p_lights_count, 0));
-				}
-
-			}
-			else if (shader_id == system_state->ui_shader_id)
-			{
-				UIShaderUniformLocations u_locations = system_state->ui_locations;
-				UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.properties, properties));
-				if (texture_maps_count == 1)
-				{
-					UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.diffuse_texture, &texture_maps[0]));
-				}
-				else
-				{
-					SHMWARNV("Texture maps count %u does not match expected value 1. Not applying samplers.", texture_maps_count);
-				}
-			}
-			else
-			{
-				SHMERRORV("Unrecognized shader id '%u'.", shader_id);
-				return false;
-			}
-		}
-		UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(&system_state->shaders[system_state->bound_shader_id], needs_update));
-
-		return true;
-	}
-
-	bool32 apply_local(uint32 shader_id, const Math::Mat4& model)
-	{
-		if (shader_id == get_material_shader_id())
-		{
-			return set_uniform(get_material_shader_uniform_locations().model, &model);
-		}
-		else if (shader_id == get_terrain_shader_id())
-		{
-			return set_uniform(get_terrain_shader_uniform_locations().model, &model);
-		}
-		else if (shader_id == get_ui_shader_id())
-		{
-			return set_uniform(get_ui_shader_uniform_locations().model, &model);
-		}
-
-		SHMERRORV("Unrecognized shader id '%i'", shader_id);
-		return false;
 	}
 
 	bool32 bind_instance(uint32 instance_id)
