@@ -653,10 +653,7 @@ namespace Renderer::Vulkan
 		alloc_info.descriptorPool = v_shader->descriptor_pool;
 		alloc_info.descriptorSetCount = 3;
 		alloc_info.pSetLayouts = layouts;
-		VkResult result = vkAllocateDescriptorSets(
-			context->device.logical_device,
-			&alloc_info,
-			instance_state->descriptor_set_state.descriptor_sets);
+		VkResult result = vkAllocateDescriptorSets(context->device.logical_device, &alloc_info, instance_state->descriptor_set_state.descriptor_sets);
 		if (result != VK_SUCCESS)
 		{
 			SHMERRORV("Error allocating instance descriptor sets in shader: '%s'.", vk_result_string(result, true));

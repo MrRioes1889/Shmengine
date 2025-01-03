@@ -390,16 +390,6 @@ namespace ShaderSystem
 
 	}
 
-	bool32 set_sampler(uint16 location, const void* value)
-	{
-		return set_uniform(location, value);
-	}
-
-	bool32 set_sampler(const char* sampler_name, const void* value)
-	{
-		return set_uniform(sampler_name, value);
-	}
-
 	bool32 apply_globals(uint32 shader_id, LightingInfo lighting, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode)
 	{
 		Renderer::Shader* s = get_shader(shader_id);

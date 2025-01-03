@@ -161,7 +161,7 @@ struct MaterialConfig
 
 struct MaterialPhongProperties
 {
-	Math::Vec4f diffuse_color;
+	Math::Vec4f diffuse_color;	
 	Math::Vec3f padding;
 	float32 shininess;
 };
@@ -176,7 +176,6 @@ struct MaterialTerrainProperties
 	MaterialPhongProperties materials[max_terrain_materials_count];
 	Math::Vec3f padding;
 	uint32 materials_count;
-	Math::Vec4f padding2;
 };
 
 struct Material

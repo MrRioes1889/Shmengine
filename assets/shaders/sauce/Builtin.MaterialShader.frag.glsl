@@ -35,7 +35,7 @@ struct PointLight {
 const uint max_point_lights_count = 10;
 
 struct MaterialPhongProperties {
-    vec4 diffuse_color;
+    vec4 diffuse_color; 
     vec3 padding;
     float shininess;
 };

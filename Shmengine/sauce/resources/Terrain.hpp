@@ -58,6 +58,7 @@ struct Terrain
 	struct SubMaterial
 	{
 		char name[max_material_name_length];
+		Material* mat;
 	};
 
 	String name;	
@@ -78,9 +79,8 @@ struct Terrain
 	MaterialTerrainProperties material_properties;
 	
 	Darray<SubMaterial> materials;
-	TextureMap texture_maps[max_terrain_materials_count * 3];
-	uint32 shader_instance_id;
 
+	uint32 shader_instance_id;
 	uint32 render_frame_number;
 };
 

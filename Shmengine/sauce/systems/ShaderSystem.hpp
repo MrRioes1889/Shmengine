@@ -89,8 +89,6 @@ namespace ShaderSystem
 
 	SHMAPI bool32 set_uniform(const char* uniform_name, const void* value);
 	SHMAPI bool32 set_uniform(uint16 index, const void* value);
-	SHMAPI bool32 set_sampler(const char* sampler_name, const void* value);
-	SHMAPI bool32 set_sampler(uint16 index, const void* value);
 
 	SHMAPI bool32 apply_globals(uint32 shader_id, LightingInfo lighting, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode);
 

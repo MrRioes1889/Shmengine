@@ -36,7 +36,7 @@ uniform=samp,1,diffuse_texture_3
 uniform=samp,1,specular_texture_3
 uniform=samp,1,normal_texture_3
 
-uniform=struct160,1,properties
+uniform=struct144,1,properties
 uniform=struct480,1,p_lights
 uniform=uint32,1,p_lights_count
 uniform=float32,1,shininess

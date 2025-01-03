@@ -59,10 +59,9 @@ struct MaterialPhongProperties {
 };
 
 struct MaterialTerrainProperties {
-    MaterialPhongProperties materials[max_terrain_materials_count];
+    MaterialPhongProperties materials[max_terrain_materials_count];   
     vec3 padding;
-    int materials_count;
-    vec4 padding2;
+    uint materials_count;
 };
 
 layout(set = 1, binding = 0) uniform instance_uniform_object {
