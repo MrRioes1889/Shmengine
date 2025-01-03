@@ -345,16 +345,6 @@ bool32 terrain_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* mo
 			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.samplers[mat_i * 3 + 2], &t->materials[mat_i].mat->maps[2]));
 		}
 
-		if (lighting.p_lights)
-		{
-			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
-			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, lighting.p_lights));
-		}
-		else
-		{
-			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
-		}
-
 		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
 	}
 	else

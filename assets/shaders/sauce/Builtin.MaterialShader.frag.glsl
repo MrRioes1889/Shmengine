@@ -20,7 +20,8 @@ struct DirectionalLight
     vec4 direction;
 };
 
-struct PointLight {
+struct PointLight 
+{
     vec4 color;
     vec4 position;
     // Usually 1, make sure denominator never gets smaller than 1
@@ -34,7 +35,20 @@ struct PointLight {
 
 const uint max_point_lights_count = 10;
 
-struct MaterialPhongProperties {
+layout(set = 0, binding = 0) uniform global_uniform_object
+{
+    mat4 projection;
+    mat4 view;
+    vec4 ambient_color;
+    vec3 camera_position;
+    int mode;
+    DirectionalLight dir_light;
+    PointLight p_lights[max_point_lights_count];
+    uint p_lights_count;
+} global_ubo;
+
+struct MaterialPhongProperties 
+{
     vec4 diffuse_color; 
     vec3 padding;
     float shininess;
@@ -43,9 +57,6 @@ struct MaterialPhongProperties {
 layout(set = 1, binding = 0) uniform instance_uniform_object
 {
     MaterialPhongProperties properties;
-    DirectionalLight dir_light;
-    PointLight p_lights[max_point_lights_count];
-    uint p_lights_count;
 } instance_ubo;
 
 const int SAMP_DIFFUSE = 0;
@@ -123,11 +134,11 @@ void main()
     {
         vec3 view_direction = normalize(in_dto.camera_position - in_dto.frag_position);
 
-        out_color = calc_dir_lighting(instance_ubo.dir_light, normal, view_direction);
+        out_color = calc_dir_lighting(global_ubo.dir_light, normal, view_direction);
 
-        for (uint i = 0; i < instance_ubo.p_lights_count; i++)
+        for (uint i = 0; i < global_ubo.p_lights_count; i++)
         {
-            out_color += calc_point_lighting(instance_ubo.p_lights[i], normal, in_dto.frag_position, view_direction);
+            out_color += calc_point_lighting(global_ubo.p_lights[i], normal, in_dto.frag_position, view_direction);
         }
         
     }

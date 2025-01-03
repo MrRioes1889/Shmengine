@@ -20,15 +20,15 @@ uniform=mat4,0,view
 uniform=vec4,0,ambient_color
 uniform=vec3,0,camera_position
 uniform=uint32,0,mode
+uniform=struct32,0,dir_light
+uniform=struct480,0,p_lights
+uniform=uint32,0,p_lights_count
 
 uniform=samp,1,diffuse_texture
 uniform=samp,1,specular_texture
 uniform=samp,1,normal_texture
 
 uniform=struct32,1,properties
-uniform=struct32,1,dir_light
-uniform=struct480,1,p_lights
-uniform=uint32,1,p_lights_count
 uniform=float32,1,shininess
 
 uniform=mat4,2,model

@@ -407,6 +407,21 @@ namespace ShaderSystem
 			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.ambient_color, ambient_color));
 			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.camera_position, camera_position));
 			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.render_mode, &render_mode));
+
+			if (lighting.dir_light)
+			{
+				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, lighting.dir_light));
+			}
+
+			if (lighting.p_lights)
+			{
+				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
+				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, lighting.p_lights));
+			}
+			else
+			{
+				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
+			}
 		}
 		else if (shader_id == system_state->terrain_shader_id)
 		{
@@ -419,7 +434,17 @@ namespace ShaderSystem
 
 			if (lighting.dir_light)
 			{
-				UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.dir_light, lighting.dir_light));
+				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, lighting.dir_light));
+			}
+
+			if (lighting.p_lights)
+			{
+				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
+				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, lighting.p_lights));
+			}
+			else
+			{
+				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
 			}
 		}
 		else if (shader_id == system_state->ui_shader_id)

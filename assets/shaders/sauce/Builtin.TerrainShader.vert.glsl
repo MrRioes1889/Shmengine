@@ -13,6 +13,21 @@ struct DirectionalLight
     vec4 direction;
 };
 
+struct PointLight 
+{
+    vec4 color;
+    vec4 position;
+    // Usually 1, make sure denominator never gets smaller than 1
+    float constant_f;
+    // Reduces light intensity linearly
+    float linear;
+    // Makes the light fall off slower at longer distances.
+    float quadratic;
+    float padding;
+};
+
+const uint max_point_lights_count = 10;
+
 layout(set = 0, binding = 0) uniform global_uniform_object
 {
     mat4 projection;
@@ -21,6 +36,8 @@ layout(set = 0, binding = 0) uniform global_uniform_object
     vec3 camera_position;
     int mode;
     DirectionalLight dir_light;
+    PointLight p_lights[max_point_lights_count];
+    uint p_lights_count;
 } global_ubo;
 
 layout(push_constant) uniform push_constants
