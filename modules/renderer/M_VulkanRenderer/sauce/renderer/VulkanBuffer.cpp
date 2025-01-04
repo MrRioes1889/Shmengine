@@ -392,7 +392,7 @@ namespace Renderer::Vulkan
 	bool32 vk_buffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
 	{
 
-		VulkanCommandBuffer& command_buffer = context->graphics_command_buffers[context->image_index];
+		VulkanCommandBuffer& command_buffer = context->graphics_command_buffers[context->bound_framebuffer_index];
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 
 		if (buffer->type == RenderBufferType::VERTEX)

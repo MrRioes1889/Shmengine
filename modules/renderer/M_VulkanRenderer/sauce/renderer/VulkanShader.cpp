@@ -389,7 +389,7 @@ namespace Renderer::Vulkan
 	bool32 vk_shader_use(Shader* s)
 	{
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
-		vk_pipeline_bind(&context->graphics_command_buffers[context->image_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &v_shader->pipeline);
+		vk_pipeline_bind(&context->graphics_command_buffers[context->bound_framebuffer_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &v_shader->pipeline);
 		return true;
 	}
 
@@ -426,7 +426,7 @@ namespace Renderer::Vulkan
 
 		OPTICK_EVENT();
 
-		uint32 image_index = context->image_index;
+		uint32 image_index = context->bound_framebuffer_index;
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
 		VkDescriptorSet global_descriptor = v_shader->global_descriptor_sets[image_index];
@@ -477,7 +477,7 @@ namespace Renderer::Vulkan
 			SHMERROR("This shader does not use instances.");
 			return false;
 		}
-		uint32 image_index = context->image_index;
+		uint32 image_index = context->bound_framebuffer_index;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
 
 		// Obtain instance data.
@@ -715,7 +715,7 @@ namespace Renderer::Vulkan
 			if (uniform->scope == ShaderScope::LOCAL)
 			{
 				// Is local, using push constants. Do this immediately.
-				VkCommandBuffer command_buffer = context->graphics_command_buffers[context->image_index].handle;
+				VkCommandBuffer command_buffer = context->graphics_command_buffers[context->bound_framebuffer_index].handle;
 				vkCmdPushConstants(command_buffer, v_shader->pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform->offset, uniform->size, value);
 			}
 			else

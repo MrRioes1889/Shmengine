@@ -235,9 +235,6 @@ namespace Renderer::Vulkan
 			VK_CHECK(vkCreateFence(context->device.logical_device, &fence_create_info, context->allocator_callbacks, &context->framebuffer_fences[i]));
 		}
 
-		for (uint32 i = 0; i < 3; i++)
-			context->framebuffer_fences_in_flight[i] = 0;
-
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
 	}
@@ -355,7 +352,7 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		VkResult res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences[context->current_frame], true, UINT64_MAX);
+		VkResult res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index], true, UINT64_MAX);
 		if (!vk_result_is_success(res))
 		{
 			SHMERRORV("In-flight fence wait failure! Error: %s", vk_result_string(res, true));
@@ -363,14 +360,14 @@ namespace Renderer::Vulkan
 		}
 		
 		if (!vk_swapchain_acquire_next_image_index(
-			&context->swapchain, UINT64_MAX, context->image_available_semaphores[context->current_frame], 0, &context->image_index))
+			&context->swapchain, UINT64_MAX, context->image_available_semaphores[context->bound_sync_object_index], 0, &context->bound_framebuffer_index))
 		{
 			SHMERROR("begin_frame - Failed to acquire next image!");
 			return false;
 		}
 			
 
-		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->image_index];
+		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->bound_framebuffer_index];
 		vk_command_buffer_reset(cmd);
 		vk_command_buffer_begin(cmd, false, false, false);
 
@@ -386,35 +383,34 @@ namespace Renderer::Vulkan
 	bool32 vk_end_frame(const FrameData* frame_data)
 	{
 				
-		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->image_index];
+		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->bound_framebuffer_index];
 
 		vk_command_buffer_end(cmd);
 
-		context->framebuffer_fences_in_flight[context->image_index] = context->framebuffer_fences[context->current_frame];
-		VK_CHECK(vkResetFences(context->device.logical_device, 1, &context->framebuffer_fences[context->current_frame]));
+		VK_CHECK(vkResetFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index]));
 
 		VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 		submit_info.commandBufferCount = 1;
 		submit_info.pCommandBuffers = &cmd->handle;
 
 		submit_info.signalSemaphoreCount = 1;
-		submit_info.pSignalSemaphores = &context->queue_complete_semaphores[context->current_frame];
+		submit_info.pSignalSemaphores = &context->queue_complete_semaphores[context->bound_sync_object_index];
 		submit_info.waitSemaphoreCount = 1;
-		submit_info.pWaitSemaphores = &context->image_available_semaphores[context->current_frame];
+		submit_info.pWaitSemaphores = &context->image_available_semaphores[context->bound_sync_object_index];
 
 		VkPipelineStageFlags flags[1] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submit_info.pWaitDstStageMask = flags;
 
-		VkResult res = vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->framebuffer_fences[context->current_frame]);
+		VkResult res = vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->framebuffer_fences[context->bound_sync_object_index]);
 		if (res != VK_SUCCESS)
 		{
 			SHMERRORV("vkQueueSubmit failed with result: %s", vk_result_string(res, true));
 			return false;
 		}
 
-		if (context->framebuffer_fences_in_flight[context->image_index])
+		if (context->framebuffer_fences[context->bound_sync_object_index])
 		{
-			VkResult wait_res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences_in_flight[context->image_index], true, UINT64_MAX);
+			VkResult wait_res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index], true, UINT64_MAX);
 			if (!vk_result_is_success(wait_res))
 			{
 				SHMFATALV("In-flight fence wait failure! Error: %s", vk_result_string(res, true));
@@ -426,8 +422,8 @@ namespace Renderer::Vulkan
 		vk_swapchain_present(
 			&context->swapchain,
 			context->device.present_queue,
-			context->queue_complete_semaphores[context->current_frame],
-			context->image_index);
+			context->queue_complete_semaphores[context->bound_sync_object_index],
+			context->bound_framebuffer_index);
 
 		return true;
 
@@ -443,7 +439,7 @@ namespace Renderer::Vulkan
 		vp.minDepth = 0.0f;
 		vp.maxDepth = 1.0f;
 
-		VulkanCommandBuffer* cmd_buffer = &context->graphics_command_buffers[context->image_index];
+		VulkanCommandBuffer* cmd_buffer = &context->graphics_command_buffers[context->bound_framebuffer_index];
 		vkCmdSetViewport(cmd_buffer->handle, 0, 1, &vp);
 	}
 
@@ -460,7 +456,7 @@ namespace Renderer::Vulkan
 		scissor.extent.width = rect.width;
 		scissor.extent.height = rect.height;
 
-		VulkanCommandBuffer* cmd_buffer = &context->graphics_command_buffers[context->image_index];
+		VulkanCommandBuffer* cmd_buffer = &context->graphics_command_buffers[context->bound_framebuffer_index];
 		vkCmdSetScissor(cmd_buffer->handle, 0, 1, &scissor);
 	}
 
@@ -620,7 +616,7 @@ namespace Renderer::Vulkan
 
 	uint32 vk_get_window_attachment_index()
 	{
-		return context->image_index;
+		return context->bound_framebuffer_index;
 	}
 
 	uint32 vk_get_window_attachment_count()
@@ -685,9 +681,6 @@ namespace Renderer::Vulkan
 
 		context->recreating_swapchain = true;
 		vkDeviceWaitIdle(context->device.logical_device);
-
-		for (uint32 i = 0; i < context->swapchain.render_textures.capacity; i++)
-			context->framebuffer_fences_in_flight[i] = 0;
 
 		vk_device_query_swapchain_support(context->device.physical_device, context->surface, &context->device.swapchain_support);
 		vk_device_detect_depth_format(&context->device);

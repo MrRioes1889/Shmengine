@@ -225,7 +225,7 @@ namespace Renderer::Vulkan
 
 	bool32 vk_renderpass_begin(RenderPass* renderpass, RenderTarget* render_target)
 	{
-		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->image_index];
+		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->bound_framebuffer_index];
 		VulkanRenderpass* v_renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
 
 		VkRenderPassBeginInfo begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
@@ -287,7 +287,7 @@ namespace Renderer::Vulkan
 
 	bool32 vk_renderpass_end(RenderPass* renderpass)
 	{
-		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->image_index];
+		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->bound_framebuffer_index];
 		vkCmdEndRenderPass(command_buffer->handle);
 		VK_DEBUG_END_LABEL(context, command_buffer->handle);
 		command_buffer->state = VulkanCommandBufferState::RECORDING;

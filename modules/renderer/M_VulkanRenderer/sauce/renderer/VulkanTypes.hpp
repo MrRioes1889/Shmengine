@@ -267,7 +267,6 @@ namespace Renderer::Vulkan
 		Sarray<VkSemaphore> queue_complete_semaphores = {};
 
 		VkFence framebuffer_fences[RendererConfig::framebuffer_count - 1];
-		VkFence framebuffer_fences_in_flight[RendererConfig::framebuffer_count];
 
 #if defined(_DEBUG)
 		VkDebugUtilsMessengerEXT debug_messenger;
@@ -281,8 +280,8 @@ namespace Renderer::Vulkan
 		Math::Vec4f viewport_rect;
 		Math::Rect2Di scissor_rect;
 
-		uint32 image_index;
-		uint32 current_frame;
+		uint32 bound_framebuffer_index;
+		uint32 bound_sync_object_index;
 		
 		uint32 framebuffer_size_generation;
 		uint32 framebuffer_size_last_generation;

@@ -108,7 +108,7 @@ namespace Renderer::Vulkan
 
 		VK_CHECK(vkCreateSwapchainKHR(context->device.logical_device, &swapchain_create_info, context->allocator_callbacks, &out_swapchain->handle));
 
-		context->current_frame = 0;
+		context->bound_sync_object_index = 0;
 
 		image_count = 0;
 		VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, out_swapchain->handle, &image_count, 0));
@@ -309,7 +309,7 @@ namespace Renderer::Vulkan
 		else if (result != VK_SUCCESS)
 			SHMFATAL("Failed to present swap chain image!");
 
-		context->current_frame = (context->current_frame + 1) % swapchain->max_frames_in_flight;
+		context->bound_sync_object_index = (context->bound_sync_object_index + 1) % swapchain->max_frames_in_flight;
 	}
 
 }
