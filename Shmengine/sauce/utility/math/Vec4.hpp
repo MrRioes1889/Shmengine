@@ -80,6 +80,11 @@ namespace Math
 		a.w -= other.w;
 	}
 
+	SHMINLINE bool8 operator==(const Vec4f& a, const Vec4f& other)
+	{
+		return (a.x == other.x && a.y == other.y && a.z == other.z && a.w == other.w);
+	}
+
 	SHMINLINE float inner_product(Vec4f a, Vec4f b)
 	{
 		float res = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;

@@ -128,7 +128,7 @@ static void regenerate_geometry(UIText* ui_text)
     OPTICK_EVENT();
 
     uint32 char_length = ui_text->text.len();
-    uint32 utf8_length = FontSystem::utf8_string_length(ui_text->text.c_str());
+    uint32 utf8_length = FontSystem::utf8_string_length(ui_text->text.c_str(), true);
 
     if (utf8_length < 1)
         return;
@@ -157,13 +157,11 @@ static void regenerate_geometry(UIText* ui_text)
         if (codepoint == '\n') {
             x = 0;
             y += ui_text->font_atlas->line_height;
-            uc++;
             continue;
         }
 
         if (codepoint == '\t') {
             x += ui_text->font_atlas->tab_x_advance;
-            uc++;
             continue;
         }
 

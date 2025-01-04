@@ -13,6 +13,8 @@
 #include "renderer/RendererFrontend.hpp"
 #include "utility/Sort.hpp"
 
+#include "optick.h"
+
 struct RenderViewWorldInternalData {
 	Renderer::Shader* material_shader;
 	Renderer::Shader* terrain_shader;
@@ -238,6 +240,8 @@ namespace Renderer
 	bool32 render_view_world_on_render(RenderView* self, RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index)
 	{
 
+		OPTICK_EVENT();
+
 		RenderViewWorldInternalData* data = (RenderViewWorldInternalData*)self->internal_data.data;
 		WorldPacketData* packet_data = (WorldPacketData*)packet.extended_data;
 
@@ -275,7 +279,7 @@ namespace Renderer
 				g->on_render(shader_id, packet.lighting, &g->model, g->render_object, frame_number);
 
 				geometry_draw(packet.geometries[geometry_i].geometry_data);
-			}	
+			}
 
 			if (!renderpass_end(renderpass))
 			{

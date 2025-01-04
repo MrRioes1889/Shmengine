@@ -527,35 +527,44 @@ namespace FontSystem
 
 	}
 
-	uint32 utf8_string_length(const char* str)
+	uint32 utf8_string_length(const char* str , bool32 ignore_control_characters)
 	{
 		uint32 length = 0;
-		for (uint32 i = 0; str[i]; i++, length++)
+		for (uint32 i = 0; str[i]; i++)
 		{
 			uint32 c = (uint32)str[i];
-			if (c == 0) {
+			if (c == 0) 
+			{
 				break;
 			}
-			if (c >= 0 && c < 127) {
-				// Normal ascii character
+			else if (c >= 0 && c < 127) 
+			{
+				if (ignore_control_characters && c < 32)
+					continue;
 			}
-			else if ((c & 0xE0) == 0xC0) {
+			else if ((c & 0xE0) == 0xC0) 
+			{
 				// Double-byte character, increment once more.
 				i += 1;
 			}
-			else if ((c & 0xF0) == 0xE0) {
+			else if ((c & 0xF0) == 0xE0) 
+			{
 				// Triple-byte character, increment twice more.
 				i += 2;
 			}
-			else if ((c & 0xF8) == 0xF0) {
+			else if ((c & 0xF8) == 0xF0) 
+			{
 				// 4-byte character, increment thrice more.
 				i += 3;
 			}
-			else {
+			else 
+			{
 				// NOTE: Not supporting 5 and 6-byte characters; return as invalid UTF-8.
 				SHMERROR("utf8_string_length - Not supporting 5 and 6-byte characters; Invalid UTF-8.");
 				return 0;
 			}
+
+			length++;
 		}
 
 		return length;

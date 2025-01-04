@@ -39,6 +39,5 @@ uniform=samp,1,specular_texture_3
 uniform=samp,1,normal_texture_3
 
 uniform=struct144,1,properties
-uniform=float32,1,shininess
 
 uniform=mat4,2,model

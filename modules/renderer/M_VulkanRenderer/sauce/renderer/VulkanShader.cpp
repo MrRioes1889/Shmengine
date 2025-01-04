@@ -7,6 +7,8 @@
 // TODO: Get rid of frontend include
 #include <renderer/RendererFrontend.hpp>
 
+#include "optick.h"
+
 namespace Renderer::Vulkan
 {
 
@@ -422,6 +424,8 @@ namespace Renderer::Vulkan
 	bool32 vk_shader_apply_globals(Shader* s)
 	{
 
+		OPTICK_EVENT();
+
 		uint32 image_index = context->image_index;
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
@@ -460,9 +464,6 @@ namespace Renderer::Vulkan
 
 		// Bind the global descriptor set to be updated.
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipeline.layout, 0, 1, &global_descriptor, 0, 0);
-		// TODO: Wait idle prevents from flickering fissures in meshes by waiting for all uniforms to be set first and/or changes to frame being drawn currently.
-		// THis solution is clearly not adequate and efficient.
-		vkDeviceWaitIdle(context->device.logical_device);
 		return true;
 
 	}

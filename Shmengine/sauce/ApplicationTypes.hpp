@@ -21,7 +21,7 @@ enum class ApplicationStage
 struct ApplicationConfig {
 
 	int32 start_pos_x, start_pos_y;
-	int32 start_width, start_height;
+	uint32 start_width, start_height;
 
 	uint64 state_size;
 	uint64 frame_allocator_size;

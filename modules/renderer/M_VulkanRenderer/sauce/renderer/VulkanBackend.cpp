@@ -50,8 +50,8 @@ namespace Renderer::Vulkan
 
 		create_vulkan_allocator(context->allocator_callbacks);
 
-		context->framebuffer_width = 800;
-		context->framebuffer_height = 600;
+		context->framebuffer_width = 1600;
+		context->framebuffer_height = 900;
 
 		VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 		app_info.apiVersion = VK_API_VERSION_1_2;
@@ -232,11 +232,11 @@ namespace Renderer::Vulkan
 
 			VkFenceCreateInfo fence_create_info = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 			fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-			VK_CHECK(vkCreateFence(context->device.logical_device, &fence_create_info, context->allocator_callbacks, &context->fences_in_flight[i]));
+			VK_CHECK(vkCreateFence(context->device.logical_device, &fence_create_info, context->allocator_callbacks, &context->framebuffer_fences[i]));
 		}
 
 		for (uint32 i = 0; i < 3; i++)
-			context->images_in_flight[i] = 0;
+			context->framebuffer_fences_in_flight[i] = 0;
 
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
@@ -258,9 +258,9 @@ namespace Renderer::Vulkan
 				vkDestroySemaphore(context->device.logical_device, context->queue_complete_semaphores[i], context->allocator_callbacks);
 			context->queue_complete_semaphores[i] = 0;
 
-			if (context->fences_in_flight[i])
-				vkDestroyFence(context->device.logical_device, context->fences_in_flight[i], context->allocator_callbacks);
-			context->fences_in_flight[i] = 0;
+			if (context->framebuffer_fences[i])
+				vkDestroyFence(context->device.logical_device, context->framebuffer_fences[i], context->allocator_callbacks);
+			context->framebuffer_fences[i] = 0;
 		}
 
 		context->image_available_semaphores.free_data();
@@ -355,7 +355,7 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		VkResult res = vkWaitForFences(context->device.logical_device, 1, &context->fences_in_flight[context->current_frame], true, UINT64_MAX);
+		VkResult res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences[context->current_frame], true, UINT64_MAX);
 		if (!vk_result_is_success(res))
 		{
 			SHMERRORV("In-flight fence wait failure! Error: %s", vk_result_string(res, true));
@@ -385,24 +385,13 @@ namespace Renderer::Vulkan
 
 	bool32 vk_end_frame(const FrameData* frame_data)
 	{
-		
-		OPTICK_EVENT("end_frame - pre fence wait");
+				
 		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->image_index];
 
 		vk_command_buffer_end(cmd);
 
-		if (context->images_in_flight[context->image_index])
-		{
-			VkResult res = vkWaitForFences(context->device.logical_device, 1, &context->images_in_flight[context->image_index], true, UINT64_MAX);
-			if (!vk_result_is_success(res))
-			{
-				SHMFATALV("In-flight fence wait failure! Error: %s", vk_result_string(res, true));
-			}
-		}
-
-		OPTICK_EVENT("end_frame - post fence wait");
-		context->images_in_flight[context->image_index] = context->fences_in_flight[context->current_frame];
-		VK_CHECK(vkResetFences(context->device.logical_device, 1, &context->fences_in_flight[context->current_frame]));
+		context->framebuffer_fences_in_flight[context->image_index] = context->framebuffer_fences[context->current_frame];
+		VK_CHECK(vkResetFences(context->device.logical_device, 1, &context->framebuffer_fences[context->current_frame]));
 
 		VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 		submit_info.commandBufferCount = 1;
@@ -416,11 +405,20 @@ namespace Renderer::Vulkan
 		VkPipelineStageFlags flags[1] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submit_info.pWaitDstStageMask = flags;
 
-		VkResult res = vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->fences_in_flight[context->current_frame]);
+		VkResult res = vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->framebuffer_fences[context->current_frame]);
 		if (res != VK_SUCCESS)
 		{
-			SHMERRORV("vkQueueSubmit failed width result: %s", vk_result_string(res, true));
+			SHMERRORV("vkQueueSubmit failed with result: %s", vk_result_string(res, true));
 			return false;
+		}
+
+		if (context->framebuffer_fences_in_flight[context->image_index])
+		{
+			VkResult wait_res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences_in_flight[context->image_index], true, UINT64_MAX);
+			if (!vk_result_is_success(wait_res))
+			{
+				SHMFATALV("In-flight fence wait failure! Error: %s", vk_result_string(res, true));
+			}
 		}
 
 		vk_command_buffer_update_submitted(cmd);
@@ -471,21 +469,6 @@ namespace Renderer::Vulkan
 		vk_set_scissor(context->scissor_rect);
 	}
 
-	static VkFormat channel_count_to_format(uint32 channel_count, VkFormat default_format) {
-		switch (channel_count) {
-		case 1:
-			return VK_FORMAT_R8_UNORM;
-		case 2:
-			return VK_FORMAT_R8G8_UNORM;
-		case 3:
-			return VK_FORMAT_R8G8B8_UNORM;
-		case 4:
-			return VK_FORMAT_R8G8B8A8_UNORM;
-		default:
-			return default_format;
-		}
-	}
-
 	static void _texture_create(Texture* texture, VkFormat image_format)
 	{
 		texture->internal_data.init(sizeof(VulkanImage), 0, AllocationTag::TEXTURE);
@@ -518,6 +501,21 @@ namespace Renderer::Vulkan
 			image);
 
 		texture->generation++;
+	}
+
+	static VkFormat channel_count_to_format(uint32 channel_count, VkFormat default_format) {
+		switch (channel_count) {
+		case 1:
+			return VK_FORMAT_R8_UNORM;
+		case 2:
+			return VK_FORMAT_R8G8_UNORM;
+		case 3:
+			return VK_FORMAT_R8G8B8_UNORM;
+		case 4:
+			return VK_FORMAT_R8G8B8A8_UNORM;
+		default:
+			return default_format;
+		}
 	}
 
 	void vk_texture_create(const void* pixels, Texture* texture)
@@ -571,104 +569,24 @@ namespace Renderer::Vulkan
 
 	bool32 vk_texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
 	{
-
-		VulkanImage* image = (VulkanImage*)t->internal_data.data;
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
+		bool32 res = vk_image_write_data((VulkanImage*)t->internal_data.data, image_format, t->type, offset, size, pixels);
+		if (res)
+			t->generation++;
 
-		VulkanBuffer staging;
-		if (!vk_buffer_create_internal(&staging, RenderBufferType::STAGING, size, "texture_write_staging_buffer")) {
-			SHMERROR("Failed to create staging buffer.");
-			return false;
-		}
-		vk_buffer_bind_internal(&staging, 0);
-
-		vk_buffer_load_range_internal(&staging, 0, size, pixels);
-
-		VulkanCommandBuffer temp_buffer;
-		VkCommandPool pool = context->device.graphics_command_pool;
-		VkQueue queue = context->device.graphics_queue;
-
-		vk_command_buffer_reserve_and_begin_single_use(pool, &temp_buffer);
-		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		vk_image_copy_from_buffer(t->type, image, staging.handle, &temp_buffer);
-		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		vk_command_buffer_end_single_use(pool, &temp_buffer, queue);
-
-		vk_buffer_unbind_internal(&staging);
-		vk_buffer_destroy_internal(&staging);
-
-		t->generation++;
-		return true;
-
+		return res;
 	}
 
 	bool32 vk_texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory)
 	{
-
-		VulkanImage* image = (VulkanImage*)t->internal_data.data;
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
-
-		VulkanBuffer read;
-		if (!vk_buffer_create_internal(&read, RenderBufferType::READ, size, "rexture_read_data_read_buffer")) {
-			SHMERROR("Failed to create read buffer.");
-			return false;
-		}
-		vk_buffer_bind_internal(&read, 0);
-
-		VulkanCommandBuffer temp_buffer;
-		VkCommandPool pool = context->device.graphics_command_pool;
-		VkQueue queue = context->device.graphics_queue;
-
-		vk_command_buffer_reserve_and_begin_single_use(pool, &temp_buffer);
-		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-		vk_image_copy_to_buffer(t->type, image, read.handle, &temp_buffer);
-		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		vk_command_buffer_end_single_use(pool, &temp_buffer, queue);
-
-		if (!vk_buffer_read_internal(&read, offset, size, out_memory))
-			SHMERROR("Failed to read data from dedicated buffer.");
-
-		// Clean up the read buffer.
-		vk_buffer_unbind_internal(&read);
-		vk_buffer_destroy_internal(&read);
-
-		return true;
-
+		return vk_image_read_data((VulkanImage*)t->internal_data.data, image_format, t->type, offset, size, out_memory);
 	}
 
 	bool32 vk_texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba)
 	{
-
-		VulkanImage* image = (VulkanImage*)t->internal_data.data;
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
-
-		VulkanBuffer read;
-		if (!vk_buffer_create_internal(&read, RenderBufferType::READ, sizeof(uint32), "texture_read_pixel_read_buffer"))
-		{
-			SHMERROR("Failed to create read buffer.");
-			return false;
-		}
-		vk_buffer_bind_internal(&read, 0);
-
-		VulkanCommandBuffer temp_buffer;
-		VkCommandPool pool = context->device.graphics_command_pool;
-		VkQueue queue = context->device.graphics_queue;
-
-		vk_command_buffer_reserve_and_begin_single_use(pool, &temp_buffer);
-		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-		vk_image_copy_pixel_to_buffer(t->type, image, read.handle, x, y, &temp_buffer);
-		vk_image_transition_layout(t->type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		vk_command_buffer_end_single_use(pool, &temp_buffer, queue);
-
-		if (!vk_buffer_read_internal(&read, 0, sizeof(uint32), (void*)out_rgba))
-			SHMERROR("Failed to read data from dedicated buffer.");
-
-		// Clean up the read buffer.
-		vk_buffer_unbind_internal(&read);
-		vk_buffer_destroy_internal(&read);
-
-		return true;
-
+		return vk_image_read_pixel((VulkanImage*)t->internal_data.data, image_format, t->type, x, y, out_rgba);
 	}
 
 	void vk_texture_destroy(Texture* texture)
@@ -769,7 +687,7 @@ namespace Renderer::Vulkan
 		vkDeviceWaitIdle(context->device.logical_device);
 
 		for (uint32 i = 0; i < context->swapchain.render_textures.capacity; i++)
-			context->images_in_flight[i] = 0;
+			context->framebuffer_fences_in_flight[i] = 0;
 
 		vk_device_query_swapchain_support(context->device.physical_device, context->surface, &context->device.swapchain_support);
 		vk_device_detect_depth_format(&context->device);

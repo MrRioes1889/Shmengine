@@ -12,6 +12,8 @@
 #include "renderer/RendererFrontend.hpp"
 #include "utility/Sort.hpp"
 
+#include "optick.h"
+
 struct RenderViewSkyboxInternalData {
 	Renderer::Shader* shader;
 
@@ -144,6 +146,8 @@ namespace Renderer
 
 	bool32 render_view_skybox_on_render(RenderView* self, RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index)
 	{
+
+		OPTICK_EVENT();
 
 		RenderViewSkyboxInternalData* data = (RenderViewSkyboxInternalData*)self->internal_data.data;
 		SkyboxPacketData* skybox_data = (SkyboxPacketData*)packet.extended_data;

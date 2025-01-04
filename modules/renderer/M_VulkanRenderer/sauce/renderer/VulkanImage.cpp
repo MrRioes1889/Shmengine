@@ -23,6 +23,7 @@ namespace Renderer::Vulkan
 		out_image->width = width;
 		out_image->height = height;
 		out_image->memory_flags = memory_flags;
+		out_image->layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 		VkImageCreateInfo image_create_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 		switch (type)
@@ -42,7 +43,7 @@ namespace Renderer::Vulkan
 		image_create_info.arrayLayers = type == TextureType::TYPE_CUBE ? 6 : 1;	// TODO: make configurable
 		image_create_info.format = format;
 		image_create_info.tiling = tiling;
-		image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		image_create_info.initialLayout = out_image->layout;
 		image_create_info.usage = usage;
 		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;				// TODO: make configurable
 		image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;		// TODO: make configurable
@@ -108,11 +109,11 @@ namespace Renderer::Vulkan
 
 	}
 
-	void vk_image_transition_layout(TextureType type, VulkanCommandBuffer* command_buffer, VulkanImage* image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout)
+	void vk_image_transition_layout(TextureType type, VulkanCommandBuffer* command_buffer, VulkanImage* image, VkFormat format, VkImageLayout new_layout)
 	{
 
 		VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-		barrier.oldLayout = old_layout;
+		barrier.oldLayout = image->layout;
 		barrier.newLayout = new_layout;
 		barrier.srcQueueFamilyIndex = context->device.graphics_queue_index;
 		barrier.dstQueueFamilyIndex = context->device.graphics_queue_index;
@@ -126,7 +127,7 @@ namespace Renderer::Vulkan
 		VkPipelineStageFlags source_stage;
 		VkPipelineStageFlags dest_stage;
 
-		if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+		if (image->layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
 		{
 			barrier.srcAccessMask = 0;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -135,7 +136,16 @@ namespace Renderer::Vulkan
 
 			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		}
-		else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+		else if (image->layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+		{
+			barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+			source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		}
+		else if (image->layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
 			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -144,7 +154,16 @@ namespace Renderer::Vulkan
 
 			dest_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		}
-		else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+		else if (image->layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+		{
+			barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+			source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		}
+		else if (image->layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
 			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -153,7 +172,7 @@ namespace Renderer::Vulkan
 
 			dest_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		}
-		else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+		else if (image->layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
 		{
 			barrier.srcAccessMask = 0;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -167,6 +186,8 @@ namespace Renderer::Vulkan
 			SHMFATAL("Unsupported layout transition!");
 			return;
 		}
+
+		image->layout = new_layout;
 
 		vkCmdPipelineBarrier(command_buffer->handle, source_stage, dest_stage, 0, 0, 0, 0, 0, 1, &barrier);
 
@@ -252,6 +273,104 @@ namespace Renderer::Vulkan
 		region.imageExtent.depth = 1;
 
 		vkCmdCopyImageToBuffer(command_buffer->handle, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, 1, &region);
+	}
+
+	bool32 vk_image_write_data(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 offset, uint32 size, const uint8* pixels)
+	{		
+
+		VulkanBuffer staging;
+		if (!vk_buffer_create_internal(&staging, RenderBufferType::STAGING, size, "texture_write_staging_buffer")) {
+			SHMERROR("Failed to create staging buffer.");
+			return false;
+		}
+		vk_buffer_bind_internal(&staging, 0);
+
+		vk_buffer_load_range_internal(&staging, 0, size, pixels);
+
+		VulkanCommandBuffer temp_buffer;
+		VkCommandPool pool = context->device.graphics_command_pool;
+		VkQueue queue = context->device.graphics_queue;
+
+		VkImageLayout initial_layout = image->layout;
+
+		vk_command_buffer_reserve_and_begin_single_use(pool, &temp_buffer);
+		vk_image_transition_layout(texture_type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		vk_image_copy_from_buffer(texture_type, image, staging.handle, &temp_buffer);
+		vk_image_transition_layout(texture_type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		vk_command_buffer_end_single_use(pool, &temp_buffer, queue);
+
+		vk_buffer_unbind_internal(&staging);
+		vk_buffer_destroy_internal(&staging);
+
+		return true;
+
+	}
+
+	bool32 vk_image_read_data(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 offset, uint32 size, void* out_memory)
+	{
+
+		VulkanBuffer read;
+		if (!vk_buffer_create_internal(&read, RenderBufferType::READ, size, "rexture_read_data_read_buffer")) {
+			SHMERROR("Failed to create read buffer.");
+			return false;
+		}
+		vk_buffer_bind_internal(&read, 0);
+
+		VulkanCommandBuffer temp_buffer;
+		VkCommandPool pool = context->device.graphics_command_pool;
+		VkQueue queue = context->device.graphics_queue;
+
+		VkImageLayout initial_layout = image->layout;
+
+		vk_command_buffer_reserve_and_begin_single_use(pool, &temp_buffer);
+		vk_image_transition_layout(texture_type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		vk_image_copy_to_buffer(texture_type, image, read.handle, &temp_buffer);
+		vk_image_transition_layout(texture_type, &temp_buffer, image, image_format, initial_layout);
+		vk_command_buffer_end_single_use(pool, &temp_buffer, queue);
+
+		if (!vk_buffer_read_internal(&read, offset, size, out_memory))
+			SHMERROR("Failed to read data from dedicated buffer.");
+
+		// Clean up the read buffer.
+		vk_buffer_unbind_internal(&read);
+		vk_buffer_destroy_internal(&read);
+
+		return true;
+
+	}
+
+	bool32 vk_image_read_pixel(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 x, uint32 y, uint32* out_rgba)
+	{
+
+		VulkanBuffer read;
+		if (!vk_buffer_create_internal(&read, RenderBufferType::READ, sizeof(uint32), "texture_read_pixel_read_buffer"))
+		{
+			SHMERROR("Failed to create read buffer.");
+			return false;
+		}
+		vk_buffer_bind_internal(&read, 0);
+
+		VulkanCommandBuffer temp_buffer;
+		VkCommandPool pool = context->device.graphics_command_pool;
+		VkQueue queue = context->device.graphics_queue;
+
+		VkImageLayout initial_layout = image->layout;
+
+		vk_command_buffer_reserve_and_begin_single_use(pool, &temp_buffer);
+		vk_image_transition_layout(texture_type, &temp_buffer, image, image_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		vk_image_copy_pixel_to_buffer(texture_type, image, read.handle, x, y, &temp_buffer);
+		vk_image_transition_layout(texture_type, &temp_buffer, image, image_format, initial_layout);
+		vk_command_buffer_end_single_use(pool, &temp_buffer, queue);
+
+		if (!vk_buffer_read_internal(&read, 0, sizeof(uint32), (void*)out_rgba))
+			SHMERROR("Failed to read data from dedicated buffer.");
+
+		// Clean up the read buffer.
+		vk_buffer_unbind_internal(&read);
+		vk_buffer_destroy_internal(&read);
+
+		return true;
+
 	}
 
 }

@@ -4,6 +4,8 @@
 #include "core/Logging.hpp"
 #include "memory/LinearAllocator.hpp"
 
+#include "optick.h"
+
 
 #if _WIN32
 
@@ -39,6 +41,7 @@ namespace Platform
 
     static void update_file_watches();
 
+    static bool32 win32_translate_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param);
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param);
 
     bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
@@ -173,10 +176,16 @@ namespace Platform
 
     bool32 pump_messages()
     {
+        OPTICK_EVENT();
+
         MSG message;
-        while (PeekMessageA(&message, NULL, 0, 0, PM_REMOVE)) {
-            TranslateMessage(&message);
-            DispatchMessageA(&message);
+        while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) 
+        {
+            if (!win32_translate_message_fast(message.message, message.wParam, message.lParam))
+            {
+                TranslateMessage(&message);
+                DispatchMessageA(&message);
+            }
         }
 
         update_file_watches();
@@ -457,32 +466,9 @@ namespace Platform
         MessageBoxA(plat_state->hwnd, message, prompt, MB_OK);
     }
 
-    LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param) {
+    static bool32 win32_translate_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param)
+    {
         switch (msg) {
-        case WM_ERASEBKGND:
-            // Notify the OS that erasing will be handled by the application to prevent flicker.
-            return 1;
-        case WM_CLOSE:
-            // TODO: Fire an event for the application to quit.
-            Event::event_fire(SystemEventCode::APPLICATION_QUIT, 0, {});
-            return 1;
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            return 0;
-        case WM_SIZE: 
-        {
-            // Get the updated size.
-             RECT r;
-             GetClientRect(hwnd, &r);
-             plat_state->client_width = r.right - r.left;
-             plat_state->client_height = r.bottom - r.top;
-
-             EventData e = {};
-             e.ui32[0] = plat_state->client_width;
-             e.ui32[1] = plat_state->client_height;
-             Event::event_fire(SystemEventCode::WINDOW_RESIZED, 0, e);
-             break;
-        } 
         case WM_MOVE:
         {
             plat_state->client_x = LOWORD(l_param);
@@ -491,7 +477,7 @@ namespace Platform
         }
         case WM_INPUT:
         {
-            
+
             static RAWINPUT input_buffer[1];
             UINT input_size = sizeof(input_buffer);
 
@@ -510,7 +496,7 @@ namespace Platform
         case WM_KEYDOWN:
         case WM_SYSKEYDOWN:
         case WM_KEYUP:
-        case WM_SYSKEYUP: 
+        case WM_SYSKEYUP:
         {
             // Key pressed/released
             bool8 pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
@@ -518,8 +504,8 @@ namespace Platform
 
             Input::process_key(key, pressed);
             break;
-        } 
-        case WM_MOUSEMOVE: 
+        }
+        case WM_MOUSEMOVE:
         {
             // Mouse move
             int32 x = LOWORD(l_param);
@@ -527,23 +513,23 @@ namespace Platform
             if (!Input::is_cursor_clipped())
                 Input::process_mouse_move(x, y);
             break;
-        } 
-        case WM_MOUSEWHEEL: 
+        }
+        case WM_MOUSEWHEEL:
         {
-             int32 delta = GET_WHEEL_DELTA_WPARAM(w_param);
-             if (delta != 0) {
-                 // Flatten the input to an OS-independent (-1, 1)
-                 delta = (delta < 0) ? -1 : 1;
-                 Input::process_mouse_scroll(delta);
-             }
-             break;
-        } 
+            int32 delta = GET_WHEEL_DELTA_WPARAM(w_param);
+            if (delta != 0) {
+                // Flatten the input to an OS-independent (-1, 1)
+                delta = (delta < 0) ? -1 : 1;
+                Input::process_mouse_scroll(delta);
+            }
+            break;
+        }
         case WM_LBUTTONDOWN:
         case WM_MBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_LBUTTONUP:
         case WM_MBUTTONUP:
-        case WM_RBUTTONUP: 
+        case WM_RBUTTONUP:
         {
             bool8 pressed = msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN;
             MouseButton::Value button = MouseButton::BUTTON_MAX_BUTTONS;
@@ -561,13 +547,64 @@ namespace Platform
             case WM_MBUTTONUP:
                 button = MouseButton::MMB;
                 break;
-            }       
+            }
 
             Input::process_mousebutton(button, pressed);
-        } break;
+            break;
+        }
+        default:
+        {
+            return false;
+        }
         }
 
-        return DefWindowProcA(hwnd, msg, w_param, l_param);
+        return true;
+    }
+
+    LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param) 
+    {
+
+        switch (msg) {
+        case WM_ERASEBKGND:
+        {
+            // Notify the OS that erasing will be handled by the application to prevent flicker.
+            return 1;
+        }       
+        case WM_CLOSE:
+        {
+            Event::event_fire(SystemEventCode::APPLICATION_QUIT, 0, {});
+            return 1;
+        }        
+        case WM_DESTROY:
+        {
+            PostQuitMessage(0);
+            return 0;
+        }  
+        case WM_SIZE:
+        {
+            // Get the updated size.
+            RECT r;
+            GetClientRect(plat_state->hwnd, &r);
+            plat_state->client_width = r.right - r.left;
+            plat_state->client_height = r.bottom - r.top;
+
+            EventData e = {};
+            e.ui32[0] = plat_state->client_width;
+            e.ui32[1] = plat_state->client_height;
+            Event::event_fire(SystemEventCode::WINDOW_RESIZED, 0, e);
+            break;
+        }
+        /*case WM_NCHITTEST:
+        {
+            return 0;
+        }*/
+        default:
+        {
+            return DefWindowProcA(hwnd, msg, w_param, l_param);
+        }
+        }
+
+        return 0;
     }
 
 }

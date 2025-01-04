@@ -20,6 +20,8 @@
 #include "systems/ShaderSystem.hpp"
 #include "systems/TextureSystem.hpp"
 
+#include "optick.h"
+
 namespace SubsystemManager
 {
 
@@ -107,6 +109,7 @@ namespace SubsystemManager
 
 	bool32 update(const FrameData* frame_data)
 	{
+		OPTICK_EVENT();
 		for (uint32 i = 0; i < SubsystemType::MAX_TYPES_COUNT; ++i) {
 			Subsystem* s = &manager_state.subsystems[i];
 			if (s->update) {

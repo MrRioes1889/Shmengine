@@ -12,6 +12,8 @@
 #include "renderer/RendererFrontend.hpp"
 #include "resources/UIText.hpp"
 
+#include "optick.h"
+
 struct RenderViewUIInternalData {
 	float32 near_clip;
 	float32 far_clip;
@@ -132,6 +134,8 @@ namespace Renderer
 
 	bool32 render_view_ui_on_render(RenderView* self, RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index)
 	{
+
+		OPTICK_EVENT();
 
 		RenderViewUIInternalData* data = (RenderViewUIInternalData*)self->internal_data.data;
 

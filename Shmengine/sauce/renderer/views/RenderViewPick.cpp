@@ -13,6 +13,8 @@
 #include "resources/UIText.hpp"
 #include "core/Input.hpp"
 
+#include "optick.h"
+
 struct RenderViewPickShaderInfo {
 	Renderer::Shader* shader;
 	Renderer::RenderPass* pass;

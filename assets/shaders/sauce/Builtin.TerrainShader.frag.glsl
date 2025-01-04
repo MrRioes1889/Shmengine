@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_EXT_scalar_block_layout : enable
+
 layout(location = 0) flat in int in_mode;
 layout(location = 1) in struct dto
 {
@@ -69,7 +71,7 @@ struct MaterialTerrainProperties
     uint materials_count;
 };
 
-layout(std140, set = 1, binding = 0) uniform instance_uniform_object
+layout(std430, set = 1, binding = 0) uniform instance_uniform_object
 {
     MaterialTerrainProperties properties;
 } instance_ubo;
@@ -141,49 +143,77 @@ void main()
     vec3 bitangent = cross(in_dto.normal, in_dto.tangent.xyz);
     TBN = mat3(tangent, bitangent, normal);
 
-    // Update the normal to use a sample from the normal map.
-    vec3 normals[max_terrain_materials_count];
-    vec4 diffuses[max_terrain_materials_count];
-    vec4 specs[max_terrain_materials_count];
-
-    MaterialPhongProperties mat;
-    mat.diffuse_color = vec4(0);
-    mat.shininess = 1.0;
-
-    // Manually sample the first material.
-    // TODO: This mix isn't quite right.
     vec4 diff = vec4(1);
-    vec4 spec = vec4(0.5);
-    vec3 norm = vec3(0, 0, 1);
-    for(int m = 0; m < instance_ubo.properties.materials_count; ++m) {
-        normals[m] = normalize(TBN * (2.0 * texture(samplers[(m * 3) + samp_normal_index], in_dto.texcoord).rgb - 1.0));
-        diffuses[m] = texture(samplers[(m * 3) + samp_diffuse_index], in_dto.texcoord);
-        specs[m] = texture(samplers[(m * 3) + samp_specular_index], in_dto.texcoord);
 
-        norm = mix(norm, normals[m], in_dto.mat_weights[m]);
+    vec4 diffuses[max_terrain_materials_count];  
+    for(int m = 0; m < instance_ubo.properties.materials_count; ++m) 
+    {
+        diffuses[m] = texture(samplers[(m * 3) + samp_diffuse_index], in_dto.texcoord);  
         diff = mix(diff, diffuses[m], in_dto.mat_weights[m]);
-        spec = mix(spec, specs[m], in_dto.mat_weights[m]);
-
-        mat.diffuse_color = mix(mat.diffuse_color, instance_ubo.properties.materials[m].diffuse_color, in_dto.mat_weights[m]);
-        mat.shininess = mix(mat.shininess, instance_ubo.properties.materials[m].shininess, in_dto.mat_weights[m]);
     }
 
     if(in_mode == 0 || in_mode == 1) 
     {
         vec3 view_direction = normalize(in_dto.camera_position - in_dto.frag_position);
 
-        out_color = calc_dir_lighting(global_ubo.dir_light, norm, view_direction, diff, spec, mat);
-
-        for (uint i = 0; i < global_ubo.p_lights_count; i++)
-        {
-            out_color += calc_point_lighting(global_ubo.p_lights[i], norm, in_dto.frag_position, view_direction, diff, spec, mat);
-        }
-        
+        out_color = diff;
     }
     else if (in_mode == 2)
     {
-        out_color = vec4(abs(normal), 1.0);
+        out_color = diff;
     }
+
+
+    // vec3 normal = in_dto.normal;
+    // vec3 tangent = in_dto.tangent.xyz;
+    // tangent = (tangent - dot(tangent, normal) *  normal);
+    // vec3 bitangent = cross(in_dto.normal, in_dto.tangent.xyz);
+    // TBN = mat3(tangent, bitangent, normal);
+
+    // // Update the normal to use a sample from the normal map.
+    // vec3 normals[max_terrain_materials_count];
+    // vec4 diffuses[max_terrain_materials_count];
+    // vec4 specs[max_terrain_materials_count];
+
+    // MaterialPhongProperties mat;
+    // mat.diffuse_color = vec4(0);
+    // mat.shininess = 1.0;
+
+    // // Manually sample the first material.
+    // // TODO: This mix isn't quite right.
+    // vec4 diff = vec4(1);
+    // vec4 spec = vec4(0.5);
+    // vec3 norm = vec3(0, 0, 1);
+    // for(int m = 0; m < instance_ubo.properties.materials_count; ++m) 
+    //{
+    //     normals[m] = normalize(TBN * (2.0 * texture(samplers[(m * 3) + samp_normal_index], in_dto.texcoord).rgb - 1.0));
+    //     diffuses[m] = texture(samplers[(m * 3) + samp_diffuse_index], in_dto.texcoord);
+    //     specs[m] = texture(samplers[(m * 3) + samp_specular_index], in_dto.texcoord);
+
+    //     norm = mix(norm, normals[m], in_dto.mat_weights[m]);
+    //     diff = mix(diff, diffuses[m], in_dto.mat_weights[m]);
+    //     spec = mix(spec, specs[m], in_dto.mat_weights[m]);
+
+    //     mat.diffuse_color = mix(mat.diffuse_color, instance_ubo.properties.materials[m].diffuse_color, in_dto.mat_weights[m]);
+    //     mat.shininess = mix(mat.shininess, instance_ubo.properties.materials[m].shininess, in_dto.mat_weights[m]);
+    // }
+
+    // if(in_mode == 0 || in_mode == 1) 
+    // {
+    //     vec3 view_direction = normalize(in_dto.camera_position - in_dto.frag_position);
+
+    //     out_color = calc_dir_lighting(global_ubo.dir_light, norm, view_direction, diff, spec, mat);
+
+    //     for (uint i = 0; i < global_ubo.p_lights_count; i++)
+    //     {
+    //         out_color += calc_point_lighting(global_ubo.p_lights[i], norm, in_dto.frag_position, view_direction, diff, spec, mat);
+    //     }
+        
+    // }
+    // else if (in_mode == 2)
+    // {
+    //     out_color = vec4(abs(normal), 1.0);
+    // }
 
     
 }

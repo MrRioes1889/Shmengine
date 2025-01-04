@@ -60,10 +60,13 @@ namespace Renderer::Vulkan
 	);
 	void vk_image_destroy(VulkanImage* image);
 	void vk_image_view_create(TextureType type, VkFormat format, VulkanImage* image, VkImageAspectFlags aspect_flags);
-	void vk_image_transition_layout(TextureType type, VulkanCommandBuffer* command_buffer, VulkanImage* image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout);
+	void vk_image_transition_layout(TextureType type, VulkanCommandBuffer* command_buffer, VulkanImage* image, VkFormat format, VkImageLayout new_layout);
 	void vk_image_copy_from_buffer(TextureType type, VulkanImage* image, VkBuffer buffer, VulkanCommandBuffer* command_buffer);
 	void vk_image_copy_to_buffer(TextureType type, VulkanImage* image, VkBuffer buffer, VulkanCommandBuffer* command_buffer);
 	void vk_image_copy_pixel_to_buffer(TextureType type, VulkanImage* image, VkBuffer buffer, uint32 x, uint32 y, VulkanCommandBuffer* command_buffer);
+	bool32 vk_image_write_data(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 offset, uint32 size, const uint8* pixels);
+	bool32 vk_image_read_data(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 offset, uint32 size, void* out_memory);
+	bool32 vk_image_read_pixel(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 x, uint32 y, uint32* out_rgba);
 	
 #ifdef _DEBUG
 	bool8 vk_debug_set_object_name(VulkanContext* context, VkObjectType object_type, void* object_handle, const char* object_name);
@@ -76,10 +79,10 @@ namespace Renderer::Vulkan
 #define VK_DEBUG_BEGIN_LABEL(context, command_buffer, label_name, color) vk_debug_begin_label(context, command_buffer, label_name, color)
 #define VK_DEBUG_END_LABEL(context, command_buffer) vk_debug_end_label(context, command_buffer)
 #else
-#define VK_DEBUG_SET_OBJECT_NAME(context, object_type, object_handle, object_name)
-#define VK_DEBUG_SET_OBJECT_TAG(context, object_type, object_handle, object_name)
-#define VK_DEBUG_BEGIN_LABEL(context, command_buffer, label_name, color)
-#define VK_DEBUG_END_LABEL(context, command_buffer, label_name, color)
+#define VK_DEBUG_SET_OBJECT_NAME(context, object_type, object_handle, object_name)  
+#define VK_DEBUG_SET_OBJECT_TAG(context, object_type, object_handle, object_name)  
+#define VK_DEBUG_BEGIN_LABEL(context, command_buffer, label_name, color)  
+#define VK_DEBUG_END_LABEL(context, command_buffer)  
 #endif
 	
 }

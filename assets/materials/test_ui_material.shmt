@@ -15,5 +15,5 @@ filter_mag=linear
 repeat_u=repeat
 repeat_v=repeat
 repeat_w=repeat
-texture_name=test_ui_texture
+texture_name=texture_read_test
 [/]

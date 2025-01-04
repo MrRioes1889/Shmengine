@@ -146,7 +146,7 @@ bool32 application_boot(Application* app_inst)
 
 	Renderer::RenderPassConfig* skybox_pass = &skybox_view_config->pass_configs[0];
 	skybox_pass->name = "Renderpass.Builtin.Skybox";
-	skybox_pass->dim = { 1600, 900 };
+	skybox_pass->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	skybox_pass->offset = { 0, 0 };
 	skybox_pass->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
 	skybox_pass->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER;
@@ -171,7 +171,7 @@ bool32 application_boot(Application* app_inst)
 
 	Renderer::RenderPassConfig* world_pass = &world_view_config->pass_configs[0];
 	world_pass->name = "Renderpass.Builtin.World";
-	world_pass->dim = { 1600, 900 };
+	world_pass->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	world_pass->offset = { 0, 0 };
 	world_pass->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
 	world_pass->clear_flags = Renderer::RenderpassClearFlags::DEPTH_BUFFER | Renderer::RenderpassClearFlags::STENCIL_BUFFER;
@@ -203,7 +203,7 @@ bool32 application_boot(Application* app_inst)
 
 	Renderer::RenderPassConfig* ui_pass = &ui_view_config->pass_configs[0];
 	ui_pass->name = "Renderpass.Builtin.UI";
-	ui_pass->dim = { 1600, 900 };
+	ui_pass->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	ui_pass->offset = { 0, 0 };
 	ui_pass->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
 	ui_pass->clear_flags = Renderer::RenderpassClearFlags::NONE;
@@ -231,7 +231,7 @@ bool32 application_boot(Application* app_inst)
 	Renderer::RenderPassConfig* ui_pick_pass = &pick_view_config->pass_configs[1];
 
 	world_pick_pass->name = "Renderpass.Builtin.WorldPick";
-	world_pick_pass->dim = { 1600, 900 };
+	world_pick_pass->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	world_pick_pass->offset = { 0, 0 };
 	world_pick_pass->clear_color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	world_pick_pass->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER | Renderer::RenderpassClearFlags::DEPTH_BUFFER;
@@ -255,7 +255,7 @@ bool32 application_boot(Application* app_inst)
 	world_pick_pass->render_target_count = 1;
 
 	ui_pick_pass->name = "Renderpass.Builtin.UIPick";
-	ui_pick_pass->dim = { 1600, 900 };
+	ui_pick_pass->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	ui_pick_pass->offset = { 0, 0 };
 	ui_pick_pass->clear_color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	ui_pick_pass->clear_flags = Renderer::RenderpassClearFlags::NONE;
@@ -312,55 +312,62 @@ bool32 application_init(void* application_state)
 	}
 
 	// Load up some test UI geometry.
-	//MeshGeometryConfig ui_config = {};
-	//ui_config.data_config.vertex_size = sizeof(Renderer::Vertex2D);
-	//CString::copy("test_ui_material", ui_config.material_name, max_material_name_length);
-	//CString::copy("test_ui_geometry", ui_config.data_config.name, max_geometry_name_length);
+	MeshGeometryConfig ui_config = {};
+	GeometrySystem::GeometryConfig ui_g_config = {};
+	ui_config.data_config = &ui_g_config;
+		
+	ui_config.material_name = "test_ui_material";
+	CString::copy("test_ui_mesh", ui_config.data_config->name, max_mesh_name_length);
 
-	//ui_config.data_config.vertex_count = 4;
-	//ui_config.data_config.vertices.init(ui_config.data_config.vertex_size * ui_config.data_config.vertex_count, 0);
-	//ui_config.data_config.indices.init(6, 0);
-	//Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)&ui_config.data_config.vertices[0];
+	ui_config.data_config->vertex_size = sizeof(Renderer::Vertex2D);
+	ui_config.data_config->vertex_count = 4;
+	ui_config.data_config->vertices.init(ui_config.data_config->vertex_size * ui_config.data_config->vertex_count, 0);
+	ui_config.data_config->index_count = 6;
+	ui_config.data_config->indices.init(ui_config.data_config->index_count, 0);
+	
+	Renderer::Vertex2D* uiverts = (Renderer::Vertex2D*)&ui_config.data_config->vertices[0];
 
-	//const float32 w = 100.0f;//1077.0f * 0.25f;
-	//const float32 h = 100.0f;//1278.0f * 0.25f;
-	//uiverts[0].position.x = 0.0f;  // 0    3
-	//uiverts[0].position.y = 0.0f;  //
-	//uiverts[0].tex_coordinates.x = 0.0f;  //
-	//uiverts[0].tex_coordinates.y = 0.0f;  // 2    1
+	const float32 w = 200.0f;//1077.0f * 0.25f;
+	const float32 h = 300.0f;//1278.0f * 0.25f;
+	uiverts[0].position.x = 0.0f;  // 0    3
+	uiverts[0].position.y = 0.0f;  //
+	uiverts[0].tex_coordinates.x = 0.0f;  //
+	uiverts[0].tex_coordinates.y = 0.0f;  // 2    1
 
-	//uiverts[1].position.y = h;
-	//uiverts[1].position.x = w;
-	//uiverts[1].tex_coordinates.x = 1.0f;
-	//uiverts[1].tex_coordinates.y = 1.0f;
+	uiverts[1].position.y = h;
+	uiverts[1].position.x = w;
+	uiverts[1].tex_coordinates.x = 1.0f;
+	uiverts[1].tex_coordinates.y = 1.0f;
 
-	//uiverts[2].position.x = 0.0f;
-	//uiverts[2].position.y = h;
-	//uiverts[2].tex_coordinates.x = 0.0f;
-	//uiverts[2].tex_coordinates.y = 1.0f;
+	uiverts[2].position.x = 0.0f;
+	uiverts[2].position.y = h;
+	uiverts[2].tex_coordinates.x = 0.0f;
+	uiverts[2].tex_coordinates.y = 1.0f;
 
-	//uiverts[3].position.x = w;
-	//uiverts[3].position.y = 0.0;
-	//uiverts[3].tex_coordinates.x = 1.0f;
-	//uiverts[3].tex_coordinates.y = 0.0f;
+	uiverts[3].position.x = w;
+	uiverts[3].position.y = 0.0;
+	uiverts[3].tex_coordinates.x = 1.0f;
+	uiverts[3].tex_coordinates.y = 0.0f;
 
-	//// Indices - counter-clockwise
-	//ui_config.data_config.indices[0] = 2;
-	//ui_config.data_config.indices[1] = 1;
-	//ui_config.data_config.indices[2] = 0;
-	//ui_config.data_config.indices[3] = 3;
-	//ui_config.data_config.indices[4] = 0;
-	//ui_config.data_config.indices[5] = 1;
+	// Indices - counter-clockwise
+	ui_config.data_config->indices[0] = 2;
+	ui_config.data_config->indices[1] = 1;
+	ui_config.data_config->indices[2] = 0;
+	ui_config.data_config->indices[3] = 3;
+	ui_config.data_config->indices[4] = 0;
+	ui_config.data_config->indices[5] = 1;
 
 	// Get UI geometry from config.
 	app_state->ui_meshes.init(1, 0);
-	/*Mesh* ui_mesh = state->ui_meshes.emplace();
+	Mesh* ui_mesh = &app_state->ui_meshes[app_state->ui_meshes.emplace()];
 	ui_mesh->unique_id = identifier_acquire_new_id(ui_mesh);
 	ui_mesh->geometries.init(1, 0);
-	ui_mesh->geometries.push(0);
-	ui_mesh->geometries[0] = GeometrySystem::acquire_from_config(ui_config, true);
+	ui_mesh->geometries.emplace();
+	ui_mesh->geometries[0].g_data = GeometrySystem::acquire_from_config(ui_config.data_config, true);
+	CString::copy(ui_config.material_name, ui_mesh->geometries[0].material_name, max_material_name_length);
+	ui_mesh->geometries[0].material = MaterialSystem::acquire(ui_mesh->geometries[0].material_name);
 	ui_mesh->transform = Math::transform_create();
-	ui_mesh->generation = 0;*/
+	ui_mesh->generation = 0;
 
 	return true;
 }

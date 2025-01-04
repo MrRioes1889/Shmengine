@@ -74,6 +74,11 @@ namespace Math
 		a.z -= other.z;
 	}
 
+	SHMINLINE bool8 operator==(const Vec3f& a, const Vec3f& other)
+	{
+		return (a.x == other.x && a.y == other.y && a.z == other.z);
+	}
+
 	SHMINLINE float inner_product(Vec3f a, Vec3f b)
 	{
 		float res = a.x * b.x + a.y * b.y + a.z * b.z;
@@ -208,6 +213,11 @@ namespace Math
 		a.x -= other.x;
 		a.y -= other.y;
 		a.z -= other.z;
+	}
+
+	SHMINLINE bool8 operator==(const Vec3i& a, const Vec3i& other)
+	{
+		return (a.x == other.x && a.y == other.y && a.z == other.z);
 	}
 
 	SHMINLINE int32 inner_product(Vec3i a, Vec3i b)

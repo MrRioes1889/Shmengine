@@ -49,8 +49,8 @@ namespace Renderer
 	void texture_create_writable(Texture * texture);
 	void texture_resize(Texture* texture, uint32 width, uint32 height);
 	bool32 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
-	bool32 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory);
-	bool32 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
+	SHMAPI bool32 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory);
+	SHMAPI bool32 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 	void texture_destroy(Texture* texture);
 
 	bool32 geometry_load(GeometryData* geometry);

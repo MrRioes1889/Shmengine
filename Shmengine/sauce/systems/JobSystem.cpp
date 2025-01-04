@@ -6,6 +6,8 @@
 #include "core/FrameData.hpp"
 #include "containers/RingQueue.hpp"
 
+#include "optick.h"
+
 #define MT_ENABLED 1
 
 namespace JobSystem
@@ -44,6 +46,7 @@ namespace JobSystem
 		Threading::Mutex normal_prio_queue_mutex;
 		Threading::Mutex high_prio_queue_mutex;
 
+		uint32 pending_results_count;
 		JobResultEntry pending_results[SystemConfig::max_job_results_count];
 		Threading::Mutex results_mutex;
 	};
@@ -62,6 +65,8 @@ namespace JobSystem
 
 		system_state->config = *sys_config;
 		system_state->is_running = true;
+
+		system_state->pending_results_count = 0;
 
 		system_state->low_prio_queue.init(1024, 0);
 		system_state->normal_prio_queue.init(1024, 0);
@@ -131,7 +136,7 @@ namespace JobSystem
 		process_queue(system_state->normal_prio_queue, &system_state->normal_prio_queue_mutex);
 		process_queue(system_state->high_prio_queue, &system_state->high_prio_queue_mutex);
 
-		for (uint32 i = 0; i < SystemConfig::max_job_results_count; i++)
+		for (uint32 i = 0; i < SystemConfig::max_job_results_count && system_state->pending_results_count > 0; i++)
 		{
 
 			Threading::mutex_lock(&system_state->results_mutex);
@@ -140,14 +145,15 @@ namespace JobSystem
 
 			if (entry.id != INVALID_ID)
 			{
-				entry.on_complete(entry.params);
-
-				if (entry.params)
-					Memory::free_memory(entry.params);
-
 				Threading::mutex_lock(&system_state->results_mutex);
 				system_state->pending_results[i].id = INVALID_ID;
 				Threading::mutex_unlock(&system_state->results_mutex);
+
+				system_state->pending_results_count--;
+				entry.on_complete(entry.params);
+
+				if (entry.params)
+					Memory::free_memory(entry.params);	
 			}
 
 		}
@@ -271,6 +277,7 @@ namespace JobSystem
 			{
 				system_state->pending_results[i] = entry;
 				system_state->pending_results[i].id = i;
+				system_state->pending_results_count++;
 				break;
 			}
 		}

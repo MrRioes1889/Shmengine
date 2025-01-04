@@ -154,8 +154,28 @@ namespace Input
         system_state->keyboard_prev = system_state->keyboard_cur;
         system_state->mouse_prev = system_state->mouse_cur;
 
-        system_state->prev_mouse_pos = system_state->mouse_pos;
-        system_state->mouse_internal_offset = { 0, 0 };
+        if (system_state->mouse_pos != system_state->prev_mouse_pos)
+        {      
+            if (!system_state->cursor_clipped)
+            {
+                EventData e;
+                e.i32[0] = system_state->mouse_pos.x;
+                e.i32[1] = system_state->mouse_pos.y;
+                //Event::event_fire(SystemEventCode::MOUSE_MOVED_, 0, e);
+            }
+            
+            system_state->prev_mouse_pos = system_state->mouse_pos;
+        }
+        
+        if (system_state->mouse_internal_offset.x != 0 || system_state->mouse_internal_offset.y != 0)
+        {
+            EventData e;
+            e.i32[0] = system_state->mouse_internal_offset.x;
+            e.i32[1] = system_state->mouse_internal_offset.y;
+            //Event::event_fire(SystemEventCode::MOUSE_INTERNAL_MOVED, 0, e);
+
+            system_state->mouse_internal_offset = {};
+        }
     }
 
     void process_key(KeyCode::Value key, bool8 pressed)
@@ -215,26 +235,12 @@ namespace Input
 
     void process_mouse_move(int32 x, int32 y)
     {
-        system_state->mouse_pos.x = x;
-        system_state->mouse_pos.y = y;
-
-        if (!system_state->cursor_clipped && (system_state->mouse_pos.x != x || system_state->mouse_pos.y != y))
-        {
-            EventData e;
-            e.i32[0] = x;
-            e.i32[1] = y;
-            Event::event_fire(SystemEventCode::MOUSE_MOVED_, 0, e);
-        }
+        system_state->mouse_pos = { x, y };
     }
 
     void process_mouse_internal_move(int32 x_offset, int32 y_offset)
     {
         system_state->mouse_internal_offset = { x_offset, y_offset };
-
-        EventData e;
-        e.i32[0] = x_offset;
-        e.i32[1] = y_offset;
-        Event::event_fire(SystemEventCode::MOUSE_INTERNAL_MOVED, 0, e);
     }
 
     void process_mouse_scroll(int32 delta)

@@ -71,6 +71,7 @@ namespace Renderer::Vulkan
 		VkImage handle;
 		VkDeviceMemory memory;
 		VkImageView view;
+		VkImageLayout layout;
 		uint32 width;
 		uint32 height;
 		VkMemoryRequirements memory_requirements;
@@ -265,8 +266,8 @@ namespace Renderer::Vulkan
 		Sarray<VkSemaphore> image_available_semaphores = {};
 		Sarray<VkSemaphore> queue_complete_semaphores = {};
 
-		VkFence fences_in_flight[RendererConfig::framebuffer_count - 1];
-		VkFence images_in_flight[RendererConfig::framebuffer_count];
+		VkFence framebuffer_fences[RendererConfig::framebuffer_count - 1];
+		VkFence framebuffer_fences_in_flight[RendererConfig::framebuffer_count];
 
 #if defined(_DEBUG)
 		VkDebugUtilsMessengerEXT debug_messenger;

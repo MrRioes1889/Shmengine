@@ -173,10 +173,10 @@ namespace Engine
 			metrics_update_frame();
 			last_frametime = metrics_last_frametime();
 
+			OPTICK_FRAME("MainThread");
+
 			engine_state->frame_data.delta_time = last_frametime;
 			engine_state->frame_data.total_time += last_frametime;
-
-			OPTICK_FRAME("MainThread");
 
 			engine_state->frame_allocator.free_all_data();
 
@@ -207,7 +207,7 @@ namespace Engine
 					SHMFATAL("Failed to render application.");
 					engine_state->is_running = false;
 					break;
-				}		
+				}
 
 				Renderer::draw_frame(&render_packet, &engine_state->frame_data);
 
@@ -240,6 +240,8 @@ namespace Engine
 
 			frame_count++;			
 		}
+
+		OPTICK_SHUTDOWN();
 
 		app_inst->stage = ApplicationStage::SHUTTING_DOWN;
 		engine_state->is_running = false;

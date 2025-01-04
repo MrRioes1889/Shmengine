@@ -7,6 +7,8 @@
 
 #include "MaterialSystem.hpp"
 
+#include "optick.h"
+
 namespace ShaderSystem
 {
 
@@ -311,6 +313,8 @@ namespace ShaderSystem
 	bool32 use_shader(uint32 shader_id)
 	{
 
+		OPTICK_EVENT();
+
 		Renderer::Shader* shader = get_shader(shader_id);
 		if (!Renderer::shader_use(shader))
 		{
@@ -392,6 +396,9 @@ namespace ShaderSystem
 
 	bool32 apply_globals(uint32 shader_id, LightingInfo lighting, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode)
 	{
+
+		OPTICK_EVENT();
+
 		Renderer::Shader* s = get_shader(shader_id);
 		if (!s)
 			return false;
@@ -464,6 +471,7 @@ namespace ShaderSystem
 			SHMERRORV("Unrecognized shader id '%i' ", shader_id);
 			return false;
 		}
+
 		UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_globals(s));
 
 		s->renderer_frame_number = renderer_frame_number;

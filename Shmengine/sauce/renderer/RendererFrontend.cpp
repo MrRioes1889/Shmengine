@@ -58,8 +58,8 @@ namespace Renderer
 		system_state->module.frame_number = 0;
 		system_state->module = sys_config->renderer_module;
 
-		system_state->framebuffer_width = 1280;
-		system_state->framebuffer_height = 720;
+		system_state->framebuffer_width = 1600;
+		system_state->framebuffer_height = 900;
 		system_state->resizing = false;
 		system_state->frames_since_resize = 0;
 
@@ -445,6 +445,7 @@ namespace Renderer
 
 	void geometry_draw(GeometryData* geometry)
 	{
+		OPTICK_EVENT();
 		if (!geometry->loaded)
 			geometry_load(geometry);
 
