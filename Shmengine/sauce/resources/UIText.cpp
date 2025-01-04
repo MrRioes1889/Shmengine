@@ -16,43 +16,33 @@ static void regenerate_geometry(UIText* ui_text);
 static const uint32 quad_vertex_count = 4;
 static const uint32 quad_index_count = 6;
 
-bool32 ui_text_create(UITextType type, const char* font_name, uint16 font_size, const char* text_content, UIText* out_text)
+bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 {
 
-    if (out_text->type != UITextType::UNKNOWN)
-    {
-        SHMERROR("ui_text_create - text object seems to be already initialized!");
+    if (out_ui_text->state >= UITextState::INITIALIZED)
         return false;
-    }
 
-    out_text->type = type;
+    out_ui_text->state = UITextState::INITIALIZING;
 
-    if (!FontSystem::acquire(font_name, font_size, out_text))
+    out_ui_text->type = config->type;
+
+    if (!FontSystem::acquire(config->font_name, config->font_size, out_ui_text))
     {
         SHMERROR("ui_text_create - failed to acquire resources!");
         return false;
     }
 
-    out_text->text = text_content;
-    out_text->transform = Math::transform_create();
+    out_ui_text->text = config->text_content;
+    out_ui_text->transform = Math::transform_create();
 
-    out_text->shader_instance_id = INVALID_ID;
-    out_text->render_frame_number = INVALID_ID;
+    out_ui_text->shader_instance_id = INVALID_ID;
+    out_ui_text->render_frame_number = INVALID_ID;
 
-    Renderer::Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
-    TextureMap* font_maps[1] = { &out_text->font_atlas->map };
-    if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, font_maps, &out_text->shader_instance_id))
-    {
-        SHMFATAL("ui_text_create - Unable to acquire shader resources for font texture map.");
-        ui_text_destroy(out_text);
-        return false;
-    }
-
-    uint32 text_length = out_text->text.len();
+    uint32 text_length = out_ui_text->text.len();
     if (text_length < 1)
         text_length = 1;
 
-    GeometryData* geometry = &out_text->geometry;
+    GeometryData* geometry = &out_ui_text->geometry;
     geometry->extents = {};
     geometry->center = {};
 
@@ -63,37 +53,74 @@ bool32 ui_text_create(UITextType type, const char* font_name, uint16 font_size, 
     geometry->index_count = text_length * 6;
     geometry->indices.init(geometry->index_count, 0);
 
-    if (!FontSystem::verify_atlas(out_text->font_atlas, out_text->text.c_str()))
-    {
-        SHMFATAL("ui_text_create - Failed to verify font atlas.");
-        ui_text_destroy(out_text);
-        return false;
-    }
+    out_ui_text->unique_id = identifier_acquire_new_id(out_ui_text);
 
-    regenerate_geometry(out_text);
-
-    out_text->unique_id = identifier_acquire_new_id(out_text);
+    out_ui_text->state = UITextState::INITIALIZED;
 
     return true;
 
 }
 
-void ui_text_destroy(UIText* text)
+bool32 ui_text_destroy(UIText* ui_text)
 {
+    if (ui_text->state != UITextState::UNLOADED && !ui_text_unload(ui_text))
+        return false;
 
-    text->text.free_data();
+    ui_text->text.free_data();
 
-    Renderer::geometry_unload(&text->geometry);
+    ui_text->geometry.vertices.free_data();
+    ui_text->geometry.indices.free_data();
 
-    text->geometry.vertices.free_data();
-    text->geometry.indices.free_data();
+    ui_text->state = UITextState::DESTROYED;
+
+    return true;
+}
+
+bool32 ui_text_load(UIText* ui_text)
+{
+    if (ui_text->state != UITextState::INITIALIZED && ui_text->state != UITextState::UNLOADED)
+        return false;
+
+    ui_text->state = UITextState::LOADING;
 
     Renderer::Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
-    Renderer::shader_release_instance_resources(ui_shader, text->shader_instance_id);
+    TextureMap* font_maps[1] = { &ui_text->font_atlas->map };
+    if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, font_maps, &ui_text->shader_instance_id))
+    {
+        SHMFATAL("Unable to acquire shader resources for font texture map.");
+        return false;
+    }
 
-    identifier_release_id(text->unique_id);
-    text->unique_id = 0;
+    regenerate_geometry(ui_text);
+    Renderer::geometry_load(&ui_text->geometry);
 
+    ui_text->state = UITextState::LOADED;
+
+    return true;
+}
+
+bool32 ui_text_unload(UIText* ui_text)
+{
+    if (ui_text->state <= UITextState::INITIALIZED)
+        return true;
+    else if (ui_text->state != UITextState::LOADED)
+        return false;
+
+    ui_text->state = UITextState::UNLOADING;
+
+    Renderer::geometry_unload(&ui_text->geometry);
+
+    Renderer::Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
+    Renderer::shader_release_instance_resources(ui_shader, ui_text->shader_instance_id);
+
+    ui_text->shader_instance_id = INVALID_ID;
+    ui_text->render_frame_number = INVALID_ID;
+
+    identifier_release_id(ui_text->unique_id);
+    ui_text->unique_id = 0;
+
+    ui_text->state = UITextState::UNLOADED;
+    return true;
 }
 
 void ui_text_set_position(UIText* ui_text, Math::Vec3f position)
@@ -108,18 +135,21 @@ void ui_text_set_text(UIText* ui_text, const char* text)
         return;  
 
     ui_text->text = text;
-    ui_text_refresh(ui_text);
 }
 
-void ui_text_refresh(UIText* ui_text)
+void ui_text_update(UIText* ui_text)
 {
     if (!FontSystem::verify_atlas(ui_text->font_atlas, ui_text->text.c_str()))
     {
-        SHMERROR("ui_text_set_text - font atlas verification failed");
+        SHMERROR("Font atlas verification failed");
         return;
     }
 
     regenerate_geometry(ui_text);
+
+    if (ui_text->state == UITextState::LOADED)
+        Renderer::geometry_reload(&ui_text->geometry);
+        
 }
 
 static void regenerate_geometry(UIText* ui_text)
@@ -264,11 +294,6 @@ static void regenerate_geometry(UIText* ui_text)
         // Increment utf-8 character count.
         uc++;
     }
-
-    if (ui_text->geometry.loaded)
-        Renderer::geometry_reload(&ui_text->geometry);
-    else
-        Renderer::geometry_load(&ui_text->geometry);
 
 }
 

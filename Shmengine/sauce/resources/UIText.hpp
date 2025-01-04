@@ -7,6 +7,18 @@
 #include "systems/FontSystem.hpp"
 #include "systems/GeometrySystem.hpp"
 
+enum class UITextState
+{
+	UNINITIALIZED,
+	DESTROYED,
+	INITIALIZING,
+	INITIALIZED,
+	LOADING,
+	LOADED,
+	UNLOADING,
+	UNLOADED
+};
+
 enum class UITextType
 {
 	UNKNOWN = 0,
@@ -14,9 +26,18 @@ enum class UITextType
 	TRUETYPE
 };
 
+struct UITextConfig
+{
+	UITextType type;	
+	uint16 font_size;
+	const char* font_name;
+	const char* text_content;
+};
+
 struct UIText
 {
 	UITextType type;
+	UITextState state;
 	UniqueId unique_id;
 	uint32 shader_instance_id;
 	uint32 render_frame_number;
@@ -26,11 +47,13 @@ struct UIText
 	GeometryData geometry;
 };
 
-SHMAPI bool32 ui_text_create(UITextType type, const char* font_name, uint16 font_size, const char* text_content, UIText* out_text);
-SHMAPI void ui_text_destroy(UIText* text);
+SHMAPI bool32 ui_text_init(UITextConfig* config, UIText* out_text);
+SHMAPI bool32 ui_text_destroy(UIText* text);
+SHMAPI bool32 ui_text_load(UIText* text);
+SHMAPI bool32 ui_text_unload(UIText* text);
 
 SHMAPI void ui_text_set_position(UIText* ui_text, Math::Vec3f position);
 SHMAPI void ui_text_set_text(UIText* ui_text, const char* text);
-SHMAPI void ui_text_refresh(UIText* ui_text);
+SHMAPI void ui_text_update(UIText* ui_text);
 
 SHMAPI bool32 ui_text_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* text, uint32 frame_number);

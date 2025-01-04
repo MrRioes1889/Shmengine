@@ -54,7 +54,7 @@ namespace DebugConsole
 
 			console_state->entry_control.text = console_state->entry_prefix;
 			console_state->entry_control.text.append('_');
-			ui_text_refresh(&console_state->entry_control);
+			ui_text_update(&console_state->entry_control);
 		}
 		if (key_code == KeyCode::BACKSPACE)
 		{
@@ -63,7 +63,7 @@ namespace DebugConsole
 
 			console_state->entry_control.text.pop();
 			console_state->entry_control.text[console_state->entry_control.text.len() - 1] = '_';
-			ui_text_refresh(&console_state->entry_control);
+			ui_text_update(&console_state->entry_control);
 		}
 		else
 		{
@@ -126,7 +126,7 @@ namespace DebugConsole
 
 			console_state->entry_control.text[console_state->entry_control.text.len() - 1] = char_code;
 			console_state->entry_control.text.append('_');
-			ui_text_refresh(&console_state->entry_control);
+			ui_text_update(&console_state->entry_control);
 		}
 		
 		return false;
@@ -134,7 +134,7 @@ namespace DebugConsole
 	}
 
 
-	void init(ConsoleState* console_state)
+	bool32 init(ConsoleState* console_state)
 	{
 
 		console_state->lines.init(16, 0);
@@ -145,6 +145,26 @@ namespace DebugConsole
 
 		console_state->entry_prefix = "--> ";
 
+		UITextConfig ui_text_config = {};
+		ui_text_config.type = UITextType::TRUETYPE;
+		ui_text_config.font_name = "Martian Mono";
+		ui_text_config.font_size = 21;
+		ui_text_config.text_content = "";
+
+		if (!ui_text_init(&ui_text_config, &console_state->text_control))
+		{
+			SHMERROR("Failed to load basic ui truetype text.");
+			return false;
+		}
+		ui_text_set_position(&console_state->text_control, { 3.0f, 30.0f, 0 });
+
+		if (!ui_text_init(&ui_text_config, &console_state->entry_control))
+		{
+			SHMERROR("Failed to load basic ui truetype text.");
+			return false;
+		}
+		ui_text_set_position(&console_state->entry_control, { 3.0f, 30.0f + (console_state->line_display_count * 21.0f), 0 });
+
 		Console::register_consumer(console_state, consumer_write, &console_state->consumer_id);
 
 		Console::register_command("exit", 0, command_exit);
@@ -153,48 +173,46 @@ namespace DebugConsole
 		Event::event_register(SystemEventCode::KEY_PRESSED, console_state, on_key);
 		Event::event_register(SystemEventCode::KEY_RELEASED, console_state, on_key);
 
+		return true;
+
 	}
 
 	void destroy(ConsoleState* console_state)
 	{
 
 		unload(console_state);
+
+		ui_text_destroy(&console_state->text_control);
+		ui_text_destroy(&console_state->entry_control);
+
 		console_state->lines.free_data();						
 
 	}
 
 	bool32 load(ConsoleState* console_state)
 	{
-
-		if (!ui_text_create(UITextType::TRUETYPE, "Martian Mono", 21, "", &console_state->text_control))
-		{
-			SHMERROR("Failed to load basic ui truetype text.");
-			return false;
-		}
-		ui_text_set_position(&console_state->text_control, { 3.0f, 30.0f, 0 });
-
-		if (!ui_text_create(UITextType::TRUETYPE, "Martian Mono", 21, "", &console_state->entry_control))
-		{
-			SHMERROR("Failed to load basic ui truetype text.");
-			return false;
-		}
-		ui_text_set_position(&console_state->entry_control, { 3.0f, 30.0f + (console_state->line_display_count * 21.0f), 0});
+	
 		String entry_prefix(console_state->entry_prefix);
 		entry_prefix.append('_');
 		ui_text_set_text(&console_state->entry_control, entry_prefix.c_str());
+
+		ui_text_unload(&console_state->text_control);
+		ui_text_unload(&console_state->entry_control);
 
 		console_state->loaded = true;
 		return true;
 
 	}
 
-	void unload(ConsoleState* console_state)
+	bool32 unload(ConsoleState* console_state)
 	{
 		if (!console_state->loaded)
-			return;
+			return false;
 
-		ui_text_destroy(&console_state->text_control);
-		ui_text_destroy(&console_state->entry_control);
+		ui_text_unload(&console_state->text_control);
+		ui_text_unload(&console_state->entry_control);
+
+		return true;
 	}
 
 	void update(ConsoleState* console_state)
@@ -220,6 +238,9 @@ namespace DebugConsole
 
 		buffer[buffer_offset] = 0;
 		ui_text_set_text(&console_state->text_control, buffer);
+
+		ui_text_update(&console_state->text_control);
+		ui_text_update(&console_state->entry_control);
 
 		console_state->dirty = false;
 

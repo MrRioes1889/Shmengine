@@ -290,14 +290,25 @@ bool32 application_init(void* application_state)
 	app_state->world_camera->set_position({ 10.5f, 5.0f, 9.5f });
 	app_state->allocation_count = 0;
 
-	if (!ui_text_create(UITextType::BITMAP, "Roboto Mono 21px", 21, "Some test täext,\n\tyo!", &app_state->test_bitmap_text))
+	UITextConfig ui_text_config = {};
+	ui_text_config.type = UITextType::BITMAP;
+	ui_text_config.font_name = "Roboto Mono 21px";
+	ui_text_config.font_size = 21;
+	ui_text_config.text_content = "Some test täext,\n\tyo!";
+
+	if (!ui_text_init(&ui_text_config, &app_state->test_bitmap_text) || !ui_text_load(&app_state->test_bitmap_text))
 	{
 		SHMERROR("Failed to load basic ui bitmap text.");
 		return false;
 	}
 	ui_text_set_position(&app_state->test_bitmap_text, { 50, 300, 0 });
 
-	if (!ui_text_create(UITextType::TRUETYPE, "Martian Mono", 21, "Some täest text,\n\tyo!", &app_state->test_truetype_text))
+	ui_text_config.type = UITextType::TRUETYPE;
+	ui_text_config.font_name = "Martian Mono";
+	ui_text_config.font_size = 21;
+	ui_text_config.text_content = "Some täest text,\n\tyo!";
+
+	if (!ui_text_init(&ui_text_config, &app_state->test_truetype_text) || !ui_text_load(&app_state->test_truetype_text))
 	{
 		SHMERROR("Failed to load basic ui truetype text.");
 		return false;
@@ -465,6 +476,7 @@ bool32 application_update(FrameData* frame_data)
 			app_state->hovered_object_id, frame_data->drawn_geometry_count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
 
 	ui_text_set_text(&app_state->test_truetype_text, ui_text_buffer);
+	ui_text_update(&app_state->test_truetype_text);
 
 	DebugConsole::update(&app_state->debug_console);
 

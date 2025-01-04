@@ -25,11 +25,11 @@ namespace DebugConsole
 		String entry_prefix;
 	};
 
-	void init(ConsoleState* console_state);
+	bool32 init(ConsoleState* console_state);
 	void destroy(ConsoleState* console_state);
 
 	bool32 load(ConsoleState* console_state);
-	void unload(ConsoleState* console_state);
+	bool32 unload(ConsoleState* console_state);
 
 	void update(ConsoleState* console_state);
 
