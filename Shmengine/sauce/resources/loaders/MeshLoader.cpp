@@ -586,10 +586,10 @@ namespace ResourceSystem
             CString::copy((char*)&read_ptr[read_bytes], config->material_name, max_material_name_length, (int32)geo_header->material_name_length);
             read_bytes += geo_header->material_name_length;
 
-            g->vertices.copy_memory(&read_ptr[read_bytes], geo_header->vertex_count * geo_header->vertex_size);
+            g->vertices.copy_memory(&read_ptr[read_bytes], geo_header->vertex_count * geo_header->vertex_size, 0);
             read_bytes += geo_header->vertex_count * geo_header->vertex_size;
 
-            g->indices.copy_memory(&read_ptr[read_bytes], g->index_count * geo_header->index_size);
+            g->indices.copy_memory(&read_ptr[read_bytes], g->index_count, 0);
             read_bytes += geo_header->index_count * geo_header->index_size;
         }
 

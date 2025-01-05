@@ -287,6 +287,30 @@ namespace Renderer::Vulkan
 
 	bool32 vk_renderpass_end(RenderPass* renderpass)
 	{
+		VulkanRenderpass* v_renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
+
+		for (uint32 target_i = 0; target_i < renderpass->render_targets.capacity; target_i++)
+		{
+			for (uint32 att_i = 0; att_i < renderpass->render_targets[target_i].attachments.capacity; att_i++)
+			{
+				RenderTargetAttachment* att = (RenderTargetAttachment*)&renderpass->render_targets[target_i].attachments[att_i];
+				VulkanImage* image = (VulkanImage*)att->texture->internal_data.data;
+
+				VkImageLayout layout;
+				if (att->type == RenderTargetAttachmentType::COLOR)
+					layout = att->present_after ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				else
+					layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+				TaskInfo task;
+				task.type = TaskType::SetImageLayout;
+				task.set_image_layout.image = image;
+				task.set_image_layout.new_layout = layout;
+
+				context->end_of_frame_task_queue.enqueue(task);
+			}
+		}
+
 		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->bound_framebuffer_index];
 		vkCmdEndRenderPass(command_buffer->handle);
 		VK_DEBUG_END_LABEL(context, command_buffer->handle);

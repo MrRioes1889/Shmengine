@@ -37,14 +37,15 @@ struct RenderViewPickShaderInstance
 };
 
 struct RenderViewPickInternalData {
-	RenderViewPickShaderInfo world_shader_info;
-	RenderViewPickShaderInfo ui_shader_info;
+	RenderViewPickShaderInfo material_pick_shader_info;
+	RenderViewPickShaderInfo ui_pick_shader_info;
 
 	Texture color_target_attachment_texture;
 	Texture depth_target_attachment_texture;
 
 	//Math::Vec2i mouse_pos;
 	Darray<RenderViewPickShaderInstance> instances;
+	UniqueId hovered_object_id;
 };
 
 namespace Renderer
@@ -78,13 +79,13 @@ namespace Renderer
 		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
 
 		uint32 instance_id;
-		if (!Renderer::shader_acquire_instance_resources(data->ui_shader_info.shader, 0, 0, &instance_id))
+		if (!Renderer::shader_acquire_instance_resources(data->ui_pick_shader_info.shader, 0, 0, &instance_id))
 		{
 			SHMFATAL("Failed to acquire shader instance resources.");
 			return;
 		}
 
-		if (!Renderer::shader_acquire_instance_resources(data->world_shader_info.shader, 0, 0, &instance_id))
+		if (!Renderer::shader_acquire_instance_resources(data->material_pick_shader_info.shader, 0, 0, &instance_id))
 		{
 			SHMFATAL("Failed to acquire shader instance resources.");
 			return;
@@ -99,8 +100,8 @@ namespace Renderer
 
 		for (uint32 i = 0; i < data->instances.count; i++)
 		{
-			Renderer::shader_release_instance_resources(data->ui_shader_info.shader, i);
-			Renderer::shader_release_instance_resources(data->world_shader_info.shader, i);
+			Renderer::shader_release_instance_resources(data->ui_pick_shader_info.shader, i);
+			Renderer::shader_release_instance_resources(data->material_pick_shader_info.shader, i);
 			data->instances.pop();
 		}
 	}
@@ -113,8 +114,10 @@ namespace Renderer
 
 		data->instances.init(64, 0);
 
-		data->world_shader_info.pass = &self->renderpasses[0];
-		data->ui_shader_info.pass = &self->renderpasses[1];	
+		data->hovered_object_id = 0;
+
+		data->material_pick_shader_info.pass = &self->renderpasses[0];
+		data->ui_pick_shader_info.pass = &self->renderpasses[1];	
 
 		ShaderConfig world_pick_config = {};
 		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_world_pick, 0, &world_pick_config))
@@ -131,18 +134,18 @@ namespace Renderer
 		}
 		ResourceSystem::shader_loader_unload(&world_pick_config);
 
-		data->world_shader_info.shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_world_pick);
+		data->material_pick_shader_info.shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_world_pick);
 
-		data->world_shader_info.id_color_location = ShaderSystem::get_uniform_index(data->world_shader_info.shader, "id_color");
-		data->world_shader_info.model_location = ShaderSystem::get_uniform_index(data->world_shader_info.shader, "model");
-		data->world_shader_info.projection_location = ShaderSystem::get_uniform_index(data->world_shader_info.shader, "projection");
-		data->world_shader_info.view_location = ShaderSystem::get_uniform_index(data->world_shader_info.shader, "view");
+		data->material_pick_shader_info.id_color_location = ShaderSystem::get_uniform_index(data->material_pick_shader_info.shader, "id_color");
+		data->material_pick_shader_info.model_location = ShaderSystem::get_uniform_index(data->material_pick_shader_info.shader, "model");
+		data->material_pick_shader_info.projection_location = ShaderSystem::get_uniform_index(data->material_pick_shader_info.shader, "projection");
+		data->material_pick_shader_info.view_location = ShaderSystem::get_uniform_index(data->material_pick_shader_info.shader, "view");
 
-		data->world_shader_info.near_clip = 0.1f;
-		data->world_shader_info.far_clip = 4000.0f;
-		data->world_shader_info.fov = Math::deg_to_rad(45.0f);
-		data->world_shader_info.projection = Math::mat_perspective(data->world_shader_info.fov, 1280.0f / 720.0f, data->world_shader_info.near_clip, data->world_shader_info.far_clip);
-		data->world_shader_info.view = MAT4_IDENTITY;
+		data->material_pick_shader_info.near_clip = 0.1f;
+		data->material_pick_shader_info.far_clip = 4000.0f;
+		data->material_pick_shader_info.fov = Math::deg_to_rad(45.0f);
+		data->material_pick_shader_info.projection = Math::mat_perspective(data->material_pick_shader_info.fov, 1280.0f / 720.0f, data->material_pick_shader_info.near_clip, data->material_pick_shader_info.far_clip);
+		data->material_pick_shader_info.view = MAT4_IDENTITY;
 
 
 		ShaderConfig ui_pick_config = {};
@@ -160,18 +163,18 @@ namespace Renderer
 		}
 		ResourceSystem::shader_loader_unload(&ui_pick_config);
 
-		data->ui_shader_info.shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui_pick);
+		data->ui_pick_shader_info.shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui_pick);
 
-		data->ui_shader_info.id_color_location = ShaderSystem::get_uniform_index(data->ui_shader_info.shader, "id_color");
-		data->ui_shader_info.model_location = ShaderSystem::get_uniform_index(data->ui_shader_info.shader, "model");
-		data->ui_shader_info.projection_location = ShaderSystem::get_uniform_index(data->ui_shader_info.shader, "projection");
-		data->ui_shader_info.view_location = ShaderSystem::get_uniform_index(data->ui_shader_info.shader, "view");
+		data->ui_pick_shader_info.id_color_location = ShaderSystem::get_uniform_index(data->ui_pick_shader_info.shader, "id_color");
+		data->ui_pick_shader_info.model_location = ShaderSystem::get_uniform_index(data->ui_pick_shader_info.shader, "model");
+		data->ui_pick_shader_info.projection_location = ShaderSystem::get_uniform_index(data->ui_pick_shader_info.shader, "projection");
+		data->ui_pick_shader_info.view_location = ShaderSystem::get_uniform_index(data->ui_pick_shader_info.shader, "view");
 
-		data->ui_shader_info.near_clip = -100.0f;
-		data->ui_shader_info.far_clip = 100.0f;
-		data->ui_shader_info.fov = 0.0f;
-		data->ui_shader_info.projection = Math::mat_orthographic(0.0f, 1280.0f, 720.0f, 0.0f, data->ui_shader_info.near_clip, data->ui_shader_info.far_clip);
-		data->ui_shader_info.view = MAT4_IDENTITY;
+		data->ui_pick_shader_info.near_clip = -100.0f;
+		data->ui_pick_shader_info.far_clip = 100.0f;
+		data->ui_pick_shader_info.fov = 0.0f;
+		data->ui_pick_shader_info.projection = Math::mat_orthographic(0.0f, 1280.0f, 720.0f, 0.0f, data->ui_pick_shader_info.near_clip, data->ui_pick_shader_info.far_clip);
+		data->ui_pick_shader_info.view = MAT4_IDENTITY;
 
 		Event::event_register((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
 
@@ -202,10 +205,10 @@ namespace Renderer
 		self->width = (uint16)width;
 		self->height = (uint16)height;
 
-		data->ui_shader_info.projection = Math::mat_orthographic(0.0f, self->width, self->height, 0.0f, data->ui_shader_info.near_clip, data->ui_shader_info.far_clip);
+		data->ui_pick_shader_info.projection = Math::mat_orthographic(0.0f, self->width, self->height, 0.0f, data->ui_pick_shader_info.near_clip, data->ui_pick_shader_info.far_clip);
 
 		float32 aspect = (float32)width / (float32)height;
-		data->world_shader_info.projection = Math::mat_perspective(data->world_shader_info.fov, aspect, data->world_shader_info.near_clip, data->world_shader_info.far_clip);
+		data->material_pick_shader_info.projection = Math::mat_perspective(data->material_pick_shader_info.fov, aspect, data->material_pick_shader_info.near_clip, data->material_pick_shader_info.far_clip);
 
 		for (uint32 i = 0; i < self->renderpasses.capacity; i++)
 		{
@@ -218,61 +221,29 @@ namespace Renderer
 	{
 		RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 
-		out_packet->extended_data = frame_allocator->allocate(sizeof(PickPacketData));
-		Memory::copy_memory(data, out_packet->extended_data, sizeof(PickPacketData));
-		PickPacketData* packet_data = (PickPacketData*)out_packet->extended_data;
+		PickPacketData* packet_data = (PickPacketData*)data;
 
 		uint32 total_geometry_count = 0;
-		total_geometry_count += packet_data->world_geometries_count;
-		for (uint32 i = 0; i < packet_data->ui_mesh_data.mesh_count; i++)
-			total_geometry_count += packet_data->ui_mesh_data.meshes[i]->geometries.count;
+		total_geometry_count += packet_data->world_geometries_count + packet_data->ui_geometries_count;
 
 		void* geometries_block = frame_allocator->allocate(sizeof(GeometryRenderData) * total_geometry_count);
 		out_packet->geometries.init(total_geometry_count, 0, AllocationTag::RENDERER, geometries_block);
+		out_packet->geometries.set_count(total_geometry_count);
+		out_packet->geometries.copy_memory(packet_data->world_geometries, packet_data->world_geometries_count, 0);
+		out_packet->geometries.copy_memory(packet_data->ui_geometries, packet_data->ui_geometries_count, packet_data->world_geometries_count);
 		out_packet->view = self;
 
 		Camera* world_camera = CameraSystem::get_default_camera();
-		internal_data->world_shader_info.view = world_camera->get_view();
+		internal_data->material_pick_shader_info.view = world_camera->get_view();
 
 		packet_data->world_geometries_count = 0;
 		packet_data->ui_geometries_count = 0;
 		
-		int32 max_instance_id = 0;
-		for (uint32 i = 0; i < packet_data->world_geometries_count; i++)
+		uint32 max_instance_id = 0;
+		for (uint32 i = 0; i < out_packet->geometries.count; i++)
 		{
-			out_packet->geometries.emplace(packet_data->world_geometries[i]);
-
-			if ((int32)packet_data->world_geometries[i].unique_id > max_instance_id)
-				max_instance_id = packet_data->world_geometries[i].unique_id;
-		}
-
-		uint32 ui_pick_shader_id = 0;
-
-		for (uint32 i = 0; i < packet_data->ui_mesh_data.mesh_count; i++)
-		{
-			Mesh* m = packet_data->ui_mesh_data.meshes[i];
-			for (uint32 g = 0; g < m->geometries.count; g++)
-			{
-				GeometryRenderData* render_data = &out_packet->geometries[out_packet->geometries.emplace()];
-				render_data->model = Math::transform_get_world(m->transform);
-				render_data->shader_id = ui_pick_shader_id;
-				render_data->render_object = m->geometries[g].material;
-				render_data->on_render = MaterialSystem::material_on_render;
-				render_data->geometry_data = m->geometries[g].g_data;
-				render_data->has_transparency = (m->geometries[g].material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
-				render_data->unique_id = m->unique_id;
-
-				packet_data->ui_geometries_count++;
-			}
-
-			if ((int32)m->unique_id > max_instance_id)
-				max_instance_id = m->unique_id;
-		}
-
-		for (uint32 i = 0; i < packet_data->text_count; i++)
-		{
-			if ((int32)packet_data->texts[i]->unique_id > max_instance_id)
-				max_instance_id = packet_data->texts[i]->unique_id;
+			if ((int32)out_packet->geometries[i].unique_id > max_instance_id)
+				max_instance_id = out_packet->geometries[i].unique_id;
 		}
 
 		uint32 required_instances_count = max_instance_id + 1;
@@ -300,8 +271,8 @@ namespace Renderer
 
 		RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
 
-		uint32 pass_i = 0;
-		RenderPass* pass = &self->renderpasses[pass_i];
+		RenderPass* depth_pass = &self->renderpasses[0];
+		RenderPass* ui_pass = &self->renderpasses[1];
 
 		if (render_target_index == 0)
 		{
@@ -309,111 +280,118 @@ namespace Renderer
 			for (uint32 i = 0; i < data->instances.count; i++)
 				data->instances[i] = { true };
 
-			if (!renderpass_begin(pass, &pass->render_targets[render_target_index]))
+			if (!renderpass_begin(depth_pass, &depth_pass->render_targets[render_target_index]))
 			{
-				SHMERROR("render_view_pick_on_render - failed to begin renderpass!");
+				SHMERROR("Failed to begin renderpass!");
 				return false;
 			}
-
-			PickPacketData* packet_data = (PickPacketData*)packet.extended_data;
 
 			int32 cur_instance_id = 0;
 
-			if (!ShaderSystem::use_shader(data->world_shader_info.shader->id))
-			{
-				SHMERROR("render_view_pick_on_render - Failed to use shader. Render frame failed.");
-				return false;
-			}
+			uint32 shader_id = INVALID_ID;
+			RenderViewPickShaderInfo* pick_shader_info = 0;
 
-			ShaderSystem::set_uniform(data->world_shader_info.projection_location, &data->world_shader_info.projection);
-			ShaderSystem::set_uniform(data->world_shader_info.view_location, &data->world_shader_info.view);
-			Renderer::shader_apply_globals(data->world_shader_info.shader);
+			uint32 material_shader_id = ShaderSystem::get_material_shader_id();
+			uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
+			uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
 
-			for (uint32 i = 0; i < packet_data->world_geometries_count; i++)
+			uint32 geometry_i = 0;
+			for (; geometry_i < packet.geometries.count; geometry_i++)
 			{
-				const GeometryRenderData* render_data = &packet.geometries[i];
+				GeometryRenderData* render_data = &packet.geometries[geometry_i];
+
+				if (render_data->shader_id != shader_id)
+				{
+					shader_id = render_data->shader_id;
+
+					pick_shader_info = 0;
+					if (shader_id == material_shader_id)
+						pick_shader_info = &data->material_pick_shader_info;
+					else if (shader_id == ui_shader_id)
+						break;
+					else
+						continue;
+
+					ShaderSystem::use_shader(pick_shader_info->shader->id);
+
+					ShaderSystem::set_uniform(pick_shader_info->projection_location, &pick_shader_info->projection);
+					ShaderSystem::set_uniform(pick_shader_info->view_location, &pick_shader_info->view);
+					Renderer::shader_apply_globals(pick_shader_info->shader);
+				}
+
 				cur_instance_id = render_data->unique_id;
 
 				ShaderSystem::bind_instance(cur_instance_id);
-			
+
 				uint32 r, g, b = 0;
 				Math::uint32_to_rgb(cur_instance_id, &r, &g, &b);
 				Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
-				ShaderSystem::set_uniform(data->world_shader_info.id_color_location, &id_color);
-				Renderer::shader_apply_instance(data->world_shader_info.shader, data->instances[cur_instance_id].is_dirty);
+				ShaderSystem::set_uniform(pick_shader_info->id_color_location, &id_color);
+				Renderer::shader_apply_instance(pick_shader_info->shader, data->instances[cur_instance_id].is_dirty);
 				data->instances[cur_instance_id].is_dirty = false;
 
-				ShaderSystem::set_uniform(data->world_shader_info.model_location, &render_data->model);
+				ShaderSystem::set_uniform(pick_shader_info->model_location, &render_data->model);
 
-				Renderer::geometry_draw(packet.geometries[i].geometry_data);
+				Renderer::geometry_draw(packet.geometries[geometry_i].geometry_data);
+
 			}
 
-			if (!renderpass_end(pass))
+			if (!renderpass_end(depth_pass))
 			{
-				SHMERROR("render_view_pick_on_render - draw_frame - failed to end renderpass!");
+				SHMERROR("Failed to end renderpass!");
 				return false;
 			}
 
-			pass_i++;
-			pass = &self->renderpasses[pass_i];
 
-			if (!renderpass_begin(pass, &pass->render_targets[render_target_index]))
+			if (!renderpass_begin(ui_pass, &ui_pass->render_targets[render_target_index]))
 			{
-				SHMERROR("render_view_pick_on_render - failed to begin renderpass!");
+				SHMERROR("Failed to begin renderpass!");
 				return false;
 			}
 
-			if (!ShaderSystem::use_shader(data->ui_shader_info.shader->id))
-			{
-				SHMERROR("render_view_pick_on_render - Failed to use shader. Render frame failed.");
-				return false;
-			}
+			shader_id = INVALID_ID;
 
-			ShaderSystem::set_uniform(data->ui_shader_info.projection_location, &data->ui_shader_info.projection);
-			ShaderSystem::set_uniform(data->ui_shader_info.view_location, &data->ui_shader_info.view);
-			Renderer::shader_apply_globals(data->ui_shader_info.shader);
-
-			for (uint32 i = packet_data->world_geometries_count; i < packet.geometries.count; i++)
+			for (; geometry_i < packet.geometries.count; geometry_i++)
 			{
-				const GeometryRenderData* render_data = &packet.geometries[i];
+				GeometryRenderData* render_data = &packet.geometries[geometry_i];
+
+				if (render_data->shader_id != shader_id)
+				{
+					shader_id = render_data->shader_id;
+
+					pick_shader_info = 0;
+					if (shader_id == ui_shader_id)
+						pick_shader_info = &data->ui_pick_shader_info;
+					else
+						continue;
+
+					ShaderSystem::use_shader(pick_shader_info->shader->id);
+
+					ShaderSystem::set_uniform(pick_shader_info->projection_location, &pick_shader_info->projection);
+					ShaderSystem::set_uniform(pick_shader_info->view_location, &pick_shader_info->view);
+					Renderer::shader_apply_globals(pick_shader_info->shader);
+				}
+
 				cur_instance_id = render_data->unique_id;
 
 				ShaderSystem::bind_instance(cur_instance_id);
-			
+
 				uint32 r, g, b = 0;
 				Math::uint32_to_rgb(cur_instance_id, &r, &g, &b);
 				Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
-				ShaderSystem::set_uniform(data->ui_shader_info.id_color_location, &id_color);
-				Renderer::shader_apply_instance(data->ui_shader_info.shader, data->instances[cur_instance_id].is_dirty);
+				ShaderSystem::set_uniform(pick_shader_info->id_color_location, &id_color);
+				Renderer::shader_apply_instance(pick_shader_info->shader, data->instances[cur_instance_id].is_dirty);
 				data->instances[cur_instance_id].is_dirty = false;
 
-				ShaderSystem::set_uniform(data->ui_shader_info.model_location, &render_data->model);
+				ShaderSystem::set_uniform(pick_shader_info->model_location, &render_data->model);
 
-				Renderer::geometry_draw(packet.geometries[i].geometry_data);
+				Renderer::geometry_draw(packet.geometries[geometry_i].geometry_data);
+
 			}
 
-			for (uint32 i = 0; i < packet_data->text_count; i++)
+			if (!renderpass_end(ui_pass))
 			{
-				UIText* text = packet_data->texts[i];
-				cur_instance_id = text->unique_id;
-				ShaderSystem::bind_instance(cur_instance_id);
-
-				
-				uint32 r, g, b = 0;
-				Math::uint32_to_rgb(cur_instance_id, &r, &g, &b);
-				Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
-				ShaderSystem::set_uniform(data->ui_shader_info.id_color_location, &id_color);
-				Renderer::shader_apply_instance(data->ui_shader_info.shader, true);
-
-				Math::Mat4 model = Math::transform_get_world(text->transform);
-				ShaderSystem::set_uniform(data->ui_shader_info.model_location, &model);
-
-				Renderer::geometry_draw(&text->geometry);
-			}
-
-			if (!renderpass_end(pass))
-			{
-				SHMERROR("render_view_pick_on_render - draw_frame - failed to end renderpass!");
+				SHMERROR("Failed to end renderpass!");
 				return false;
 			}
 
@@ -422,30 +400,23 @@ namespace Renderer
 		Texture* t = &data->color_target_attachment_texture;
 
 		uint8 pixel[4] = {};
-		Math::Vec2i mouse_pos = { 800, 450 };//Input::get_mouse_position();
+		Math::Vec2i mouse_pos = Input::get_mouse_position();
 		uint32 mouse_x = (uint32)clamp(mouse_pos.x, 0, self->width - 1);
 		uint32 mouse_y = (uint32)clamp(mouse_pos.y, 0, self->height - 1);	
 		Renderer::texture_read_pixel(t, mouse_x, mouse_y, (uint32*)&pixel);
 
-		/*Sarray<uint32> test(t->width * t->height, 0);
-		Renderer::texture_read_data(t, 0, t->width * t->height * sizeof(uint32), test.data);
-
-		for (uint32 i = 0; i < test.capacity; i++)
-		{
-			if (test[i] != 0)
-				SHMDEBUG("Halt!");
-		}*/
-
 		uint32 id = INVALID_ID;
 		id = Math::rgb_to_uint32(pixel[0], pixel[1], pixel[2]);
-		if (id != 0)
-			__debugbreak();
 		if ((id & 0xFFFFFF) == 0xFFFFFF)
-			id = INVALID_ID;
+			id = 0;
 
-		EventData e_data;
-		e_data.ui32[0] = id;
-		Event::event_fire(SystemEventCode::OBJECT_HOVER_ID_CHANGED, 0, e_data);
+		if (data->hovered_object_id != id)
+		{
+			EventData e_data;
+			e_data.ui32[0] = id;
+			Event::event_fire(SystemEventCode::OBJECT_HOVER_ID_CHANGED, 0, e_data);
+			data->hovered_object_id = id;
+		}	
 
 		return true;
 

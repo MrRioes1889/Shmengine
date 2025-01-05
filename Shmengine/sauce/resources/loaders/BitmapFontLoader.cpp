@@ -414,12 +414,12 @@ namespace ResourceSystem
 
         uint64 glyphs_size = file_header->glyphs_count * sizeof(FontGlyph);
         check_buffer_size(glyphs_size);
-        out_data->atlas.glyphs.copy_memory(&read_ptr[read_bytes], glyphs_size, 0);
+        out_data->atlas.glyphs.copy_memory(&read_ptr[read_bytes], file_header->glyphs_count, 0);
         read_bytes += glyphs_size;
 
         uint64 kernings_size = file_header->kernings_count * sizeof(FontKerning);
         check_buffer_size(kernings_size);
-        out_data->atlas.kernings.copy_memory(&read_ptr[read_bytes], kernings_size, 0, file_header->kernings_count);
+        out_data->atlas.kernings.copy_memory(&read_ptr[read_bytes], file_header->kernings_count, 0);
         read_bytes += kernings_size;
 
         return true;

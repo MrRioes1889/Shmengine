@@ -475,16 +475,7 @@ namespace Renderer
 	
 
 	struct GeometryRenderData
-	{		
-		/*UniqueId unique_id;
-		uint32 shader_instance_id;
-		uint32 texture_maps_count;
-		GeometryData* geometry;
-		void* properties;
-		TextureMap* texture_maps;
-		uint32* render_frame_number;
-		Math::Mat4 model;*/
-
+	{
 		UniqueId unique_id;
 		uint32 shader_id;	
 		void* render_object;
@@ -538,15 +529,9 @@ namespace Renderer
 	struct PickPacketData {
 		uint32 world_geometries_count;
 		uint32 ui_geometries_count;
-		uint32 text_count;
-
-		MeshPacketData ui_mesh_data;
 
 		GeometryRenderData* world_geometries;
-		// TODO: temp
-
-		UIText** texts;
-		// end
+		GeometryRenderData* ui_geometries;
 	};
 
 	struct RenderPacket

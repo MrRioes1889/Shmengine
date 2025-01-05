@@ -63,6 +63,7 @@ struct Terrain
 
 	String name;	
 	Math::Transform xform;
+	UniqueId unique_id;
 	TerrainState state;
 
 	uint32 tile_count_x;

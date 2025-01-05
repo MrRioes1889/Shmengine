@@ -4,6 +4,7 @@
 #include <core/Assert.hpp>
 #include <containers/Sarray.hpp>
 #include <containers/Buffer.hpp>
+#include <containers/RingQueue.hpp>
 #include <utility/Math.hpp>
 #include <memory/DynamicAllocator.hpp>
 #include <containers/Hashtable.hpp>
@@ -248,6 +249,27 @@ namespace Renderer::Vulkan
 
 	};
 
+	enum class TaskType
+	{
+		Undefined,
+		SetImageLayout
+	};
+
+	struct TaskSetImageLayout
+	{
+		VkImageLayout new_layout;
+		VulkanImage* image;
+	};
+
+	struct TaskInfo
+	{
+		TaskType type;
+		union
+		{
+			TaskSetImageLayout set_image_layout;
+		};
+	};
+
 	struct VulkanContext
 	{
 		int32(*find_memory_index)(uint32 type_filter, uint32 property_flags);	
@@ -287,7 +309,9 @@ namespace Renderer::Vulkan
 		uint32 framebuffer_size_last_generation;
 
 		uint32 framebuffer_width;
-		uint32 framebuffer_height;	
+		uint32 framebuffer_height;
+
+		RingQueue<TaskInfo> end_of_frame_task_queue;
 
 		bool8 config_changed;
 		bool8 recreating_swapchain;

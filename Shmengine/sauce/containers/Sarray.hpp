@@ -36,7 +36,7 @@ struct Sarray
 
 	SHMINLINE T* transfer_data();
 
-	SHMINLINE void copy_memory(const void* source, uint64 size, uint64 offset = 0);
+	SHMINLINE void copy_memory(const void* source, uint32 copy_count, uint32 array_offset);
 
 	SHMINLINE void steal(Sarray<T>& other)
 	{
@@ -222,9 +222,9 @@ inline SHMINLINE T* Sarray<T>::transfer_data()
 }
 
 template<typename T>
-SHMINLINE void Sarray<T>::copy_memory(const void* source, uint64 size, uint64 offset)
+SHMINLINE void Sarray<T>::copy_memory(const void* source, uint32 copy_count, uint32 array_offset)
 {
-	SHMASSERT_MSG((size + offset) <= (sizeof(T) * capacity), "Sarray does not fit requested size!");
-	uint8* dest = ((uint8*)data) + offset;
-	Memory::copy_memory(source, dest, size);
+	SHMASSERT_MSG((copy_count + array_offset) <= capacity, "Sarray does not fit requested size and/or imported count does not fit!");
+	T* dest = data + array_offset;
+	Memory::copy_memory(source, dest, copy_count * sizeof(T));
 }

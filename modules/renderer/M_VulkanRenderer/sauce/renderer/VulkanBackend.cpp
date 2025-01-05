@@ -35,6 +35,7 @@ namespace Renderer::Vulkan
 	static void create_command_buffers();
 	static bool32 recreate_swapchain();
 	static int32 find_memory_index(uint32 type_filter, uint32 property_flags);
+	static void process_task(TaskInfo task);
 	static void create_vulkan_allocator(VkAllocationCallbacks*& callbacks);
 
 	VulkanContext* context = 0;
@@ -235,6 +236,8 @@ namespace Renderer::Vulkan
 			VK_CHECK(vkCreateFence(context->device.logical_device, &fence_create_info, context->allocator_callbacks, &context->framebuffer_fences[i]));
 		}
 
+		context->end_of_frame_task_queue.init(100, 0, AllocationTag::RENDERER);
+
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
 	}
@@ -387,6 +390,15 @@ namespace Renderer::Vulkan
 
 		vk_command_buffer_end(cmd);
 
+		if (context->framebuffer_fences[context->bound_sync_object_index])
+		{
+			VkResult wait_res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index], true, UINT64_MAX);
+			if (!vk_result_is_success(wait_res))
+			{
+				SHMFATALV("In-flight fence wait failure! Error: %s", vk_result_string(wait_res, true));
+			}
+		}
+
 		VK_CHECK(vkResetFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index]));
 
 		VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -408,15 +420,6 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		if (context->framebuffer_fences[context->bound_sync_object_index])
-		{
-			VkResult wait_res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index], true, UINT64_MAX);
-			if (!vk_result_is_success(wait_res))
-			{
-				SHMFATALV("In-flight fence wait failure! Error: %s", vk_result_string(res, true));
-			}
-		}
-
 		vk_command_buffer_update_submitted(cmd);
 
 		vk_swapchain_present(
@@ -424,6 +427,9 @@ namespace Renderer::Vulkan
 			context->device.present_queue,
 			context->queue_complete_semaphores[context->bound_sync_object_index],
 			context->bound_framebuffer_index);
+
+		while (context->end_of_frame_task_queue.count)
+			process_task(*context->end_of_frame_task_queue.dequeue());
 
 		return true;
 
@@ -701,6 +707,20 @@ namespace Renderer::Vulkan
 
 	}
 
+	static void process_task(TaskInfo task)
+	{
+		switch (task.type)
+		{
+		case TaskType::SetImageLayout:
+			{
+				if (task.set_image_layout.image->handle)
+					task.set_image_layout.image->layout = task.set_image_layout.new_layout;
+
+				break;
+			}
+		}
+	}
+
 #if VULKAN_USE_CUSTOM_ALLOCATOR == 1
 
 #define LOG_TRACE_ALLOC 0
@@ -791,8 +811,6 @@ namespace Renderer::Vulkan
 	static void create_vulkan_allocator(VkAllocationCallbacks*& callbacks) { callbacks = 0; }
 #endif
 
-	
-
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
@@ -821,4 +839,3 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
 
 	return VK_FALSE;
 }
-

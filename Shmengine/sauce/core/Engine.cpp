@@ -265,7 +265,6 @@ namespace Engine
 	{
 		Event::event_register(SystemEventCode::APPLICATION_QUIT, 0, on_event);
 		Event::event_register(SystemEventCode::WINDOW_RESIZED, 0, on_resized);
-		Event::event_register(SystemEventCode::OBJECT_HOVER_ID_CHANGED, 0, on_event);
 	}
 
 	float64 get_frame_delta_time()

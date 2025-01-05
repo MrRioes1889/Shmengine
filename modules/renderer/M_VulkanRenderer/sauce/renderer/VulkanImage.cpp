@@ -133,7 +133,6 @@ namespace Renderer::Vulkan
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
 			source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
 			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		}
 		else if (image->layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
@@ -142,7 +141,6 @@ namespace Renderer::Vulkan
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
 			source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
 			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		}
 		else if (image->layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -151,7 +149,6 @@ namespace Renderer::Vulkan
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 			source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-
 			dest_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		}
 		else if (image->layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
@@ -160,7 +157,6 @@ namespace Renderer::Vulkan
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
 			source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
 			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		}
 		else if (image->layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -169,8 +165,23 @@ namespace Renderer::Vulkan
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 			source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-
 			dest_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		}
+		else if (image->layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+		{
+			barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+			source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		}
+		else if (image->layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+		{
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+			source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			dest_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		}
 		else if (image->layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
 		{
@@ -180,6 +191,10 @@ namespace Renderer::Vulkan
 			source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
 			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		}
+		else if (new_layout == VK_IMAGE_LAYOUT_UNDEFINED)
+		{
+			return;
 		}
 		else
 		{

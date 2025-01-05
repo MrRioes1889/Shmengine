@@ -507,7 +507,7 @@ bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frust
 		render_data->on_render = terrain_on_render;
 		render_data->geometry_data = &t->geometry;
 		render_data->has_transparency = 0;
-		render_data->unique_id = 0;	
+		render_data->unique_id = t->unique_id;	
 
 		geometries_count++;
 		if (!geometries)

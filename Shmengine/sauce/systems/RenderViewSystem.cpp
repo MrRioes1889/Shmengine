@@ -231,15 +231,15 @@ namespace RenderViewSystem
 							continue;
 						}
 					}
-					else if (attachment->source == Renderer::RenderTargetAttachmentSource::VIEW) {
+					else if (attachment->source == Renderer::RenderTargetAttachmentSource::VIEW) 
+					{
 						if (!view->regenerate_attachment_target) {
 							SHMFATAL("View configured as source for an attachment whose view does not support this operation.");
 							continue;
 						}
-						else {
-							if (!view->regenerate_attachment_target(view, p, attachment)) {
-								SHMERROR("View failed to regenerate attachment target for attachment type.");
-							}
+	
+						if (!view->regenerate_attachment_target(view, p, attachment)) {
+							SHMERROR("View failed to regenerate attachment target for attachment type.");
 						}
 					}
 				}

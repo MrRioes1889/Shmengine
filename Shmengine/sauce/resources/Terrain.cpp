@@ -33,6 +33,7 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
 	out_terrain->shader_instance_id = INVALID_ID;
 	out_terrain->render_frame_number = INVALID_ID;
+	out_terrain->unique_id = INVALID_ID;
 
 	out_terrain->material_properties = {};
 
@@ -244,6 +245,7 @@ bool32 terrain_load(Terrain* terrain)
     bool32 is_reload = terrain->state == TerrainState::UNLOADED;
 
     terrain->state = TerrainState::LOADING;
+	terrain->unique_id = identifier_acquire_new_id(terrain);
 
     if (!Renderer::geometry_load(&terrain->geometry))
     {
@@ -315,6 +317,8 @@ bool32 terrain_unload(Terrain* terrain)
 
     Renderer::geometry_unload(&terrain->geometry);
 
+	identifier_release_id(terrain->unique_id);
+	terrain->unique_id = INVALID_ID;
     terrain->state = TerrainState::UNLOADED;
 
     return true;

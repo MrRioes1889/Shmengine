@@ -38,6 +38,22 @@ static bool32 application_on_key_pressed(uint16 code, void* sender, void* listen
 	return false;
 }
 
+static bool32 application_on_event(uint16 code, void* sender, void* listener_inst, EventData data)
+{
+	switch (code)
+	{
+	case SystemEventCode::OBJECT_HOVER_ID_CHANGED:
+	{
+		app_state->hovered_object_id = data.ui32[0];
+		return true;
+	}
+	}
+
+	return true;
+}
+
+
+
 static bool32 application_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 
@@ -490,13 +506,14 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 
 	frame_data->drawn_geometry_count = 0;
 
-	const uint32 view_count = 3;
+	const uint32 view_count = 4;
 	Renderer::RenderViewPacket* render_view_packets = (Renderer::RenderViewPacket*)frame_data->frame_allocator->allocate(view_count * sizeof(Renderer::RenderViewPacket));
 	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_view_packets);
 
 	packet->views[0].view = RenderViewSystem::get("skybox");
 	packet->views[1].view = RenderViewSystem::get("world");
 	packet->views[2].view = RenderViewSystem::get("ui");
+	packet->views[3].view = RenderViewSystem::get("pick");
 
 	if (app_state->main_scene.state == SceneState::LOADED)
 	{
@@ -592,18 +609,17 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 		return false;
 	}
 
-	/*Renderer::PickPacketData* pick_packet = (Renderer::PickPacketData*)Memory::linear_allocator_allocate(&app_inst->frame_allocator, sizeof(Renderer::PickPacketData));
-	pick_packet->ui_mesh_data = ui_mesh_data->mesh_data;
-	pick_packet->world_geometries = app_inst->frame_data.world_geometries.data;
-	pick_packet->world_geometries_count = app_inst->frame_data.world_geometries.count;
-	pick_packet->texts = ui_mesh_data->texts;
-	pick_packet->text_count = ui_mesh_data->text_count;
+	Renderer::PickPacketData* pick_packet = (Renderer::PickPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::PickPacketData));
+	pick_packet->world_geometries = packet->views[1].geometries.data;
+	pick_packet->world_geometries_count = packet->views[1].geometries.count;
+	pick_packet->ui_geometries = packet->views[2].geometries.data;
+	pick_packet->ui_geometries_count = packet->views[2].geometries.count;
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), &app_inst->frame_allocator, pick_packet, &packet->views[3]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), frame_data->frame_allocator, pick_packet, &packet->views[3]))
 	{
 		SHMERROR("Failed to build packet for view 'pick'.");
 		return false;
-	}*/
+	}
 
 	return true;
 }
@@ -641,6 +657,8 @@ static void register_events()
 {
 	Event::event_register(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
 
+	Event::event_register(SystemEventCode::OBJECT_HOVER_ID_CHANGED, app_state, application_on_event);
+
 	Event::event_register(SystemEventCode::DEBUG0, app_state, application_on_debug_event);
 	Event::event_register(SystemEventCode::DEBUG1, app_state, application_on_debug_event);
 	Event::event_register(SystemEventCode::DEBUG2, app_state, application_on_debug_event);
@@ -649,6 +667,8 @@ static void register_events()
 static void unregister_events()
 {
 	Event::event_unregister(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
+
+	Event::event_unregister(SystemEventCode::OBJECT_HOVER_ID_CHANGED, app_state, application_on_event);
 
 	Event::event_unregister(SystemEventCode::DEBUG0, app_state, application_on_debug_event);
 	Event::event_unregister(SystemEventCode::DEBUG1, app_state, application_on_debug_event);
