@@ -3,6 +3,8 @@
 #include <core/Memory.hpp>
 #include <core/Logging.hpp>
 
+#include <systems/ShaderSystem.hpp>
+
 namespace Renderer::Vulkan
 {
 
@@ -25,22 +27,22 @@ namespace Renderer::Vulkan
         rasterizer_create_info.lineWidth = 1.0f;
         switch (config->cull_mode)
         {
-        case ShaderFaceCullMode::NONE:
+        case RenderCullMode::NONE:
         {
             rasterizer_create_info.cullMode = VK_CULL_MODE_NONE;
             break;
         }
-        case ShaderFaceCullMode::FRONT:
+        case RenderCullMode::FRONT:
         {
             rasterizer_create_info.cullMode = VK_CULL_MODE_FRONT_BIT;
             break;
         }
-        case ShaderFaceCullMode::BACK:
+        case RenderCullMode::BACK:
         {
             rasterizer_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
             break;
         }
-        case ShaderFaceCullMode::BOTH:
+        case RenderCullMode::BOTH:
         {
             rasterizer_create_info.cullMode = VK_CULL_MODE_FRONT_AND_BACK;
             break;

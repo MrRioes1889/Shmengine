@@ -11,7 +11,7 @@ namespace ResourceSystem
 
     static const char* loader_type_path = "shaders/configs/";
 
-	bool32 shader_loader_load(const char* name, void* params, Renderer::ShaderConfig* out_config)
+	bool32 shader_loader_load(const char* name, void* params, ShaderResourceData* out_resource)
 	{
 
         using namespace Renderer;
@@ -37,12 +37,10 @@ namespace ResourceSystem
             return false;
         }
 
-        out_config->cull_mode = ShaderFaceCullMode::BACK;
-        out_config->attributes.init(1, 0);
-        out_config->uniforms.init(1, 0);
-        out_config->stages.init(1, 0);
-        out_config->stage_names.init(1, 0);
-        out_config->stage_filenames.init(1, 0);
+        out_resource->cull_mode = RenderCullMode::BACK;
+        out_resource->attributes.init(1, 0);
+        out_resource->uniforms.init(1, 0);
+        out_resource->stages.init(1, 0);
 
         String var_name(512);
         String value(512);
@@ -79,7 +77,7 @@ namespace ResourceSystem
             }
             else if (var_name.equal_i("name")) 
             {
-                out_config->name = value;
+                CString::copy(value.c_str(), out_resource->name, max_shader_name_length) ;
             }
             else if (var_name.equal_i("renderpass")) 
             {
@@ -87,44 +85,64 @@ namespace ResourceSystem
             }
             else if (var_name.equal_i("depth_test")) 
             {
-                 CString::parse(value.c_str(), &out_config->depth_test);
+                 CString::parse(value.c_str(), &out_resource->depth_test);
             }
             else if (var_name.equal_i("depth_write")) 
             {
-                CString::parse(value.c_str(), &out_config->depth_write);
+                CString::parse(value.c_str(), &out_resource->depth_write);
             }
             else if (var_name.equal_i("stages")) 
             {
-                value.split(out_config->stage_names, ',');
-                for (uint32 i = 0; i < out_config->stage_names.count; i++)
+                Darray<String> stage_names;
+                value.split(stage_names, ',');
+
+                if (!out_resource->stages.capacity)
+                    out_resource->stages.init(stage_names.count, 0, AllocationTag::RESOURCE);
+                else if (stage_names.count > out_resource->stages.capacity)
+                    out_resource->stages.resize(stage_names.count);
+                
+                if (stage_names.count > out_resource->stages.count)
+                    out_resource->stages.set_count(stage_names.count);
+
+                for (uint32 i = 0; i < stage_names.count; i++)
                 {
-                    out_config->stage_names[i].trim();
-                    if (out_config->stage_names[i].equal_i("frag") || out_config->stage_names[i].equal_i("fragment"))
-                        out_config->stages.push(ShaderStage::FRAGMENT);
-                    else if (out_config->stage_names[i].equal_i("vert") || out_config->stage_names[i].equal_i("vertex"))
-                        out_config->stages.push(ShaderStage::VERTEX);
-                    else if (out_config->stage_names[i].equal_i("geom") || out_config->stage_names[i].equal_i("geometry"))
-                        out_config->stages.push(ShaderStage::GEOMETRY);
-                    else if (out_config->stage_names[i].equal_i("comp") || out_config->stage_names[i].equal_i("compute"))
-                        out_config->stages.push(ShaderStage::COMPUTE);
+                    stage_names[i].trim();
+                    if (stage_names[i].equal_i("frag") || stage_names[i].equal_i("fragment"))
+                        out_resource->stages[i].stage = ShaderStage::FRAGMENT;
+                    else if (stage_names[i].equal_i("vert") || stage_names[i].equal_i("vertex"))
+                        out_resource->stages[i].stage = ShaderStage::VERTEX;
+                    else if (stage_names[i].equal_i("geom") || stage_names[i].equal_i("geometry"))
+                        out_resource->stages[i].stage = ShaderStage::GEOMETRY;
+                    else if (stage_names[i].equal_i("comp") || stage_names[i].equal_i("compute"))
+                        out_resource->stages[i].stage = ShaderStage::COMPUTE;
                     else
-                        SHMERRORV("shader_loader_load - Invalid file layout. Unrecognized stage '%s'", out_config->stage_names[i].c_str());
+                        SHMERRORV("shader_loader_load - Invalid file layout. Unrecognized stage '%s'", stage_names[i].c_str());
                 }
             }
             else if (var_name.equal_i("stagefiles")) 
             {
-                value.split(out_config->stage_filenames, ',');
-                for (uint32 i = 0; i < out_config->stage_filenames.count; i++)
-                    out_config->stage_filenames[i].trim();
+                Darray<String> stage_filenames;
+                value.split(stage_filenames, ',');
+
+                if (!out_resource->stages.capacity)
+                    out_resource->stages.init(stage_filenames.count, 0, AllocationTag::RESOURCE);
+                else if (stage_filenames.count > out_resource->stages.capacity)
+                    out_resource->stages.resize(stage_filenames.count);
+
+                if (stage_filenames.count > out_resource->stages.count)
+                    out_resource->stages.set_count(stage_filenames.count);
+
+                for (uint32 i = 0; i < stage_filenames.count; i++)
+                    CString::copy(stage_filenames[i].c_str(), out_resource->stages[i].filename, max_filename_length);
             }
             else if (var_name.equal_i("cull_mode")) 
             {
                 if (value.equal_i("front"))
-                    out_config->cull_mode = ShaderFaceCullMode::FRONT;
+                    out_resource->cull_mode = RenderCullMode::FRONT;
                 else if (value.equal_i("back"))
-                    out_config->cull_mode = ShaderFaceCullMode::BACK;
+                    out_resource->cull_mode = RenderCullMode::BACK;
                 else if (value.equal_i("both"))
-                    out_config->cull_mode = ShaderFaceCullMode::BOTH;
+                    out_resource->cull_mode = RenderCullMode::BOTH;
             }
             else if (var_name.equal_i("attributes") || var_name.equal_i("attribute")) 
             {
@@ -196,9 +214,8 @@ namespace ResourceSystem
 
                     if (attribute.size)
                     {
-                        attribute.name = tmp[1];
-
-                        out_config->attributes.push_steal(attribute);
+                        CString::copy(tmp[1].c_str(), attribute.name, max_shader_attribute_name_length);
+                        out_resource->attributes.emplace(attribute);
                     }
                 }
             }
@@ -207,13 +224,17 @@ namespace ResourceSystem
                 Darray<String> tmp(3, 0);
                 value.split(tmp, ',');
                 if (tmp.count != 3)
+                {
                     SHMERROR("shader_loader_load - Invalid file layout. Attribute fields must be 'type,name'. Skipping.");
+                    continue;
+                }
+                    
                 else
                 {
                     tmp[0].trim();
                     tmp[1].trim();
                     tmp[2].trim();
-                    ShaderUniformConfig uniform;
+                    ShaderUniformConfig uniform = {};
                     // Parse field type
                     if (tmp[0].equal_i("float32")) 
                     {
@@ -321,9 +342,9 @@ namespace ResourceSystem
 
                         if (uniform.type == ShaderUniformType::SAMPLER)
                             uniform.size = 0;
-                        uniform.name = tmp[2];
 
-                        out_config->uniforms.push_steal(uniform);
+                        CString::copy(tmp[2].c_str(), uniform.name, max_shader_uniform_name_length);
+                        out_resource->uniforms.emplace(uniform);
                     }
                 }
             }
@@ -338,40 +359,29 @@ namespace ResourceSystem
 
 	}
 
-    void shader_loader_unload(Renderer::ShaderConfig* config)
+    void shader_loader_unload(ShaderResourceData* resource)
     {
+        resource->stages.free_data();
+        resource->attributes.free_data();
+        resource->uniforms.free_data();
+    }
 
-        for (uint32 i = 0; i < config->attributes.count; i++)
-        {
-            Renderer::ShaderAttributeConfig* att = &config->attributes[i];
-            att->name.free_data();
-        }
-        config->attributes.free_data();
-        
-        for (uint32 i = 0; i < config->stage_filenames.count; i++)
-        {
-            String* stage_filename = &config->stage_filenames[i];
-            stage_filename->free_data();
-        }
-        config->stage_filenames.free_data();
+    ShaderConfig shader_loader_get_config_from_resource(ShaderResourceData* resource)
+    {
+        ShaderConfig config = {};
+        config.name = resource->name;
+        config.cull_mode = resource->cull_mode;
+        config.depth_test = resource->depth_test;
+        config.depth_write = resource->depth_write;
 
-        for (uint32 i = 0; i < config->stage_names.count; i++)
-        {
-            String* stage_name = &config->stage_names[i];
-            stage_name->free_data();
-        }
-        config->stage_names.free_data();
+        config.stages = resource->stages.data;
+        config.stages_count = resource->stages.count;
+        config.attributes = resource->attributes.data;
+        config.attributes_count = resource->attributes.count;
+        config.uniforms = resource->uniforms.data;
+        config.uniforms_count = resource->uniforms.count;
 
-        for (uint32 i = 0; i < config->uniforms.count; i++)
-        {
-            Renderer::ShaderUniformConfig* u = &config->uniforms[i];
-            u->name.free_data();
-        }
-        config->uniforms.free_data();
-
-        config->name.free_data();
-        config->stages.free_data();
-
+        return config;
     }
 
 }

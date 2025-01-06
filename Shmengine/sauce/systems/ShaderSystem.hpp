@@ -10,6 +10,176 @@
         return false;                                 \
     }
 
+namespace ShaderStage
+{
+	enum Value
+	{
+		VERTEX = 1,
+		GEOMETRY = 1 << 1,
+		FRAGMENT = 1 << 2,
+		COMPUTE = 1 << 3,
+	};
+}
+
+enum class ShaderAttributeType
+{
+	FLOAT32,
+	FLOAT32_2,
+	FLOAT32_3,
+	FLOAT32_4,
+	MAT4,
+	INT8,
+	UINT8,
+	INT16,
+	UINT16,
+	INT32,
+	UINT32,
+};
+
+enum class ShaderUniformType
+{
+	FLOAT32,
+	FLOAT32_2,
+	FLOAT32_3,
+	FLOAT32_4,
+	INT8,
+	UINT8,
+	INT16,
+	UINT16,
+	INT32,
+	UINT32,
+	MAT4,
+	SAMPLER,
+	CUSTOM = 255
+};
+
+enum class ShaderScope
+{
+	GLOBAL,
+	INSTANCE,
+	LOCAL
+};
+
+enum class ShaderState
+{
+	NOT_CREATED,
+	UNINITIALIZED,
+	INITIALIZED
+};
+
+struct ShaderAttributeConfig
+{
+	char name[max_shader_attribute_name_length];
+	uint32 size;
+	ShaderAttributeType type;
+};
+
+struct ShaderUniformConfig
+{
+	char name[max_shader_uniform_name_length];
+	uint32 size;
+	uint32 location;
+	ShaderUniformType type;
+	ShaderScope scope;
+};
+
+struct ShaderStageConfig
+{
+	ShaderStage::Value stage;
+	char filename[max_filename_length];
+};
+
+struct ShaderConfig
+{
+	const char* name;
+
+	Renderer::RenderCullMode cull_mode;
+
+	uint32 stages_count;
+	uint32 attributes_count;
+	uint32 uniforms_count;
+
+	ShaderAttributeConfig* attributes;
+	ShaderUniformConfig* uniforms;
+	ShaderStageConfig* stages;
+
+	bool8 depth_test;
+	bool8 depth_write;
+};
+
+struct ShaderUniform
+{
+	uint32 offset;
+	uint16 location;
+	uint16 index;
+	uint16 size;
+	uint8 set_index;
+
+	ShaderScope scope;
+	ShaderUniformType type;
+};
+
+struct ShaderAttribute
+{
+	String name;
+	ShaderAttributeType type;
+	uint32 size;
+};
+
+namespace ShaderFlags
+{
+	enum
+	{
+		DEPTH_TEST = 1 << 0,
+		DEPTH_WRITE = 1 << 1
+	};
+	typedef uint32 Value;
+}
+
+struct Shader
+{
+	uint32 id;
+	ShaderFlags::Value shader_flags;
+
+	uint64 required_ubo_alignment;
+	uint32 global_ubo_size;
+	uint32 global_ubo_stride;
+	uint64 global_ubo_offset;
+
+	uint32 ubo_size;
+	uint32 ubo_stride;
+
+	uint32 push_constant_size;
+	uint32 push_constant_stride;
+
+	String name;
+
+	Darray<TextureMap*> global_texture_maps;
+
+	ShaderScope bound_scope;
+
+	uint32 bound_instance_id;
+	uint64 bound_ubo_offset;
+
+	ShaderState state;
+	uint32 instance_texture_count;
+
+	Hashtable<uint16> uniform_lookup;
+	Darray<ShaderUniform> uniforms;
+	Darray<ShaderAttribute> attributes;
+
+	uint16 attribute_stride;
+	uint32 push_constant_range_count;
+	Range push_constant_ranges[32];
+
+	uint64 renderer_frame_number;
+
+	Renderer::RenderBuffer uniform_buffer;
+
+	void* internal_data;
+
+};
+
 namespace ShaderSystem
 {
 
@@ -75,17 +245,18 @@ namespace ShaderSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI bool32 create_shader(const Renderer::RenderPass* renderpass,const Renderer::ShaderConfig* config);
+	SHMAPI bool32 create_shader(const Renderer::RenderPass* renderpass,const ShaderConfig* config);
+	SHMAPI bool32 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass);
 
 	SHMAPI uint32 get_id(const char* shader_name);
 
-	SHMAPI Renderer::Shader* get_shader(uint32 shader_id);
-	SHMAPI Renderer::Shader* get_shader(const char* shader_name);
+	SHMAPI Shader* get_shader(uint32 shader_id);
+	SHMAPI Shader* get_shader(const char* shader_name);
 
 	SHMAPI bool32 use_shader(uint32 shader_id);
 	SHMAPI bool32 use_shader(const char* shader_name);
 
-	SHMAPI uint16 get_uniform_index(Renderer::Shader* shader, const char* uniform_name);
+	SHMAPI uint16 get_uniform_index(Shader* shader, const char* uniform_name);
 
 	SHMAPI bool32 set_uniform(const char* uniform_name, const void* value);
 	SHMAPI bool32 set_uniform(uint16 index, const void* value);

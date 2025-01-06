@@ -17,6 +17,9 @@ struct GeometryData;
 struct Material;
 struct Texture;
 struct TextureMap;
+struct Shader;
+struct ShaderConfig;
+struct ShaderUniform;
 
 namespace Platform
 {
@@ -173,6 +176,14 @@ namespace Renderer
 		bool32 sync_window_to_size;
 	};
 
+	enum class RenderCullMode
+	{
+		NONE = 0,
+		FRONT = 1,
+		BACK = 2,
+		BOTH = 3
+	};
+
 	struct RenderPassConfig
 	{
 		const char* name;
@@ -225,176 +236,6 @@ namespace Renderer
 		Buffer freelist_data;
 		Freelist freelist;
 		Buffer internal_data;
-	};
-
-	namespace ShaderStage
-	{
-		enum Value
-		{
-			VERTEX = 1,
-			GEOMETRY = 1 << 1,
-			FRAGMENT = 1 << 2,
-			COMPUTE = 1 << 3,
-		};
-	}
-
-	enum class ShaderFaceCullMode
-	{
-		NONE = 0,
-		FRONT = 1,
-		BACK = 2,
-		BOTH = 3
-	};
-
-	enum class ShaderAttributeType
-	{
-		FLOAT32,
-		FLOAT32_2,
-		FLOAT32_3,
-		FLOAT32_4,
-		MAT4,
-		INT8,
-		UINT8,
-		INT16,
-		UINT16,
-		INT32,
-		UINT32,
-	};
-
-	enum class ShaderUniformType
-	{
-		FLOAT32,
-		FLOAT32_2,
-		FLOAT32_3,
-		FLOAT32_4,
-		INT8,
-		UINT8,
-		INT16,
-		UINT16,
-		INT32,
-		UINT32,
-		MAT4,
-		SAMPLER,
-		CUSTOM = 255
-	};
-
-	enum class ShaderScope
-	{
-		GLOBAL,
-		INSTANCE,
-		LOCAL
-	};
-
-	struct ShaderAttributeConfig
-	{
-		String name;
-		uint32 size;
-		ShaderAttributeType type;
-	};
-
-	struct ShaderUniformConfig
-	{
-		String name;
-		uint32 size;
-		uint32 location;
-		ShaderUniformType type;
-		ShaderScope scope;
-	};
-
-	struct ShaderConfig
-	{
-		String name;
-
-		Darray<ShaderAttributeConfig> attributes;
-		Darray<ShaderUniformConfig> uniforms;
-		Darray<ShaderStage::Value> stages;
-		Darray<String> stage_names;
-		Darray<String> stage_filenames;
-
-		bool8 depth_test;
-		bool8 depth_write;
-
-		ShaderFaceCullMode cull_mode;
-	};
-
-	enum class ShaderState
-	{
-		NOT_CREATED,
-		UNINITIALIZED,
-		INITIALIZED
-	};
-
-	struct ShaderUniform
-	{
-		uint32 offset;
-		uint16 location;
-		uint16 index;
-		uint16 size;
-		uint8 set_index;
-
-		ShaderScope scope;
-		ShaderUniformType type;
-	};
-
-	struct ShaderAttribute
-	{
-		String name;
-		ShaderAttributeType type;
-		uint32 size;
-	};
-
-	namespace ShaderFlags
-	{
-		enum
-		{
-			DEPTH_TEST = 1 << 0,
-			DEPTH_WRITE = 1 << 1
-		};
-		typedef uint32 Value;
-	}
-
-	struct Shader
-	{
-		uint32 id;
-		ShaderFlags::Value shader_flags;
-
-		uint64 required_ubo_alignment;
-		uint32 global_ubo_size;
-		uint32 global_ubo_stride;
-		uint64 global_ubo_offset;
-
-		uint32 ubo_size;
-		uint32 ubo_stride;
-
-		uint32 push_constant_size;
-		uint32 push_constant_stride;
-
-		String name;
-
-		Darray<TextureMap*> global_texture_maps;
-
-		ShaderScope bound_scope;
-
-		uint32 bound_instance_id;
-		uint64 bound_ubo_offset;
-
-		ShaderState state;
-		uint32 instance_texture_count;
-
-		Hashtable<uint16> uniform_lookup;
-		Darray<ShaderUniform> uniforms;
-		Darray<ShaderAttribute> attributes;
-
-		uint16 attribute_stride;
-		uint32 push_constant_range_count;
-		Range push_constant_ranges[32];
-
-		uint64 renderer_frame_number;
-
-		RenderBuffer uniform_buffer;
-
-		void* internal_data;
-
 	};
 
 	struct Vertex3D
@@ -471,8 +312,6 @@ namespace Renderer
 		bool32(*on_render)(RenderView* self, RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index);
 		bool32(*regenerate_attachment_target)(const RenderView* self, uint32 pass_index, RenderTargetAttachment* attachment);
 	};
-
-	
 
 	struct GeometryRenderData
 	{
@@ -591,7 +430,7 @@ namespace Renderer
 		bool32(*texture_read_pixel)(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 		void (*texture_destroy)(Texture* texture);
 
-		bool32(*shader_create)(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+		bool32(*shader_create)(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
 		void (*shader_destroy)(Shader* shader);
 		bool32(*shader_init)(Shader* shader);
 		bool32(*shader_use)(Shader* shader);

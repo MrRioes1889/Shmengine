@@ -15,7 +15,7 @@
 #include "optick.h"
 
 struct RenderViewSkyboxInternalData {
-	Renderer::Shader* shader;
+	Shader* shader;
 
 	float32 near_clip;
 	float32 far_clip;
@@ -58,20 +58,11 @@ namespace Renderer
 		self->internal_data.init(sizeof(RenderViewSkyboxInternalData), 0, AllocationTag::RENDERER);
 		RenderViewSkyboxInternalData* data = (RenderViewSkyboxInternalData*)self->internal_data.data;
 
-		ShaderConfig s_config = {};
-		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_skybox, 0, &s_config))
+		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_skybox, &self->renderpasses[0]))
 		{
-			SHMERROR("Failed to load skybox shader config.");
+			SHMERROR("Failed to create world pick shader.");
 			return false;
 		}
-
-		if (!ShaderSystem::create_shader(&self->renderpasses[0], &s_config))
-		{
-			SHMERROR("Failed to create skybox shader.");
-			ResourceSystem::shader_loader_unload(&s_config);
-			return false;
-		}
-		ResourceSystem::shader_loader_unload(&s_config);
 
 		data->shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_skybox);
 

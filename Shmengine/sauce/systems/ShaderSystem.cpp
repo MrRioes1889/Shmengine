@@ -4,8 +4,9 @@
 #include "core/Memory.hpp"
 
 #include "renderer/RendererFrontend.hpp"
-
 #include "MaterialSystem.hpp"
+
+#include "resources/loaders/ShaderLoader.hpp"
 
 #include "optick.h"
 
@@ -17,7 +18,7 @@ namespace ShaderSystem
 		SystemConfig config;
 		Hashtable<uint32> lookup;
 		uint32 bound_shader_id;
-		Sarray<Renderer::Shader> shaders;
+		Sarray<Shader> shaders;
 		TextureMap default_texture_map;
 
 		ShaderSystem::MaterialShaderUniformLocations material_locations;
@@ -35,16 +36,16 @@ namespace ShaderSystem
 
 	static SystemState* system_state = 0;
 
-	static bool32 add_attribute(Renderer::Shader* shader, const Renderer::ShaderAttributeConfig& config);
-	static bool32 add_sampler(Renderer::Shader* shader, const Renderer::ShaderUniformConfig& config);
+	static bool32 add_attribute(Shader* shader, const ShaderAttributeConfig& config);
+	static bool32 add_sampler(Shader* shader, const ShaderUniformConfig& config);
 	static SHMINLINE uint32 get_shader_id(const char* shader_name);
 	static uint32 new_shader_id();
-	static bool32 uniform_add(Renderer::Shader* shader, const Renderer::ShaderUniformConfig& config);
-	static bool32 uniform_add(Renderer::Shader* shader, const char* uniform_name, uint32 size, Renderer::ShaderUniformType type, Renderer::ShaderScope scope, uint32 set_location, bool32 is_sampler);
-	static bool32 uniform_name_valid(Renderer::Shader* shader, const char* uniform_name);
-	static bool32 shader_uniform_add_state_valid(Renderer::Shader* shader);
+	static bool32 uniform_add(Shader* shader, const ShaderUniformConfig& config);
+	static bool32 uniform_add(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool32 is_sampler);
+	static bool32 uniform_name_valid(Shader* shader, const char* uniform_name);
+	static bool32 shader_uniform_add_state_valid(Shader* shader);
 	static void destroy_shader(const char* shader_name);
-	static void destroy_shader(Renderer::Shader* shader);
+	static void destroy_shader(Shader* shader);
 	static bool32 create_default_texture_map();
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
@@ -107,7 +108,7 @@ namespace ShaderSystem
 
 		system_state->lookup.floodfill(INVALID_ID);
 
-		uint64 shader_array_size = sizeof(Renderer::Shader) * sys_config->max_shader_count;
+		uint64 shader_array_size = sizeof(Shader) * sys_config->max_shader_count;
 		void* shader_array = allocator_callback(allocator, shader_array_size);
 		system_state->shaders.init(sys_config->max_shader_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, shader_array);
 
@@ -138,7 +139,7 @@ namespace ShaderSystem
 		system_state = 0;
 	}
 
-	bool32 create_shader(const Renderer::RenderPass* renderpass, const Renderer::ShaderConfig* config)
+	bool32 create_shader(const Renderer::RenderPass* renderpass, const ShaderConfig* config)
 	{
 
 		using namespace Renderer;
@@ -153,7 +154,7 @@ namespace ShaderSystem
 		Shader* shader = &system_state->shaders[id];
 		Memory::zero_memory(shader, sizeof(Shader));
 		shader->id = id;
-		shader->state = Renderer::ShaderState::NOT_CREATED;
+		shader->state = ShaderState::NOT_CREATED;
 		shader->name = config->name;
 		shader->bound_instance_id = INVALID_ID;
 		shader->renderer_frame_number = INVALID_ID64;
@@ -177,99 +178,120 @@ namespace ShaderSystem
 		if (config->depth_write)
 			shader->shader_flags |= ShaderFlags::DEPTH_WRITE;
 
-		if (!Renderer::shader_create(shader, config, renderpass, (uint8)config->stages.count, config->stage_filenames, config->stages.data))
+		if (!Renderer::shader_create(shader, config, renderpass))
 		{
 			SHMERROR("shader_create - Error creating shader.");
 			return false;
 		}
 
 		shader->state = ShaderState::UNINITIALIZED;
-		for (uint32 i = 0; i < config->attributes.count; i++)
-			add_attribute(shader, config->attributes.data[i]);
+		for (uint32 i = 0; i < config->attributes_count; i++)
+			add_attribute(shader, config->attributes[i]);
 
-		for (uint32 i = 0; i < config->uniforms.count; i++)
+		for (uint32 i = 0; i < config->uniforms_count; i++)
 		{
-			if (config->uniforms.data[i].type == ShaderUniformType::SAMPLER)
-				add_sampler(shader, config->uniforms.data[i]);
+			if (config->uniforms[i].type == ShaderUniformType::SAMPLER)
+				add_sampler(shader, config->uniforms[i]);
 			else
-				uniform_add(shader, config->uniforms.data[i]);
+				uniform_add(shader, config->uniforms[i]);
 		}
 
 		if (!Renderer::shader_init(shader))
 		{
-			SHMERRORV("shader_create - Error initializing shader '%s'.", config->name.c_str());
+			SHMERRORV("Error initializing shader '%s'.", config->name);
 			return false;
 		}
 
-		if (!system_state->lookup.set_value(config->name.c_str(), shader->id))
+		if (!system_state->lookup.set_value(config->name, shader->id))
 		{
 			Renderer::shader_destroy(shader);
 			return false;
 		}
 
-		if (system_state->material_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_material)) 
+		if (system_state->material_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_material)) 
 		{
 			system_state->material_shader_id = shader->id;
-			system_state->material_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
-			system_state->material_locations.view = ShaderSystem::get_uniform_index(shader, "view");
-			system_state->material_locations.ambient_color = ShaderSystem::get_uniform_index(shader, "ambient_color");
-			system_state->material_locations.camera_position = ShaderSystem::get_uniform_index(shader, "camera_position");
-			system_state->material_locations.diffuse_texture = ShaderSystem::get_uniform_index(shader, "diffuse_texture");
-			system_state->material_locations.specular_texture = ShaderSystem::get_uniform_index(shader, "specular_texture");
-			system_state->material_locations.normal_texture = ShaderSystem::get_uniform_index(shader, "normal_texture");
-			system_state->material_locations.model = ShaderSystem::get_uniform_index(shader, "model");
-			system_state->material_locations.render_mode = ShaderSystem::get_uniform_index(shader, "mode");
-			system_state->material_locations.dir_light = ShaderSystem::get_uniform_index(shader, "dir_light");
-			system_state->material_locations.p_lights = ShaderSystem::get_uniform_index(shader, "p_lights");
-			system_state->material_locations.p_lights_count = ShaderSystem::get_uniform_index(shader, "p_lights_count");
-			system_state->material_locations.properties = ShaderSystem::get_uniform_index(shader, "properties");
+			system_state->material_locations.projection = get_uniform_index(shader, "projection");
+			system_state->material_locations.view = get_uniform_index(shader, "view");
+			system_state->material_locations.ambient_color = get_uniform_index(shader, "ambient_color");
+			system_state->material_locations.camera_position = get_uniform_index(shader, "camera_position");
+			system_state->material_locations.diffuse_texture = get_uniform_index(shader, "diffuse_texture");
+			system_state->material_locations.specular_texture = get_uniform_index(shader, "specular_texture");
+			system_state->material_locations.normal_texture = get_uniform_index(shader, "normal_texture");
+			system_state->material_locations.model = get_uniform_index(shader, "model");
+			system_state->material_locations.render_mode = get_uniform_index(shader, "mode");
+			system_state->material_locations.dir_light = get_uniform_index(shader, "dir_light");
+			system_state->material_locations.p_lights = get_uniform_index(shader, "p_lights");
+			system_state->material_locations.p_lights_count = get_uniform_index(shader, "p_lights_count");
+			system_state->material_locations.properties = get_uniform_index(shader, "properties");
 		}
-		else if (system_state->terrain_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_terrain)) 
+		else if (system_state->terrain_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_terrain)) 
 		{
 			system_state->terrain_shader_id = shader->id;
-			system_state->terrain_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
-			system_state->terrain_locations.view = ShaderSystem::get_uniform_index(shader, "view");
-			system_state->terrain_locations.ambient_color = ShaderSystem::get_uniform_index(shader, "ambient_color");
-			system_state->terrain_locations.camera_position = ShaderSystem::get_uniform_index(shader, "camera_position");
-			system_state->terrain_locations.model = ShaderSystem::get_uniform_index(shader, "model");
-			system_state->terrain_locations.render_mode = ShaderSystem::get_uniform_index(shader, "mode");
-			system_state->terrain_locations.dir_light = ShaderSystem::get_uniform_index(shader, "dir_light");
-			system_state->terrain_locations.p_lights = ShaderSystem::get_uniform_index(shader, "p_lights");
-			system_state->terrain_locations.p_lights_count = ShaderSystem::get_uniform_index(shader, "p_lights_count");
-			system_state->terrain_locations.properties = ShaderSystem::get_uniform_index(shader, "properties");
+			system_state->terrain_locations.projection = get_uniform_index(shader, "projection");
+			system_state->terrain_locations.view = get_uniform_index(shader, "view");
+			system_state->terrain_locations.ambient_color = get_uniform_index(shader, "ambient_color");
+			system_state->terrain_locations.camera_position = get_uniform_index(shader, "camera_position");
+			system_state->terrain_locations.model = get_uniform_index(shader, "model");
+			system_state->terrain_locations.render_mode = get_uniform_index(shader, "mode");
+			system_state->terrain_locations.dir_light = get_uniform_index(shader, "dir_light");
+			system_state->terrain_locations.p_lights = get_uniform_index(shader, "p_lights");
+			system_state->terrain_locations.p_lights_count = get_uniform_index(shader, "p_lights_count");
+			system_state->terrain_locations.properties = get_uniform_index(shader, "properties");
 
-			system_state->terrain_locations.samplers[0] = ShaderSystem::get_uniform_index(shader, "diffuse_texture_0");
-			system_state->terrain_locations.samplers[1] = ShaderSystem::get_uniform_index(shader, "specular_texture_0");
-			system_state->terrain_locations.samplers[2] = ShaderSystem::get_uniform_index(shader, "normal_texture_0");
-			system_state->terrain_locations.samplers[3] = ShaderSystem::get_uniform_index(shader, "diffuse_texture_1");
-			system_state->terrain_locations.samplers[4] = ShaderSystem::get_uniform_index(shader, "specular_texture_1");
-			system_state->terrain_locations.samplers[5] = ShaderSystem::get_uniform_index(shader, "normal_texture_1");
-			system_state->terrain_locations.samplers[6] = ShaderSystem::get_uniform_index(shader, "diffuse_texture_2");
-			system_state->terrain_locations.samplers[7] = ShaderSystem::get_uniform_index(shader, "specular_texture_2");
-			system_state->terrain_locations.samplers[8] = ShaderSystem::get_uniform_index(shader, "normal_texture_2");
-			system_state->terrain_locations.samplers[9] = ShaderSystem::get_uniform_index(shader, "diffuse_texture_3");
-			system_state->terrain_locations.samplers[10] = ShaderSystem::get_uniform_index(shader, "specular_texture_3");
-			system_state->terrain_locations.samplers[11] = ShaderSystem::get_uniform_index(shader, "normal_texture_3");
+			system_state->terrain_locations.samplers[0] = get_uniform_index(shader, "diffuse_texture_0");
+			system_state->terrain_locations.samplers[1] = get_uniform_index(shader, "specular_texture_0");
+			system_state->terrain_locations.samplers[2] = get_uniform_index(shader, "normal_texture_0");
+			system_state->terrain_locations.samplers[3] = get_uniform_index(shader, "diffuse_texture_1");
+			system_state->terrain_locations.samplers[4] = get_uniform_index(shader, "specular_texture_1");
+			system_state->terrain_locations.samplers[5] = get_uniform_index(shader, "normal_texture_1");
+			system_state->terrain_locations.samplers[6] = get_uniform_index(shader, "diffuse_texture_2");
+			system_state->terrain_locations.samplers[7] = get_uniform_index(shader, "specular_texture_2");
+			system_state->terrain_locations.samplers[8] = get_uniform_index(shader, "normal_texture_2");
+			system_state->terrain_locations.samplers[9] = get_uniform_index(shader, "diffuse_texture_3");
+			system_state->terrain_locations.samplers[10] = get_uniform_index(shader, "specular_texture_3");
+			system_state->terrain_locations.samplers[11] = get_uniform_index(shader, "normal_texture_3");
 		}
-		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_ui)) 
+		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_ui)) 
 		{
 			system_state->ui_shader_id = shader->id;
-			system_state->ui_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
-			system_state->ui_locations.view = ShaderSystem::get_uniform_index(shader, "view");
-			system_state->ui_locations.diffuse_texture = ShaderSystem::get_uniform_index(shader, "diffuse_texture");
-			system_state->ui_locations.model = ShaderSystem::get_uniform_index(shader, "model");
-			system_state->ui_locations.properties = ShaderSystem::get_uniform_index(shader, "properties");
+			system_state->ui_locations.projection = get_uniform_index(shader, "projection");
+			system_state->ui_locations.view = get_uniform_index(shader, "view");
+			system_state->ui_locations.diffuse_texture = get_uniform_index(shader, "diffuse_texture");
+			system_state->ui_locations.model = get_uniform_index(shader, "model");
+			system_state->ui_locations.properties = get_uniform_index(shader, "properties");
 		}
-		else if (system_state->skybox_shader_id == INVALID_ID && CString::equal(config->name.c_str(), Renderer::RendererConfig::builtin_shader_name_skybox)) 
+		else if (system_state->skybox_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_skybox)) 
 		{
 			system_state->skybox_shader_id = shader->id;
-			system_state->skybox_locations.projection = ShaderSystem::get_uniform_index(shader, "projection");
-			system_state->skybox_locations.view = ShaderSystem::get_uniform_index(shader, "view");
-			system_state->skybox_locations.cube_map = ShaderSystem::get_uniform_index(shader, "cube_texture");
+			system_state->skybox_locations.projection = get_uniform_index(shader, "projection");
+			system_state->skybox_locations.view = get_uniform_index(shader, "view");
+			system_state->skybox_locations.cube_map = get_uniform_index(shader, "cube_texture");
 		}
 
 		return true;
 
+	}
+
+	bool32 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass)
+	{
+		ShaderResourceData resource = {};
+		if (!ResourceSystem::shader_loader_load(resource_name, 0, &resource))
+		{
+			SHMERROR("Failed to load world pick shader config.");
+			return false;
+		}
+
+		ShaderConfig config = ResourceSystem::shader_loader_get_config_from_resource(&resource);
+		if (!ShaderSystem::create_shader(renderpass, &config))
+		{
+			SHMERROR("Failed to create world pick shader.");
+			ResourceSystem::shader_loader_unload(&resource);
+			return false;
+		}
+
+		ResourceSystem::shader_loader_unload(&resource);
+		return true;
 	}
 
 	uint32 get_id(const char* shader_name)
@@ -277,7 +299,7 @@ namespace ShaderSystem
 		return get_shader_id(shader_name);
 	}
 
-	Renderer::Shader* get_shader(uint32 shader_id)
+	Shader* get_shader(uint32 shader_id)
 	{
 		if (shader_id >= system_state->config.max_shader_count || system_state->shaders[shader_id].id == INVALID_ID) {
 			return 0;
@@ -285,19 +307,19 @@ namespace ShaderSystem
 		return &system_state->shaders[shader_id];
 	}
 
-	Renderer::Shader* get_shader(const char* shader_name)
+	Shader* get_shader(const char* shader_name)
 	{
 		uint32 shader_id = get_shader_id(shader_name);
 		return get_shader(shader_id);
 	}
 
-	static void destroy_shader(Renderer::Shader* shader)
+	static void destroy_shader(Shader* shader)
 	{
 
 		Renderer::shader_destroy(shader);
 
 		(*shader).~Shader();
-		shader->state = Renderer::ShaderState::NOT_CREATED;
+		shader->state = ShaderState::NOT_CREATED;
 
 	}
 
@@ -315,7 +337,7 @@ namespace ShaderSystem
 
 		OPTICK_EVENT();
 
-		Renderer::Shader* shader = get_shader(shader_id);
+		Shader* shader = get_shader(shader_id);
 		if (!Renderer::shader_use(shader))
 		{
 			SHMERRORV("use_shader - Failed using shader '%s'.", shader->name.c_str());
@@ -342,7 +364,7 @@ namespace ShaderSystem
 		return use_shader(shader_id);
 	}
 
-	uint16 get_uniform_index(Renderer::Shader* shader, const char* uniform_name)
+	uint16 get_uniform_index(Shader* shader, const char* uniform_name)
 	{
 
 		uint16 index = INVALID_ID16;
@@ -388,7 +410,7 @@ namespace ShaderSystem
 			return false;
 		}
 
-		Renderer::Shader* shader = &system_state->shaders[system_state->bound_shader_id];
+		Shader* shader = &system_state->shaders[system_state->bound_shader_id];
 		uint16 index = get_uniform_index(shader, uniform_name);
 		return set_uniform(index, value);
 
@@ -399,7 +421,7 @@ namespace ShaderSystem
 
 		OPTICK_EVENT();
 
-		Renderer::Shader* s = get_shader(shader_id);
+		Shader* s = get_shader(shader_id);
 		if (!s)
 			return false;
 
@@ -481,7 +503,7 @@ namespace ShaderSystem
 	bool32 bind_instance(uint32 instance_id)
 	{
 
-		Renderer::Shader* shader = &system_state->shaders[system_state->bound_shader_id];
+		Shader* shader = &system_state->shaders[system_state->bound_shader_id];
 		shader->bound_instance_id = instance_id;
 		return Renderer::shader_bind_instance(shader, instance_id);
 
@@ -527,7 +549,7 @@ namespace ShaderSystem
 		return system_state->skybox_locations;
 	}
 
-	static bool32 add_attribute(Renderer::Shader* shader, const Renderer::ShaderAttributeConfig& config)
+	static bool32 add_attribute(Shader* shader, const ShaderAttributeConfig& config)
 	{
 
 		using namespace Renderer;
@@ -578,7 +600,7 @@ namespace ShaderSystem
 
 	}
 
-	static bool32 add_sampler(Renderer::Shader* shader, const Renderer::ShaderUniformConfig& config)
+	static bool32 add_sampler(Shader* shader, const ShaderUniformConfig& config)
 	{
 
 		using namespace Renderer;
@@ -589,7 +611,7 @@ namespace ShaderSystem
 			return false;
 		}
 
-		if (!uniform_name_valid(shader, config.name.c_str()) || !shader_uniform_add_state_valid(shader))
+		if (!uniform_name_valid(shader, config.name) || !shader_uniform_add_state_valid(shader))
 			return false;
 
 		uint32 location = 0;
@@ -622,16 +644,16 @@ namespace ShaderSystem
 		// hashtable entry's 'location' field value directly, and is then set to the index of the uniform array.
 		// This allows location lookups for samplers as if they were uniforms as well (since technically they are).
 		// TODO: might need to store this elsewhere
-		return uniform_add(shader, config.name.c_str(), 0, config.type, config.scope, location, true);
+		return uniform_add(shader, config.name, 0, config.type, config.scope, location, true);
 
 	}
 
-	static bool32 uniform_add(Renderer::Shader* shader, const Renderer::ShaderUniformConfig& config)
+	static bool32 uniform_add(Shader* shader, const ShaderUniformConfig& config)
 	{
-		if (!uniform_name_valid(shader, config.name.c_str()) || !shader_uniform_add_state_valid(shader))
+		if (!uniform_name_valid(shader, config.name) || !shader_uniform_add_state_valid(shader))
 			return false;
 
-		return uniform_add(shader, config.name.c_str(), config.size, config.type, config.scope, 0, false);
+		return uniform_add(shader, config.name, config.size, config.type, config.scope, 0, false);
 	}
 
 	static SHMINLINE uint32 get_shader_id(const char* shader_name)
@@ -650,7 +672,7 @@ namespace ShaderSystem
 		return INVALID_ID;
 	}
 
-	static bool32 uniform_add(Renderer::Shader* shader, const char* uniform_name, uint32 size, Renderer::ShaderUniformType type, Renderer::ShaderScope scope, uint32 set_location, bool32 is_sampler)
+	static bool32 uniform_add(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool32 is_sampler)
 	{
 
 		using namespace Renderer;
@@ -704,14 +726,14 @@ namespace ShaderSystem
 		return true;
 	}
 
-	static bool32 uniform_name_valid(Renderer::Shader* shader, const char* uniform_name)
+	static bool32 uniform_name_valid(Shader* shader, const char* uniform_name)
 	{
 		return (uniform_name != 0 && uniform_name[0] != 0);
 	}
 
-	static bool32 shader_uniform_add_state_valid(Renderer::Shader* shader)
+	static bool32 shader_uniform_add_state_valid(Shader* shader)
 	{
-		if (shader->state != Renderer::ShaderState::UNINITIALIZED)
+		if (shader->state != ShaderState::UNINITIALIZED)
 		{
 			SHMERROR("Uniforms may only be added to shaders before initialization.");
 			return false;

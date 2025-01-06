@@ -456,9 +456,9 @@ namespace Renderer
 			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_offset, geometry->index_count, false);
 	}
 
-	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
+	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
 	{
-		return system_state->module.shader_create(shader, config, renderpass, stage_count, stage_filenames, stages);
+		return system_state->module.shader_create(shader, config, renderpass);
 	}
 
 	void shader_destroy(Shader* s) 

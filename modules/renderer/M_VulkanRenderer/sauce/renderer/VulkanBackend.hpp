@@ -46,7 +46,7 @@ namespace Renderer::Vulkan
 	bool32 vk_texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 	void vk_texture_destroy(Texture* texture);
 
-	bool32 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+	bool32 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
 	void vk_shader_destroy(Shader* shader);
 
 	bool32 vk_shader_init(Shader* shader);

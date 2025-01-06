@@ -19,7 +19,7 @@ struct RenderViewUIInternalData {
 	float32 far_clip;
 	Math::Mat4 projection_matrix;
 	Math::Mat4 view_matrix;
-	Renderer::Shader* shader;
+	Shader* shader;
 	uint16 diffuse_map_location;
 	uint16 properties_location;
 	uint16 model_location;
@@ -54,20 +54,11 @@ namespace Renderer
 		self->internal_data.init(sizeof(RenderViewUIInternalData), 0, AllocationTag::RENDERER);
 		RenderViewUIInternalData* data = (RenderViewUIInternalData*)self->internal_data.data;
 
-		ShaderConfig s_config = {};
-		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_ui, 0, &s_config))
+		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_ui, &self->renderpasses[0]))
 		{
-			SHMERROR("Failed to load ui shader config.");
+			SHMERROR("Failed to create world pick shader.");
 			return false;
 		}
-
-		if (!ShaderSystem::create_shader(&self->renderpasses[0], &s_config))
-		{
-			SHMERROR("Failed to create ui shader.");
-			ResourceSystem::shader_loader_unload(&s_config);
-			return false;
-		}
-		ResourceSystem::shader_loader_unload(&s_config);
 	
 		data->shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
 		data->diffuse_map_location = ShaderSystem::get_uniform_index(data->shader, "diffuse_texture");

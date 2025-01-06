@@ -427,7 +427,7 @@ namespace MaterialSystem
             return false;
         }
 
-        Renderer::Shader* shader = 0;
+        Shader* shader = 0;
         if (m->type == MaterialType::PHONG)
         {
             shader = ShaderSystem::get_shader(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_material);
@@ -540,7 +540,7 @@ namespace MaterialSystem
             mat->maps[i].texture = default_textures[i % 3];
         }
 
-        Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material);
+        Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material);
         TextureMap* maps[maps_count] = {};
         for (uint32 i = 0; i < maps_count; i++)
             maps[i] = &mat->maps[i];
@@ -581,7 +581,7 @@ namespace MaterialSystem
             mat->maps[i].texture = TextureSystem::get_default_texture();
         }
 
-        Renderer::Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
+        Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
         TextureMap* maps[maps_count] = {};
         for (uint32 i = 0; i < maps_count; i++)
             maps[i] = &mat->maps[i];

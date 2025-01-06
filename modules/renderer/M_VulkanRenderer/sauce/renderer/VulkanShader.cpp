@@ -3,6 +3,7 @@
 #include "VulkanInternal.hpp"
 #include <resources/loaders/GenericLoader.hpp>
 #include <systems/MaterialSystem.hpp>
+#include <systems/ShaderSystem.hpp>
 
 // TODO: Get rid of frontend include
 #include <renderer/RendererFrontend.hpp>
@@ -19,14 +20,14 @@ namespace Renderer::Vulkan
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
 
-	bool32 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages)
+	bool32 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
 	{
 
 		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::RENDERER);
 
 		VkShaderStageFlags vk_stages[RendererConfig::shader_max_stages];
-		for (uint8 i = 0; i < stage_count; ++i) {
-			switch (stages[i]) {
+		for (uint8 i = 0; i < config->stages_count; ++i) {
+			switch (config->stages[i].stage) {
 			case ShaderStage::FRAGMENT:
 				vk_stages[i] = VK_SHADER_STAGE_FRAGMENT_BIT;
 				break;
@@ -42,7 +43,7 @@ namespace Renderer::Vulkan
 				vk_stages[i] = VK_SHADER_STAGE_COMPUTE_BIT;
 				break;
 			default:
-				SHMWARNV("Unsupported stage type: %i", stages[i]);
+				SHMWARNV("Unsupported stage type: %i", config->stages[i].stage);
 				break;
 			}
 		}
@@ -54,7 +55,7 @@ namespace Renderer::Vulkan
 
 		v_shader->config.stage_count = 0;
 
-		for (uint32 i = 0; i < stage_count; i++) {
+		for (uint32 i = 0; i < config->stages_count; i++) {
 
 			if (v_shader->config.stage_count + 1 > RendererConfig::shader_max_stages) {
 				SHMERRORV("Shaders may have a maximum of %i stages", RendererConfig::shader_max_stages);
@@ -62,7 +63,7 @@ namespace Renderer::Vulkan
 			}
 
 			VkShaderStageFlagBits stage_flag;
-			switch (stages[i]) {
+			switch (config->stages[i].stage) {
 			case ShaderStage::VERTEX:
 				stage_flag = VK_SHADER_STAGE_VERTEX_BIT;
 				break;
@@ -70,12 +71,12 @@ namespace Renderer::Vulkan
 				stage_flag = VK_SHADER_STAGE_FRAGMENT_BIT;
 				break;
 			default:
-				SHMERRORV("vulkan_shader_create: Unsupported shader stage flagged: %i. Stage ignored.", stages[i]);
+				SHMERRORV("vulkan_shader_create: Unsupported shader stage flagged: %i. Stage ignored.", config->stages[i].stage);
 				continue;
 			}
 
 			v_shader->config.stages[v_shader->config.stage_count].stage = stage_flag;
-			CString::copy(stage_filenames[i].c_str(), v_shader->config.stages[v_shader->config.stage_count].filename, VulkanShaderStageConfig::max_filename_length);
+			CString::copy(config->stages[i].filename, v_shader->config.stages[v_shader->config.stage_count].filename, VulkanShaderStageConfig::max_filename_length);
 			v_shader->config.stage_count++;
 		}
 
@@ -93,7 +94,7 @@ namespace Renderer::Vulkan
 		v_shader->instance_uniform_sampler_count = 0;
 		v_shader->instance_uniform_sampler_count = 0;
 		v_shader->local_uniform_count = 0;
-		for (uint32 i = 0; i < config->uniforms.count; i++)
+		for (uint32 i = 0; i < config->uniforms_count; i++)
 		{
 			switch (config->uniforms[i].scope)
 			{

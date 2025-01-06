@@ -275,7 +275,7 @@ bool32 terrain_load(Terrain* terrain)
 		mat_props->shininess = sub_mat_properties->shininess;
 	}
 
-	Renderer::Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
+	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
 	
 	const uint32 max_map_count = max_terrain_materials_count * 3;
 	TextureMap* maps[max_map_count] = {};
@@ -305,7 +305,7 @@ bool32 terrain_unload(Terrain* terrain)
 
     terrain->state = TerrainState::UNLOADING;
 
-	Renderer::Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
+	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
 	Renderer::shader_release_instance_resources(terrain_shader, terrain->shader_instance_id);
 	terrain->shader_instance_id = INVALID_ID;
 

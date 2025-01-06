@@ -83,7 +83,7 @@ bool32 ui_text_load(UIText* ui_text)
 
     ui_text->state = UITextState::LOADING;
 
-    Renderer::Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
+    Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
     TextureMap* font_maps[1] = { &ui_text->font_atlas->map };
     if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, font_maps, &ui_text->shader_instance_id))
     {
@@ -110,7 +110,7 @@ bool32 ui_text_unload(UIText* ui_text)
 
     Renderer::geometry_unload(&ui_text->geometry);
 
-    Renderer::Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
+    Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
     Renderer::shader_release_instance_resources(ui_shader, ui_text->shader_instance_id);
 
     ui_text->shader_instance_id = INVALID_ID;

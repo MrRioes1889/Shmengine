@@ -161,7 +161,7 @@ namespace Renderer::Vulkan
 
 		VkVertexInputAttributeDescription attributes[RendererConfig::shader_max_attributes];
 
-		ShaderFaceCullMode cull_mode;
+		RenderCullMode cull_mode;
 	};
 
 	struct VulkanDescriptorState
@@ -205,7 +205,7 @@ namespace Renderer::Vulkan
 		VkViewport viewport;
 		VkRect2D scissor;
 
-		Renderer::ShaderFaceCullMode cull_mode;
+		RenderCullMode cull_mode;
 		bool32 is_wireframe;
 		uint32 shader_flags;	
 	};

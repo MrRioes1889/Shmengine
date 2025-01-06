@@ -7,6 +7,8 @@
 #include "core/Subsystems.hpp"
 
 struct FrameData;
+struct Shader;
+struct ShaderConfig;
 
 namespace Renderer
 {
@@ -59,7 +61,7 @@ namespace Renderer
 
 	void geometry_draw(GeometryData* geometry);
 
-	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass, uint8 stage_count, const Darray<String>& stage_filenames, ShaderStage::Value* stages);
+	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
 	void shader_destroy(Shader* shader);
 
 	bool32 shader_init(Shader* shader);

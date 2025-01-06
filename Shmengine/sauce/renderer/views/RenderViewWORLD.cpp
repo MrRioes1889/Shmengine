@@ -16,8 +16,8 @@
 #include "optick.h"
 
 struct RenderViewWorldInternalData {
-	Renderer::Shader* material_shader;
-	Renderer::Shader* terrain_shader;
+	Shader* material_shader;
+	Shader* terrain_shader;
 	float32 near_clip;
 	float32 far_clip;
 	float32 fov;
@@ -88,34 +88,15 @@ namespace Renderer
 		self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::RENDERER);
 		RenderViewWorldInternalData* data = (RenderViewWorldInternalData*)self->internal_data.data;
 
-
-		ShaderConfig s_config = {};
-		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_material, 0, &s_config))
+		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_material, &self->renderpasses[0]))
 		{
-			SHMERROR("Failed to load world shader config.");
+			SHMERROR("Failed to create world pick shader.");
 			return false;
 		}
 
-		bool32 created = ShaderSystem::create_shader(&self->renderpasses[0], &s_config);
-		ResourceSystem::shader_loader_unload(&s_config);
-		if (!created)
+		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_terrain, &self->renderpasses[0]))
 		{
-			SHMERROR("Failed to create world shader.");
-			return false;
-		}
-
-
-		if (!ResourceSystem::shader_loader_load(Renderer::RendererConfig::builtin_shader_name_terrain, 0, &s_config))
-		{
-			SHMERROR("Failed to load terrain shader config.");
-			return false;
-		}
-
-		created = ShaderSystem::create_shader(&self->renderpasses[0], &s_config);
-		ResourceSystem::shader_loader_unload(&s_config);
-		if (!created)
-		{
-			SHMERROR("Failed to create world shader.");
+			SHMERROR("Failed to create world pick shader.");
 			return false;
 		}
 
