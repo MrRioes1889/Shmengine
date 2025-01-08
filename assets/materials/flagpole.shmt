@@ -3,7 +3,7 @@
 version=0.1
 name=flagpole
 type=phong
-shader=Shader.Builtin.Material
+shader=Builtin.MaterialPhong
 
 [Properties]
 shininess=f32/10.000000

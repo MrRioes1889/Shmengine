@@ -1,18 +1,21 @@
 # shader config file
 version=1.0
-name=Shader.Builtin.UIPick
+name=Builtin.Skybox
 stages=vertex,fragment
-stagefiles=shaders/bin/Builtin.UIPickShader.vert.spv,shaders/bin/Builtin.UIPickShader.frag.spv
+stagefiles=shaders/bin/Builtin.Skybox.vert.spv,shaders/bin/Builtin.Skybox.frag.spv
+cull_mode=front
 depth_test=0
 depth_write=0
 
 # Attributes: type,name
-attribute=vec2,in_position
+attribute=vec3,in_position
+attribute=vec3,in_normal
 attribute=vec2,in_texcoord
+attribute=vec4,in_color
+attribute=vec3,in_tangent
 
 # Uniforms: type,scope,name
 # NOTE: For scope: 0=global, 1=instance, 2=local
 uniform=mat4,0,projection
 uniform=mat4,0,view
-uniform=vec3,1,id_color
-uniform=mat4,2,model
+uniform=samp,1,cube_texture

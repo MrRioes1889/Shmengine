@@ -1,8 +1,8 @@
 # shader config file
 version=1.0
-name=Shader.Builtin.Terrain
+name=Builtin.Terrain
 stages=vertex,fragment
-stagefiles=shaders/bin/Builtin.TerrainShader.vert.spv,shaders/bin/Builtin.TerrainShader.frag.spv
+stagefiles=shaders/bin/Builtin.Terrain.vert.spv,shaders/bin/Builtin.Terrain.frag.spv
 depth_test=1
 depth_write=1
 

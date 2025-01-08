@@ -9,6 +9,7 @@
 #include "memory/Freelist.hpp"
 #include "utility/Math.hpp"
 
+struct RenderView;
 struct UIText;
 struct Skybox;
 struct FrameData;
@@ -72,12 +73,13 @@ namespace Renderer
 
 	struct SHMAPI RendererConfig
 	{
-		static inline const char* builtin_shader_name_material = "Shader.Builtin.Material";
-		static inline const char* builtin_shader_name_terrain = "Shader.Builtin.Terrain";
-		static inline const char* builtin_shader_name_ui = "Shader.Builtin.UI";
-		static inline const char* builtin_shader_name_skybox = "Shader.Builtin.Skybox";
-		static inline const char* builtin_shader_name_world_pick = "Shader.Builtin.WorldPick";
-		static inline const char* builtin_shader_name_ui_pick = "Shader.Builtin.UIPick";
+		static inline const char* builtin_shader_name_material = "Builtin.MaterialPhong";
+		static inline const char* builtin_shader_name_terrain = "Builtin.Terrain";
+		static inline const char* builtin_shader_name_ui = "Builtin.UI";
+		static inline const char* builtin_shader_name_skybox = "Builtin.Skybox";
+		static inline const char* builtin_shader_name_material_phong_pick = "Builtin.MaterialPhongPick";
+		static inline const char* builtin_shader_name_terrain_pick = "Builtin.TerrainPick";
+		static inline const char* builtin_shader_name_ui_pick = "Builtin.UIPick";
 
 		inline static const uint32 max_material_count = 0x400;
 		inline static const uint32 max_ui_count = 0x400;
@@ -253,129 +255,30 @@ namespace Renderer
 		Math::Vec2f tex_coordinates;
 	};
 
-	enum class RenderViewType
+	struct InstanceRenderData
 	{
-		WORLD = 1,
-		UI = 2,
-		SKYBOX = 3,
-		PICK = 4
+		uint32 shader_instance_id;
+		uint32 texture_maps_count;
+
+		void* instance_properties;
+		uint32* render_frame_number;
+		TextureMap** texture_maps;
 	};
 
-	enum class RenderViewViewMatrixSource
-	{
-		SCENE_CAMERA = 1,
-		UI_CAMERA = 2,
-		LIGHT_CAMERA = 3
-	};
-
-	enum class RenderViewProjMatrixSource
-	{
-		DEFAULT_PERSPECTIVE = 1,
-		DEFAULT_ORTHOGRAPHIC = 2
-	};
-
-
-	struct RenderViewConfig
-	{
-		const char* name;
-		const char* custom_shader_name;
-
-		uint16 width;
-		uint16 height;
-		RenderViewType type;
-		RenderViewViewMatrixSource view_matrix_source;
-		RenderViewProjMatrixSource proj_matrix_source;
-
-		Sarray<RenderPassConfig> pass_configs;
-	};
-
-	struct RenderViewPacket;
-
-	struct RenderView
-	{
-		const char* name;
-		uint32 id;
-		uint16 width;
-		uint16 height;
-		RenderViewType type;
-
-		Sarray<RenderPass> renderpasses;
-
-		const char* custom_shader_name;
-		Buffer internal_data;
-
-		bool32(*on_create)(RenderView* self);
-		void (*on_destroy)(RenderView* self);
-		void (*on_resize)(RenderView* self, uint32 width, uint32 height);
-		bool32(*on_build_packet)(RenderView* self, Memory::LinearAllocator* frame_allocator, void* data, RenderViewPacket* out_packet);
-		void (*on_destroy_packet)(const RenderView* self, RenderViewPacket* packet);
-		bool32(*on_render)(RenderView* self, RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index);
-		bool32(*regenerate_attachment_target)(const RenderView* self, uint32 pass_index, RenderTargetAttachment* attachment);
-	};
-
-	struct GeometryRenderData
+	struct ObjectRenderData
 	{
 		UniqueId unique_id;
-		uint32 shader_id;	
-		void* render_object;
-		bool32(*on_render)(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* render_object, uint32 frame_number);
+		uint32 shader_id;
+		bool32(*get_instance_render_data)(void* in_object, InstanceRenderData* out_data);
 		GeometryData* geometry_data;
-		Math::Mat4 model;	
-		bool8 has_transparency;	
-	};
-
-	struct RenderViewPacket
-	{
-		RenderView* view;
-		Math::Mat4* view_matrix;
-		Math::Mat4* projection_matrix;
-		Math::Vec3f view_position;
-		Math::Vec4f ambient_color;
-		LightingInfo lighting;
-		Darray<GeometryRenderData> geometries;
-		const char* custom_shader_name;
-		void* extended_data;
-	};
-
-	struct MeshPacketData
-	{
-		uint32 mesh_count;
-		Mesh** meshes;
-	};
-
-	struct WorldPacketData
-	{
-		uint32 geometries_count;
-		uint32 p_lights_count;
-
-		GeometryRenderData* geometries;
-		DirectionalLight* dir_light;
-		PointLight* p_lights;
-	};
-
-	struct SkyboxPacketData
-	{
-		uint32 geometries_count;
-		GeometryRenderData* geometries;
-	};
-
-	struct UIPacketData {
-		uint32 geometries_count;
-
-		GeometryRenderData* geometries;
-	};
-
-	struct PickPacketData {
-		uint32 world_geometries_count;
-		uint32 ui_geometries_count;
-
-		GeometryRenderData* world_geometries;
-		GeometryRenderData* ui_geometries;
+		void* render_object;
+		Math::Mat4 model;
+		bool8 has_transparency;
 	};
 
 	struct RenderPacket
 	{
-		Sarray<RenderViewPacket> views;
+		Darray<RenderView*> views;
 	};
 
 	struct ModuleConfig

@@ -15,52 +15,48 @@ echo "Compiling shaders..."
 
 IF NOT EXIST "%wd%assets\shaders\bin\" mkdir "%wd%assets\shaders\bin"
 
-echo "assets\shaders\sauce\Builtin.MaterialShader.vert.glsl -> assets\shaders\bin\Builtin.MaterialShader.vert.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.MaterialShader.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.MaterialShader.vert.spv"
+echo "assets\shaders\sauce\Builtin.MaterialPhong.vert.glsl -> assets\shaders\bin\Builtin.MaterialPhong.vert.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.MaterialPhong.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.MaterialPhong.vert.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.MaterialShader.frag.glsl -> assets\shaders\bin\Builtin.MaterialShader.frag.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.MaterialShader.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.MaterialShader.frag.spv"
+echo "assets\shaders\sauce\Builtin.MaterialPhong.frag.glsl -> assets\shaders\bin\Builtin.MaterialPhong.frag.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.MaterialPhong.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.MaterialPhong.frag.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.TerrainShader.vert.glsl -> assets\shaders\bin\Builtin.TerrainShader.vert.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.TerrainShader.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.TerrainShader.vert.spv"
+echo "assets\shaders\sauce\Builtin.Terrain.vert.glsl -> assets\shaders\bin\Builtin.Terrain.vert.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.Terrain.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.Terrain.vert.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.TerrainShader.frag.glsl -> assets\shaders\bin\Builtin.TerrainShader.frag.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.TerrainShader.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.TerrainShader.frag.spv"
+echo "assets\shaders\sauce\Builtin.Terrain.frag.glsl -> assets\shaders\bin\Builtin.Terrain.frag.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.Terrain.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.Terrain.frag.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.UIShader.vert.glsl -> assets\shaders\bin\Builtin.UIShader.vert.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.UIShader.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.UIShader.vert.spv"
+echo "assets\shaders\sauce\Builtin.UI.vert.glsl -> assets\shaders\bin\Builtin.UI.vert.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.UI.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.UI.vert.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.UIShader.frag.glsl -> assets\shaders\bin\Builtin.UIShader.frag.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.UIShader.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.UIShader.frag.spv"
+echo "assets\shaders\sauce\Builtin.UI.frag.glsl -> assets\shaders\bin\Builtin.UI.frag.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.UI.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.UI.frag.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.SkyboxShader.vert.glsl -> assets\shaders\bin\Builtin.SkyboxShader.vert.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.SkyboxShader.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.SkyboxShader.vert.spv"
+echo "assets\shaders\sauce\Builtin.Skybox.vert.glsl -> assets\shaders\bin\Builtin.Skybox.vert.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.Skybox.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.Skybox.vert.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.SkyboxShader.frag.glsl -> assets\shaders\bin\Builtin.SkyboxShader.frag.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.SkyboxShader.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.SkyboxShader.frag.spv"
+echo "assets\shaders\sauce\Builtin.Skybox.frag.glsl -> assets\shaders\bin\Builtin.Skybox.frag.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.Skybox.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.Skybox.frag.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.WorldPickShader.vert.glsl -> assets\shaders\bin\Builtin.WorldPickShader.vert.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.WorldPickShader.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.WorldPickShader.vert.spv"
+echo "assets\shaders\sauce\Builtin.Pick3D.vert.glsl -> assets\shaders\bin\Builtin.Pick3D.vert.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.Pick3D.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.Pick3D.vert.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.WorldPickShader.frag.glsl -> assets\shaders\bin\Builtin.WorldPickShader.frag.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.WorldPickShader.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.WorldPickShader.frag.spv"
+echo "assets\shaders\sauce\Builtin.Pick2D.vert.glsl -> assets\shaders\bin\Builtin.Pick2D.vert.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.Pick2D.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.Pick2D.vert.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
-echo "assets\shaders\sauce\Builtin.UIPickShader.vert.glsl -> assets\shaders\bin\Builtin.UIPickShader.vert.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.UIPickShader.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.UIPickShader.vert.spv"
-IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
-
-echo "assets\shaders\sauce\Builtin.UIPickShader.frag.glsl -> assets\shaders\bin\Builtin.UIPickShader.frag.spv"
-%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.UIPickShader.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.UIPickShader.frag.spv"
+echo "assets\shaders\sauce\Builtin.Pick.frag.glsl -> assets\shaders\bin\Builtin.Pick.frag.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.Pick.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.Pick.frag.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
 echo "Done."

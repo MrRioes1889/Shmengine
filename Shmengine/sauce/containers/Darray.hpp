@@ -111,6 +111,11 @@ struct Darray
 		return ((SubT*)data)[index];
 	}
 
+	SHMINLINE uint64 get_counted_size() const
+	{
+		return count * sizeof(T);
+	}
+
 	T* data = 0;
 	uint32 capacity = 0; // Max Capacity of contained objects
 	uint32 count = 0; // Count of contained objects
@@ -123,7 +128,7 @@ template<typename T>
 SHMINLINE Darray<T>::Darray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag, void* memory)
 {
 	data = 0;
-	init(reserve_count, creation_flags, tag);
+	init(reserve_count, creation_flags, tag, memory);
 }
 
 template<typename T>
@@ -381,7 +386,9 @@ inline SHMINLINE T* Darray<T>::transfer_data()
 template<typename T>
 SHMINLINE void Darray<T>::copy_memory(const void* source, uint32 copy_count, uint32 array_offset)
 {
-	SHMASSERT_MSG((copy_count + array_offset) <= capacity, "Darray does not fit requested size and/or imported count does not fit!");
+	if ((copy_count + array_offset) > capacity)
+		resize(copy_count + array_offset);
+
 	T* dest = data + array_offset;
 	Memory::copy_memory(source, dest, copy_count * sizeof(T));
 	if (copy_count + array_offset > count)

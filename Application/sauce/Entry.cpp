@@ -3,6 +3,7 @@
 #include <core/Event.hpp>
 #include <platform/Platform.hpp>
 #include <platform/FileSystem.hpp>
+#include <systems/RenderViewSystem.hpp>
 
 typedef bool32(*FP_create_renderer_module)(Renderer::Module* out_module);
 typedef uint64(*FP_get_module_state_size)();

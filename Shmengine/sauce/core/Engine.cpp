@@ -3,16 +3,16 @@
 #include "ApplicationTypes.hpp"
 #include "core/Memory.hpp"
 #include "core/FrameData.hpp"
-#include "memory/LinearAllocator.hpp"
 #include "core/Logging.hpp"
-
 #include "core/Clock.hpp"
 #include "core/Event.hpp"
 #include "core/Input.hpp"
 #include "core/Console.hpp"
+#include "memory/LinearAllocator.hpp"
 #include "utility/CString.hpp"
 
 #include "renderer/RendererFrontend.hpp"
+#include "systems/RenderViewSystem.hpp"
 
 #include "core/Subsystems.hpp"
 
@@ -145,7 +145,7 @@ namespace Engine
 
 		for (uint32 i = 0; i < config->render_view_configs.capacity; i++)
 		{
-			Renderer::RenderViewConfig* view_config = &config->render_view_configs[i];
+			RenderViewConfig* view_config = &config->render_view_configs[i];
 			for (uint32 j = 0; j < view_config->pass_configs.capacity; j++)
 			{
 				Renderer::RenderPassConfig* pass_config = &view_config->pass_configs[j];
@@ -213,7 +213,7 @@ namespace Engine
 
 				for (uint32 i = 0; i < render_packet.views.capacity; i++)
 				{
-					render_packet.views[i].view->on_destroy_packet(render_packet.views[i].view, &render_packet.views[i]);
+					render_packet.views[i]->on_end_frame(render_packet.views[i]);
 				}
 
 				metrics_update_render();

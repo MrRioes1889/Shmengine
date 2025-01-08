@@ -9,6 +9,9 @@
 struct FrameData;
 struct Shader;
 struct ShaderConfig;
+struct Skybox;
+struct Terrain;
+struct Scene;
 
 namespace Renderer
 {
@@ -96,6 +99,15 @@ namespace Renderer
 	SHMAPI bool32 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data);
 	SHMAPI bool32 renderbuffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size);
 	SHMAPI bool32 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only);
+
+	SHMAPI uint32 mesh_draw(Mesh* mesh, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
+	SHMAPI uint32 meshes_draw(Mesh* meshes, uint32 mesh_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
+	SHMAPI bool32 skybox_draw(Skybox* skybox, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 terrain_draw(Terrain* terrain, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
+	SHMAPI uint32 terrains_draw(Terrain* terrains, uint32 terrains_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
+	SHMAPI bool32 ui_text_draw(UIText* text, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
+
+	SHMAPI bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view, const Math::Frustum* camera_frustum, FrameData* frame_data);
 
 	bool8 is_multithreaded();
 

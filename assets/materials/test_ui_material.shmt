@@ -2,7 +2,7 @@
 
 name=test_ui_material
 type=ui
-shader=Shader.Builtin.UI
+shader=Builtin.UI
 
 [Properties]
 diffuse_color=vec4/1.0 1.0 1.0 1.0

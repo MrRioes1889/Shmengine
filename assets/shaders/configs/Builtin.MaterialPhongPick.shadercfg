@@ -1,11 +1,10 @@
 # shader config file
 version=1.0
-name=Shader.Builtin.Skybox
+name=Builtin.MaterialPhongPick
 stages=vertex,fragment
-stagefiles=shaders/bin/Builtin.SkyboxShader.vert.spv,shaders/bin/Builtin.SkyboxShader.frag.spv
-cull_mode=front
-depth_test=0
-depth_write=0
+stagefiles=shaders/bin/Builtin.Pick3D.vert.spv,shaders/bin/Builtin.Pick.frag.spv
+depth_test=1
+depth_write=1
 
 # Attributes: type,name
 attribute=vec3,in_position
@@ -18,4 +17,5 @@ attribute=vec3,in_tangent
 # NOTE: For scope: 0=global, 1=instance, 2=local
 uniform=mat4,0,projection
 uniform=mat4,0,view
-uniform=samp,1,cube_texture
+uniform=vec3,1,id_color
+uniform=mat4,2,model

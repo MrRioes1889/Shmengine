@@ -597,40 +597,17 @@ namespace MaterialSystem
         return true;
     }
 
-    bool32 material_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* material, uint32 frame_number)
+    bool32 material_get_instance_render_data(void* in_material, Renderer::InstanceRenderData* out_data)
     {
-        Material* mat = (Material*)material;
+        Material* mat = (Material*)in_material;
 
-        ShaderSystem::bind_instance(mat->shader_instance_id);
+        out_data->instance_properties = mat->properties;
+        out_data->texture_maps_count = mat->maps.capacity;
+        for (uint32 i = 0; i < mat->maps.capacity; i++)
+            out_data->texture_maps[i] = &mat->maps[i];
 
-        if (shader_id == ShaderSystem::get_material_shader_id())
-        {
-            ShaderSystem::MaterialShaderUniformLocations u_locations = ShaderSystem::get_material_shader_uniform_locations();
-            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, mat->properties));
-
-            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &mat->maps[0]));
-            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.specular_texture, &mat->maps[1]));
-            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.normal_texture, &mat->maps[2]));
-
-            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
-        }
-        else if (shader_id == ShaderSystem::get_ui_shader_id())
-        {
-            ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();
-            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, mat->properties));
-            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &mat->maps[0]));
-
-            UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
-        }
-        else
-        {
-            SHMERRORV("Unknown shader id %u for rendering mesh. Skipping uniforms.", shader_id);
-            return false;
-        }
-
-        bool32 needs_update = (mat->render_frame_number != (uint32)frame_number);
-        UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update));
-        mat->render_frame_number = frame_number;      
+        out_data->shader_instance_id = mat->shader_instance_id;
+        out_data->render_frame_number = &mat->render_frame_number;
 
         return true;
     }

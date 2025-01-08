@@ -13,7 +13,7 @@ static SHMINLINE void swap_elements(T* e1, T* e2)
 template<typename T>
 void quick_sort(T* arr, int32 low_index, int32 high_index, bool32 asc = true)
 {
-	if (low_index >= high_index || high_index <= low_index)
+	if (low_index >= high_index)
 		return;
 
 	// partition

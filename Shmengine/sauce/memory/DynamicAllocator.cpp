@@ -79,7 +79,7 @@ void* DynamicAllocator::reallocate(uint64 requested_size, void* data_ptr, Alloca
 
 	// NOTE: Freeing data first to allow the same data block to be part of the new allocation. Feels unsafe but should work fine.
 	freelist.free(old_data_offset, bytes_freed);
-	void* new_data = allocate(requested_size, *out_tag, alignment, bytes_allocated);
+	void* new_data = allocate(requested_size, *out_tag, alignment, bytes_allocated);	
 	void* old_data_ptr = PTR_BYTES_OFFSET(data, old_data_offset + old_alignment_offset + sizeof(AllocHeader));
 	Memory::copy_memory(old_data_ptr, new_data, requested_size);
 

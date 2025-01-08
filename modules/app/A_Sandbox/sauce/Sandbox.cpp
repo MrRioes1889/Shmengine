@@ -139,10 +139,10 @@ bool32 application_boot(Application* app_inst)
 	font_sys_config->truetype_font_configs[0].default_size = 21;
 
 	app_inst->config.render_view_configs.init(4, 0);
-	Renderer::RenderViewConfig* skybox_view_config = &app_inst->config.render_view_configs[0];
-	Renderer::RenderViewConfig* world_view_config = &app_inst->config.render_view_configs[1];
-	Renderer::RenderViewConfig* ui_view_config = &app_inst->config.render_view_configs[2];
-	Renderer::RenderViewConfig* pick_view_config = &app_inst->config.render_view_configs[3];
+	RenderViewConfig* skybox_view_config = &app_inst->config.render_view_configs[0];
+	RenderViewConfig* world_view_config = &app_inst->config.render_view_configs[1];
+	RenderViewConfig* ui_view_config = &app_inst->config.render_view_configs[2];
+	RenderViewConfig* pick_view_config = &app_inst->config.render_view_configs[3];
 
 	const uint32 skybox_pass_count = 1;
 	const uint32 world_pass_count = 1;
@@ -154,11 +154,11 @@ bool32 application_boot(Application* app_inst)
 	ui_view_config->pass_configs.init(ui_pass_count, 0);
 	pick_view_config->pass_configs.init(pick_pass_count, 0);
 
-	skybox_view_config->type = Renderer::RenderViewType::SKYBOX;
+	skybox_view_config->type = RenderViewType::SKYBOX;
 	skybox_view_config->width = 0;
 	skybox_view_config->height = 0;
 	skybox_view_config->name = "skybox";
-	skybox_view_config->view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+	skybox_view_config->view_matrix_source = RenderViewViewMatrixSource::SCENE_CAMERA;
 
 	Renderer::RenderPassConfig* skybox_pass = &skybox_view_config->pass_configs[0];
 	skybox_pass->name = "Renderpass.Builtin.Skybox";
@@ -179,11 +179,11 @@ bool32 application_boot(Application* app_inst)
 
 	skybox_pass->render_target_count = Renderer::get_window_attachment_count();
 
-	world_view_config->type = Renderer::RenderViewType::WORLD;
+	world_view_config->type = RenderViewType::WORLD;
 	world_view_config->width = 0;
 	world_view_config->height = 0;
 	world_view_config->name = "world";
-	world_view_config->view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+	world_view_config->view_matrix_source = RenderViewViewMatrixSource::SCENE_CAMERA;
 
 	Renderer::RenderPassConfig* world_pass = &world_view_config->pass_configs[0];
 	world_pass->name = "Renderpass.Builtin.World";
@@ -211,11 +211,11 @@ bool32 application_boot(Application* app_inst)
 	world_pass->render_target_count = Renderer::get_window_attachment_count();
 
 
-	ui_view_config->type = Renderer::RenderViewType::UI;
+	ui_view_config->type = RenderViewType::UI;
 	ui_view_config->width = 0;
 	ui_view_config->height = 0;
 	ui_view_config->name = "ui";
-	ui_view_config->view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+	ui_view_config->view_matrix_source = RenderViewViewMatrixSource::SCENE_CAMERA;
 
 	Renderer::RenderPassConfig* ui_pass = &ui_view_config->pass_configs[0];
 	ui_pass->name = "Renderpass.Builtin.UI";
@@ -237,11 +237,11 @@ bool32 application_boot(Application* app_inst)
 	ui_pass->render_target_count = Renderer::get_window_attachment_count();
 
 
-	pick_view_config->type = Renderer::RenderViewType::PICK;
+	pick_view_config->type = RenderViewType::PICK;
 	pick_view_config->width = 0;
 	pick_view_config->height = 0;
 	pick_view_config->name = "pick";
-	pick_view_config->view_matrix_source = Renderer::RenderViewViewMatrixSource::SCENE_CAMERA;
+	pick_view_config->view_matrix_source = RenderViewViewMatrixSource::SCENE_CAMERA;
 
 	Renderer::RenderPassConfig* world_pick_pass = &pick_view_config->pass_configs[0];
 	Renderer::RenderPassConfig* ui_pick_pass = &pick_view_config->pass_configs[1];
@@ -507,115 +507,48 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 	frame_data->drawn_geometry_count = 0;
 
 	const uint32 view_count = 4;
-	Renderer::RenderViewPacket* render_view_packets = (Renderer::RenderViewPacket*)frame_data->frame_allocator->allocate(view_count * sizeof(Renderer::RenderViewPacket));
-	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_view_packets);
+	RenderView** render_views = (RenderView**)frame_data->frame_allocator->allocate(view_count * sizeof(RenderView*));
+	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_views);
 
-	packet->views[0].view = RenderViewSystem::get("skybox");
-	packet->views[1].view = RenderViewSystem::get("world");
-	packet->views[2].view = RenderViewSystem::get("ui");
-	packet->views[3].view = RenderViewSystem::get("pick");
+	uint32 skybox_view_i = packet->views.emplace(RenderViewSystem::get("skybox"));
+	uint32 world_view_i = packet->views.emplace(RenderViewSystem::get("world"));
+	uint32 ui_view_i = packet->views.emplace(RenderViewSystem::get("ui"));
+	uint32 pick_view_i = packet->views.emplace(RenderViewSystem::get("pick"));
 
 	if (app_state->main_scene.state == SceneState::LOADED)
-	{
-		if (!scene_build_render_packet(&app_state->main_scene, &app_state->camera_frustum, frame_data, packet))
-		{
-			SHMERROR("Failed to build main scene render packet.");
-			return false;
-		}
-	}
+		Renderer::scene_draw(&app_state->main_scene, packet->views[skybox_view_i], packet->views[world_view_i], &app_state->camera_frustum, frame_data);
 
 	uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
 
-	Renderer::UIPacketData* ui_packet_data = (Renderer::UIPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::UIPacketData));
-	ui_packet_data->geometries = 0;
-	ui_packet_data->geometries_count = 0;
+	Renderer::meshes_draw(app_state->ui_meshes.data, app_state->ui_meshes.count, packet->views[ui_view_i], 0, ui_shader_id, {}, frame_data, 0);
 
-	for (uint32 mesh_i = 0; mesh_i < app_state->ui_meshes.count; mesh_i++)
-	{
-		if (app_state->ui_meshes[mesh_i].generation == INVALID_ID8)
-			continue;
-
-		Mesh* mesh = &app_state->ui_meshes[mesh_i];
-
-		for (uint32 geo_i = 0; geo_i < app_state->ui_meshes[mesh_i].geometries.count; geo_i++)
-		{
-			MeshGeometry* geometry = &mesh->geometries[geo_i];
-			Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
-			render_data->model = Math::transform_get_world(mesh->transform);
-			render_data->shader_id = ui_shader_id;
-			render_data->render_object = geometry->material;
-			render_data->on_render = MaterialSystem::material_on_render;
-			render_data->geometry_data = geometry->g_data;
-			render_data->has_transparency = (geometry->material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
-			render_data->unique_id = mesh->unique_id;
-
-			ui_packet_data->geometries_count++;
-
-			if (!ui_packet_data->geometries)
-				ui_packet_data->geometries = render_data;
-		}
-	}
-
-	GeometryData* geometry = &app_state->test_truetype_text.geometry;
-	Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
-	render_data->model = Math::transform_get_world(app_state->test_truetype_text.transform);
-	render_data->shader_id = ui_shader_id;
-	render_data->render_object = &app_state->test_truetype_text;
-	render_data->on_render = ui_text_on_render;
-	render_data->geometry_data = &app_state->test_truetype_text.geometry;
-	render_data->has_transparency = true;
-	render_data->unique_id = app_state->test_truetype_text.unique_id;
-
-	ui_packet_data->geometries_count++;
-
-	if (!ui_packet_data->geometries)
-		ui_packet_data->geometries = render_data;
+	Renderer::ui_text_draw(&app_state->test_truetype_text, packet->views[ui_view_i], 0, ui_shader_id, frame_data);
 
 	if (DebugConsole::is_visible(&app_state->debug_console))
 	{
 		UIText* console_text = DebugConsole::get_text(&app_state->debug_console);
-		geometry = &app_state->test_truetype_text.geometry;
-		render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
-		render_data->model = Math::transform_get_world(console_text->transform);
-		render_data->shader_id = ui_shader_id;
-		render_data->render_object = console_text;
-		render_data->on_render = ui_text_on_render;
-		render_data->geometry_data = &console_text->geometry;
-		render_data->has_transparency = true;
-		render_data->unique_id = console_text->unique_id;
-
-		ui_packet_data->geometries_count++;
-
-		if (!ui_packet_data->geometries)
-			ui_packet_data->geometries = render_data;
+		Renderer::ui_text_draw(console_text, packet->views[ui_view_i], 0, ui_shader_id, frame_data);
 
 		UIText* entry_text = DebugConsole::get_entry_text(&app_state->debug_console);
-		geometry = &app_state->test_truetype_text.geometry;
-		render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
-		render_data->model = Math::transform_get_world(entry_text->transform);
-		render_data->shader_id = ui_shader_id;
-		render_data->render_object = entry_text;
-		render_data->on_render = ui_text_on_render;
-		render_data->geometry_data = &entry_text->geometry;
-		render_data->has_transparency = true;
-		render_data->unique_id = entry_text->unique_id;
-
-		ui_packet_data->geometries_count++;
+		Renderer::ui_text_draw(entry_text, packet->views[ui_view_i], 0, ui_shader_id, frame_data);
 	}
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("ui"), frame_data->frame_allocator, ui_packet_data, &packet->views[2]))
+	RenderViewPacketData* pick_packet = (RenderViewPacketData*)frame_data->frame_allocator->allocate(sizeof(RenderViewPacketData));
+	pick_packet->geometries = packet->views[1]->geometries.data;
+	pick_packet->geometries_count = packet->views[1]->geometries.count;
+	pick_packet->renderpass_id = 0;
+
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), frame_data->frame_allocator, pick_packet))
 	{
-		SHMERROR("Failed to build packet for view 'ui'.");
+		SHMERROR("Failed to build packet for view 'pick'.");
 		return false;
 	}
 
-	Renderer::PickPacketData* pick_packet = (Renderer::PickPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::PickPacketData));
-	pick_packet->world_geometries = packet->views[1].geometries.data;
-	pick_packet->world_geometries_count = packet->views[1].geometries.count;
-	pick_packet->ui_geometries = packet->views[2].geometries.data;
-	pick_packet->ui_geometries_count = packet->views[2].geometries.count;
+	pick_packet->geometries = packet->views[2]->geometries.data;
+	pick_packet->geometries_count = packet->views[2]->geometries.count;
+	pick_packet->renderpass_id = 1;
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), frame_data->frame_allocator, pick_packet, &packet->views[3]))
+	if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), frame_data->frame_allocator, pick_packet))
 	{
 		SHMERROR("Failed to build packet for view 'pick'.");
 		return false;

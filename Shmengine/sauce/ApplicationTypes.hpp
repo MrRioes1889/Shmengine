@@ -6,6 +6,7 @@
 #include "renderer/RendererTypes.hpp"
 
 struct FrameData;
+struct RenderViewConfig;
 
 enum class ApplicationStage
 {
@@ -32,7 +33,7 @@ struct ApplicationConfig {
 	FontSystem::SystemConfig fontsystem_config;
 	Sarray<FontSystem::BitmapFontConfig> bitmap_font_configs;
 	Sarray<FontSystem::TruetypeFontConfig> truetype_font_configs;
-	Sarray<Renderer::RenderViewConfig> render_view_configs;
+	Sarray<RenderViewConfig> render_view_configs;
 
 	Renderer::Module renderer_module;
 	

@@ -8,6 +8,10 @@
 
 struct Material;
 struct LightinInfo;
+namespace Renderer
+{
+	struct InstanceRenderData;
+}
 
 enum class TerrainState
 {
@@ -93,4 +97,4 @@ SHMAPI bool32 terrain_unload(Terrain* terrain);
 
 SHMAPI bool32 terrain_update(Terrain* terrain);
 
-SHMAPI bool32 terrain_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* terrain, uint32 frame_number);
+SHMAPI bool32 terrain_get_instance_render_data(void* in_terrain, Renderer::InstanceRenderData* out_data);

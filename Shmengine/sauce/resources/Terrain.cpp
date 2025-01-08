@@ -330,36 +330,21 @@ bool32 terrain_update(Terrain* terrain)
     return true;
 }
 
-bool32 terrain_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* terrain, uint32 frame_number)
+bool32 terrain_get_instance_render_data(void* in_terrain, Renderer::InstanceRenderData* out_data)
 {
+	Terrain* terrain = (Terrain*)in_terrain;
 
-	Terrain* t = (Terrain*)terrain;
-
-	if (shader_id == ShaderSystem::get_terrain_shader_id())
+	out_data->instance_properties = &terrain->material_properties;
+	out_data->texture_maps_count = terrain->materials.count * 3;
+	for (uint32 mat_i = 0; mat_i < terrain->materials.count; mat_i++)
 	{
-		ShaderSystem::bind_instance(t->shader_instance_id);
-
-		ShaderSystem::TerrainShaderUniformLocations u_locations = ShaderSystem::get_terrain_shader_uniform_locations();
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, &t->material_properties));
-
-		for (uint32 mat_i = 0; mat_i < t->materials.count; mat_i++)
-		{
-			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.samplers[mat_i * 3], &t->materials[mat_i].mat->maps[0]));
-			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.samplers[mat_i * 3 + 1], &t->materials[mat_i].mat->maps[1]));
-			UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.samplers[mat_i * 3 + 2], &t->materials[mat_i].mat->maps[2]));
-		}
-
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
-	}
-	else
-	{
-		SHMERRORV("Unknown shader id %u for rendering terrain. Skipping uniforms.", shader_id);
-		return false;
+		out_data->texture_maps[mat_i * 3] = &terrain->materials[mat_i].mat->maps[0];
+		out_data->texture_maps[mat_i * 3 + 1] = &terrain->materials[mat_i].mat->maps[1];
+		out_data->texture_maps[mat_i * 3 + 2] = &terrain->materials[mat_i].mat->maps[2];
 	}
 
-	bool32 needs_update = (t->render_frame_number != (uint32)frame_number);
-	UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update));
-	t->render_frame_number = frame_number;
+	out_data->shader_instance_id = terrain->shader_instance_id;
+	out_data->render_frame_number = &terrain->render_frame_number;
 
 	return true;
 }

@@ -3,7 +3,7 @@
 version=0.1
 name=falc_wreck
 type=phong
-shader=Shader.Builtin.Material
+shader=Builtin.MaterialPhong
 
 [Properties]
 shininess=f32/8.000000

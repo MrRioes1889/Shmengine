@@ -2,8 +2,10 @@
 
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
+#include "core/FrameData.hpp"
 #include "systems/FontSystem.hpp"
 #include "systems/ShaderSystem.hpp"
+#include "systems/RenderViewSystem.hpp"
 #include "utility/math/Transform.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "renderer/RendererFrontend.hpp"
@@ -297,30 +299,17 @@ static void regenerate_geometry(UIText* ui_text)
 
 }
 
-bool32 ui_text_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* in_text, uint32 frame_number)
+bool32 ui_text_get_instance_render_data(void* in_text, Renderer::InstanceRenderData* out_data)
 {
     UIText* text = (UIText*)in_text;
 
-    ShaderSystem::bind_instance(text->shader_instance_id);
+    static Math::Vec4f white_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    out_data->instance_properties = &white_color;
+    out_data->texture_maps_count = 1;
+    out_data->texture_maps[0] = &text->font_atlas->map;
 
-    if (shader_id == ShaderSystem::get_ui_shader_id())
-    {
-        ShaderSystem::UIShaderUniformLocations u_locations = ShaderSystem::get_ui_shader_uniform_locations();
-
-        static Math::Vec4f white_color = { 1.0f, 1.0f, 1.0f, 1.0f };
-        UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, &white_color));
-        UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, &text->font_atlas->map));
-        UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
-    }
-    else
-    {
-        SHMERRORV("Unknown shader id %u for rendering mesh. Skipping uniforms.", shader_id);
-        return false;
-    }
-
-    bool32 needs_update = (text->render_frame_number != (uint32)frame_number);
-    UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update));
-    text->render_frame_number = frame_number;
+    out_data->shader_instance_id = text->shader_instance_id;
+    out_data->render_frame_number = &text->render_frame_number;
 
     return true;
 }

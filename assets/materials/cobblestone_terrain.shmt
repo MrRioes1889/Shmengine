@@ -2,7 +2,7 @@
 
 name=cobblestone_terrain
 type=phong
-shader=Shader.Builtin.Terrain
+shader=Builtin.Terrain
 
 [Properties]
 diffuse_color=vec4/1.0 1.0 1.0 1.0

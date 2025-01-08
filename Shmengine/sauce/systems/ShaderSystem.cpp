@@ -21,16 +21,9 @@ namespace ShaderSystem
 		Sarray<Shader> shaders;
 		TextureMap default_texture_map;
 
-		ShaderSystem::MaterialShaderUniformLocations material_locations;
 		uint32 material_shader_id;
-
-		ShaderSystem::TerrainShaderUniformLocations terrain_locations;
 		uint32 terrain_shader_id;
-
-		ShaderSystem::UIShaderUniformLocations ui_locations;
 		uint32 ui_shader_id;
-
-		ShaderSystem::SkyboxShaderUniformLocations skybox_locations;
 		uint32 skybox_shader_id;
 	};
 
@@ -62,45 +55,9 @@ namespace ShaderSystem
 		system_state->bound_shader_id = INVALID_ID;
 
 		system_state->material_shader_id = INVALID_ID;
-		system_state->material_locations.view = INVALID_ID16;
-		system_state->material_locations.projection = INVALID_ID16;
-		system_state->material_locations.diffuse_texture = INVALID_ID16;
-		system_state->material_locations.specular_texture = INVALID_ID16;
-		system_state->material_locations.normal_texture = INVALID_ID16;
-		system_state->material_locations.camera_position = INVALID_ID16;
-		system_state->material_locations.ambient_color = INVALID_ID16;
-		system_state->material_locations.model = INVALID_ID16;
-		system_state->material_locations.render_mode = INVALID_ID16;
-		system_state->material_locations.dir_light = INVALID_ID16;
-		system_state->material_locations.p_lights = INVALID_ID16;
-		system_state->material_locations.p_lights_count = INVALID_ID16;
-		system_state->material_locations.properties = INVALID_ID16;
-
 		system_state->terrain_shader_id = INVALID_ID;
-		system_state->terrain_locations.view = INVALID_ID16;
-		system_state->terrain_locations.projection = INVALID_ID16;
-		system_state->terrain_locations.camera_position = INVALID_ID16;
-		system_state->terrain_locations.ambient_color = INVALID_ID16;
-		system_state->terrain_locations.model = INVALID_ID16;
-		system_state->terrain_locations.render_mode = INVALID_ID16;
-		system_state->terrain_locations.dir_light = INVALID_ID16;
-		system_state->terrain_locations.p_lights = INVALID_ID16;
-		system_state->terrain_locations.p_lights_count = INVALID_ID16;
-		system_state->terrain_locations.properties = INVALID_ID16;
-		for (uint32 i = 0; i < max_terrain_materials_count * 3; i++)
-			system_state->terrain_locations.samplers[i] = INVALID_ID16;
-
 		system_state->ui_shader_id = INVALID_ID;
-		system_state->ui_locations.diffuse_texture = INVALID_ID16;
-		system_state->ui_locations.view = INVALID_ID16;
-		system_state->ui_locations.projection = INVALID_ID16;
-		system_state->ui_locations.model = INVALID_ID16;
-		system_state->ui_locations.properties = INVALID_ID16;
-
 		system_state->skybox_shader_id = INVALID_ID;
-		system_state->skybox_locations.projection = INVALID_ID16;
-		system_state->skybox_locations.view = INVALID_ID16;
-		system_state->skybox_locations.cube_map = INVALID_ID16;
 
 		uint64 hashtable_data_size = sizeof(uint32) * sys_config->max_shader_count;
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
@@ -209,65 +166,13 @@ namespace ShaderSystem
 		}
 
 		if (system_state->material_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_material)) 
-		{
 			system_state->material_shader_id = shader->id;
-			system_state->material_locations.projection = get_uniform_index(shader, "projection");
-			system_state->material_locations.view = get_uniform_index(shader, "view");
-			system_state->material_locations.ambient_color = get_uniform_index(shader, "ambient_color");
-			system_state->material_locations.camera_position = get_uniform_index(shader, "camera_position");
-			system_state->material_locations.diffuse_texture = get_uniform_index(shader, "diffuse_texture");
-			system_state->material_locations.specular_texture = get_uniform_index(shader, "specular_texture");
-			system_state->material_locations.normal_texture = get_uniform_index(shader, "normal_texture");
-			system_state->material_locations.model = get_uniform_index(shader, "model");
-			system_state->material_locations.render_mode = get_uniform_index(shader, "mode");
-			system_state->material_locations.dir_light = get_uniform_index(shader, "dir_light");
-			system_state->material_locations.p_lights = get_uniform_index(shader, "p_lights");
-			system_state->material_locations.p_lights_count = get_uniform_index(shader, "p_lights_count");
-			system_state->material_locations.properties = get_uniform_index(shader, "properties");
-		}
 		else if (system_state->terrain_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_terrain)) 
-		{
 			system_state->terrain_shader_id = shader->id;
-			system_state->terrain_locations.projection = get_uniform_index(shader, "projection");
-			system_state->terrain_locations.view = get_uniform_index(shader, "view");
-			system_state->terrain_locations.ambient_color = get_uniform_index(shader, "ambient_color");
-			system_state->terrain_locations.camera_position = get_uniform_index(shader, "camera_position");
-			system_state->terrain_locations.model = get_uniform_index(shader, "model");
-			system_state->terrain_locations.render_mode = get_uniform_index(shader, "mode");
-			system_state->terrain_locations.dir_light = get_uniform_index(shader, "dir_light");
-			system_state->terrain_locations.p_lights = get_uniform_index(shader, "p_lights");
-			system_state->terrain_locations.p_lights_count = get_uniform_index(shader, "p_lights_count");
-			system_state->terrain_locations.properties = get_uniform_index(shader, "properties");
-
-			system_state->terrain_locations.samplers[0] = get_uniform_index(shader, "diffuse_texture_0");
-			system_state->terrain_locations.samplers[1] = get_uniform_index(shader, "specular_texture_0");
-			system_state->terrain_locations.samplers[2] = get_uniform_index(shader, "normal_texture_0");
-			system_state->terrain_locations.samplers[3] = get_uniform_index(shader, "diffuse_texture_1");
-			system_state->terrain_locations.samplers[4] = get_uniform_index(shader, "specular_texture_1");
-			system_state->terrain_locations.samplers[5] = get_uniform_index(shader, "normal_texture_1");
-			system_state->terrain_locations.samplers[6] = get_uniform_index(shader, "diffuse_texture_2");
-			system_state->terrain_locations.samplers[7] = get_uniform_index(shader, "specular_texture_2");
-			system_state->terrain_locations.samplers[8] = get_uniform_index(shader, "normal_texture_2");
-			system_state->terrain_locations.samplers[9] = get_uniform_index(shader, "diffuse_texture_3");
-			system_state->terrain_locations.samplers[10] = get_uniform_index(shader, "specular_texture_3");
-			system_state->terrain_locations.samplers[11] = get_uniform_index(shader, "normal_texture_3");
-		}
 		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_ui)) 
-		{
 			system_state->ui_shader_id = shader->id;
-			system_state->ui_locations.projection = get_uniform_index(shader, "projection");
-			system_state->ui_locations.view = get_uniform_index(shader, "view");
-			system_state->ui_locations.diffuse_texture = get_uniform_index(shader, "diffuse_texture");
-			system_state->ui_locations.model = get_uniform_index(shader, "model");
-			system_state->ui_locations.properties = get_uniform_index(shader, "properties");
-		}
 		else if (system_state->skybox_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_skybox)) 
-		{
 			system_state->skybox_shader_id = shader->id;
-			system_state->skybox_locations.projection = get_uniform_index(shader, "projection");
-			system_state->skybox_locations.view = get_uniform_index(shader, "view");
-			system_state->skybox_locations.cube_map = get_uniform_index(shader, "cube_texture");
-		}
 
 		return true;
 
@@ -416,90 +321,6 @@ namespace ShaderSystem
 
 	}
 
-	bool32 apply_globals(uint32 shader_id, LightingInfo lighting, uint64 renderer_frame_number, const Math::Mat4* projection, const Math::Mat4* view, const Math::Vec4f* ambient_color, const Math::Vec3f* camera_position, uint32 render_mode)
-	{
-
-		OPTICK_EVENT();
-
-		Shader* s = get_shader(shader_id);
-		if (!s)
-			return false;
-
-		if (s->renderer_frame_number == renderer_frame_number)
-			return true;
-
-		if (shader_id == system_state->material_shader_id)
-		{
-			MaterialShaderUniformLocations u_locations = system_state->material_locations;
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.projection, projection));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.view, view));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.ambient_color, ambient_color));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.camera_position, camera_position));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.render_mode, &render_mode));
-
-			if (lighting.dir_light)
-			{
-				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, lighting.dir_light));
-			}
-
-			if (lighting.p_lights)
-			{
-				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
-				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, lighting.p_lights));
-			}
-			else
-			{
-				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
-			}
-		}
-		else if (shader_id == system_state->terrain_shader_id)
-		{
-			TerrainShaderUniformLocations u_locations = system_state->terrain_locations;
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.projection, projection));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.view, view));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.ambient_color, ambient_color));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.camera_position, camera_position));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.render_mode, &render_mode));
-
-			if (lighting.dir_light)
-			{
-				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, lighting.dir_light));
-			}
-
-			if (lighting.p_lights)
-			{
-				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &lighting.p_lights_count));
-				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, lighting.p_lights));
-			}
-			else
-			{
-				UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
-			}
-		}
-		else if (shader_id == system_state->ui_shader_id)
-		{
-			UIShaderUniformLocations u_locations = system_state->ui_locations;
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.projection, projection));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.view, view));
-		}
-		else if (shader_id == system_state->skybox_shader_id)
-		{
-			UIShaderUniformLocations u_locations = system_state->ui_locations;
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.projection, projection));
-			UNIFORM_APPLY_OR_FAIL(set_uniform(u_locations.view, view));
-		}
-		else
-		{
-			SHMERRORV("Unrecognized shader id '%i' ", shader_id);
-			return false;
-		}
-
-		UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_globals(s));
-
-		s->renderer_frame_number = renderer_frame_number;
-		return true;
-	}
-
 	bool32 bind_instance(uint32 instance_id)
 	{
 
@@ -527,26 +348,6 @@ namespace ShaderSystem
 	uint32 get_skybox_shader_id()
 	{
 		return system_state->skybox_shader_id;
-	}
-
-	MaterialShaderUniformLocations get_material_shader_uniform_locations()
-	{
-		return system_state->material_locations;
-	}
-
-	TerrainShaderUniformLocations get_terrain_shader_uniform_locations()
-	{
-		return system_state->terrain_locations;
-	}
-
-	UIShaderUniformLocations get_ui_shader_uniform_locations()
-	{
-		return system_state->ui_locations;
-	}
-
-	SkyboxShaderUniformLocations get_skybox_shader_uniform_locations()
-	{
-		return system_state->skybox_locations;
 	}
 
 	static bool32 add_attribute(Shader* shader, const ShaderAttributeConfig& config)

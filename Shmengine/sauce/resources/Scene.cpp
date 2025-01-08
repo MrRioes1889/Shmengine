@@ -9,6 +9,7 @@
 #include "resources/Terrain.hpp"
 #include "resources/Skybox.hpp"
 #include "renderer/Camera.hpp"
+#include "renderer//RendererFrontend.hpp"
 #include "systems/RenderViewSystem.hpp"
 #include "systems/GeometrySystem.hpp"
 #include "systems/ShaderSystem.hpp"
@@ -433,139 +434,6 @@ bool32 scene_update(Scene* scene)
 		if (objects_unloaded)
 			scene->state = SceneState::UNLOADED;
 	}*/
-
-	return true;
-}
-
-bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frustum, FrameData* frame_data, Renderer::RenderPacket* packet)
-{
-
-	if (scene->state != SceneState::LOADED)
-		return false;
-
-	if (scene->skybox.state >= SkyboxState::INITIALIZED)
-	{
-		Renderer::RenderViewPacket* skybox_view_packet = 0;
-		for (uint32 i = 0; i < packet->views.capacity; i++)
-		{
-			if (packet->views[i].view->type == Renderer::RenderViewType::SKYBOX)
-			{
-				skybox_view_packet = &packet->views[i];
-				break;
-			}
-		}
-
-		uint32 skybox_shader_id = ShaderSystem::get_skybox_shader_id();
-
-		if (skybox_view_packet)
-		{		
-			Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
-			render_data->model = {};
-			render_data->shader_id = skybox_shader_id;
-			render_data->render_object = &scene->skybox;
-			render_data->on_render = skybox_on_render;
-			render_data->geometry_data = scene->skybox.geometry;
-			render_data->has_transparency = 0;
-			render_data->unique_id = 0;
-
-			Renderer::SkyboxPacketData* skybox_data = (Renderer::SkyboxPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::SkyboxPacketData));
-			skybox_data->geometries = render_data;
-			skybox_data->geometries_count = 1;
-			if (!RenderViewSystem::build_packet(RenderViewSystem::get("skybox"), frame_data->frame_allocator, skybox_data, skybox_view_packet))
-			{
-				SHMERROR("Failed to build packet for view 'skybox'.");
-				return false;
-			}
-		}		
-	}
-
-	Renderer::RenderViewPacket* world_view_packet = 0;
-	for (uint32 i = 0; i < packet->views.capacity; i++)
-	{
-		if (packet->views[i].view->type == Renderer::RenderViewType::WORLD)
-		{
-			world_view_packet = &packet->views[i];
-			break;
-		}
-	}
-
-	if (!world_view_packet)
-		return true;
-
-	Renderer::GeometryRenderData* geometries = 0;
-
-	uint32 geometries_count = 0;
-	uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
-	for (uint32 i = 0; i < scene->terrains.count; i++)
-	{
-		Terrain* t = &scene->terrains[i];
-
-		Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
-		render_data->model = Math::transform_get_world(t->xform);
-		render_data->shader_id = terrain_shader_id;
-		render_data->render_object = t;
-		render_data->on_render = terrain_on_render;
-		render_data->geometry_data = &t->geometry;
-		render_data->has_transparency = 0;
-		render_data->unique_id = t->unique_id;	
-
-		geometries_count++;
-		if (!geometries)
-			geometries = render_data;
-	}
-
-	for (uint32 i = 0; i < scene->meshes.count; i++)
-	{
-		Mesh* m = &scene->meshes[i];
-		if (m->generation == INVALID_ID8)
-			continue;
-
-		uint32 material_shader_id = ShaderSystem::get_material_shader_id();
-
-		Math::Mat4 model = Math::transform_get_world(m->transform);
-		for (uint32 j = 0; j < m->geometries.count; j++)
-		{
-			MeshGeometry* g = &m->geometries[j];
-			Math::Vec3f extents_max = Math::vec_mul_mat(g->g_data->extents.max, model);
-
-			Math::Vec3f center = Math::vec_mul_mat(g->g_data->center, model);
-			Math::Vec3f half_extents = { Math::abs(extents_max.x - center.x), Math::abs(extents_max.y - center.y), Math::abs(extents_max.z - center.z) };
-
-			if (Math::frustum_intersects_aabb(*camera_frustum, center, half_extents))
-			{
-				Renderer::GeometryRenderData* render_data = (Renderer::GeometryRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::GeometryRenderData));
-				render_data->model = model;
-				render_data->shader_id = material_shader_id;
-				render_data->render_object = g->material;
-				render_data->on_render = MaterialSystem::material_on_render;
-				render_data->geometry_data = g->g_data;
-				render_data->has_transparency = (g->material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);			
-				render_data->unique_id = m->unique_id;			
-
-				geometries_count++;
-				if (!geometries)
-					geometries = render_data;
-			}
-		}
-	}
-
-	if (!geometries_count)
-		return true;
-
-	Renderer::WorldPacketData* world_packet = (Renderer::WorldPacketData*)frame_data->frame_allocator->allocate(sizeof(Renderer::WorldPacketData));
-	world_packet->geometries = geometries;
-	world_packet->geometries_count = geometries_count;
-	world_packet->dir_light = scene->dir_lights.count > 0 ? &scene->dir_lights[0] : 0;
-	world_packet->p_lights_count = scene->p_lights.count;
-	world_packet->p_lights = scene->p_lights.data;
-
-	frame_data->drawn_geometry_count += geometries_count;
-
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("world"), frame_data->frame_allocator, world_packet, world_view_packet))
-	{
-		SHMERROR("Failed to build packet for view 'world'.");
-		return false;
-	}
 
 	return true;
 }

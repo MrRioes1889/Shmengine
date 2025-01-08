@@ -1,4 +1,5 @@
 #include "Skybox.hpp"
+#include "core/Identifier.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "renderer/RendererGeometry.hpp"
 #include "systems/TextureSystem.hpp"
@@ -14,6 +15,7 @@ bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 
 	out_skybox->name = config->name;
 	out_skybox->cubemap_name = config->cubemap_name;
+	out_skybox->unique_id = 0;
 
 	out_skybox->cubemap.filter_minify = TextureFilter::LINEAR;
 	out_skybox->cubemap.filter_magnify = TextureFilter::LINEAR;
@@ -51,6 +53,7 @@ bool32 skybox_load(Skybox* skybox)
 		return false;
 
 	skybox->state = SkyboxState::LOADING;
+	skybox->unique_id = identifier_acquire_new_id(skybox);
 
 	skybox->cubemap.texture = TextureSystem::acquire_cube(skybox->cubemap_name.c_str(), true);
 	if (!Renderer::texture_map_acquire_resources(&skybox->cubemap))
@@ -92,32 +95,23 @@ bool32 skybox_unload(Skybox* skybox)
 	TextureSystem::release(skybox->cubemap_name.c_str());
 	Renderer::texture_map_release_resources(&skybox->cubemap);
 
+	identifier_release_id(skybox->unique_id);
+	skybox->unique_id = 0;
 	skybox->state = SkyboxState::UNLOADED;
 
 	return true;
 }
 
-bool32 skybox_on_render(uint32 shader_id, LightingInfo lighting, Math::Mat4* model, void* in_skybox, uint32 frame_number)
+bool32 skybox_get_instance_render_data(void* in_skybox, Renderer::InstanceRenderData* out_data)
 {
 	Skybox* skybox = (Skybox*)in_skybox;
 
-	ShaderSystem::bind_instance(skybox->shader_instance_id);
+	out_data->instance_properties = 0;
+	out_data->texture_maps_count = 1;
+	out_data->texture_maps[0] = &skybox->cubemap;
 
-	if (shader_id == ShaderSystem::get_skybox_shader_id())
-	{
-		ShaderSystem::SkyboxShaderUniformLocations u_locations = ShaderSystem::get_skybox_shader_uniform_locations();
-
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.cube_map, &skybox->cubemap));
-	}
-	else
-	{
-		SHMERRORV("Unknown shader id %u for rendering mesh. Skipping uniforms.", shader_id);
-		return false;
-	}
-
-	bool32 needs_update = (skybox->render_frame_number != (uint32)frame_number);
-	UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update));
-	skybox->render_frame_number = frame_number;
+	out_data->shader_instance_id = skybox->shader_instance_id;
+	out_data->render_frame_number = &skybox->render_frame_number;
 
 	return true;
 }

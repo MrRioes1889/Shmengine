@@ -12,7 +12,7 @@ struct FrameData;
 namespace Renderer 
 { 
 	struct RenderPacket; 
-	struct GeometryRenderData;
+	struct ObjectRenderData;
 }
 
 struct DirectionalLight; 
@@ -105,8 +105,6 @@ SHMAPI bool32 scene_load(Scene* scene);
 SHMAPI bool32 scene_unload(Scene* scene);
 
 SHMAPI bool32 scene_update(Scene* scene);
-
-SHMAPI bool32 scene_build_render_packet(Scene* scene, const Math::Frustum* camera_frustum, FrameData* frame_data, Renderer::RenderPacket* packet);
 
 SHMAPI bool32 scene_add_directional_light(Scene* scene, DirectionalLight light);
 SHMAPI bool32 scene_remove_directional_light(Scene* scene, uint32 index);

@@ -11,9 +11,10 @@ namespace TextureFlags
 	{
 		HAS_TRANSPARENCY = 1 << 0,
 		IS_WRITABLE = 1 << 1,
-		IS_WRAPPED = 1 << 2,
-		FLIP_Y = 1 << 3,
-		IS_DEPTH = 1 << 4,
+		IS_READABLE = 1 << 2,
+		IS_WRAPPED = 1 << 3,
+		FLIP_Y = 1 << 4,
+		IS_DEPTH = 1 << 5,
 	};
 }
 

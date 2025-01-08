@@ -6,6 +6,7 @@
 #include "core/FrameData.hpp"
 #include "memory/LinearAllocator.hpp"
 #include "memory/Freelist.hpp"
+#include "utility/math/Transform.hpp"
 #include "systems/ResourceSystem.hpp"
 #include "systems/TextureSystem.hpp"
 #include "systems/GeometrySystem.hpp"
@@ -13,6 +14,13 @@
 #include "systems/ShaderSystem.hpp"
 #include "systems/CameraSystem.hpp"
 #include "systems/RenderViewSystem.hpp"
+
+#include "resources/Mesh.hpp"
+#include "resources/Skybox.hpp"
+#include "resources/Terrain.hpp"
+#include "resources/UIText.hpp"
+#include "resources/Terrain.hpp"
+#include "resources/Scene.hpp"
 
 #include "optick.h"
 
@@ -157,7 +165,7 @@ namespace Renderer
 
 		for (uint32 i = 0; i < data->views.capacity; i++)
 		{
-			if (!RenderViewSystem::on_render(data->views[i].view, data->views[i], system_state->module.frame_number, render_target_index))
+			if (!RenderViewSystem::on_render(data->views[i], frame_data->frame_allocator, system_state->module.frame_number, render_target_index))
 			{
 				SHMERRORV("Error rendering view index: %u", i);
 				return false;
@@ -703,6 +711,167 @@ namespace Renderer
 	bool32 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
 	{
 		return system_state->module.renderbuffer_draw(buffer, offset, element_count, bind_only);
+	}
+
+	uint32 mesh_draw(Mesh* mesh, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
+	{
+		return meshes_draw(mesh, 1, view, renderpass_id, shader_id, lighting, frame_data, frustum);
+	}
+
+	uint32 meshes_draw(Mesh* meshes, uint32 mesh_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
+	{
+		RenderViewPacketData packet_data = {};
+		packet_data.geometries = 0;
+		packet_data.geometries_count = 0;
+		packet_data.lighting = lighting;
+		packet_data.renderpass_id = renderpass_id;
+
+		for (uint32 i = 0; i < mesh_count; i++)
+		{
+			Mesh* m = &meshes[i];
+			if (m->generation == INVALID_ID8)
+				continue;
+
+			Math::Mat4 model = Math::transform_get_world(m->transform);
+			for (uint32 j = 0; j < m->geometries.count; j++)
+			{
+				MeshGeometry* g = &m->geometries[j];
+
+				bool32 in_frustum = true;
+				if (frustum)
+				{
+					Math::Vec3f extents_max = Math::vec_mul_mat(g->g_data->extents.max, model);
+					Math::Vec3f center = Math::vec_mul_mat(g->g_data->center, model);
+					Math::Vec3f half_extents = { Math::abs(extents_max.x - center.x), Math::abs(extents_max.y - center.y), Math::abs(extents_max.z - center.z) };
+
+					in_frustum = Math::frustum_intersects_aabb(*frustum, center, half_extents);
+				}
+
+				if (in_frustum)
+				{
+					Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
+					render_data->model = model;
+					render_data->shader_id = shader_id;
+					render_data->get_instance_render_data = MaterialSystem::material_get_instance_render_data;
+					render_data->render_object = g->material;
+					render_data->geometry_data = g->g_data;
+					render_data->has_transparency = (g->material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
+					render_data->unique_id = m->unique_id;
+
+					packet_data.geometries_count++;
+					if (!packet_data.geometries)
+						packet_data.geometries = render_data;
+				}
+			}
+		}
+
+		if (packet_data.geometries_count)
+			RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
+
+		return packet_data.geometries_count;
+	}
+
+	bool32 skybox_draw(Skybox* skybox, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
+	{
+		Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
+		render_data->model = {};
+		render_data->shader_id = shader_id;
+		render_data->get_instance_render_data = skybox_get_instance_render_data;
+		render_data->render_object = skybox;
+		render_data->geometry_data = skybox->geometry;
+		render_data->has_transparency = 0;
+		render_data->unique_id = skybox->unique_id;
+
+		RenderViewPacketData packet_data = {};
+		packet_data.geometries = render_data;
+		packet_data.geometries_count = 1;
+		packet_data.renderpass_id = renderpass_id;
+
+		return RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
+	}
+
+	uint32 terrain_draw(Terrain* terrain, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
+	{
+		return terrains_draw(terrain, 1, view, renderpass_id, shader_id, lighting, frame_data);
+	}
+
+	uint32 terrains_draw(Terrain* terrains, uint32 terrains_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
+	{
+		RenderViewPacketData packet_data = {};
+		packet_data.geometries = 0;
+		packet_data.geometries_count = 0;
+		packet_data.lighting = lighting;
+		packet_data.renderpass_id = renderpass_id;
+
+		for (uint32 i = 0; i < terrains_count; i++)
+		{
+			Terrain* t = &terrains[i];
+
+			Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
+
+			render_data->model = Math::transform_get_world(t->xform);
+			render_data->shader_id = shader_id;
+			render_data->get_instance_render_data = terrain_get_instance_render_data;
+			render_data->render_object = t;
+			render_data->geometry_data = &t->geometry;
+			render_data->has_transparency = 0;
+			render_data->unique_id = t->unique_id;
+
+			packet_data.geometries_count++;
+			if (!packet_data.geometries)
+				packet_data.geometries = render_data;
+		}
+
+		if (packet_data.geometries_count)
+			RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
+
+		return packet_data.geometries_count;
+	}
+
+	bool32 ui_text_draw(UIText* text, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
+	{
+		Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
+		render_data->model = Math::transform_get_world(text->transform);
+		render_data->shader_id = shader_id;
+		render_data->get_instance_render_data = ui_text_get_instance_render_data;
+		render_data->render_object = text;
+		render_data->geometry_data = &text->geometry;
+		render_data->has_transparency = true;
+		render_data->unique_id = text->unique_id;
+
+		RenderViewPacketData packet_data = {};
+		packet_data.geometries = render_data;
+		packet_data.geometries_count = 1;
+		packet_data.renderpass_id = renderpass_id;
+
+		return RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
+	}
+
+	bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view, const Math::Frustum* camera_frustum, FrameData* frame_data)
+	{
+
+		if (scene->state != SceneState::LOADED)
+			return false;
+
+		uint32 skybox_shader_id = ShaderSystem::get_skybox_shader_id();
+
+		if (scene->skybox.state >= SkyboxState::INITIALIZED)
+			frame_data->drawn_geometry_count += Renderer::skybox_draw(&scene->skybox, skybox_view, 0, skybox_shader_id, frame_data);
+
+		LightingInfo lighting =
+		{
+			.dir_light = scene->dir_lights.count > 0 ? &scene->dir_lights[0] : 0,
+			.p_lights_count = scene->p_lights.count,
+			.p_lights = scene->p_lights.data
+		};
+
+		uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
+		frame_data->drawn_geometry_count += Renderer::terrains_draw(scene->terrains.data, scene->terrains.count, world_view, 0, terrain_shader_id, lighting, frame_data);
+
+		uint32 material_shader_id = ShaderSystem::get_material_shader_id();
+		frame_data->drawn_geometry_count += Renderer::meshes_draw(scene->meshes.data, scene->meshes.count, world_view, 0, material_shader_id, lighting, frame_data, camera_frustum);
+
+		return true;
 	}
 
 	bool8 is_multithreaded()

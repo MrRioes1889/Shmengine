@@ -18,13 +18,13 @@ namespace RenderViewSystem
 	{
 		SystemConfig config;
 
-		Renderer::RenderView* registered_views;
+		RenderView* registered_views;
 		Hashtable<uint32> lookup_table;
 
 	};
 
 	static SystemState* system_state = 0;
-	static void destroy(Renderer::RenderView* view);
+	static void destroy(RenderView* view);
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
@@ -34,8 +34,8 @@ namespace RenderViewSystem
 
 		system_state->config = *sys_config;
 
-		uint64 view_array_size = sizeof(Renderer::RenderView) * sys_config->max_view_count;
-		system_state->registered_views = (Renderer::RenderView*)allocator_callback(allocator, view_array_size);
+		uint64 view_array_size = sizeof(RenderView) * sys_config->max_view_count;
+		system_state->registered_views = (RenderView*)allocator_callback(allocator, view_array_size);
 
 		uint64 hashtable_data_size = sizeof(uint32) * sys_config->max_view_count;
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
@@ -65,7 +65,7 @@ namespace RenderViewSystem
 		system_state = 0;
 	}
 
-	bool32 create(const Renderer::RenderViewConfig& config)
+	bool32 create(const RenderViewConfig& config)
 	{
 
 		if (!config.pass_configs.capacity) {
@@ -91,7 +91,7 @@ namespace RenderViewSystem
 			return false;
 		}
 
-		Renderer::RenderView& view = system_state->registered_views[ref_id];
+		RenderView& view = system_state->registered_views[ref_id];
 		view.id = ref_id;
 		view.type = config.type;
 		view.name = config.name;
@@ -109,40 +109,40 @@ namespace RenderViewSystem
 			}
 		}
 	
-		if (config.type == Renderer::RenderViewType::WORLD) 
+		if (config.type == RenderViewType::WORLD) 
 		{		
 			view.on_build_packet = Renderer::render_view_world_on_build_packet;
-			view.on_destroy_packet = Renderer::render_view_world_on_destroy_packet;
+			view.on_end_frame = Renderer::render_view_world_on_end_frame;
 			view.on_render = Renderer::render_view_world_on_render;
 			view.on_create = Renderer::render_view_world_on_create;
 			view.on_destroy = Renderer::render_view_world_on_destroy;
 			view.on_resize = Renderer::render_view_world_on_resize;	
 			view.regenerate_attachment_target = 0;
 		}
-		else if (config.type == Renderer::RenderViewType::UI) 
+		else if (config.type == RenderViewType::UI) 
 		{
 			view.on_build_packet = Renderer::render_view_ui_on_build_packet;
-			view.on_destroy_packet = Renderer::render_view_ui_on_destroy_packet;
+			view.on_end_frame = Renderer::render_view_ui_on_end_frame;
 			view.on_render = Renderer::render_view_ui_on_render; 
 			view.on_create = Renderer::render_view_ui_on_create;
 			view.on_destroy = Renderer::render_view_ui_on_destroy;
 			view.on_resize = Renderer::render_view_ui_on_resize;
 			view.regenerate_attachment_target = 0;
 		}
-		else if (config.type == Renderer::RenderViewType::SKYBOX) 
+		else if (config.type == RenderViewType::SKYBOX) 
 		{
 			view.on_build_packet = Renderer::render_view_skybox_on_build_packet;
-			view.on_destroy_packet = Renderer::render_view_skybox_on_destroy_packet;
+			view.on_end_frame = Renderer::render_view_skybox_on_end_frame;
 			view.on_render = Renderer::render_view_skybox_on_render;  
 			view.on_create = Renderer::render_view_skybox_on_create;
 			view.on_destroy = Renderer::render_view_skybox_on_destroy;
 			view.on_resize = Renderer::render_view_skybox_on_resize;
 			view.regenerate_attachment_target = 0;
 		}
-		else if (config.type == Renderer::RenderViewType::PICK)
+		else if (config.type == RenderViewType::PICK)
 		{
 			view.on_build_packet = Renderer::render_view_pick_on_build_packet;
-			view.on_destroy_packet = Renderer::render_view_pick_on_destroy_packet;
+			view.on_end_frame = Renderer::render_view_pick_on_end_frame;
 			view.on_render = Renderer::render_view_pick_on_render;
 			view.on_create = Renderer::render_view_pick_on_create;
 			view.on_destroy = Renderer::render_view_pick_on_destroy;
@@ -166,7 +166,7 @@ namespace RenderViewSystem
 
 	}
 
-	static void destroy(Renderer::RenderView* view)
+	static void destroy(RenderView* view)
 	{
 		view->on_destroy(view);
 		for (uint32 i = 0; i < view->renderpasses.capacity; i++)
@@ -174,7 +174,7 @@ namespace RenderViewSystem
 		view->renderpasses.free_data();
 	}
 
-	Renderer::RenderView* get(const char* name)
+	RenderView* get(const char* name)
 	{
 		uint32 id = system_state->lookup_table.get_value(name);
 		if (id == INVALID_ID)
@@ -183,10 +183,10 @@ namespace RenderViewSystem
 		return &system_state->registered_views[id];
 	}
 
-	bool32 build_packet(Renderer::RenderView* view, Memory::LinearAllocator* frame_allocator, void* data, Renderer::RenderViewPacket* out_packet)
+	bool32 build_packet(RenderView* view, Memory::LinearAllocator* frame_allocator, const RenderViewPacketData* packet_data)
 	{
 		OPTICK_EVENT();
-		return view->on_build_packet(view, frame_allocator, data, out_packet);
+		return view->on_build_packet(view, frame_allocator, packet_data);
 	}
 
 	void on_window_resize(uint32 width, uint32 height)
@@ -198,13 +198,13 @@ namespace RenderViewSystem
 		}
 	}
 
-	bool32 on_render(Renderer::RenderView* view, Renderer::RenderViewPacket& packet, uint32 frame_number, uint64 render_target_index)
+	bool32 on_render(RenderView* view, Memory::LinearAllocator* frame_allocator, uint32 frame_number, uint64 render_target_index)
 	{
 		OPTICK_EVENT();
-		return view->on_render(view, packet, frame_number, render_target_index);
+		return view->on_render(view, frame_allocator, frame_number, render_target_index);
 	}
 
-	void regenerate_render_targets(Renderer::RenderView* view)
+	void regenerate_render_targets(RenderView* view)
 	{
 		for (uint32 p = 0; p < view->renderpasses.capacity; p++)
 		{
