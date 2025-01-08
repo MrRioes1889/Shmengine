@@ -7,3 +7,4 @@ bin-int/*
 *.idb
 *.pdb
 Makefile*
+*Profiler Results/*
