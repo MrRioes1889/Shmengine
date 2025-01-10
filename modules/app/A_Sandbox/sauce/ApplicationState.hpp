@@ -29,8 +29,7 @@ struct ApplicationState
     Scene main_scene;
 
     Darray<Mesh> ui_meshes;
-    UIText test_bitmap_text;
-    UIText test_truetype_text;
+    UIText debug_info_text;
 
     Input::Keymap console_keymap;
 

@@ -384,7 +384,9 @@ namespace Renderer
 			return false;
 		}
 
-		internal_data->lighting = packet_data->lighting;
+		// TODO: Find a way to properly handle per object lighting
+		if (!internal_data->lighting.dir_light)
+			internal_data->lighting = packet_data->lighting;
 		
 		self->geometries.copy_memory(packet_data->geometries, packet_data->geometries_count, self->geometries.count);
 
@@ -519,7 +521,7 @@ namespace Renderer
 				else if (shader_id == internal_data->terrain_shader->id)
 					instance_set = set_instance_terrain(internal_data->terrain_u_locations, instance, &object->model);
 				else if (shader_id == internal_data->color3D_shader->id)
-					instance_set = set_instance_color3D(internal_data->color3D_shader_u_locations, &object->model);
+					set_instance_color3D(internal_data->color3D_shader_u_locations, &object->model);
 				else
 					SHMERROR("Unknown shader or failed to apply instance to shader.");
 

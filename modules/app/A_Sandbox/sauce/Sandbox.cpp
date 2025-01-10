@@ -306,29 +306,17 @@ bool32 application_init(void* application_state)
 	app_state->allocation_count = 0;
 
 	UITextConfig ui_text_config = {};
-	ui_text_config.type = UITextType::BITMAP;
-	ui_text_config.font_name = "Roboto Mono 21px";
-	ui_text_config.font_size = 21;
-	ui_text_config.text_content = "Some test täext,\n\tyo!";
-
-	if (!ui_text_init(&ui_text_config, &app_state->test_bitmap_text) || !ui_text_load(&app_state->test_bitmap_text))
-	{
-		SHMERROR("Failed to load basic ui bitmap text.");
-		return false;
-	}
-	ui_text_set_position(&app_state->test_bitmap_text, { 50, 300, 0 });
-
 	ui_text_config.type = UITextType::TRUETYPE;
 	ui_text_config.font_name = "Martian Mono";
 	ui_text_config.font_size = 21;
 	ui_text_config.text_content = "Some täest text,\n\tyo!";
 
-	if (!ui_text_init(&ui_text_config, &app_state->test_truetype_text) || !ui_text_load(&app_state->test_truetype_text))
+	if (!ui_text_init(&ui_text_config, &app_state->debug_info_text) || !ui_text_load(&app_state->debug_info_text))
 	{
 		SHMERROR("Failed to load basic ui truetype text.");
 		return false;
 	}
-	ui_text_set_position(&app_state->test_truetype_text, { 500, 550, 0 });
+	ui_text_set_position(&app_state->debug_info_text, { 500, 550, 0 });
 
 	Scene main_scene_test = {};
 	if (!scene_init_from_resource("main_scene", &app_state->main_scene))
@@ -402,8 +390,7 @@ void application_shutdown()
 {
 	// TODO: temp
 	scene_destroy(&app_state->main_scene);
-	ui_text_destroy(&app_state->test_bitmap_text);
-	ui_text_destroy(&app_state->test_truetype_text);
+	ui_text_destroy(&app_state->debug_info_text);
 
 	DebugConsole::destroy(&app_state->debug_console);
 
@@ -451,9 +438,9 @@ bool32 application_update(FrameData* frame_data)
 
 		p_light->color =
 		{
-			clamp(Math::sin((float32)frame_data->total_time) * 0.75f + 0.5f, 0.0f, 1.0f),
-			clamp(Math::sin((float32)frame_data->total_time) - (PI * 2 / 3) * 0.75f + 0.5f, 0.0f, 1.0f),
-			clamp(Math::sin((float32)frame_data->total_time) * (PI * 4 / 3) * 0.75f + 0.5f, 0.0f, 1.0f),
+			clamp(Math::sin((float32)frame_data->total_time * 0.75f), 0.0f, 1.0f),
+			clamp(Math::sin((float32)frame_data->total_time * 0.25f), 0.0f, 1.0f),
+			clamp(Math::sin((float32)frame_data->total_time * 0.5f), 0.0f, 1.0f),
 			1.0f
 		};
 		static float32 starting_position = p_light->position.z;
@@ -490,8 +477,8 @@ bool32 application_update(FrameData* frame_data)
 		(ui_text_buffer, 512, "Object Hovered ID: %u\nWorld geometry count: %u\nMouse Pos : [%i, %i]\tCamera Pos : [%f3, %f3, %f3]\nCamera Rot : [%f3, %f3, %f3]\n\nLast frametime: %lf4 ms\nLogic: %lf4 / Render: %lf4",
 			app_state->hovered_object_id, frame_data->drawn_geometry_count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
 
-	ui_text_set_text(&app_state->test_truetype_text, ui_text_buffer);
-	ui_text_update(&app_state->test_truetype_text);
+	ui_text_set_text(&app_state->debug_info_text, ui_text_buffer);
+	ui_text_update(&app_state->debug_info_text);
 
 	DebugConsole::update(&app_state->debug_console);
 
@@ -521,7 +508,7 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 
 	Renderer::meshes_draw(app_state->ui_meshes.data, app_state->ui_meshes.count, packet->views[ui_view_i], 0, ui_shader_id, {}, frame_data, 0);
 
-	Renderer::ui_text_draw(&app_state->test_truetype_text, packet->views[ui_view_i], 0, ui_shader_id, frame_data);
+	Renderer::ui_text_draw(&app_state->debug_info_text, packet->views[ui_view_i], 0, ui_shader_id, frame_data);
 
 	if (DebugConsole::is_visible(&app_state->debug_console))
 	{
@@ -565,7 +552,7 @@ void application_on_resize(uint32 width, uint32 height)
 	app_state->width = width;
 	app_state->height = height;
 
-	ui_text_set_position(&app_state->test_truetype_text, { 20.0f, (float32)app_state->height - 150.0f, 0.0f });
+	ui_text_set_position(&app_state->debug_info_text, { 20.0f, (float32)app_state->height - 150.0f, 0.0f });
 
 }
 

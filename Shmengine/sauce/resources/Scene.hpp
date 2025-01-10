@@ -17,6 +17,7 @@ namespace Renderer
 
 struct DirectionalLight; 
 struct PointLight;
+struct Box3D;
 namespace GeometrySystem { struct GeometryConfig; }
 struct Camera;
 
@@ -94,6 +95,7 @@ struct Scene
 	Skybox skybox;
 	Darray<DirectionalLight> dir_lights;
 	Darray<PointLight> p_lights;
+	Darray<Box3D> p_light_boxes;
 	Darray<Mesh> meshes;
 	Darray<Terrain> terrains;
 };

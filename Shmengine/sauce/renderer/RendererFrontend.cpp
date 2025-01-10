@@ -941,7 +941,7 @@ namespace Renderer
 		frame_data->drawn_geometry_count += Renderer::meshes_draw(scene->meshes.data, scene->meshes.count, world_view, 0, material_shader_id, lighting, frame_data, camera_frustum);
 
 		uint32 color3D_shader_id = ShaderSystem::get_color3D_shader_id();
-		frame_data->drawn_geometry_count += Renderer::boxes3D_draw(scene->p_light_boxes.data, scene->p_light_boxes.count, world_view, 0, material_shader_id, frame_data);
+		frame_data->drawn_geometry_count += Renderer::boxes3D_draw(scene->p_light_boxes.data, scene->p_light_boxes.count, world_view, 0, color3D_shader_id, frame_data);
 
 		return true;
 	}

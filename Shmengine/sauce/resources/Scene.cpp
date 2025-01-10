@@ -8,6 +8,7 @@
 #include "resources/Mesh.hpp"
 #include "resources/Terrain.hpp"
 #include "resources/Skybox.hpp"
+#include "resources/Box3D.hpp"
 #include "renderer/Camera.hpp"
 #include "renderer//RendererFrontend.hpp"
 #include "systems/RenderViewSystem.hpp"
@@ -32,6 +33,7 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 
 	out_scene->dir_lights.init(1, DarrayFlags::NON_RESIZABLE);
 	out_scene->p_lights.init(config->max_p_lights_count, DarrayFlags::NON_RESIZABLE);
+	out_scene->p_light_boxes.init(config->max_p_lights_count, DarrayFlags::NON_RESIZABLE);
 	out_scene->meshes.init(config->max_meshes_count, DarrayFlags::NON_RESIZABLE);
 	out_scene->terrains.init(config->max_terrains_count, DarrayFlags::NON_RESIZABLE);
 
@@ -306,6 +308,15 @@ bool32 scene_load(Scene* scene)
 		}
 	}
 
+	for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
+	{
+		if (!box3D_load(&scene->p_light_boxes[i]))
+		{
+			SHMERROR("Failed to load light box.");
+			return false;
+		}
+	}
+
 	return true;
 
 }
@@ -347,6 +358,15 @@ bool32 scene_unload(Scene* scene)
 		}
 	}
 
+	for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
+	{
+		if (!box3D_unload(&scene->p_light_boxes[i]))
+		{
+			SHMERROR("Failed to unload light box.");
+			return false;
+		}
+	}
+
 	scene->state = SceneState::UNLOADED;
 
 	return true;
@@ -358,6 +378,14 @@ bool32 scene_update(Scene* scene)
 
 	for (uint32 i = 0; i < scene->terrains.count; i++)
 		terrain_update(&scene->terrains[i]);
+
+	for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
+	{
+		Math::Vec3f new_pos = { scene->p_lights[i].position.x, scene->p_lights[i].position.y, scene->p_lights[i].position.z };
+		Math::transform_set_position(scene->p_light_boxes[i].xform, new_pos);
+		box3D_set_color(&scene->p_light_boxes[i], scene->p_lights[i].color);
+		box3D_update(&scene->p_light_boxes[i]);
+	}	
 
 	if (scene->state == SceneState::INITIALIZING)
 	{
@@ -378,6 +406,15 @@ bool32 scene_update(Scene* scene)
 		for (uint32 i = 0; i < scene->terrains.count; i++)
 		{
 			if (scene->terrains[i].state != TerrainState::INITIALIZED)
+			{
+				objects_initialized = false;
+				break;
+			}
+		}
+
+		for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
+		{
+			if (scene->p_light_boxes[i].state != ResourceState::INITIALIZED)
 			{
 				objects_initialized = false;
 				break;
@@ -406,6 +443,15 @@ bool32 scene_update(Scene* scene)
 		for (uint32 i = 0; i < scene->terrains.count; i++)
 		{
 			if (scene->terrains[i].state != TerrainState::LOADED)
+			{
+				objects_loaded = false;
+				break;
+			}
+		}
+
+		for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
+		{
+			if (scene->p_light_boxes[i].state != ResourceState::LOADED)
 			{
 				objects_loaded = false;
 				break;
@@ -448,14 +494,14 @@ bool32 scene_add_directional_light(Scene* scene, DirectionalLight light)
 	return true;
 }
 
-bool32 scene_remove_directional_light(Scene* scene, uint32 index)
-{
-	if (index > scene->dir_lights.count - 1)
-		return false;
-
-	scene->dir_lights.remove_at(index);
-	return true;
-}
+//bool32 scene_remove_directional_light(Scene* scene, uint32 index)
+//{
+//	if (index > scene->dir_lights.count - 1)
+//		return false;
+//
+//	scene->dir_lights.remove_at(index);
+//	return true;
+//}
 
 bool32 scene_add_point_light(Scene* scene, PointLight light)
 {
@@ -464,17 +510,41 @@ bool32 scene_add_point_light(Scene* scene, PointLight light)
 
 	scene->p_lights.emplace(light);
 
-	return true;
-}
+	Box3D* light_box = &scene->p_light_boxes[scene->p_light_boxes.emplace()];
 
-bool32 scene_remove_point_light(Scene* scene, uint32 index)
-{
-	if (index > scene->p_lights.count - 1)
+	if (!box3D_init("", { 0.3f, 0.3f, 0.3f }, light.color, light_box))
+	{
+		SHMERROR("Failed to initialize light box!");
 		return false;
+	}
 
-	scene->p_lights.remove_at(index);
+	if (scene->state == SceneState::LOADED)
+	{
+		if (!box3D_load(light_box))
+		{
+			SHMERROR("Failed to initialize light box!");
+			return false;
+		}
+	}
+
 	return true;
 }
+
+//bool32 scene_remove_point_light(Scene* scene, uint32 index)
+//{
+//	if (index > scene->p_lights.count - 1)
+//		return false;
+//
+//	scene->p_lights.remove_at(index);
+//
+//	if (!box3D_destroy(&scene->p_light_boxes[index]))
+//	{
+//		SHMERROR("Failed to destroy light box!");
+//		return false;
+//	}
+//
+//	return true;
+//}
 
 bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 {
@@ -483,17 +553,13 @@ bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 
 	bool32 initialized = false;
 	if (config->resource_name)
-	{
 		initialized = mesh_init_from_resource(config->resource_name, mesh);		
-	}
 	else
-	{
 		initialized = mesh_init(&config->m_config, mesh);
-	}
 
 	if (!initialized)
 	{
-		SHMERROR("Failed to initialize terrain!");
+		SHMERROR("Failed to initialize mesh!");
 		return false;
 	}
 
@@ -528,46 +594,46 @@ bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 	return true;
 }
 
-static bool32 scene_remove_mesh(Scene* scene, uint32 index)
-{
-	for (uint32 i = 0; i < scene->meshes.count; i++)
-	{
-		if (scene->meshes[i].transform.parent == &scene->meshes[index].transform)
-		{
-			SHMERROR("Failed to destroy mesh due to existing children!");
-			return false;
-		}		
-	}
+//static bool32 scene_remove_mesh(Scene* scene, uint32 index)
+//{
+//	for (uint32 i = 0; i < scene->meshes.count; i++)
+//	{
+//		if (scene->meshes[i].transform.parent == &scene->meshes[index].transform)
+//		{
+//			SHMERROR("Failed to destroy mesh due to existing children!");
+//			return false;
+//		}		
+//	}
+//
+//	if (!mesh_destroy(&scene->meshes[index]))
+//	{
+//		SHMERROR("Failed to destroy mesh!");
+//		return false;
+//	}
+//
+//	scene->meshes.remove_at(index);
+//
+//	return true;
+//}
 
-	if (!mesh_destroy(&scene->meshes[index]))
-	{
-		SHMERROR("Failed to destroy mesh!");
-		return false;
-	}
-
-	scene->meshes.remove_at(index);
-
-	return true;
-}
-
-bool32 scene_remove_mesh(Scene* scene, const char* name)
-{
-
-	uint32 mesh_index = INVALID_ID;
-	for (uint32 i = 0; i < scene->meshes.count; i++)
-	{
-		if (scene->meshes[i].name.equal_i(name))
-		{
-			mesh_index = i;
-			break;
-		}
-	}
-	
-	if (mesh_index == INVALID_ID)
-		return false;
-
-	return scene_remove_mesh(scene, mesh_index);
-}
+//bool32 scene_remove_mesh(Scene* scene, const char* name)
+//{
+//
+//	uint32 mesh_index = INVALID_ID;
+//	for (uint32 i = 0; i < scene->meshes.count; i++)
+//	{
+//		if (scene->meshes[i].name.equal_i(name))
+//		{
+//			mesh_index = i;
+//			break;
+//		}
+//	}
+//	
+//	if (mesh_index == INVALID_ID)
+//		return false;
+//
+//	return scene_remove_mesh(scene, mesh_index);
+//}
 
 bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 {
@@ -596,7 +662,7 @@ bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 	{
 		if (!terrain_load(terrain))
 		{
-			SHMERROR("Failed to initialize mesh!");
+			SHMERROR("Failed to initialize terrain!");
 			return false;
 		}
 	}
@@ -604,32 +670,32 @@ bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 	return true;
 }
 
-bool32 scene_remove_terrain(Scene* scene, const char* name)
-{
-
-	uint32 terrain_index = INVALID_ID;
-	for (uint32 i = 0; i < scene->terrains.count; i++)
-	{
-		if (scene->terrains[i].name.equal_i(name))
-		{
-			terrain_index = i;
-			break;
-		}
-	}
-
-	if (terrain_index == INVALID_ID)
-		return false;
-
-	if (!terrain_destroy(&scene->terrains[terrain_index]))
-	{
-		SHMERROR("Failed to destroy terrain!");
-		return false;
-	}
-
-	scene->terrains.remove_at(terrain_index);
-
-	return true;
-}
+//bool32 scene_remove_terrain(Scene* scene, const char* name)
+//{
+//
+//	uint32 terrain_index = INVALID_ID;
+//	for (uint32 i = 0; i < scene->terrains.count; i++)
+//	{
+//		if (scene->terrains[i].name.equal_i(name))
+//		{
+//			terrain_index = i;
+//			break;
+//		}
+//	}
+//
+//	if (terrain_index == INVALID_ID)
+//		return false;
+//
+//	if (!terrain_destroy(&scene->terrains[terrain_index]))
+//	{
+//		SHMERROR("Failed to destroy terrain!");
+//		return false;
+//	}
+//
+//	scene->terrains.remove_at(terrain_index);
+//
+//	return true;
+//}
 
 bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 {
@@ -661,19 +727,19 @@ bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 	return true;
 }
 
-bool32 scene_remove_skybox(Scene* scene, const char* name)
-{
-	if (!scene->skybox.name.equal_i(name))
-		return false;
-
-	if (!skybox_destroy(&scene->skybox))
-	{
-		SHMERROR("Failed to destroy old skybox!");
-		return false;
-	}
-
-	return true;
-}
+//bool32 scene_remove_skybox(Scene* scene, const char* name)
+//{
+//	if (!scene->skybox.name.equal_i(name))
+//		return false;
+//
+//	if (!skybox_destroy(&scene->skybox))
+//	{
+//		SHMERROR("Failed to destroy old skybox!");
+//		return false;
+//	}
+//
+//	return true;
+//}
 
 Skybox* scene_get_skybox(Scene* scene, const char* name)
 {

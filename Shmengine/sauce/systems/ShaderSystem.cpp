@@ -59,6 +59,7 @@ namespace ShaderSystem
 		system_state->terrain_shader_id = INVALID_ID;
 		system_state->ui_shader_id = INVALID_ID;
 		system_state->skybox_shader_id = INVALID_ID;
+		system_state->color3D_shader_id = INVALID_ID;
 
 		uint64 hashtable_data_size = sizeof(uint32) * sys_config->max_shader_count;
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
@@ -153,7 +154,7 @@ namespace ShaderSystem
 		else if (system_state->skybox_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_skybox)) 
 			system_state->skybox_shader_id = shader->id;
 		else if (system_state->color3D_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_color3D))
-			system_state->skybox_shader_id = shader->id;
+			system_state->color3D_shader_id = shader->id;
 
 		return true;
 
