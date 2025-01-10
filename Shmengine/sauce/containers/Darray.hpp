@@ -111,7 +111,12 @@ struct Darray
 		return ((SubT*)data)[index];
 	}
 
-	SHMINLINE uint64 get_counted_size() const
+	SHMINLINE uint64 size() const
+	{
+		return capacity * sizeof(T);
+	}
+
+	SHMINLINE uint64 counted_size() const
 	{
 		return count * sizeof(T);
 	}
@@ -394,3 +399,29 @@ SHMINLINE void Darray<T>::copy_memory(const void* source, uint32 copy_count, uin
 	if (copy_count + array_offset > count)
 		count = copy_count + array_offset;
 }
+
+template <typename Src, typename Dst>
+struct DarrayRef
+{
+	DarrayRef() = delete;
+	DarrayRef(const Darray<Src>* arr)
+	{
+		count = (uint32)(arr->counted_size() / sizeof(Dst));
+		data = (Dst*)arr->data;
+	}
+
+	SHMINLINE Dst& operator[](uint32 index)
+	{
+		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Darray.");
+		return data[index];
+	}
+
+	SHMINLINE const Dst& operator[](uint32 index) const
+	{
+		SHMASSERT_MSG(index + 1 <= count, "Index does not lie within bounds of Darray.");
+		return data[index];
+	}
+
+	Dst* data;
+	uint32 count;
+};

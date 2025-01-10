@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_EXT_scalar_block_layout : enable
+
 layout(location = 0) in vec2 in_position;
 layout(location = 1) in vec2 in_tex_coord;
 

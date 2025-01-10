@@ -94,6 +94,7 @@ struct ShaderConfig
 	const char* name;
 
 	Renderer::RenderCullMode cull_mode;
+	Renderer::RenderTopologyTypeFlags::Value topologies;
 
 	uint32 stages_count;
 	uint32 attributes_count;
@@ -140,6 +141,7 @@ struct Shader
 {
 	uint32 id;
 	ShaderFlags::Value shader_flags;
+	Renderer::RenderTopologyTypeFlags::Value topologies;
 
 	uint64 required_ubo_alignment;
 	uint32 global_ubo_size;
@@ -216,5 +218,6 @@ namespace ShaderSystem
 	SHMAPI uint32 get_terrain_shader_id();
 	SHMAPI uint32 get_ui_shader_id();
 	SHMAPI uint32 get_skybox_shader_id();
+	SHMAPI uint32 get_color3D_shader_id();
 
 }

@@ -71,7 +71,7 @@ namespace Renderer
 
 		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_skybox, &self->renderpasses[0]))
 		{
-			SHMERROR("Failed to create world pick shader.");
+			SHMERROR("Failed to create skybox shader.");
 			return false;
 		}
 

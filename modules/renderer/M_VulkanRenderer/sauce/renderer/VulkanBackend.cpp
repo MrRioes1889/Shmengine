@@ -55,7 +55,7 @@ namespace Renderer::Vulkan
 		context->framebuffer_height = 900;
 
 		VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-		app_info.apiVersion = VK_API_VERSION_1_2;
+		app_info.apiVersion = VK_API_VERSION_1_3;
 		app_info.pApplicationName = config.application_name;
 		app_info.applicationVersion = VK_MAKE_VERSION(0,0,1);
 		app_info.pEngineName = "Shmengine";

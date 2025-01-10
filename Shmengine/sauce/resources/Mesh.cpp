@@ -24,6 +24,8 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
     out_mesh->state = MeshState::INITIALIZING;
 
     out_mesh->name = config->name;
+    out_mesh->extents = {};
+    out_mesh->center = {};
     out_mesh->transform = Math::transform_create();
     out_mesh->geometries.init(config->g_configs_count, DarrayFlags::NON_RESIZABLE);
     out_mesh->geometries.set_count(config->g_configs_count);
@@ -33,7 +35,23 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
         CString::copy(config->g_configs[i].material_name, g->material_name, max_material_name_length);
         g->g_data = GeometrySystem::acquire_from_config(config->g_configs[i].data_config, true);
         g->material = 0;
+
+        if (g->g_data->extents.max.x > out_mesh->extents.max.x)
+            out_mesh->extents.max.x = g->g_data->extents.max.x;
+        if (g->g_data->extents.max.y > out_mesh->extents.max.y)
+            out_mesh->extents.max.y = g->g_data->extents.max.y;
+        if (g->g_data->extents.max.z > out_mesh->extents.max.z)
+            out_mesh->extents.max.z = g->g_data->extents.max.z;
+
+        if (g->g_data->extents.min.x < out_mesh->extents.min.x)
+            out_mesh->extents.min.x = g->g_data->extents.min.x;
+        if (g->g_data->extents.min.y < out_mesh->extents.min.y)
+            out_mesh->extents.min.y = g->g_data->extents.min.y;
+        if (g->g_data->extents.min.z < out_mesh->extents.min.z)
+            out_mesh->extents.min.z = g->g_data->extents.min.z;
     }
+
+    out_mesh->center = (out_mesh->extents.min + out_mesh->extents.max) * 0.5f;
 
     out_mesh->generation = INVALID_ID8;
 

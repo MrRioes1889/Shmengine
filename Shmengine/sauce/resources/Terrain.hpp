@@ -31,7 +31,7 @@ struct TerrainVertex
 	Math::Vec3f normal;
 	Math::Vec2f tex_coords;
 	Math::Vec4f color;
-	Math::Vec4f tangent;
+	Math::Vec3f tangent;
 
 	float32 material_weights[max_terrain_materials_count];
 };

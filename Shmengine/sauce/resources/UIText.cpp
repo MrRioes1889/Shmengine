@@ -147,10 +147,13 @@ void ui_text_update(UIText* ui_text)
         return;
     }
 
+    uint64 old_vertex_buffer_size = ui_text->geometry.vertices.size();
+    uint64 old_index_buffer_size = ui_text->geometry.indices.size();
+
     regenerate_geometry(ui_text);
 
     if (ui_text->state == UITextState::LOADED)
-        Renderer::geometry_reload(&ui_text->geometry);
+        Renderer::geometry_reload(&ui_text->geometry, old_vertex_buffer_size, old_index_buffer_size);
         
 }
 

@@ -88,6 +88,11 @@ struct Sarray
 		SHMASSERT_MSG(index + 1 <= sub_t_max_count, "Index does not lie within bounds of Sarray.");
 		return ((SubT*)data)[index];
 	}
+
+	SHMINLINE uint64 size() const
+	{
+		return capacity * sizeof(T);
+	}
 	
 	T* data = 0;
 	uint32 capacity = 0;
@@ -228,3 +233,29 @@ SHMINLINE void Sarray<T>::copy_memory(const void* source, uint32 copy_count, uin
 	T* dest = data + array_offset;
 	Memory::copy_memory(source, dest, copy_count * sizeof(T));
 }
+
+template <typename Src, typename Dst>
+struct SarrayRef
+{
+	SarrayRef() = delete;
+	SarrayRef(const Sarray<Src>* arr)
+	{
+		capacity = (uint32)(arr->size() / sizeof(Dst));
+		data = (Dst*)arr->data;
+	}
+
+	SHMINLINE Dst& operator[](uint32 index)
+	{
+		SHMASSERT_MSG(index + 1 <= capacity, "Index does not lie within bounds of Sarray.");
+		return data[index];
+	}
+
+	SHMINLINE const Dst& operator[](uint32 index) const
+	{
+		SHMASSERT_MSG(index + 1 <= capacity, "Index does not lie within bounds of Sarray.");
+		return data[index];
+	}
+
+	Dst* data;
+	uint32 capacity;
+};

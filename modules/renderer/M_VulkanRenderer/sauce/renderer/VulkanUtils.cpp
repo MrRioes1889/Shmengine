@@ -142,10 +142,10 @@ namespace Renderer::Vulkan
 #ifdef _DEBUG
 namespace Renderer::Vulkan
 {
-    bool8 vk_debug_set_object_name(VulkanContext* context, VkObjectType object_type, void* object_handle, const char* object_name)
+    void vk_debug_set_object_name(VulkanContext* context, VkObjectType object_type, void* object_handle, const char* object_name)
     {
         if (!context->debug_set_utils_object_name)
-            return false;
+            return;
 
         VkDebugUtilsObjectNameInfoEXT name_info =
         {
@@ -156,14 +156,13 @@ namespace Renderer::Vulkan
         object_name,
         };
 
-        VK_CHECK(context->debug_set_utils_object_name(context->device.logical_device, &name_info));
-        return true;   
+        VK_CHECK(context->debug_set_utils_object_name(context->device.logical_device, &name_info)); 
     }
 
-    bool8 vk_debug_set_object_tag(VulkanContext* context, VkObjectType object_type, void* object_handle, uint64 tag_size, const void* tag_data)
+    void vk_debug_set_object_tag(VulkanContext* context, VkObjectType object_type, void* object_handle, uint64 tag_size, const void* tag_data)
     {
         if (!context->debug_set_utils_object_tag)
-            return false;
+            return;
 
         VkDebugUtilsObjectTagInfoEXT tag_info =
         {
@@ -177,13 +176,12 @@ namespace Renderer::Vulkan
         };
 
         VK_CHECK(context->debug_set_utils_object_tag(context->device.logical_device, &tag_info));
-        return true;
     }
 
-    bool8 vk_debug_begin_label(VulkanContext* context, VkCommandBuffer cmd, const char* label_name, Math::Vec4f color)
+    void vk_debug_begin_label(VulkanContext* context, VkCommandBuffer cmd, const char* label_name, Math::Vec4f color)
     {
         if (!context->debug_begin_utils_label)
-            return false;
+            return;
 
         VkDebugUtilsLabelEXT label_info =
         {
@@ -194,16 +192,14 @@ namespace Renderer::Vulkan
         Memory::copy_memory(&color, label_info.color, sizeof(label_info.color));
 
         context->debug_begin_utils_label(cmd, &label_info);
-        return true;
     }
 
-    bool8 vk_debug_end_label(VulkanContext* context, VkCommandBuffer cmd)
+    void vk_debug_end_label(VulkanContext* context, VkCommandBuffer cmd)
     {
         if (!context->debug_end_utils_label)
-            return false;
+            return;
 
         context->debug_end_utils_label(cmd);
-        return true;
     }
 }
 

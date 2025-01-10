@@ -1,0 +1,13 @@
+#pragma once
+
+enum class ResourceState
+{
+	UNINITIALIZED,
+	DESTROYED,
+	INITIALIZING,
+	INITIALIZED,
+	LOADING,
+	LOADED,
+	UNLOADING,
+	UNLOADED
+};

@@ -69,10 +69,10 @@ namespace Renderer::Vulkan
 	bool32 vk_image_read_pixel(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 x, uint32 y, uint32* out_rgba);
 	
 #ifdef _DEBUG
-	bool8 vk_debug_set_object_name(VulkanContext* context, VkObjectType object_type, void* object_handle, const char* object_name);
-	bool8 vk_debug_set_object_tag(VulkanContext* context, VkObjectType object_type, void* object_handle, uint64 tag_size, const void* tag_data);
-	bool8 vk_debug_begin_label(VulkanContext* context, VkCommandBuffer cmd, const char* label_name, Math::Vec4f color);
-	bool8 vk_debug_end_label(VulkanContext* context, VkCommandBuffer cmd);
+	void vk_debug_set_object_name(VulkanContext* context, VkObjectType object_type, void* object_handle, const char* object_name);
+	void vk_debug_set_object_tag(VulkanContext* context, VkObjectType object_type, void* object_handle, uint64 tag_size, const void* tag_data);
+	void vk_debug_begin_label(VulkanContext* context, VkCommandBuffer cmd, const char* label_name, Math::Vec4f color);
+	void vk_debug_end_label(VulkanContext* context, VkCommandBuffer cmd);
 
 #define VK_DEBUG_SET_OBJECT_NAME(context, object_type, object_handle, object_name) vk_debug_set_object_name(context, object_type, object_handle, object_name)
 #define VK_DEBUG_SET_OBJECT_TAG(context, object_type, object_handle, object_name) vk_debug_set_object_tag(context, object_type, object_handle, tag_size, tag_data)

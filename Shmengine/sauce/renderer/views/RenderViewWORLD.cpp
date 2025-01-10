@@ -50,12 +50,22 @@ struct TerrainShaderUniformLocations
 	uint16 samplers[max_terrain_materials_count * 3];
 };
 
+struct Color3DShaderUniformLocations
+{
+	uint16 projection;
+	uint16 view;
+	uint16 model;
+};
+
 struct RenderViewWorldInternalData {
 	Shader* material_phong_shader;
 	MaterialPhongShaderUniformLocations material_phong_u_locations;
 
 	Shader* terrain_shader;
 	TerrainShaderUniformLocations terrain_u_locations;
+
+	Shader* color3D_shader;
+	Color3DShaderUniformLocations color3D_shader_u_locations;
 
 	float32 near_clip;
 	float32 far_clip;
@@ -154,20 +164,31 @@ namespace Renderer
 		for (uint32 i = 0; i < max_terrain_materials_count * 3; i++)
 			internal_data->terrain_u_locations.samplers[i] = INVALID_ID16;
 
+		internal_data->color3D_shader_u_locations.view = INVALID_ID16;
+		internal_data->color3D_shader_u_locations.projection = INVALID_ID16;
+		internal_data->color3D_shader_u_locations.model = INVALID_ID16;
+
 		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_material, &self->renderpasses[0]))
 		{
-			SHMERROR("Failed to create world pick shader.");
+			SHMERROR("Failed to create material phong shader.");
 			return false;
 		}
 
 		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_terrain, &self->renderpasses[0]))
 		{
-			SHMERROR("Failed to create world pick shader.");
+			SHMERROR("Failed to create terrain shader.");
+			return false;
+		}
+
+		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_color3D, &self->renderpasses[0]))
+		{
+			SHMERROR("Failed to create color 3d shader.");
 			return false;
 		}
 
 		internal_data->material_phong_shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_material);
 		internal_data->terrain_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_terrain);
+		internal_data->color3D_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_color3D);
 
 		internal_data->material_phong_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->material_phong_shader, "projection");
 		internal_data->material_phong_u_locations.view = ShaderSystem::get_uniform_index(internal_data->material_phong_shader, "view");
@@ -205,6 +226,10 @@ namespace Renderer
 		internal_data->terrain_u_locations.samplers[9] = ShaderSystem::get_uniform_index(internal_data->terrain_shader, "diffuse_texture_3");
 		internal_data->terrain_u_locations.samplers[10] = ShaderSystem::get_uniform_index(internal_data->terrain_shader, "specular_texture_3");
 		internal_data->terrain_u_locations.samplers[11] = ShaderSystem::get_uniform_index(internal_data->terrain_shader, "normal_texture_3");
+
+		internal_data->color3D_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "projection");
+		internal_data->color3D_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "view");
+		internal_data->color3D_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "model");
 
 		internal_data->near_clip = 0.1f;
 		internal_data->far_clip = 4000.0f;
@@ -332,6 +357,23 @@ namespace Renderer
 		return true;
 	}
 
+	static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data)
+	{
+		Color3DShaderUniformLocations u_locations = internal_data->color3D_shader_u_locations;
+
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, &internal_data->projection_matrix));
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &internal_data->camera->get_view()));
+
+		return true;
+	}
+
+	static bool32 set_instance_color3D(Color3DShaderUniformLocations u_locations, Math::Mat4* model)
+	{
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
+
+		return true;
+	}
+
 	bool32 render_view_world_on_build_packet(RenderView* self, Memory::LinearAllocator* frame_allocator, const RenderViewPacketData* packet_data)
 	{
 		RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
@@ -441,6 +483,11 @@ namespace Renderer
 						globals_set = set_globals_terrain(internal_data);
 						current_shader = internal_data->terrain_shader;
 					}
+					else if (shader_id == internal_data->color3D_shader->id)
+					{
+						globals_set = set_globals_color3D(internal_data);
+						current_shader = internal_data->color3D_shader;
+					}
 
 					if (globals_set)
 					{
@@ -460,14 +507,19 @@ namespace Renderer
 
 				Renderer::InstanceRenderData instance = {};
 				instance.texture_maps = texture_maps_buffer;
-				object->get_instance_render_data(object->render_object, &instance);
-				ShaderSystem::bind_instance(instance.shader_instance_id);
+				if (object->get_instance_render_data)
+				{
+					object->get_instance_render_data(object->render_object, &instance);
+					ShaderSystem::bind_instance(instance.shader_instance_id);
+				}
 
 				bool32 instance_set = false;
 				if (shader_id == internal_data->material_phong_shader->id)
 					instance_set = set_instance_material_phong(internal_data->material_phong_u_locations, instance, &object->model);
 				else if (shader_id == internal_data->terrain_shader->id)
 					instance_set = set_instance_terrain(internal_data->terrain_u_locations, instance, &object->model);
+				else if (shader_id == internal_data->color3D_shader->id)
+					instance_set = set_instance_color3D(internal_data->color3D_shader_u_locations, &object->model);
 				else
 					SHMERROR("Unknown shader or failed to apply instance to shader.");
 

@@ -38,6 +38,7 @@ namespace ResourceSystem
         }
 
         out_resource->cull_mode = RenderCullMode::BACK;
+        out_resource->topologies = RenderTopologyTypeFlags::TRIANGLE_LIST;
         out_resource->attributes.init(1, 0);
         out_resource->uniforms.init(1, 0);
         out_resource->stages.init(1, 0);
@@ -134,6 +135,40 @@ namespace ResourceSystem
 
                 for (uint32 i = 0; i < stage_filenames.count; i++)
                     CString::copy(stage_filenames[i].c_str(), out_resource->stages[i].filename, max_filename_length);
+
+                for (uint32 i = 0; i < stage_filenames.count; i++)
+                    stage_filenames[i].free_data();
+                stage_filenames.free_data();
+            }
+            else if (var_name.equal_i("topology"))
+            {
+                Darray<String> topologies;
+                value.split(topologies, ',');
+
+                out_resource->topologies = RenderTopologyTypeFlags::NONE;
+
+                for (uint32 i = 0; i < topologies.count; i++)
+                {
+                    topologies[i].trim();
+                    if (topologies[i].equal_i("triangle_list"))
+                        out_resource->topologies |= RenderTopologyTypeFlags::TRIANGLE_LIST;
+                    else if (topologies[i].equal_i("triangle_strip"))
+                        out_resource->topologies |= RenderTopologyTypeFlags::TRIANGLE_STRIP;
+                    else if (topologies[i].equal_i("triangle_fan"))
+                        out_resource->topologies |= RenderTopologyTypeFlags::TRIANGLE_FAN;
+                    else if (topologies[i].equal_i("line_list"))
+                        out_resource->topologies |= RenderTopologyTypeFlags::LINE_LIST;
+                    else if (topologies[i].equal_i("line_strip"))
+                        out_resource->topologies |= RenderTopologyTypeFlags::LINE_STRIP;
+                    else if (topologies[i].equal_i("point_list"))
+                        out_resource->topologies |= RenderTopologyTypeFlags::POINT_LIST;
+                    else
+                        SHMERRORV("Invalid file layout. Unrecognized topology '%s'", topologies[i].c_str());
+                }
+
+                for (uint32 i = 0; i < topologies.count; i++)
+                    topologies[i].free_data();
+                topologies.free_data();
             }
             else if (var_name.equal_i("cull_mode")) 
             {
@@ -217,6 +252,10 @@ namespace ResourceSystem
                         CString::copy(tmp[1].c_str(), attribute.name, max_shader_attribute_name_length);
                         out_resource->attributes.emplace(attribute);
                     }
+
+                    for (uint32 i = 0; i < tmp.count; i++)
+                        tmp[i].free_data();
+                    tmp.free_data();
                 }
             }
             else if (var_name.equal_i("uniforms") || var_name.equal_i("uniform")) 
@@ -347,6 +386,10 @@ namespace ResourceSystem
                         out_resource->uniforms.emplace(uniform);
                     }
                 }
+
+                for (uint32 i = 0; i < tmp.count; i++)
+                    tmp[i].free_data();
+                tmp.free_data();
             }
 
             line_number++;
@@ -371,6 +414,7 @@ namespace ResourceSystem
         ShaderConfig config = {};
         config.name = resource->name;
         config.cull_mode = resource->cull_mode;
+        config.topologies = resource->topologies;
         config.depth_test = resource->depth_test;
         config.depth_write = resource->depth_write;
 

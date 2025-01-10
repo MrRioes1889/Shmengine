@@ -12,6 +12,8 @@
 // TODO: temp
 #include <resources/UIText.hpp>
 #include <resources/Skybox.hpp>
+#include <resources/Mesh.hpp>
+#include <resources/Box3D.hpp>
 #include <resources/Scene.hpp>
 // end
 
@@ -26,19 +28,9 @@ struct ApplicationState
 
     Scene main_scene;
 
-    /*Skybox skybox;
-
-    Darray<Mesh> world_meshes;
-    Mesh* car_mesh;
-    Mesh* sponza_mesh;*/
-
     Darray<Mesh> ui_meshes;
     UIText test_bitmap_text;
     UIText test_truetype_text;
-
-    /*DirectionalLight dir_light;
-    static const uint32 p_lights_count = 3;
-    PointLight p_lights[p_lights_count];*/
 
     Input::Keymap console_keymap;
 

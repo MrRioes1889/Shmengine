@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_EXT_scalar_block_layout : enable
+
 layout(location = 0) in vec3 tex_coord;
 
 layout(location = 0) out vec4 out_color;

@@ -13,6 +13,8 @@ namespace Renderer::Vulkan
     bool32 vk_pipeline_create(const VulkanPipelineConfig* config, VulkanPipeline* out_pipeline)
     {
 
+        out_pipeline->topologies = config->topologies;
+
         VkPipelineViewportStateCreateInfo vp_state_create_info = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
         vp_state_create_info.viewportCount = 1;
         vp_state_create_info.pViewports = &config->viewport;
@@ -94,7 +96,7 @@ namespace Renderer::Vulkan
         VkDynamicState dynamic_states[dynamic_state_count] = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR,
-            VK_DYNAMIC_STATE_LINE_WIDTH };
+            VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY };
 
         VkPipelineDynamicStateCreateInfo dynamic_state_create_info = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
         dynamic_state_create_info.dynamicStateCount = dynamic_state_count;
@@ -115,7 +117,32 @@ namespace Renderer::Vulkan
 
         // Input assembly
         VkPipelineInputAssemblyStateCreateInfo input_assembly = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-        input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        for (RenderTopologyTypeFlags::Value type = 1; type < RenderTopologyTypeFlags::ALL_TYPES_MASK; type = type << 1) 
+        {
+            if (out_pipeline->topologies & type) 
+            {
+
+                switch (type) 
+                {
+                case RenderTopologyTypeFlags::POINT_LIST:
+                    input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; break;
+                case RenderTopologyTypeFlags::LINE_LIST:
+                    input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST; break;
+                case RenderTopologyTypeFlags::LINE_STRIP:
+                    input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; break;
+                case RenderTopologyTypeFlags::TRIANGLE_LIST:
+                    input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; break;
+                case RenderTopologyTypeFlags::TRIANGLE_STRIP:
+                    input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP; break;
+                case RenderTopologyTypeFlags::TRIANGLE_FAN:
+                    input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN; break;
+                default:
+                    SHMWARNV("primitive topology '%u' not supported. Skipping.", type); break;
+                }
+
+                break;
+            }
+        }
         input_assembly.primitiveRestartEnable = VK_FALSE;
 
         // Pipeline layout

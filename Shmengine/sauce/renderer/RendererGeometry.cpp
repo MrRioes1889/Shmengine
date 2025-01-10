@@ -376,8 +376,7 @@ namespace Renderer
 			float32 sx = deltaU1, sy = deltaU2;
 			float32 tx = deltaV1, ty = deltaV2;
 			float32 handedness = ((tx * sy - ty * sx) < 0.0f) ? -1.0f : 1.0f;
-			Math::Vec3f t4_ = tangent * handedness;
-			Math::Vec4f t4 = { t4_.x, t4_.y, t4_.z, 0.0f };
+			Math::Vec3f t4 = tangent * handedness;
 			vertices[i0].tangent = t4;
 			vertices[i1].tangent = t4;
 			vertices[i2].tangent = t4;

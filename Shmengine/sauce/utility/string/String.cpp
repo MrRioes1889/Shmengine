@@ -205,7 +205,7 @@ namespace CString
 	}
 }
 
-// TODO: Figure out whether it's possible to write (initialized)s = mid(s1,0) without extra allocation and free of tpm string
+// TODO: Figure out whether it's possible to write (initialized)s = mid(s1,0) without extra allocation and free of tmp string
 //String mid(const String& source, uint32 start, int32 length)
 //{
 //	String s = source;

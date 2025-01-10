@@ -147,6 +147,14 @@ namespace Renderer::Vulkan
 		VkPipelineShaderStageCreateInfo shader_stage_create_info;
 	};
 
+	enum class VulkanTopologyCLass
+	{
+		POINT,
+		LINE,
+		TRIANGLE,
+		TOPOLOGY_CLASS_COUNT
+	};
+
 	struct VulkanShaderConfig
 	{
 		uint32 stage_count;
@@ -205,6 +213,7 @@ namespace Renderer::Vulkan
 		VkViewport viewport;
 		VkRect2D scissor;
 
+		RenderTopologyTypeFlags::Value topologies;
 		RenderCullMode cull_mode;
 		bool32 is_wireframe;
 		uint32 shader_flags;	
@@ -214,6 +223,7 @@ namespace Renderer::Vulkan
 	{
 		VkPipeline handle;
 		VkPipelineLayout layout;
+		RenderTopologyTypeFlags::Value topologies;
 	};
 
 	struct VulkanShader
@@ -243,7 +253,11 @@ namespace Renderer::Vulkan
 		void* mapped_uniform_buffer;
 		//Renderbuffer uniform_buffer;
 
-		VulkanPipeline pipeline;
+		//VulkanPipeline pipeline;
+		Sarray<VulkanPipeline*> pipelines;
+		uint32 bound_pipeline_id;
+
+		VkPrimitiveTopology current_topology;
 
 		VulkanShaderInstanceState instance_states[RendererConfig::shader_max_instances];
 

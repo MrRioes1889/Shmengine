@@ -15,6 +15,7 @@ struct ShaderResourceData
 	bool8 depth_write;
 
 	Renderer::RenderCullMode cull_mode;
+	Renderer::RenderTopologyTypeFlags::Value topologies;
 };
 
 namespace ResourceSystem

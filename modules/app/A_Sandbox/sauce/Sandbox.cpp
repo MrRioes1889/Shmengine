@@ -24,7 +24,6 @@
 #include <systems/RenderViewSystem.hpp>
 #include <systems/FontSystem.hpp>
 #include <systems/ShaderSystem.hpp>
-#include <resources/Mesh.hpp>
 // end
 
 ApplicationState* app_state = 0;

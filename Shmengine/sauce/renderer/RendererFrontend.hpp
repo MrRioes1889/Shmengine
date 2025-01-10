@@ -11,6 +11,7 @@ struct Shader;
 struct ShaderConfig;
 struct Skybox;
 struct Terrain;
+struct Box3D;
 struct Scene;
 
 namespace Renderer
@@ -59,7 +60,7 @@ namespace Renderer
 	void texture_destroy(Texture* texture);
 
 	bool32 geometry_load(GeometryData* geometry);
-	bool32 geometry_reload(GeometryData* geometry);
+	bool32 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size);
 	void geometry_unload(GeometryData* geometry);
 
 	void geometry_draw(GeometryData* geometry);
@@ -106,6 +107,8 @@ namespace Renderer
 	SHMAPI uint32 terrain_draw(Terrain* terrain, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
 	SHMAPI uint32 terrains_draw(Terrain* terrains, uint32 terrains_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
 	SHMAPI bool32 ui_text_draw(UIText* text, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 box3D_draw(Box3D* box, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 boxes3D_draw(Box3D* boxes, uint32 boxes_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
 
 	SHMAPI bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view, const Math::Frustum* camera_frustum, FrameData* frame_data);
 

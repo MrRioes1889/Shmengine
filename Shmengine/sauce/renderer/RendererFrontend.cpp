@@ -20,6 +20,7 @@
 #include "resources/Terrain.hpp"
 #include "resources/UIText.hpp"
 #include "resources/Terrain.hpp"
+#include "resources/Box3D.hpp"
 #include "resources/Scene.hpp"
 
 #include "optick.h"
@@ -380,7 +381,7 @@ namespace Renderer
 		}
 		else
 		{
-			return geometry_reload(geometry);
+			return geometry_reload(geometry, 0, 0);
 		}	
 
 		geometry->loaded = true;
@@ -389,7 +390,7 @@ namespace Renderer
 
 	}
 
-	bool32 geometry_reload(GeometryData* geometry)
+	bool32 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size)
 	{
 		
 		bool32 is_reload = geometry->loaded;
@@ -400,10 +401,13 @@ namespace Renderer
 		if (is_reload)
 		{
 
-			if (!renderbuffer_reallocate(&system_state->general_vertex_buffer, new_vertex_buffer_size, geometry->vertex_buffer_offset, &geometry->vertex_buffer_offset))
+			if (new_vertex_buffer_size > old_vertex_buffer_size)
 			{
-				SHMERROR("Failed to reallocate memory from vertex buffer.");
-				return false;
+				if (!renderbuffer_reallocate(&system_state->general_vertex_buffer, new_vertex_buffer_size, geometry->vertex_buffer_offset, &geometry->vertex_buffer_offset))
+				{
+					SHMERROR("Failed to reallocate memory from vertex buffer.");
+					return false;
+				}
 			}
 
 			if (!renderbuffer_load_range(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, new_vertex_buffer_size, geometry->vertices.data))
@@ -414,11 +418,14 @@ namespace Renderer
 
 			if (new_index_buffer_size)
 			{
-				if (!renderbuffer_reallocate(&system_state->general_index_buffer, new_index_buffer_size, geometry->index_buffer_offset, &geometry->index_buffer_offset))
+				if (new_index_buffer_size > old_index_buffer_size)
 				{
-					SHMERROR("Failed to allocate memory from index buffer.");
-					return false;
-				}
+					if (!renderbuffer_reallocate(&system_state->general_index_buffer, new_index_buffer_size, geometry->index_buffer_offset, &geometry->index_buffer_offset))
+					{
+						SHMERROR("Failed to allocate memory from index buffer.");
+						return false;
+					}
+				}		
 
 				if (!renderbuffer_load_range(&system_state->general_index_buffer, geometry->index_buffer_offset, new_index_buffer_size, geometry->indices.data))
 				{
@@ -466,6 +473,31 @@ namespace Renderer
 
 	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
 	{
+
+		shader->name = config->name;
+		shader->bound_instance_id = INVALID_ID;
+		shader->renderer_frame_number = INVALID_ID64;
+
+		shader->global_texture_maps.init(1, 0, AllocationTag::RENDERER);
+		shader->uniforms.init(1, 0, AllocationTag::RENDERER);
+		shader->attributes.init(1, 0, AllocationTag::RENDERER);
+
+		shader->uniform_lookup.init(1024, 0);
+		shader->uniform_lookup.floodfill(INVALID_ID16);
+
+		shader->global_ubo_size = 0;
+		shader->ubo_size = 0;
+
+		shader->push_constant_stride = 128;
+		shader->push_constant_size = 0;
+
+		shader->topologies = config->topologies;
+		shader->shader_flags = 0;
+		if (config->depth_test)
+			shader->shader_flags |= ShaderFlags::DEPTH_TEST;
+		if (config->depth_write)
+			shader->shader_flags |= ShaderFlags::DEPTH_WRITE;
+
 		return system_state->module.shader_create(shader, config, renderpass);
 	}
 
@@ -847,6 +879,43 @@ namespace Renderer
 		return RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
 	}
 
+	uint32 box3D_draw(Box3D* box, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
+	{
+		return boxes3D_draw(box, 1, view, renderpass_id, shader_id, frame_data);
+	}
+
+	uint32 boxes3D_draw(Box3D* boxes, uint32 boxes_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
+	{
+		RenderViewPacketData packet_data = {};
+		packet_data.geometries = 0;
+		packet_data.geometries_count = 0;
+		packet_data.renderpass_id = renderpass_id;
+
+		for (uint32 i = 0; i < boxes_count; i++)
+		{
+			Box3D* box = &boxes[i];
+
+			Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
+
+			render_data->model = Math::transform_get_world(box->xform);
+			render_data->shader_id = shader_id;
+			render_data->get_instance_render_data = 0;
+			render_data->render_object = box;
+			render_data->geometry_data = &box->geometry;
+			render_data->has_transparency = 0;
+			render_data->unique_id = box->unique_id;
+
+			packet_data.geometries_count++;
+			if (!packet_data.geometries)
+				packet_data.geometries = render_data;
+		}
+
+		if (packet_data.geometries_count)
+			RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
+
+		return packet_data.geometries_count;
+	}
+
 	bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view, const Math::Frustum* camera_frustum, FrameData* frame_data)
 	{
 
@@ -870,6 +939,9 @@ namespace Renderer
 
 		uint32 material_shader_id = ShaderSystem::get_material_shader_id();
 		frame_data->drawn_geometry_count += Renderer::meshes_draw(scene->meshes.data, scene->meshes.count, world_view, 0, material_shader_id, lighting, frame_data, camera_frustum);
+
+		uint32 color3D_shader_id = ShaderSystem::get_color3D_shader_id();
+		frame_data->drawn_geometry_count += Renderer::boxes3D_draw(scene->p_light_boxes.data, scene->p_light_boxes.count, world_view, 0, material_shader_id, frame_data);
 
 		return true;
 	}

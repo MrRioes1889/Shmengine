@@ -23,6 +23,12 @@ namespace Renderer::Vulkan
 	bool32 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
 	{
 
+		if (shader->internal_data)
+		{
+			SHMERROR("Shader already has internal vulkan data assigned. Creation failed.");
+			return false;
+		}
+
 		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::RENDERER);
 
 		VkShaderStageFlags vk_stages[RendererConfig::shader_max_stages];
@@ -51,7 +57,6 @@ namespace Renderer::Vulkan
 		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
 		v_shader->renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
 		v_shader->config.max_descriptor_set_count = RendererConfig::shader_max_instances;
-
 
 		v_shader->config.stage_count = 0;
 
@@ -222,7 +227,15 @@ namespace Renderer::Vulkan
 		v_shader->mapped_uniform_buffer = 0;	
 
 		// Pipeline
-		vk_pipeline_destroy(&v_shader->pipeline);
+		for (uint32 i = 0; i < v_shader->pipelines.capacity; i++)
+		{
+			if (!v_shader->pipelines[i])
+				continue;
+
+			vk_pipeline_destroy(v_shader->pipelines[i]);
+			Memory::free_memory(v_shader->pipelines[i]);		
+		}
+		v_shader->pipelines.free_data();
 
 		// Shader modules
 		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
@@ -254,21 +267,19 @@ namespace Renderer::Vulkan
 		}
 
 		// Static lookup table for our types->Vulkan ones.
-		static VkFormat* types = 0;
-		static VkFormat t[11];
-		if (!types)
+		static VkFormat types[11] = {};
+		if (!types[0])
 		{
-			t[(uint32)ShaderAttributeType::FLOAT32] = VK_FORMAT_R32_SFLOAT;
-			t[(uint32)ShaderAttributeType::FLOAT32_2] = VK_FORMAT_R32G32_SFLOAT;
-			t[(uint32)ShaderAttributeType::FLOAT32_3] = VK_FORMAT_R32G32B32_SFLOAT;
-			t[(uint32)ShaderAttributeType::FLOAT32_4] = VK_FORMAT_R32G32B32A32_SFLOAT;
-			t[(uint32)ShaderAttributeType::INT8] = VK_FORMAT_R8_SINT;
-			t[(uint32)ShaderAttributeType::UINT8] = VK_FORMAT_R8_UINT;
-			t[(uint32)ShaderAttributeType::INT16] = VK_FORMAT_R16_SINT;
-			t[(uint32)ShaderAttributeType::UINT16] = VK_FORMAT_R16_UINT;
-			t[(uint32)ShaderAttributeType::INT32] = VK_FORMAT_R32_SINT;
-			t[(uint32)ShaderAttributeType::UINT32] = VK_FORMAT_R32_UINT;
-			types = t;
+			types[(uint32)ShaderAttributeType::FLOAT32] = VK_FORMAT_R32_SFLOAT;
+			types[(uint32)ShaderAttributeType::FLOAT32_2] = VK_FORMAT_R32G32_SFLOAT;
+			types[(uint32)ShaderAttributeType::FLOAT32_3] = VK_FORMAT_R32G32B32_SFLOAT;
+			types[(uint32)ShaderAttributeType::FLOAT32_4] = VK_FORMAT_R32G32B32A32_SFLOAT;
+			types[(uint32)ShaderAttributeType::INT8] = VK_FORMAT_R8_SINT;
+			types[(uint32)ShaderAttributeType::UINT8] = VK_FORMAT_R8_UINT;
+			types[(uint32)ShaderAttributeType::INT16] = VK_FORMAT_R16_SINT;
+			types[(uint32)ShaderAttributeType::UINT16] = VK_FORMAT_R16_UINT;
+			types[(uint32)ShaderAttributeType::INT32] = VK_FORMAT_R32_SINT;
+			types[(uint32)ShaderAttributeType::UINT32] = VK_FORMAT_R32_UINT;
 		}
 
 		// Process attributes
@@ -341,7 +352,7 @@ namespace Renderer::Vulkan
 			stage_create_infos[i] = v_shader->stages[i].shader_stage_create_info;
 		}
 
-		VulkanPipelineConfig p_config = {};
+		/*VulkanPipelineConfig p_config = {};
 		p_config.renderpass = v_shader->renderpass;
 		p_config.vertex_stride = shader->attribute_stride;
 		p_config.attribute_count = shader->attributes.count;
@@ -363,6 +374,94 @@ namespace Renderer::Vulkan
 		if (!pipeline_result)
 		{
 			SHMERROR("Failed to load graphics pipeline for object shader.");
+			return false;
+		}*/
+
+		v_shader->pipelines.init((uint32)VulkanTopologyCLass::TOPOLOGY_CLASS_COUNT, 0);
+
+		RenderTopologyTypeFlags::Value pipeline_topologies[(uint32)VulkanTopologyCLass::TOPOLOGY_CLASS_COUNT];
+
+		pipeline_topologies[(uint32)VulkanTopologyCLass::POINT] = RenderTopologyTypeFlags::POINT_LIST;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::LINE] = RenderTopologyTypeFlags::LINE_LIST;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::LINE] |= RenderTopologyTypeFlags::LINE_STRIP;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] = RenderTopologyTypeFlags::TRIANGLE_LIST;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] |= RenderTopologyTypeFlags::TRIANGLE_STRIP;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] |= RenderTopologyTypeFlags::TRIANGLE_FAN;
+
+		if (shader->topologies & RenderTopologyTypeFlags::POINT_LIST)
+			v_shader->pipelines[(uint32)VulkanTopologyCLass::POINT] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
+
+		if (shader->topologies & RenderTopologyTypeFlags::LINE_LIST || shader->topologies & RenderTopologyTypeFlags::LINE_STRIP)
+			v_shader->pipelines[(uint32)VulkanTopologyCLass::LINE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
+
+		if (shader->topologies & RenderTopologyTypeFlags::TRIANGLE_LIST || shader->topologies & RenderTopologyTypeFlags::TRIANGLE_STRIP || shader->topologies & RenderTopologyTypeFlags::TRIANGLE_FAN)
+			v_shader->pipelines[(uint32)VulkanTopologyCLass::TRIANGLE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
+
+		v_shader->bound_pipeline_id = INVALID_ID;
+		for (uint32 i = 0; i < v_shader->pipelines.capacity; i++)
+		{
+			if (!v_shader->pipelines[i])
+				continue;
+
+			VulkanPipelineConfig p_config = {};
+			p_config.renderpass = v_shader->renderpass;
+			p_config.vertex_stride = shader->attribute_stride;
+			p_config.attribute_count = shader->attributes.count;
+			p_config.attribute_descriptions = v_shader->config.attributes;
+			p_config.descriptor_set_layout_count = v_shader->config.descriptor_set_count;
+			p_config.descriptor_set_layouts = v_shader->descriptor_set_layouts;
+			p_config.stage_count = v_shader->config.stage_count;
+			p_config.stages = stage_create_infos;
+			p_config.viewport = viewport;
+			p_config.scissor = scissor;
+			p_config.cull_mode = v_shader->config.cull_mode;
+			p_config.is_wireframe = false;
+			p_config.shader_flags = shader->shader_flags;
+			p_config.push_constant_range_count = shader->push_constant_range_count;
+			p_config.push_constant_ranges = shader->push_constant_ranges;
+			p_config.topologies = pipeline_topologies[i];
+
+			if (!vk_pipeline_create(&p_config, v_shader->pipelines[i]))
+			{
+				SHMERROR("Failed to load graphics pipeline for object shader.");
+				return false;
+			}
+
+			if (v_shader->bound_pipeline_id == INVALID_ID)
+			{
+				v_shader->bound_pipeline_id = i;
+
+				for (RenderTopologyTypeFlags::Value type = 1; type < RenderTopologyTypeFlags::ALL_TYPES_MASK; type = type << 1) 
+				{
+					if (v_shader->pipelines[i]->topologies & type) 
+					{
+
+						switch (type) {
+						case RenderTopologyTypeFlags::POINT_LIST:
+							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; break;
+						case RenderTopologyTypeFlags::LINE_LIST:
+							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST; break;
+						case RenderTopologyTypeFlags::LINE_STRIP:
+							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; break;
+						case RenderTopologyTypeFlags::TRIANGLE_LIST:
+							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; break;
+						case RenderTopologyTypeFlags::TRIANGLE_STRIP:
+							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP; break;
+						case RenderTopologyTypeFlags::TRIANGLE_FAN:
+							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN; break;
+						default:
+							SHMWARNV("primitive topology '%u' not supported. Skipping.", type); break;
+						}
+
+						break;
+					}
+				}
+			}	
+		}
+
+		if (v_shader->bound_pipeline_id == INVALID_ID)
+		{
+			SHMERROR("No available topology classes are available, so a pipeline cannot be bound. Check shader configuration.");
 			return false;
 		}
 
@@ -390,7 +489,10 @@ namespace Renderer::Vulkan
 	bool32 vk_shader_use(Shader* s)
 	{
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
-		vk_pipeline_bind(&context->graphics_command_buffers[context->bound_framebuffer_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &v_shader->pipeline);
+		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->bound_framebuffer_index];
+
+		vk_pipeline_bind(&context->graphics_command_buffers[context->bound_framebuffer_index], VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]);
+		vkCmdSetPrimitiveTopology(command_buffer->handle, v_shader->current_topology);
 		return true;
 	}
 
@@ -464,7 +566,7 @@ namespace Renderer::Vulkan
 		vkUpdateDescriptorSets(context->device.logical_device, global_set_binding_count, descriptor_writes, 0, 0);
 
 		// Bind the global descriptor set to be updated.
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipeline.layout, 0, 1, &global_descriptor, 0, 0);
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, 0, 1, &global_descriptor, 0, 0);
 		return true;
 
 	}
@@ -574,7 +676,7 @@ namespace Renderer::Vulkan
 		}
 
 		// Bind the descriptor set to be updated, or in case the shader changed.
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipeline.layout, 1, 1, &object_descriptor_set, 0, 0);
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, 1, 1, &object_descriptor_set, 0, 0);
 		return true;
 
 	}
@@ -717,7 +819,7 @@ namespace Renderer::Vulkan
 			{
 				// Is local, using push constants. Do this immediately.
 				VkCommandBuffer command_buffer = context->graphics_command_buffers[context->bound_framebuffer_index].handle;
-				vkCmdPushConstants(command_buffer, v_shader->pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform->offset, uniform->size, value);
+				vkCmdPushConstants(command_buffer, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform->offset, uniform->size, value);
 			}
 			else
 			{

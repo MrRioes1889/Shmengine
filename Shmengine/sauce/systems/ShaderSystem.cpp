@@ -25,6 +25,7 @@ namespace ShaderSystem
 		uint32 terrain_shader_id;
 		uint32 ui_shader_id;
 		uint32 skybox_shader_id;
+		uint32 color3D_shader_id;
 	};
 
 	static SystemState* system_state = 0;
@@ -112,28 +113,6 @@ namespace ShaderSystem
 		Memory::zero_memory(shader, sizeof(Shader));
 		shader->id = id;
 		shader->state = ShaderState::NOT_CREATED;
-		shader->name = config->name;
-		shader->bound_instance_id = INVALID_ID;
-		shader->renderer_frame_number = INVALID_ID64;
-
-		shader->global_texture_maps.init(1, 0, AllocationTag::RENDERER);
-		shader->uniforms.init(1, 0, AllocationTag::RENDERER);
-		shader->attributes.init(1, 0, AllocationTag::RENDERER);
-
-		shader->uniform_lookup.init(1024, 0);
-		shader->uniform_lookup.floodfill(INVALID_ID16);
-
-		shader->global_ubo_size = 0;
-		shader->ubo_size = 0;
-
-		shader->push_constant_stride = 128;
-		shader->push_constant_size = 0;
-
-		shader->shader_flags = 0;
-		if (config->depth_test)
-			shader->shader_flags |= ShaderFlags::DEPTH_TEST;
-		if (config->depth_write)
-			shader->shader_flags |= ShaderFlags::DEPTH_WRITE;
 
 		if (!Renderer::shader_create(shader, config, renderpass))
 		{
@@ -155,11 +134,11 @@ namespace ShaderSystem
 
 		if (!Renderer::shader_init(shader))
 		{
-			SHMERRORV("Error initializing shader '%s'.", config->name);
+			SHMERRORV("Error initializing shader '%s'.", shader->name.c_str());
 			return false;
 		}
 
-		if (!system_state->lookup.set_value(config->name, shader->id))
+		if (!system_state->lookup.set_value(shader->name.c_str(), shader->id))
 		{
 			Renderer::shader_destroy(shader);
 			return false;
@@ -172,6 +151,8 @@ namespace ShaderSystem
 		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_ui)) 
 			system_state->ui_shader_id = shader->id;
 		else if (system_state->skybox_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_skybox)) 
+			system_state->skybox_shader_id = shader->id;
+		else if (system_state->color3D_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_color3D))
 			system_state->skybox_shader_id = shader->id;
 
 		return true;
@@ -348,6 +329,11 @@ namespace ShaderSystem
 	uint32 get_skybox_shader_id()
 	{
 		return system_state->skybox_shader_id;
+	}
+
+	uint32 get_color3D_shader_id()
+	{
+		return system_state->color3D_shader_id;
 	}
 
 	static bool32 add_attribute(Shader* shader, const ShaderAttributeConfig& config)

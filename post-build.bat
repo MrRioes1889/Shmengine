@@ -6,7 +6,7 @@ SET build_dir=%1
 
 IF NOT EXIST %build_dir%OptickCore.dll (
     echo "copying optick dll to output directory : vendor/Optick/lib/x64/debug/OptickCore.dll -> %build_dir%OptickCore.dll"
-    ROBOCOPY %wd%vendor\Optick\lib\x64\release %build_dir% "OptickCore.dll"
+    ROBOCOPY "%wd%vendor\Optick\lib\x64\release" "%build_dir%"" "OptickCore.dll"
     IF %ERRORLEVEL% GEQ 2 (echo Error: %ERRORLEVEL% && exit)
 )
 
@@ -57,6 +57,14 @@ IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
 echo "assets\shaders\sauce\Builtin.Pick.frag.glsl -> assets\shaders\bin\Builtin.Pick.frag.spv"
 %VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.Pick.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.Pick.frag.spv"
+IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
+
+echo "assets\shaders\sauce\Builtin.Color3D.vert.glsl -> assets\shaders\bin\Builtin.Color3D.vert.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.Color3D.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.Color3D.vert.spv"
+IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
+
+echo "assets\shaders\sauce\Builtin.Color3D.frag.glsl -> assets\shaders\bin\Builtin.Color3D.frag.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.Color3D.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.Color3D.frag.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
 echo "Done."

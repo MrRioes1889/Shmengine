@@ -73,7 +73,7 @@ namespace Renderer
 
 		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_ui, &self->renderpasses[0]))
 		{
-			SHMERROR("Failed to create world pick shader.");
+			SHMERROR("Failed to create ui shader.");
 			return false;
 		}
 	

@@ -75,6 +75,7 @@ namespace Renderer
 	{
 		static inline const char* builtin_shader_name_material = "Builtin.MaterialPhong";
 		static inline const char* builtin_shader_name_terrain = "Builtin.Terrain";
+		static inline const char* builtin_shader_name_color3D = "Builtin.Color3D";
 		static inline const char* builtin_shader_name_ui = "Builtin.UI";
 		static inline const char* builtin_shader_name_skybox = "Builtin.Skybox";
 		static inline const char* builtin_shader_name_material_phong_pick = "Builtin.MaterialPhongPick";
@@ -186,6 +187,22 @@ namespace Renderer
 		BOTH = 3
 	};
 
+	namespace RenderTopologyTypeFlags
+	{
+		enum
+		{
+			NONE = 0,
+			TRIANGLE_LIST = 1 << 0,
+			TRIANGLE_STRIP = 1 << 1,
+			TRIANGLE_FAN = 1 << 2,
+			LINE_LIST = 1 << 3,
+			LINE_STRIP = 1 << 4,
+			POINT_LIST = 1 << 5,
+			ALL_TYPES_MASK = (1 << 6) - 1
+		};
+		typedef uint32 Value;
+	}
+
 	struct RenderPassConfig
 	{
 		const char* name;
@@ -253,6 +270,12 @@ namespace Renderer
 	{
 		Math::Vec2f position;
 		Math::Vec2f tex_coordinates;
+	};
+
+	struct VertexColor3D
+	{
+		Math::Vec3f position;
+		Math::Vec4f color;
 	};
 
 	struct InstanceRenderData

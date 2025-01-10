@@ -49,6 +49,8 @@ struct Mesh
 	UniqueId unique_id;
 	uint8 generation;
 	Darray<MeshGeometry> geometries;
+	Math::Extents3D extents;
+	Math::Vec3f center;
 	Math::Transform transform;
 };
 
