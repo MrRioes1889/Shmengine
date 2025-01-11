@@ -503,7 +503,14 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
+		uint32 image_index = context->bound_framebuffer_index;
+		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
+		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
+		VkDescriptorSet global_descriptor = v_shader->global_descriptor_sets[image_index];
+
 		s->bound_ubo_offset = s->global_ubo_offset;
+		// Bind the global descriptor set to be updated.
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, 0, 1, &global_descriptor, 0, 0);
 		return true;
 	}
 
@@ -516,10 +523,18 @@ namespace Renderer::Vulkan
 			return false;
 		}
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
-
+		uint32 image_index = context->bound_framebuffer_index;
+		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
+		
 		s->bound_instance_id = instance_id;
 		VulkanShaderInstanceState* instance_state = &v_shader->instance_states[instance_id];
 		s->bound_ubo_offset = (uint32)instance_state->offset;
+
+		VulkanShaderInstanceState* object_state = &v_shader->instance_states[s->bound_instance_id];
+		VkDescriptorSet object_descriptor_set = object_state->descriptor_set_state.descriptor_sets[image_index];
+
+		// Bind the descriptor set to be updated, or in case the shader changed.
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, 1, 1, &object_descriptor_set, 0, 0);
 		return true;
 
 	}
@@ -531,8 +546,6 @@ namespace Renderer::Vulkan
 
 		uint32 image_index = context->bound_framebuffer_index;
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
-		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
-		VkDescriptorSet global_descriptor = v_shader->global_descriptor_sets[image_index];
 
 		// Apply UBO first
 		VkDescriptorBufferInfo bufferInfo;
@@ -564,9 +577,6 @@ namespace Renderer::Vulkan
 		}
 
 		vkUpdateDescriptorSets(context->device.logical_device, global_set_binding_count, descriptor_writes, 0, 0);
-
-		// Bind the global descriptor set to be updated.
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, 0, 1, &global_descriptor, 0, 0);
 		return true;
 
 	}
@@ -675,8 +685,8 @@ namespace Renderer::Vulkan
 
 		}
 
-		// Bind the descriptor set to be updated, or in case the shader changed.
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, 1, 1, &object_descriptor_set, 0, 0);
+		//// Bind the descriptor set to be updated, or in case the shader changed.
+		//vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, 1, 1, &object_descriptor_set, 0, 0);
 		return true;
 
 	}
