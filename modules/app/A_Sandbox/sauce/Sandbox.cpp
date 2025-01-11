@@ -144,7 +144,7 @@ bool32 application_boot(Application* app_inst)
 	RenderViewConfig* pick_view_config = &app_inst->config.render_view_configs[3];
 
 	const uint32 skybox_pass_count = 1;
-	const uint32 world_pass_count = 1;
+	const uint32 world_pass_count = 2;
 	const uint32 ui_pass_count = 1;
 	const uint32 pick_pass_count = 2;
 
@@ -184,30 +184,57 @@ bool32 application_boot(Application* app_inst)
 	world_view_config->name = "world";
 	world_view_config->view_matrix_source = RenderViewViewMatrixSource::SCENE_CAMERA;
 
-	Renderer::RenderPassConfig* world_pass = &world_view_config->pass_configs[0];
-	world_pass->name = "Renderpass.Builtin.World";
-	world_pass->dim = { app_inst->config.start_width, app_inst->config.start_height };
-	world_pass->offset = { 0, 0 };
-	world_pass->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-	world_pass->clear_flags = Renderer::RenderpassClearFlags::DEPTH_BUFFER | Renderer::RenderpassClearFlags::STENCIL_BUFFER;
-	world_pass->depth = 1.0f;
-	world_pass->stencil = 0;
+	Renderer::RenderPassConfig* world_coordinate_grid_pass = &world_view_config->pass_configs[0];
+	Renderer::RenderPassConfig* world_objects_pass = &world_view_config->pass_configs[1];
 
-	const uint32 world_target_att_count = 2;
-	world_pass->target_config.attachment_configs.init(world_target_att_count, 0);
-	world_pass->target_config.attachment_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
-	world_pass->target_config.attachment_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-	world_pass->target_config.attachment_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
-	world_pass->target_config.attachment_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-	world_pass->target_config.attachment_configs[0].present_after = false;
+	world_coordinate_grid_pass->name = "Builtin.WorldObjects";
+	world_coordinate_grid_pass->dim = { app_inst->config.start_width, app_inst->config.start_height };
+	world_coordinate_grid_pass->offset = { 0, 0 };
+	world_coordinate_grid_pass->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
+	world_coordinate_grid_pass->clear_flags = Renderer::RenderpassClearFlags::DEPTH_BUFFER | Renderer::RenderpassClearFlags::STENCIL_BUFFER;
+	world_coordinate_grid_pass->depth = 1.0f;
+	world_coordinate_grid_pass->stencil = 0;
 
-	world_pass->target_config.attachment_configs[1].type = Renderer::RenderTargetAttachmentType::DEPTH;
-	world_pass->target_config.attachment_configs[1].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-	world_pass->target_config.attachment_configs[1].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
-	world_pass->target_config.attachment_configs[1].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-	world_pass->target_config.attachment_configs[1].present_after = false;
+	const uint32 world_grid_target_att_count = 2;
+	world_coordinate_grid_pass->target_config.attachment_configs.init(world_grid_target_att_count, 0);
+	world_coordinate_grid_pass->target_config.attachment_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
+	world_coordinate_grid_pass->target_config.attachment_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
+	world_coordinate_grid_pass->target_config.attachment_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
+	world_coordinate_grid_pass->target_config.attachment_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
+	world_coordinate_grid_pass->target_config.attachment_configs[0].present_after = false;
 
-	world_pass->render_target_count = Renderer::get_window_attachment_count();
+	world_coordinate_grid_pass->target_config.attachment_configs[1].type = Renderer::RenderTargetAttachmentType::DEPTH;
+	world_coordinate_grid_pass->target_config.attachment_configs[1].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
+	world_coordinate_grid_pass->target_config.attachment_configs[1].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
+	world_coordinate_grid_pass->target_config.attachment_configs[1].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
+	world_coordinate_grid_pass->target_config.attachment_configs[1].present_after = false;
+
+	world_coordinate_grid_pass->render_target_count = Renderer::get_window_attachment_count();
+	
+
+	world_objects_pass->name = "Builtin.WorldCoordinateGrid";
+	world_objects_pass->dim = { app_inst->config.start_width, app_inst->config.start_height };
+	world_objects_pass->offset = { 0, 0 };
+	world_objects_pass->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
+	world_objects_pass->clear_flags = Renderer::RenderpassClearFlags::NONE;
+	world_objects_pass->depth = 1.0f;
+	world_objects_pass->stencil = 0;
+
+	const uint32 world_objects_target_att_count = 2;
+	world_objects_pass->target_config.attachment_configs.init(world_objects_target_att_count, 0);
+	world_objects_pass->target_config.attachment_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
+	world_objects_pass->target_config.attachment_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
+	world_objects_pass->target_config.attachment_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
+	world_objects_pass->target_config.attachment_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
+	world_objects_pass->target_config.attachment_configs[0].present_after = false;
+
+	world_objects_pass->target_config.attachment_configs[1].type = Renderer::RenderTargetAttachmentType::DEPTH;
+	world_objects_pass->target_config.attachment_configs[1].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
+	world_objects_pass->target_config.attachment_configs[1].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
+	world_objects_pass->target_config.attachment_configs[1].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
+	world_objects_pass->target_config.attachment_configs[1].present_after = false;
+
+	world_objects_pass->render_target_count = Renderer::get_window_attachment_count();
 
 
 	ui_view_config->type = RenderViewType::UI;

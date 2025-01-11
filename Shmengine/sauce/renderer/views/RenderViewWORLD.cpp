@@ -210,7 +210,7 @@ namespace Renderer
 			return false;
 		}
 
-		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_coordinate_grid, &self->renderpasses[0]))
+		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_coordinate_grid, &self->renderpasses[1]))
 		{
 			SHMERROR("Failed to create coordinate grid shader.");
 			return false;
@@ -511,105 +511,118 @@ namespace Renderer
 
 		Math::Vec3f view_position = internal_data->camera->get_position();
 
-		for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
+		RenderPass* objects_renderpass = &self->renderpasses[0];
+		RenderPass* coordinate_grid_renderpass = &self->renderpasses[1];
+		
+		uint32 shader_id = INVALID_ID;
+		Shader* current_shader = 0;
+
+		if (!renderpass_begin(objects_renderpass, &objects_renderpass->render_targets[render_target_index]))
 		{
-			RenderPass* renderpass = &self->renderpasses[rp];
-
-			if (!renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
-			{
-				SHMERROR("render_view_world_on_render - failed to begin renderpass!");
-				return false;
-			}
-
-			uint32 shader_id = INVALID_ID;
-			Shader* current_shader = 0;
-
-			for (uint32 geometry_i = 0; geometry_i < sorted_geometries.count; geometry_i++)
-			{
-				Renderer::ObjectRenderData* object = &sorted_geometries[geometry_i];
-
-				if (object->shader_id != shader_id)
-				{
-					shader_id = object->shader_id;
-					ShaderSystem::use_shader(shader_id);
-
-					bool32 globals_set = false;
-					if (shader_id == internal_data->material_phong_shader->id)
-					{
-						globals_set = set_globals_material_phong(internal_data);
-						current_shader = internal_data->material_phong_shader;
-					}
-					else if (shader_id == internal_data->terrain_shader->id)
-					{
-						globals_set = set_globals_terrain(internal_data);
-						current_shader = internal_data->terrain_shader;
-					}
-					else if (shader_id == internal_data->color3D_shader->id)
-					{
-						globals_set = set_globals_color3D(internal_data);
-						current_shader = internal_data->color3D_shader;
-					}
-
-					if (globals_set)
-					{
-						if (current_shader->renderer_frame_number != frame_number)
-						{
-							Renderer::shader_apply_globals(current_shader);
-							current_shader->renderer_frame_number = frame_number;
-						}
-					}
-					else
-					{
-						SHMERROR("Unknown shader or failed to apply globals to shader.");
-						shader_id = INVALID_ID;
-						continue;
-					}
-				}
-
-				Renderer::InstanceRenderData instance = {};
-				instance.texture_maps = texture_maps_buffer;
-				if (object->get_instance_render_data)
-				{
-					object->get_instance_render_data(object->render_object, &instance);
-					ShaderSystem::bind_instance(instance.shader_instance_id);
-				}
-
-				bool32 instance_set = false;
-				if (shader_id == internal_data->material_phong_shader->id)
-					instance_set = set_instance_material_phong(internal_data->material_phong_u_locations, instance, &object->model);
-				else if (shader_id == internal_data->terrain_shader->id)
-					instance_set = set_instance_terrain(internal_data->terrain_u_locations, instance, &object->model);
-				else if (shader_id == internal_data->color3D_shader->id)
-					set_instance_color3D(internal_data->color3D_shader_u_locations, &object->model);
-				else
-					SHMERROR("Unknown shader or failed to apply instance to shader.");
-
-				if (instance_set)
-				{
-					bool32 needs_update = (*instance.render_frame_number != (uint32)frame_number);
-					Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update);
-					*instance.render_frame_number = frame_number;
-				}
-
-				geometry_draw(object->geometry_data);
-			}
-
-			// NOTE: Drawing coordinate grid separately
-			current_shader = internal_data->coordinate_grid_shader;
-			ShaderSystem::use_shader(current_shader->id);
-
-			set_globals_coordinate_grid(internal_data);
-			Renderer::shader_apply_globals(current_shader);
-			current_shader->renderer_frame_number = frame_number;
-
-			geometry_draw(&internal_data->coordinate_grid.geometry);
-
-			if (!renderpass_end(renderpass))
-			{
-				SHMERROR("render_view_world_on_render - draw_frame - failed to end renderpass!");
-				return false;
-			}
+			SHMERROR("render_view_world_on_render - failed to begin renderpass!");
+			return false;
 		}
+
+		for (uint32 geometry_i = 0; geometry_i < sorted_geometries.count; geometry_i++)
+		{
+			Renderer::ObjectRenderData* object = &sorted_geometries[geometry_i];
+
+			if (object->shader_id != shader_id)
+			{
+				shader_id = object->shader_id;
+				ShaderSystem::use_shader(shader_id);
+
+				bool32 globals_set = false;
+				if (shader_id == internal_data->material_phong_shader->id)
+				{
+					globals_set = set_globals_material_phong(internal_data);
+					current_shader = internal_data->material_phong_shader;
+				}
+				else if (shader_id == internal_data->terrain_shader->id)
+				{
+					globals_set = set_globals_terrain(internal_data);
+					current_shader = internal_data->terrain_shader;
+				}
+				else if (shader_id == internal_data->color3D_shader->id)
+				{
+					globals_set = set_globals_color3D(internal_data);
+					current_shader = internal_data->color3D_shader;
+				}
+
+				if (globals_set)
+				{
+					if (current_shader->renderer_frame_number != frame_number)
+					{
+						Renderer::shader_apply_globals(current_shader);
+						current_shader->renderer_frame_number = frame_number;
+					}
+				}
+				else
+				{
+					SHMERROR("Unknown shader or failed to apply globals to shader.");
+					shader_id = INVALID_ID;
+					continue;
+				}
+			}
+
+			Renderer::InstanceRenderData instance = {};
+			instance.texture_maps = texture_maps_buffer;
+			if (object->get_instance_render_data)
+			{
+				object->get_instance_render_data(object->render_object, &instance);
+				ShaderSystem::bind_instance(instance.shader_instance_id);
+			}
+
+			bool32 instance_set = false;
+			if (shader_id == internal_data->material_phong_shader->id)
+				instance_set = set_instance_material_phong(internal_data->material_phong_u_locations, instance, &object->model);
+			else if (shader_id == internal_data->terrain_shader->id)
+				instance_set = set_instance_terrain(internal_data->terrain_u_locations, instance, &object->model);
+			else if (shader_id == internal_data->color3D_shader->id)
+				set_instance_color3D(internal_data->color3D_shader_u_locations, &object->model);
+			else
+				SHMERROR("Unknown shader or failed to apply instance to shader.");
+
+			if (instance_set)
+			{
+				bool32 needs_update = (*instance.render_frame_number != (uint32)frame_number);
+				Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update);
+				*instance.render_frame_number = frame_number;
+			}
+
+			geometry_draw(object->geometry_data);
+		}
+
+		if (!renderpass_end(objects_renderpass))
+		{
+			SHMERROR("render_view_world_on_render - draw_frame - failed to end renderpass!");
+			return false;
+		}
+
+
+		if (!renderpass_begin(coordinate_grid_renderpass, &coordinate_grid_renderpass->render_targets[render_target_index]))
+		{
+			SHMERROR("render_view_world_on_render - failed to begin renderpass!");
+			return false;
+		}
+
+		// NOTE: Drawing coordinate grid separately
+		current_shader = internal_data->coordinate_grid_shader;
+		ShaderSystem::use_shader(current_shader->id);
+
+		set_globals_coordinate_grid(internal_data);
+		Renderer::shader_apply_globals(current_shader);
+		current_shader->renderer_frame_number = frame_number;
+
+		geometry_draw(&internal_data->coordinate_grid.geometry);
+
+		if (!renderpass_end(coordinate_grid_renderpass))
+		{
+			SHMERROR("render_view_world_on_render - draw_frame - failed to end renderpass!");
+			return false;
+		}
+
+		current_shader = 0;
 
 		return true;
 	}
