@@ -76,6 +76,7 @@ namespace Renderer
 		static inline const char* builtin_shader_name_material = "Builtin.MaterialPhong";
 		static inline const char* builtin_shader_name_terrain = "Builtin.Terrain";
 		static inline const char* builtin_shader_name_color3D = "Builtin.Color3D";
+		static inline const char* builtin_shader_name_coordinate_grid = "Builtin.CoordinateGrid";
 		static inline const char* builtin_shader_name_ui = "Builtin.UI";
 		static inline const char* builtin_shader_name_skybox = "Builtin.Skybox";
 		static inline const char* builtin_shader_name_material_phong_pick = "Builtin.MaterialPhongPick";

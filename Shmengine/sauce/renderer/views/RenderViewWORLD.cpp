@@ -57,6 +57,22 @@ struct Color3DShaderUniformLocations
 	uint16 model;
 };
 
+struct CoordinateGridShaderUniformLocations
+{
+	uint16 projection;
+	uint16 view;
+};
+
+struct VertexCoordinateGrid
+{
+	uint32 index;
+};
+
+struct CoordinateGrid
+{
+	GeometryData geometry;
+};
+
 struct RenderViewWorldInternalData {
 	Shader* material_phong_shader;
 	MaterialPhongShaderUniformLocations material_phong_u_locations;
@@ -67,6 +83,9 @@ struct RenderViewWorldInternalData {
 	Shader* color3D_shader;
 	Color3DShaderUniformLocations color3D_shader_u_locations;
 
+	Shader* coordinate_grid_shader;
+	CoordinateGridShaderUniformLocations coordinate_grid_shader_u_locations;
+
 	float32 near_clip;
 	float32 far_clip;
 	float32 fov;
@@ -75,6 +94,8 @@ struct RenderViewWorldInternalData {
 	Math::Vec4f ambient_color;
 
 	LightingInfo lighting;
+
+	CoordinateGrid coordinate_grid;
 
 	Camera* camera;
 };
@@ -168,6 +189,9 @@ namespace Renderer
 		internal_data->color3D_shader_u_locations.projection = INVALID_ID16;
 		internal_data->color3D_shader_u_locations.model = INVALID_ID16;
 
+		internal_data->coordinate_grid_shader_u_locations.view = INVALID_ID16;
+		internal_data->coordinate_grid_shader_u_locations.projection = INVALID_ID16;
+
 		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_material, &self->renderpasses[0]))
 		{
 			SHMERROR("Failed to create material phong shader.");
@@ -186,9 +210,16 @@ namespace Renderer
 			return false;
 		}
 
+		if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_coordinate_grid, &self->renderpasses[0]))
+		{
+			SHMERROR("Failed to create coordinate grid shader.");
+			return false;
+		}
+
 		internal_data->material_phong_shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_material);
 		internal_data->terrain_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_terrain);
 		internal_data->color3D_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_color3D);
+		internal_data->coordinate_grid_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_coordinate_grid);
 
 		internal_data->material_phong_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->material_phong_shader, "projection");
 		internal_data->material_phong_u_locations.view = ShaderSystem::get_uniform_index(internal_data->material_phong_shader, "view");
@@ -231,13 +262,27 @@ namespace Renderer
 		internal_data->color3D_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "view");
 		internal_data->color3D_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "model");
 
+		internal_data->coordinate_grid_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "projection");
+		internal_data->coordinate_grid_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "view");
+
 		internal_data->near_clip = 0.1f;
 		internal_data->far_clip = 4000.0f;
 		internal_data->fov = Math::deg_to_rad(45.0f);
 
 		internal_data->projection_matrix = Math::mat_perspective(internal_data->fov, 1280.0f / 720.0f, internal_data->near_clip, internal_data->far_clip);
 		internal_data->camera = CameraSystem::get_default_camera();
-		internal_data->ambient_color = { 0.25f, 0.25f, 0.25f, 1.0f };	
+		internal_data->ambient_color = { 0.25f, 0.25f, 0.25f, 1.0f };
+
+		GeometryData* grid_geometry = &internal_data->coordinate_grid.geometry;
+		grid_geometry->id = INVALID_ID;
+		grid_geometry->vertex_size = sizeof(VertexCoordinateGrid);
+		grid_geometry->vertex_count = 6;
+		grid_geometry->vertices.init(grid_geometry->vertex_size * grid_geometry->vertex_count, 0);
+		SarrayRef<byte, VertexCoordinateGrid> grid_vertices(&grid_geometry->vertices);
+		for (uint32 i = 0; i < grid_vertices.capacity; i++)
+			grid_vertices[i].index = i;
+
+		Renderer::geometry_load(grid_geometry);
 
 		Event::event_register((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
 		Event::event_register((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
@@ -248,6 +293,10 @@ namespace Renderer
 
 	void render_view_world_on_destroy(RenderView* self)
 	{
+		RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
+
+		Renderer::geometry_unload(&internal_data->coordinate_grid.geometry);
+
 		Event::event_unregister((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
 		Event::event_unregister((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
 		self->geometries.free_data();
@@ -374,6 +423,16 @@ namespace Renderer
 		return true;
 	}
 
+	static bool32 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_data)
+	{
+		CoordinateGridShaderUniformLocations u_locations = internal_data->coordinate_grid_shader_u_locations;
+
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, &internal_data->projection_matrix));
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &internal_data->camera->get_view()));
+
+		return true;
+	}
+
 	bool32 render_view_world_on_build_packet(RenderView* self, Memory::LinearAllocator* frame_allocator, const RenderViewPacketData* packet_data)
 	{
 		RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
@@ -495,7 +554,7 @@ namespace Renderer
 					{
 						if (current_shader->renderer_frame_number != frame_number)
 						{
-							UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_globals(current_shader));
+							Renderer::shader_apply_globals(current_shader);
 							current_shader->renderer_frame_number = frame_number;
 						}
 					}
@@ -528,12 +587,22 @@ namespace Renderer
 				if (instance_set)
 				{
 					bool32 needs_update = (*instance.render_frame_number != (uint32)frame_number);
-					UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update));
+					Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update);
 					*instance.render_frame_number = frame_number;
 				}
 
 				geometry_draw(object->geometry_data);
 			}
+
+			// NOTE: Drawing coordinate grid separately
+			current_shader = internal_data->coordinate_grid_shader;
+			ShaderSystem::use_shader(current_shader->id);
+
+			set_globals_coordinate_grid(internal_data);
+			Renderer::shader_apply_globals(current_shader);
+			current_shader->renderer_frame_number = frame_number;
+
+			geometry_draw(&internal_data->coordinate_grid.geometry);
 
 			if (!renderpass_end(renderpass))
 			{

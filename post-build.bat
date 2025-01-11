@@ -67,4 +67,12 @@ echo "assets\shaders\sauce\Builtin.Color3D.frag.glsl -> assets\shaders\bin\Built
 %VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.Color3D.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.Color3D.frag.spv"
 IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
 
+echo "assets\shaders\sauce\Builtin.CoordinateGrid.vert.glsl -> assets\shaders\bin\Builtin.CoordinateGrid.vert.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=vert "%wd%assets\shaders\sauce\Builtin.CoordinateGrid.vert.glsl" -o "%wd%assets\shaders\bin\Builtin.CoordinateGrid.vert.spv"
+IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
+
+echo "assets\shaders\sauce\Builtin.CoordinateGrid.frag.glsl -> assets\shaders\bin\Builtin.CoordinateGrid.frag.spv"
+%VULKAN_SDK%\bin\glslc.exe -fshader-stage=frag "%wd%assets\shaders\sauce\Builtin.CoordinateGrid.frag.glsl" -o "%wd%assets\shaders\bin\Builtin.CoordinateGrid.frag.spv"
+IF %ERRORLEVEL% NEQ 0 (echo Error: %ERRORLEVEL% && exit /B)
+
 echo "Done."

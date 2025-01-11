@@ -1,0 +1,15 @@
+# shader config file
+version=1.0
+name=Builtin.CoordinateGrid
+stages=vertex,fragment
+stagefiles=shaders/bin/Builtin.CoordinateGrid.vert.spv,shaders/bin/Builtin.CoordinateGrid.frag.spv
+depth_test=1
+depth_write=1
+
+# Attributes: type,name
+attribute=uint32,in_index
+
+# Uniforms: type,scope,name
+# NOTE: For scope: 0=global, 1=instance, 2=local
+uniform=mat4,0,projection
+uniform=mat4,0,view
