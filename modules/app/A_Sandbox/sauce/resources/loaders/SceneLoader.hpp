@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Defines.hpp"
-#include "containers/Sarray.hpp"
-#include "utility/MathTypes.hpp"
-#include "utility/String.hpp"
+#include <Defines.hpp>
+#include <containers/Sarray.hpp>
+#include <utility/MathTypes.hpp>
+#include <utility/String.hpp>
 
 struct SkyboxConfig;
 struct MeshConfig;

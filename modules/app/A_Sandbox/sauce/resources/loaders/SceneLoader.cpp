@@ -1,16 +1,16 @@
 #include "SceneLoader.hpp"
 
-#include "systems/ResourceSystem.hpp"
-#include "core/Logging.hpp"
-#include "core/Memory.hpp"
-#include "utility/String.hpp"
-#include "utility/math/Transform.hpp"
-#include "platform/FileSystem.hpp"
-#include "renderer/RendererTypes.hpp"
-#include "renderer/RendererGeometry.hpp"
-#include "systems/GeometrySystem.hpp"
-#include "resources/Mesh.hpp"
-#include "resources/loaders/MeshLoader.hpp"
+#include <systems/ResourceSystem.hpp>
+#include <core/Logging.hpp>
+#include <core/Memory.hpp>
+#include <utility/String.hpp>
+#include <utility/math/Transform.hpp>
+#include <platform/FileSystem.hpp>
+#include <renderer/RendererTypes.hpp>
+#include <renderer/RendererGeometry.hpp>
+#include <systems/GeometrySystem.hpp>
+#include <resources/Mesh.hpp>
+#include <resources/loaders/MeshLoader.hpp>
 
 namespace ResourceSystem
 {

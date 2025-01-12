@@ -218,6 +218,9 @@ namespace Renderer::Vulkan
 
 		vk_swapchain_create(context->framebuffer_width, context->framebuffer_height, &context->swapchain);
 
+		for (uint32 i = 0; i < RendererConfig::framebuffer_count; i++)
+			context->framebuffer_fences_in_flight[i] = 0;
+
 		*out_window_render_target_count = context->swapchain.render_textures.capacity;
 
 		create_command_buffers();
@@ -368,7 +371,6 @@ namespace Renderer::Vulkan
 			SHMERROR("begin_frame - Failed to acquire next image!");
 			return false;
 		}
-			
 
 		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->bound_framebuffer_index];
 		vk_command_buffer_reset(cmd);
@@ -387,19 +389,19 @@ namespace Renderer::Vulkan
 	{
 				
 		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->bound_framebuffer_index];
-
+		
 		vk_command_buffer_end(cmd);
 
-		if (context->framebuffer_fences[context->bound_sync_object_index])
+		if (context->framebuffer_fences_in_flight[context->bound_framebuffer_index])
 		{
-			VkResult wait_res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index], true, UINT64_MAX);
+			VkResult wait_res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences_in_flight[context->bound_framebuffer_index], true, UINT64_MAX);
 			if (!vk_result_is_success(wait_res))
 			{
 				SHMFATALV("In-flight fence wait failure! Error: %s", vk_result_string(wait_res, true));
 			}
 		}
 
-		VK_CHECK(vkResetFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index]));
+		context->framebuffer_fences_in_flight[context->bound_framebuffer_index] = context->framebuffer_fences[context->bound_sync_object_index];
 
 		VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 		submit_info.commandBufferCount = 1;
@@ -413,6 +415,7 @@ namespace Renderer::Vulkan
 		VkPipelineStageFlags flags[1] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submit_info.pWaitDstStageMask = flags;
 
+		VK_CHECK(vkResetFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index]));
 		VkResult res = vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->framebuffer_fences[context->bound_sync_object_index]);
 		if (res != VK_SUCCESS)
 		{
@@ -687,6 +690,9 @@ namespace Renderer::Vulkan
 
 		context->recreating_swapchain = true;
 		vkDeviceWaitIdle(context->device.logical_device);
+
+		for (uint32 i = 0; i < RendererConfig::framebuffer_count; i++)
+			context->framebuffer_fences_in_flight[i] = 0;
 
 		vk_device_query_swapchain_support(context->device.physical_device, context->surface, &context->device.swapchain_support);
 		vk_device_detect_depth_format(&context->device);

@@ -8,12 +8,12 @@
 namespace CString
 {	
 
-	char* to_string(uint32 val);
-	char* to_string(uint64 val);
-	char* to_string(int32 val);
-	char* to_string(int64 val);
-	char* to_string(float32 val, int32 decimals = 2);
-	char* to_string(float64 val, int32 decimals = 2);
+	SHMAPI char* to_string(uint32 val);
+	SHMAPI char* to_string(uint64 val);
+	SHMAPI char* to_string(int32 val);
+	SHMAPI char* to_string(int64 val);
+	SHMAPI char* to_string(float32 val, int32 decimals = 2);
+	SHMAPI char* to_string(float64 val, int32 decimals = 2);
 
 	SHMAPI uint32 append(char* buffer_output, uint32 buffer_output_size, char appendage);
 	SHMAPI uint32 append(char* buffer_output, uint32 buffer_output_size, const char* buffer_source, int32 length = -1);

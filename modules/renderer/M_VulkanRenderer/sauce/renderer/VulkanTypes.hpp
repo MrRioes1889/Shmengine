@@ -302,6 +302,7 @@ namespace Renderer::Vulkan
 		Sarray<VkSemaphore> image_available_semaphores = {};
 		Sarray<VkSemaphore> queue_complete_semaphores = {};
 
+		VkFence framebuffer_fences_in_flight[RendererConfig::framebuffer_count];
 		VkFence framebuffer_fences[RendererConfig::framebuffer_count - 1];
 
 #if defined(_DEBUG)

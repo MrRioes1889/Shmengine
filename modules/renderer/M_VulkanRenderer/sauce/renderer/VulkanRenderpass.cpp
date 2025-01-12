@@ -132,7 +132,7 @@ namespace Renderer::Vulkan
 
 				att_desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 				att_desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-				att_desc.initialLayout = att_config->load_op == RenderTargetAttachmentLoadOp::LOAD ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+				att_desc.initialLayout = att_config->load_op == RenderTargetAttachmentLoadOp::LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 				att_desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 				depth_att_descriptions.emplace(att_desc);
@@ -261,18 +261,6 @@ namespace Renderer::Vulkan
 
 			begin_info.clearValueCount++;
 		}
-		// TODO: neccesary?
-		/*else
-		{		
-			for (uint32 i = 0; i < render_target->attachments.capacity; i++)
-			{
-				if (render_target->attachments[i].type == RenderTargetAttachmentType::DEPTH)
-				{
-					begin_info.clearValueCount++;
-					break;
-				}
-			}
-		}*/
 
 		begin_info.pClearValues = (begin_info.clearValueCount > 0) ? clear_values : 0;
 

@@ -21,7 +21,6 @@
 #include "resources/UIText.hpp"
 #include "resources/Terrain.hpp"
 #include "resources/Box3D.hpp"
-#include "resources/Scene.hpp"
 
 #include "optick.h"
 
@@ -914,36 +913,6 @@ namespace Renderer
 			RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
 
 		return packet_data.geometries_count;
-	}
-
-	bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view, const Math::Frustum* camera_frustum, FrameData* frame_data)
-	{
-
-		if (scene->state != SceneState::LOADED)
-			return false;
-
-		uint32 skybox_shader_id = ShaderSystem::get_skybox_shader_id();
-
-		if (scene->skybox.state >= SkyboxState::INITIALIZED)
-			frame_data->drawn_geometry_count += Renderer::skybox_draw(&scene->skybox, skybox_view, 0, skybox_shader_id, frame_data);
-
-		LightingInfo lighting =
-		{
-			.dir_light = scene->dir_lights.count > 0 ? &scene->dir_lights[0] : 0,
-			.p_lights_count = scene->p_lights.count,
-			.p_lights = scene->p_lights.data
-		};
-
-		uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
-		frame_data->drawn_geometry_count += Renderer::terrains_draw(scene->terrains.data, scene->terrains.count, world_view, 0, terrain_shader_id, lighting, frame_data);
-
-		uint32 material_shader_id = ShaderSystem::get_material_shader_id();
-		frame_data->drawn_geometry_count += Renderer::meshes_draw(scene->meshes.data, scene->meshes.count, world_view, 0, material_shader_id, lighting, frame_data, camera_frustum);
-
-		uint32 color3D_shader_id = ShaderSystem::get_color3D_shader_id();
-		frame_data->drawn_geometry_count += Renderer::boxes3D_draw(scene->p_light_boxes.data, scene->p_light_boxes.count, world_view, 0, color3D_shader_id, frame_data);
-
-		return true;
 	}
 
 	bool8 is_multithreaded()

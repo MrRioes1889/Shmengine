@@ -49,10 +49,11 @@ namespace SubsystemManager
 			RENDERER,
 			SHADER_SYSTEM,
 			JOB_SYSTEM,
-			TEXTURE_SYSTEM,
-			FONT_SYSTEM,
 			CAMERA_SYSTEM,
 			RENDERVIEW_SYSTEM,
+			
+			TEXTURE_SYSTEM,
+			FONT_SYSTEM,	
 			MATERIAL_SYSTEM,
 			GEOMETRY_SYSTEM,
 			KNOWN_TYPES_COUNT,
@@ -260,6 +261,24 @@ namespace SubsystemManager
 			return false;
 		}
 
+		CameraSystem::SystemConfig camera_sys_config;
+		camera_sys_config.max_camera_count = 61;
+
+		if (!register_system(SubsystemType::CAMERA_SYSTEM, CameraSystem::system_init, CameraSystem::system_shutdown, 0, &camera_sys_config))
+		{
+			SHMFATAL("Failed to register console subsystem!");
+			return false;
+		}
+
+		RenderViewSystem::SystemConfig render_view_sys_config;
+		render_view_sys_config.max_view_count = 251;
+
+		if (!register_system(SubsystemType::RENDERVIEW_SYSTEM, RenderViewSystem::system_init, RenderViewSystem::system_shutdown, 0, &render_view_sys_config))
+		{
+			SHMFATAL("Failed to register console subsystem!");
+			return false;
+		}
+
 		return true;
 
 	}
@@ -280,33 +299,6 @@ namespace SubsystemManager
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
-		}
-
-		CameraSystem::SystemConfig camera_sys_config;
-		camera_sys_config.max_camera_count = 61;
-
-		if (!register_system(SubsystemType::CAMERA_SYSTEM, CameraSystem::system_init, CameraSystem::system_shutdown, 0, &camera_sys_config))
-		{
-			SHMFATAL("Failed to register console subsystem!");
-			return false;
-		}
-
-		RenderViewSystem::SystemConfig render_view_sys_config;
-		render_view_sys_config.max_view_count = 251;
-
-		if (!register_system(SubsystemType::RENDERVIEW_SYSTEM, RenderViewSystem::system_init, RenderViewSystem::system_shutdown, 0, &render_view_sys_config))
-		{
-			SHMFATAL("Failed to register console subsystem!");
-			return false;
-		}
-
-		for (uint32 i = 0; i < app_config->render_view_configs.capacity; i++)
-		{
-			if (!RenderViewSystem::create(app_config->render_view_configs[i]))
-			{
-				SHMFATALV("Failed to create render view: %s", app_config->render_view_configs[i].name);
-				return false;
-			}
 		}
 
 		MaterialSystem::SystemConfig material_sys_config;

@@ -255,7 +255,7 @@ namespace ResourceSystem
         ParserScope scope = ParserScope::MATERIAL;
 
         out_resource->auto_release = true;
-        CString::copy(Renderer::RendererConfig::builtin_shader_name_material, out_resource->shader_name, max_shader_name_length);
+        CString::copy(Renderer::RendererConfig::builtin_shader_name_material_phong, out_resource->shader_name, max_shader_name_length);
 		CString::copy(name, out_resource->name, max_material_name_length);
 
         out_resource->type = MaterialType::PHONG;
@@ -438,7 +438,7 @@ namespace ResourceSystem
         MaterialResourceData current_resource = {};
         current_resource.auto_release = true;
         current_resource.type = MaterialType::PHONG;
-        CString::copy(Renderer::RendererConfig::builtin_shader_name_material, current_resource.shader_name, max_shader_name_length);
+        CString::copy(Renderer::RendererConfig::builtin_shader_name_material_phong, current_resource.shader_name, max_shader_name_length);
         current_resource.maps.init(3, 0);
         current_resource.properties.init(2, 0);
 

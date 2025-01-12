@@ -145,7 +145,7 @@ namespace ShaderSystem
 			return false;
 		}
 
-		if (system_state->material_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_material)) 
+		if (system_state->material_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_material_phong)) 
 			system_state->material_shader_id = shader->id;
 		else if (system_state->terrain_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_terrain)) 
 			system_state->terrain_shader_id = shader->id;

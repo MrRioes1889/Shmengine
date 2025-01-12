@@ -45,42 +45,42 @@ namespace Renderer
 	uint32 get_window_attachment_index();
 	SHMAPI uint32 get_window_attachment_count();
 
-	bool32 renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass);
-	void renderpass_destroy(RenderPass* pass);
+	SHMAPI bool32 renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass);
+	SHMAPI void renderpass_destroy(RenderPass* pass);
 
-	bool32 renderpass_begin(RenderPass* pass, RenderTarget* target);
-	bool32 renderpass_end(RenderPass* pass);
+	SHMAPI bool32 renderpass_begin(RenderPass* pass, RenderTarget* target);
+	SHMAPI bool32 renderpass_end(RenderPass* pass);
 
-	void texture_create(const void* pixels, Texture* texture);
-	void texture_create_writable(Texture * texture);
-	void texture_resize(Texture* texture, uint32 width, uint32 height);
-	bool32 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
+	SHMAPI void texture_create(const void* pixels, Texture* texture);
+	SHMAPI void texture_create_writable(Texture * texture);
+	SHMAPI void texture_resize(Texture* texture, uint32 width, uint32 height);
+	SHMAPI bool32 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
 	SHMAPI bool32 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory);
 	SHMAPI bool32 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
-	void texture_destroy(Texture* texture);
+	SHMAPI void texture_destroy(Texture* texture);
 
-	bool32 geometry_load(GeometryData* geometry);
-	bool32 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size);
-	void geometry_unload(GeometryData* geometry);
+	SHMAPI bool32 geometry_load(GeometryData* geometry);
+	SHMAPI bool32 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size);
+	SHMAPI void geometry_unload(GeometryData* geometry);
 
-	void geometry_draw(GeometryData* geometry);
+	SHMAPI void geometry_draw(GeometryData* geometry);
 
-	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
-	void shader_destroy(Shader* shader);
+	SHMAPI bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
+	SHMAPI void shader_destroy(Shader* shader);
 
 	bool32 shader_init(Shader* shader);
 	bool32 shader_use(Shader* shader);
 
-	bool32 shader_bind_globals(Shader* shader);
-	bool32 shader_bind_instance(Shader* shader, uint32 instance_id);
+	SHMAPI bool32 shader_bind_globals(Shader* shader);
+	SHMAPI bool32 shader_bind_instance(Shader* shader, uint32 instance_id);
 
-	bool32 shader_apply_globals(Shader* shader);
-	bool32 shader_apply_instance(Shader* shader, bool32 needs_update);
+	SHMAPI bool32 shader_apply_globals(Shader* shader);
+	SHMAPI bool32 shader_apply_instance(Shader* shader, bool32 needs_update);
 
-	bool32 shader_acquire_instance_resources(Shader* shader, uint32 maps_count, TextureMap** maps, uint32* out_instance_id);
-	bool32 shader_release_instance_resources(Shader* shader, uint32 instance_id);
+	SHMAPI bool32 shader_acquire_instance_resources(Shader* shader, uint32 maps_count, TextureMap** maps, uint32* out_instance_id);
+	SHMAPI bool32 shader_release_instance_resources(Shader* shader, uint32 instance_id);
 
-	bool32 shader_set_uniform(Shader* shader, ShaderUniform* uniform, const void* value);
+	SHMAPI bool32 shader_set_uniform(Shader* shader, ShaderUniform* uniform, const void* value);
 
 	bool32 texture_map_acquire_resources(TextureMap* out_map);
 	void texture_map_release_resources(TextureMap* out_map);
@@ -109,8 +109,6 @@ namespace Renderer
 	SHMAPI bool32 ui_text_draw(UIText* text, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
 	SHMAPI uint32 box3D_draw(Box3D* box, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
 	SHMAPI uint32 boxes3D_draw(Box3D* boxes, uint32 boxes_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
-
-	SHMAPI bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view, const Math::Frustum* camera_frustum, FrameData* frame_data);
 
 	bool8 is_multithreaded();
 

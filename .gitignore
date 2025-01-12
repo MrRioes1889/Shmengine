@@ -7,4 +7,4 @@ bin-int/*
 *.idb
 *.pdb
 Makefile*
-*Profiler Results/*
+*/Intel® VTune™ Profiler Results/*

@@ -123,7 +123,7 @@ namespace Engine
 		destroy_application_config(&app_inst->config);
 
 		app_inst->stage = ApplicationStage::INITIALIZING;
-		if (!app_inst->init(app_inst->state))
+		if (!app_inst->init(app_inst))
 		{
 			SHMFATAL("ERROR: Failed to initialize game instance!");
 			return false;
@@ -142,18 +142,6 @@ namespace Engine
 	{
 		config->bitmap_font_configs.free_data();
 		config->truetype_font_configs.free_data();
-
-		for (uint32 i = 0; i < config->render_view_configs.capacity; i++)
-		{
-			RenderViewConfig* view_config = &config->render_view_configs[i];
-			for (uint32 j = 0; j < view_config->pass_configs.capacity; j++)
-			{
-				Renderer::RenderPassConfig* pass_config = &view_config->pass_configs[j];
-				pass_config->target_config.attachment_configs.free_data();
-			}
-			view_config->pass_configs.free_data();
-		}
-		config->render_view_configs.free_data();
 	}
 
 	bool32 run(Application* app_inst)
@@ -225,7 +213,7 @@ namespace Engine
 			float64 frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
 			float64 remaining_s = target_frame_seconds - frame_elapsed_time;
 
-			bool32 limit_frames = true;
+			bool32 limit_frames = false;
 
 			if (remaining_s > 0 && limit_frames)
 			{
@@ -252,6 +240,7 @@ namespace Engine
 		app_inst->on_module_unload();
 		Platform::unload_dynamic_library(&app_inst->application_lib);
 		Platform::unload_dynamic_library(&app_inst->renderer_lib);
+		app_inst->render_views.free_data();
 
 		SubsystemManager::shutdown_basic();
 

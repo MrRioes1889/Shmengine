@@ -9,12 +9,24 @@ namespace Renderer
     struct RenderPacket;
 }
 
+namespace SandboxRenderViews
+{
+    enum
+    {
+        SKYBOX,
+        WORLD,
+        UI,
+        PICK,
+        VIEW_COUNT
+    };
+}
+
 extern "C"
 {
 
     SHMAPI bool32 application_boot(Application* app_inst);
 
-    SHMAPI bool32 application_init(void* application_state);
+    SHMAPI bool32 application_init(Application* app_inst);
 
     SHMAPI void application_shutdown();
 

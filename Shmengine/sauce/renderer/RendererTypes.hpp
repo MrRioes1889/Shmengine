@@ -73,7 +73,7 @@ namespace Renderer
 
 	struct SHMAPI RendererConfig
 	{
-		static inline const char* builtin_shader_name_material = "Builtin.MaterialPhong";
+		static inline const char* builtin_shader_name_material_phong = "Builtin.MaterialPhong";
 		static inline const char* builtin_shader_name_terrain = "Builtin.Terrain";
 		static inline const char* builtin_shader_name_color3D = "Builtin.Color3D";
 		static inline const char* builtin_shader_name_coordinate_grid = "Builtin.CoordinateGrid";

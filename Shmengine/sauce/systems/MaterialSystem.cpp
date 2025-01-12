@@ -72,16 +72,6 @@ namespace MaterialSystem
             system_state->registered_materials[i].render_frame_number = INVALID_ID;
         }
 
-        if (!create_default_material()) {
-            SHMFATAL("Failed to create default material. Application cannot continue.");
-            return false;
-        }
-
-        if (!create_default_ui_material()) {
-            SHMFATAL("Failed to create default ui material. Application cannot continue.");
-            return false;
-        }
-
         return true;
 
     }
@@ -101,8 +91,10 @@ namespace MaterialSystem
         }
 
         // Destroy the default material.
-        destroy_material(&system_state->default_ui_material);
-        destroy_material(&system_state->default_material);
+        if (system_state->default_ui_material.id)
+         destroy_material(&system_state->default_ui_material);
+        if (system_state->default_material.id)
+            destroy_material(&system_state->default_material);
 
         system_state = 0;
 
@@ -430,7 +422,7 @@ namespace MaterialSystem
         Shader* shader = 0;
         if (m->type == MaterialType::PHONG)
         {
-            shader = ShaderSystem::get_shader(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_material);
+            shader = ShaderSystem::get_shader(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_material_phong);
         }
         if (m->type == MaterialType::UI)
         {
@@ -505,11 +497,17 @@ namespace MaterialSystem
 
     Material* get_default_material()
     {
+        if (!system_state->default_material.id)
+            create_default_material();
+
         return &system_state->default_material;
     }
 
     Material* get_default_ui_material()
     {
+        if (!system_state->default_ui_material.id)
+            create_default_ui_material();
+
         return &system_state->default_ui_material;
     }
     
@@ -540,7 +538,7 @@ namespace MaterialSystem
             mat->maps[i].texture = default_textures[i % 3];
         }
 
-        Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material);
+        Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material_phong);
         TextureMap* maps[maps_count] = {};
         for (uint32 i = 0; i < maps_count; i++)
             maps[i] = &mat->maps[i];

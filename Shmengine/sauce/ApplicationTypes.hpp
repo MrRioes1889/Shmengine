@@ -6,7 +6,6 @@
 #include "renderer/RendererTypes.hpp"
 
 struct FrameData;
-struct RenderViewConfig;
 
 enum class ApplicationStage
 {
@@ -33,7 +32,6 @@ struct ApplicationConfig {
 	FontSystem::SystemConfig fontsystem_config;
 	Sarray<FontSystem::BitmapFontConfig> bitmap_font_configs;
 	Sarray<FontSystem::TruetypeFontConfig> truetype_font_configs;
-	Sarray<RenderViewConfig> render_view_configs;
 
 	Renderer::Module renderer_module;
 	
@@ -44,7 +42,7 @@ struct Application
 	ApplicationConfig config;
 
 	typedef bool32(*FP_boot)(Application* app_inst);
-	typedef bool32(*FP_init)(void* app_state);
+	typedef bool32(*FP_init)(Application* app_inst);
 	typedef void(*FP_shutdown)();
 	typedef bool32(*FP_update)(FrameData* frame_data);
 	typedef bool32(*FP_render)(Renderer::RenderPacket* packet, FrameData* frame_data);
@@ -63,9 +61,9 @@ struct Application
 
 	ApplicationStage stage;
 
+	Sarray<RenderView> render_views;
 	
 	void* state;
-
 	void* engine_state;
 
 	Platform::DynamicLibrary renderer_lib;

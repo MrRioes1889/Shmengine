@@ -9,12 +9,13 @@
 
 #include "DebugConsole.hpp"
 
+#include "resources/Scene.hpp"
+
 // TODO: temp
 #include <resources/UIText.hpp>
 #include <resources/Skybox.hpp>
 #include <resources/Mesh.hpp>
 #include <resources/Box3D.hpp>
-#include <resources/Scene.hpp>
 // end
 
 struct ApplicationState
