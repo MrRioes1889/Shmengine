@@ -187,7 +187,7 @@ namespace Renderer::Vulkan
 	struct VulkanShaderInstanceState
 	{
 		uint32 id;
-		// TODO: Think about whether the offset serves a purpose
+		uint8 last_update_frame_number;
 		uint64 offset;
 
 		VulkanShaderDescriptorSetState descriptor_set_state;
@@ -231,6 +231,8 @@ namespace Renderer::Vulkan
 
 		uint32 id;
 		uint32 instance_count;
+
+		uint8 last_update_frame_number;
 
 		uint8 global_uniform_count;
 		uint8 global_uniform_sampler_count;
@@ -327,6 +329,8 @@ namespace Renderer::Vulkan
 		uint32 framebuffer_height;
 
 		RingQueue<TaskInfo> end_of_frame_task_queue;
+
+		uint8 frame_number;
 
 		bool8 config_changed;
 		bool8 recreating_swapchain;

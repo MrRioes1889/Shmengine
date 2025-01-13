@@ -69,7 +69,6 @@ namespace MaterialSystem
             system_state->registered_materials[i].id = INVALID_ID;
             system_state->registered_materials[i].generation = INVALID_ID;
             system_state->registered_materials[i].shader_instance_id = INVALID_ID;
-            system_state->registered_materials[i].render_frame_number = INVALID_ID;
         }
 
         return true;
@@ -492,7 +491,6 @@ namespace MaterialSystem
         m->id = INVALID_ID;
         m->generation = INVALID_ID;
         m->shader_instance_id = INVALID_ID;
-        m->render_frame_number = INVALID_ID;
     }
 
     Material* get_default_material()
@@ -605,7 +603,6 @@ namespace MaterialSystem
             out_data->texture_maps[i] = &mat->maps[i];
 
         out_data->shader_instance_id = mat->shader_instance_id;
-        out_data->render_frame_number = &mat->render_frame_number;
 
         return true;
     }

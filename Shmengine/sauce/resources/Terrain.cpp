@@ -32,7 +32,6 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     out_terrain->xform = Math::transform_create();
 
 	out_terrain->shader_instance_id = INVALID_ID;
-	out_terrain->render_frame_number = INVALID_ID;
 	out_terrain->unique_id = INVALID_ID;
 
 	out_terrain->material_properties = {};
@@ -344,7 +343,6 @@ bool32 terrain_get_instance_render_data(void* in_terrain, Renderer::InstanceRend
 	}
 
 	out_data->shader_instance_id = terrain->shader_instance_id;
-	out_data->render_frame_number = &terrain->render_frame_number;
 
 	return true;
 }

@@ -264,7 +264,7 @@ namespace Renderer
 		for (uint32 t = 0; t < out_renderpass->render_targets.capacity; t++)
 		{
 			RenderTarget* target = &out_renderpass->render_targets[t];
-			target->attachments.init(config->target_config.attachment_configs.capacity, 0, AllocationTag::RENDERER);
+			target->attachments.init(config->target_config.attachment_count, 0, AllocationTag::RENDERER);
 
 			for (uint32 a = 0; a < target->attachments.capacity; a++)
 			{
@@ -560,9 +560,9 @@ namespace Renderer
 		return system_state->module.shader_apply_globals(s);
 	}
 
-	bool32 shader_apply_instance(Shader* s, bool32 needs_update) 
+	bool32 shader_apply_instance(Shader* s) 
 	{
-		return system_state->module.shader_apply_instance(s, needs_update);
+		return system_state->module.shader_apply_instance(s);
 	}
 
 	bool32 shader_acquire_instance_resources(Shader* s, uint32 maps_count, TextureMap** maps, uint32* out_instance_id)

@@ -49,7 +49,7 @@ namespace RenderViewSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI bool32 register_view(RenderView* view);
+	SHMAPI bool32 register_view(RenderView* view, uint32 renderpass_count, Renderer::RenderPassConfig* renderpass_configs);
 
 	SHMAPI RenderView* get(const char* name);
 

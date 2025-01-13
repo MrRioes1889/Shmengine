@@ -213,7 +213,7 @@ namespace Engine
 			float64 frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
 			float64 remaining_s = target_frame_seconds - frame_elapsed_time;
 
-			bool32 limit_frames = false;
+			bool32 limit_frames = true;
 
 			if (remaining_s > 0 && limit_frames)
 			{

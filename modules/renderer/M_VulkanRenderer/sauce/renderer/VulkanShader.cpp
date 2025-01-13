@@ -547,41 +547,47 @@ namespace Renderer::Vulkan
 		uint32 image_index = context->bound_framebuffer_index;
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 
-		// Apply UBO first
-		VkDescriptorBufferInfo bufferInfo;
-		bufferInfo.buffer = ((VulkanBuffer*)s->uniform_buffer.internal_data.data)->handle;
-		bufferInfo.offset = s->global_ubo_offset;
-		bufferInfo.range = s->global_ubo_stride;
-
-		// Update descriptor sets.
-		VkWriteDescriptorSet ubo_write = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		ubo_write.dstSet = v_shader->global_descriptor_sets[image_index];
-		ubo_write.dstBinding = 0;
-		ubo_write.dstArrayElement = 0;
-		ubo_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		ubo_write.descriptorCount = 1;
-		ubo_write.pBufferInfo = &bufferInfo;
-
-		VkWriteDescriptorSet descriptor_writes[2];
-		descriptor_writes[0] = ubo_write;
-
-		uint32 global_set_binding_count = v_shader->config.descriptor_sets[desc_set_index_global].binding_count;
-		if (global_set_binding_count > 1)
+		if (v_shader->last_update_frame_number != context->frame_number)
 		{
-			// TODO: There are samplers to be written. Support this.
-			global_set_binding_count = 1;
-			SHMERROR("Global image samplers are not yet supported.");
+			// Apply UBO first
+			VkDescriptorBufferInfo bufferInfo;
+			bufferInfo.buffer = ((VulkanBuffer*)s->uniform_buffer.internal_data.data)->handle;
+			bufferInfo.offset = s->global_ubo_offset;
+			bufferInfo.range = s->global_ubo_stride;
 
-			// VkWriteDescriptorSet sampler_write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-			// descriptor_writes[1] = ...
+			// Update descriptor sets.
+			VkWriteDescriptorSet ubo_write = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			ubo_write.dstSet = v_shader->global_descriptor_sets[image_index];
+			ubo_write.dstBinding = 0;
+			ubo_write.dstArrayElement = 0;
+			ubo_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			ubo_write.descriptorCount = 1;
+			ubo_write.pBufferInfo = &bufferInfo;
+
+			VkWriteDescriptorSet descriptor_writes[2];
+			descriptor_writes[0] = ubo_write;
+
+			uint32 global_set_binding_count = v_shader->config.descriptor_sets[desc_set_index_global].binding_count;
+			if (global_set_binding_count > 1)
+			{
+				// TODO: There are samplers to be written. Support this.
+				global_set_binding_count = 1;
+				SHMERROR("Global image samplers are not yet supported.");
+
+				// VkWriteDescriptorSet sampler_write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+				// descriptor_writes[1] = ...
+			}
+
+			vkUpdateDescriptorSets(context->device.logical_device, global_set_binding_count, descriptor_writes, 0, 0);
+
+			v_shader->last_update_frame_number = context->frame_number;
 		}
-
-		vkUpdateDescriptorSets(context->device.logical_device, global_set_binding_count, descriptor_writes, 0, 0);
+		
 		return true;
 
 	}
 
-	bool32 vk_shader_apply_instance(Shader* s, bool32 needs_update)
+	bool32 vk_shader_apply_instance(Shader* s)
 	{
 		
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -594,11 +600,10 @@ namespace Renderer::Vulkan
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
 
 		// Obtain instance data.
-		VulkanShaderInstanceState* object_state = &v_shader->instance_states[s->bound_instance_id];
-		VkDescriptorSet object_descriptor_set = object_state->descriptor_set_state.descriptor_sets[image_index];
+		VulkanShaderInstanceState* instance_state = &v_shader->instance_states[s->bound_instance_id];
+		VkDescriptorSet object_descriptor_set = instance_state->descriptor_set_state.descriptor_sets[image_index];
 
-		// TODO: if needs update
-		if (needs_update)
+		if (instance_state->last_update_frame_number != context->frame_number)
 		{
 			VkWriteDescriptorSet descriptor_writes[2] = {};  // Always a max of 2 descriptor sets.
 			uint32 descriptor_count = 0;
@@ -606,11 +611,11 @@ namespace Renderer::Vulkan
 
 			// Descriptor 0 - Uniform buffer
 			// Only do this if the descriptor has not yet been updated.
-			uint8* instance_ubo_generation = &(object_state->descriptor_set_state.descriptor_states[descriptor_index].generations[image_index]);
+			uint8* instance_ubo_generation = &(instance_state->descriptor_set_state.descriptor_states[descriptor_index].generations[image_index]);
 
 			VkDescriptorBufferInfo buffer_info;
 			buffer_info.buffer = ((VulkanBuffer*)s->uniform_buffer.internal_data.data)->handle;
-			buffer_info.offset = object_state->offset;
+			buffer_info.offset = instance_state->offset;
 			buffer_info.range = s->ubo_stride;
 
 			VkWriteDescriptorSet ubo_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
@@ -683,6 +688,7 @@ namespace Renderer::Vulkan
 				vkUpdateDescriptorSets(context->device.logical_device, descriptor_count, descriptor_writes, 0, 0);
 			}
 
+			instance_state->last_update_frame_number = context->frame_number;
 		}
 
 		//// Bind the descriptor set to be updated, or in case the shader changed.

@@ -46,7 +46,6 @@ struct UIText
 	UITextState state;
 	UniqueId unique_id;
 	uint32 shader_instance_id;
-	uint32 render_frame_number;
 	FontAtlas* font_atlas;
 	String text;
 	Math::Transform transform;

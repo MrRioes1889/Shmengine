@@ -159,7 +159,8 @@ namespace Renderer
 
 	struct RenderTargetConfig
 	{
-		Sarray<RenderTargetAttachmentConfig> attachment_configs;
+		uint32 attachment_count;
+		RenderTargetAttachmentConfig* attachment_configs;
 	};
 
 	struct RenderTargetAttachment
@@ -285,7 +286,6 @@ namespace Renderer
 		uint32 texture_maps_count;
 
 		void* instance_properties;
-		uint32* render_frame_number;
 		TextureMap** texture_maps;
 	};
 
@@ -364,7 +364,7 @@ namespace Renderer
 		bool32(*shader_bind_globals)(Shader* shader);
 		bool32(*shader_bind_instance)(Shader* shader, uint32 instance_id);
 		bool32(*shader_apply_globals)(Shader* shader);
-		bool32(*shader_apply_instance)(Shader* shader, bool32 needs_update);
+		bool32(*shader_apply_instance)(Shader* shader);
 		bool32(*shader_acquire_instance_resources)(Shader* shader, uint32 maps_count, TextureMap** maps, uint32* out_instance_id);
 		bool32(*shader_release_instance_resources)(Shader* shader, uint32 instance_id);
 		bool32(*shader_set_uniform)(Shader* shader, ShaderUniform* uniform, const void* value);

@@ -36,7 +36,6 @@ struct Skybox
 	String cubemap_name;
 	TextureMap cubemap;
 	GeometryData* geometry;
-	uint32 render_frame_number;
 	uint32 shader_instance_id;
 };
 

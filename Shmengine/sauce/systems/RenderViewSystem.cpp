@@ -61,13 +61,8 @@ namespace RenderViewSystem
 		system_state = 0;
 	}
 
-	bool32 register_view(RenderView* view)
+	bool32 register_view(RenderView* view, uint32 renderpass_count, Renderer::RenderPassConfig* renderpass_configs)
 	{
-
-		if (!view->renderpasses.capacity) {
-			SHMERROR("RenderViewSystem::create - Config must have at least one renderpass.");
-			return false;
-		}
 
 		uint32 ref_id = system_state->lookup_table.get_value(view->name);
 		if (ref_id != INVALID_ID) {
@@ -85,7 +80,17 @@ namespace RenderViewSystem
 		if (ref_id == INVALID_ID) {
 			SHMERROR("RenderViewSystem::create - No available space for a new view. Change system config to account for more.");
 			return false;
-		}	
+		}
+
+		view->renderpasses.init(renderpass_count, 0, AllocationTag::RENDERER);
+		for (uint32 pass_i = 0; pass_i < renderpass_count; pass_i++)
+		{
+			if (!Renderer::renderpass_create(&renderpass_configs[pass_i], &view->renderpasses[pass_i]))
+			{
+				SHMERROR("Failed to create pick renderpass!");
+				return false;
+			}
+		}
 
 		if (!view->on_register(view))
 		{

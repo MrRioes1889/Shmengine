@@ -221,11 +221,7 @@ bool32 render_view_ui_on_render(RenderView* self, Memory::LinearAllocator* frame
 				SHMERROR("Unknown shader or failed to apply instance to shader.");
 
 			if (instance_set)
-			{
-				bool32 needs_update = (*instance.render_frame_number != (uint32)frame_number);
-				UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id), needs_update));
-				*instance.render_frame_number = frame_number;
-			}
+				UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id)));
 
 			Renderer::geometry_draw(object->geometry_data);
 		}

@@ -343,7 +343,7 @@ bool32 render_view_pick_on_render(RenderView* self, Memory::LinearAllocator* fra
 			Math::uint32_to_rgb(cur_instance_id, &r, &g, &b);
 			Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
 			ShaderSystem::set_uniform(internal_data->id_color_location, &id_color);
-			Renderer::shader_apply_instance(pick_shader->shader, pick_shader->instances[cur_instance_id].is_dirty);
+			Renderer::shader_apply_instance(pick_shader->shader);
 			pick_shader->instances[cur_instance_id].is_dirty = false;
 
 			ShaderSystem::set_uniform(internal_data->model_location, &render_data->model);
@@ -399,7 +399,7 @@ bool32 render_view_pick_on_render(RenderView* self, Memory::LinearAllocator* fra
 			Math::uint32_to_rgb(cur_instance_id, &r, &g, &b);
 			Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
 			ShaderSystem::set_uniform(internal_data->id_color_location, &id_color);
-			Renderer::shader_apply_instance(pick_shader->shader, pick_shader->instances[cur_instance_id].is_dirty);
+			Renderer::shader_apply_instance(pick_shader->shader);
 			pick_shader->instances[cur_instance_id].is_dirty = false;
 
 			ShaderSystem::set_uniform(internal_data->model_location, &render_data->model);
@@ -416,7 +416,7 @@ bool32 render_view_pick_on_render(RenderView* self, Memory::LinearAllocator* fra
 
 	}
 
-	/*Texture* t = &internal_data->color_target_attachment_texture;
+	Texture* t = &internal_data->color_target_attachment_texture;
 
 	uint8 pixel[4] = {};
 	Math::Vec2i mouse_pos = Input::get_mouse_position();
@@ -435,7 +435,7 @@ bool32 render_view_pick_on_render(RenderView* self, Memory::LinearAllocator* fra
 		e_data.ui32[0] = id;
 		Event::event_fire(SystemEventCode::OBJECT_HOVER_ID_CHANGED, 0, e_data);
 		internal_data->hovered_object_id = id;
-	}	*/
+	}	
 
 	return true;
 

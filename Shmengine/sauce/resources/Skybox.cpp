@@ -62,8 +62,6 @@ bool32 skybox_load(Skybox* skybox)
 		return false;
 	}
 
-	skybox->render_frame_number = INVALID_ID;
-
 	Shader* skybox_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_skybox);
 	TextureMap* maps[1] = { &skybox->cubemap };
 	if (!Renderer::shader_acquire_instance_resources(skybox_shader, 1, maps, &skybox->shader_instance_id))
@@ -111,7 +109,6 @@ bool32 skybox_get_instance_render_data(void* in_skybox, Renderer::InstanceRender
 	out_data->texture_maps[0] = &skybox->cubemap;
 
 	out_data->shader_instance_id = skybox->shader_instance_id;
-	out_data->render_frame_number = &skybox->render_frame_number;
 
 	return true;
 }

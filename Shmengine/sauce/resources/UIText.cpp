@@ -38,7 +38,6 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
     out_ui_text->transform = Math::transform_create();
 
     out_ui_text->shader_instance_id = INVALID_ID;
-    out_ui_text->render_frame_number = INVALID_ID;
 
     uint32 text_length = out_ui_text->text.len();
     if (text_length < 1)
@@ -116,7 +115,6 @@ bool32 ui_text_unload(UIText* ui_text)
     Renderer::shader_release_instance_resources(ui_shader, ui_text->shader_instance_id);
 
     ui_text->shader_instance_id = INVALID_ID;
-    ui_text->render_frame_number = INVALID_ID;
 
     identifier_release_id(ui_text->unique_id);
     ui_text->unique_id = 0;
@@ -312,7 +310,6 @@ bool32 ui_text_get_instance_render_data(void* in_text, Renderer::InstanceRenderD
     out_data->texture_maps[0] = &text->font_atlas->map;
 
     out_data->shader_instance_id = text->shader_instance_id;
-    out_data->render_frame_number = &text->render_frame_number;
 
     return true;
 }

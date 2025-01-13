@@ -86,7 +86,6 @@ struct Terrain
 	Darray<SubMaterial> materials;
 
 	uint32 shader_instance_id;
-	uint32 render_frame_number;
 };
 
 SHMAPI bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain);

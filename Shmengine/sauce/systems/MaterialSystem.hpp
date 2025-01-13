@@ -190,7 +190,6 @@ struct Material
 	uint32 generation;	
 	uint32 shader_id;
 	uint32 shader_instance_id;
-	uint32 render_frame_number;
 	char name[max_material_name_length];
 	
 	Sarray<TextureMap> maps;
