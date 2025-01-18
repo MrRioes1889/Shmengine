@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ResourceTypes.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
@@ -12,18 +13,6 @@ namespace Renderer
 {
 	struct InstanceRenderData;
 }
-
-enum class UITextState
-{
-	UNINITIALIZED,
-	DESTROYED,
-	INITIALIZING,
-	INITIALIZED,
-	LOADING,
-	LOADED,
-	UNLOADING,
-	UNLOADED
-};
 
 enum class UITextType
 {
@@ -43,7 +32,7 @@ struct UITextConfig
 struct UIText
 {
 	UITextType type;
-	UITextState state;
+	ResourceState state;
 	UniqueId unique_id;
 	uint32 shader_instance_id;
 	FontAtlas* font_atlas;

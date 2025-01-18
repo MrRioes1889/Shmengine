@@ -189,10 +189,10 @@ void add_keymaps()
 	global_keymap.add_binding(KeyCode::SPACE, Input::KeymapBindingType::HOLD, 0, 0, on_camera_up);
 	global_keymap.add_binding(KeyCode::SHIFT, Input::KeymapBindingType::HOLD, 0, 0, on_camera_down);
 
-	RenderView* world_render_view = RenderViewSystem::get("skybox");
-	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, 0, world_render_view, on_render_mode_change);
-	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, 0, world_render_view, on_render_mode_change);
-	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, 0, world_render_view, on_render_mode_change);
+	RenderView* world_render_view = RenderViewSystem::get("world");
+	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, Input::KeymapModifierFlags::CONTROL, world_render_view, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, Input::KeymapModifierFlags::CONTROL, world_render_view, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, Input::KeymapModifierFlags::CONTROL, world_render_view, on_render_mode_change);
 
 	global_keymap.add_binding(KeyCode::L, Input::KeymapBindingType::PRESS, 0, 0, on_load_scene);
 	global_keymap.add_binding(KeyCode::U, Input::KeymapBindingType::PRESS, 0, 0, on_unload_scene);

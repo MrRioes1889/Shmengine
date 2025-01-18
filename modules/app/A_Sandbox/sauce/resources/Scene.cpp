@@ -233,7 +233,7 @@ bool32 scene_destroy(Scene* scene)
 	if (scene->state != ResourceState::UNLOADED && !scene_unload(scene))
 		return false;
 
-	if (scene->skybox.state >= SkyboxState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::INITIALIZED)
 	{
 		if (!skybox_destroy(&scene->skybox))
 		{
@@ -282,7 +282,7 @@ bool32 scene_load(Scene* scene)
 
 	scene->state = ResourceState::LOADING;
 
-	if (scene->skybox.state >= SkyboxState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::INITIALIZED)
 	{
 		if (!skybox_load(&scene->skybox))
 		{
@@ -350,7 +350,7 @@ bool32 scene_unload(Scene* scene)
 		}
 	}
 
-	if (scene->skybox.state >= SkyboxState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::INITIALIZED)
 	{
 		if (!skybox_unload(&scene->skybox))
 		{
@@ -392,12 +392,12 @@ bool32 scene_update(Scene* scene)
 	{
 		bool32 objects_initialized = true;
 
-		if (scene->skybox.state != SkyboxState::INITIALIZED)
+		if (scene->skybox.state != ResourceState::INITIALIZED)
 			objects_initialized = false;
 
 		for (uint32 i = 0; i < scene->meshes.count; i++)
 		{
-			if (scene->meshes[i].state != MeshState::INITIALIZED)
+			if (scene->meshes[i].state != ResourceState::INITIALIZED)
 			{
 				objects_initialized = false;
 				break;
@@ -406,7 +406,7 @@ bool32 scene_update(Scene* scene)
 
 		for (uint32 i = 0; i < scene->terrains.count; i++)
 		{
-			if (scene->terrains[i].state != TerrainState::INITIALIZED)
+			if (scene->terrains[i].state != ResourceState::INITIALIZED)
 			{
 				objects_initialized = false;
 				break;
@@ -429,12 +429,12 @@ bool32 scene_update(Scene* scene)
 	{
 		bool32 objects_loaded = true;
 
-		if (scene->skybox.state != SkyboxState::LOADED)
+		if (scene->skybox.state != ResourceState::LOADED)
 			objects_loaded = false;
 
 		for (uint32 i = 0; i < scene->meshes.count; i++)
 		{
-			if (scene->meshes[i].state != MeshState::LOADED)
+			if (scene->meshes[i].state != ResourceState::LOADED)
 			{
 				objects_loaded = false;
 				break;
@@ -443,7 +443,7 @@ bool32 scene_update(Scene* scene)
 
 		for (uint32 i = 0; i < scene->terrains.count; i++)
 		{
-			if (scene->terrains[i].state != TerrainState::LOADED)
+			if (scene->terrains[i].state != ResourceState::LOADED)
 			{
 				objects_loaded = false;
 				break;
@@ -466,12 +466,12 @@ bool32 scene_update(Scene* scene)
 	{
 		bool32 objects_unloaded = true;
 
-		if (scene->skybox && scene->skybox->state > SkyboxState::UNLOADED)
+		if (scene->skybox && scene->skybox->state > ResourceState::UNLOADED)
 			objects_unloaded = false;
 
 		for (uint32 i = 0; i < scene->meshes.count; i++)
 		{
-			if (scene->meshes[i]->state > MeshState::UNLOADED)
+			if (scene->meshes[i]->state > ResourceState::UNLOADED)
 			{
 				objects_unloaded = false;
 				break;
@@ -513,7 +513,7 @@ bool32 scene_add_point_light(Scene* scene, PointLight light)
 
 	Box3D* light_box = &scene->p_light_boxes[scene->p_light_boxes.emplace()];
 
-	if (!box3D_init("", { 0.3f, 0.3f, 0.3f }, light.color, light_box))
+	if (!box3D_init({ 0.3f, 0.3f, 0.3f }, light.color, light_box))
 	{
 		SHMERROR("Failed to initialize light box!");
 		return false;
@@ -701,7 +701,7 @@ bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 {
 
-	if (scene->skybox.state >= SkyboxState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::INITIALIZED)
 	{
 		if (!skybox_destroy(&scene->skybox))
 		{
@@ -796,7 +796,7 @@ bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view,
 
 	uint32 skybox_shader_id = ShaderSystem::get_skybox_shader_id();
 
-	if (scene->skybox.state >= SkyboxState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::INITIALIZED)
 		frame_data->drawn_geometry_count += Renderer::skybox_draw(&scene->skybox, skybox_view, 0, skybox_shader_id, frame_data);
 
 	LightingInfo lighting =

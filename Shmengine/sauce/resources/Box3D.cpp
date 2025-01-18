@@ -7,14 +7,13 @@
 
 static void update_vertices(Box3D* out_box);
 
-bool32 box3D_init(const char* name, Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
+bool32 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 {
 	if (out_box->state >= ResourceState::INITIALIZED)
 		return false;
 
 	out_box->state = ResourceState::INITIALIZING;
 
-	out_box->name = name;
 	out_box->xform = Math::transform_create();
 	out_box->color = color;
 
@@ -51,8 +50,6 @@ bool32 box3D_destroy(Box3D* box)
 
 	box->geometry.vertices.free_data();
 	box->geometry.indices.free_data();
-
-	box->name.free_data();
 
 	box->state = ResourceState::DESTROYED;
 	return true;

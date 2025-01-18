@@ -1,18 +1,17 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "ResourceTypes.h"
+#include "ResourceTypes.hpp"
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
 #include "systems/GeometrySystem.hpp"
 
 struct Box3D
-{
-	String name;
-	Math::Transform xform;
+{	
 	UniqueId unique_id;
 	ResourceState state;
 
+	Math::Transform xform;
 	Math::Vec4f color;
 
 	GeometryData geometry;
@@ -20,7 +19,7 @@ struct Box3D
 	bool8 is_dirty;
 };
 
-SHMAPI bool32 box3D_init(const char* name, Math::Vec3f size, Math::Vec4f color, Box3D* out_box);
+SHMAPI bool32 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box);
 SHMAPI bool32 box3D_destroy(Box3D* box);
 SHMAPI bool32 box3D_load(Box3D* box);
 SHMAPI bool32 box3D_unload(Box3D* box);

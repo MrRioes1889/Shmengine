@@ -7,14 +7,13 @@
 
 static void update_vertices(Line3D* out_line);
 
-bool32 line3D_init(const char* name, Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Line3D* out_line)
+bool32 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Line3D* out_line)
 {
 	if (out_line->state >= ResourceState::INITIALIZED)
 		return false;
 
 	out_line->state = ResourceState::INITIALIZING;
 
-	out_line->name = name;
 	out_line->xform = Math::transform_create();
 	out_line->point0 = point0;
 	out_line->point1 = point1;
@@ -48,8 +47,6 @@ bool32 line3D_destroy(Line3D* line)
 
 	line->geometry.vertices.free_data();
 	line->geometry.indices.free_data();
-
-	line->name.free_data();
 
 	line->state = ResourceState::DESTROYED;
 	return true;

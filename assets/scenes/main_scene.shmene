@@ -14,13 +14,13 @@ name=skybox_01
 cubemap_name=skybox
 [/]
 
-#[Mesh]
-#name=sponza
-#resource_name=sponza
-#position=50.0 2.5 50.0
-#rotation=0.0 0.0 0.0 1.0
-#scale=0.03 0.03 0.03
-#[/]
+[Mesh]
+name=sponza
+resource_name=sponza
+position=50.0 2.5 50.0
+rotation=0.0 0.0 0.0 1.0
+scale=0.03 0.03 0.03
+[/]
 
 [Mesh]
 name=falcon

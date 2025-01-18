@@ -1,6 +1,8 @@
 #pragma once
 
-enum class ResourceState
+#include "Defines.hpp"
+
+enum class ResourceState : uint8
 {
 	UNINITIALIZED,
 	DESTROYED,

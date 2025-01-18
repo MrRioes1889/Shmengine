@@ -1,18 +1,17 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "ResourceTypes.h"
+#include "ResourceTypes.hpp"
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
 #include "systems/GeometrySystem.hpp"
 
 struct Line3D
 {
-	String name;
-	Math::Transform xform;
 	UniqueId unique_id;
 	ResourceState state;
 
+	Math::Transform xform;
 	Math::Vec3f point0;
 	Math::Vec3f point1;
 	Math::Vec4f color;
@@ -22,7 +21,7 @@ struct Line3D
 	bool8 is_dirty;
 };
 
-SHMAPI bool32 line3D_init(const char* name, Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Line3D* out_line);
+SHMAPI bool32 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Line3D* out_line);
 SHMAPI bool32 line3D_destroy(Line3D* line);
 SHMAPI bool32 line3D_load(Line3D* line);
 SHMAPI bool32 line3D_unload(Line3D* line);

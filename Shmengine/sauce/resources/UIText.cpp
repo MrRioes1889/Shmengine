@@ -21,10 +21,10 @@ static const uint32 quad_index_count = 6;
 bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 {
 
-    if (out_ui_text->state >= UITextState::INITIALIZED)
+    if (out_ui_text->state >= ResourceState::INITIALIZED)
         return false;
 
-    out_ui_text->state = UITextState::INITIALIZING;
+    out_ui_text->state = ResourceState::INITIALIZING;
 
     out_ui_text->type = config->type;
 
@@ -56,7 +56,7 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 
     out_ui_text->unique_id = identifier_acquire_new_id(out_ui_text);
 
-    out_ui_text->state = UITextState::INITIALIZED;
+    out_ui_text->state = ResourceState::INITIALIZED;
 
     return true;
 
@@ -64,7 +64,7 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 
 bool32 ui_text_destroy(UIText* ui_text)
 {
-    if (ui_text->state != UITextState::UNLOADED && !ui_text_unload(ui_text))
+    if (ui_text->state != ResourceState::UNLOADED && !ui_text_unload(ui_text))
         return false;
 
     ui_text->text.free_data();
@@ -72,17 +72,17 @@ bool32 ui_text_destroy(UIText* ui_text)
     ui_text->geometry.vertices.free_data();
     ui_text->geometry.indices.free_data();
 
-    ui_text->state = UITextState::DESTROYED;
+    ui_text->state = ResourceState::DESTROYED;
 
     return true;
 }
 
 bool32 ui_text_load(UIText* ui_text)
 {
-    if (ui_text->state != UITextState::INITIALIZED && ui_text->state != UITextState::UNLOADED)
+    if (ui_text->state != ResourceState::INITIALIZED && ui_text->state != ResourceState::UNLOADED)
         return false;
 
-    ui_text->state = UITextState::LOADING;
+    ui_text->state = ResourceState::LOADING;
 
     Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
     TextureMap* font_maps[1] = { &ui_text->font_atlas->map };
@@ -95,19 +95,19 @@ bool32 ui_text_load(UIText* ui_text)
     regenerate_geometry(ui_text);
     Renderer::geometry_load(&ui_text->geometry);
 
-    ui_text->state = UITextState::LOADED;
+    ui_text->state = ResourceState::LOADED;
 
     return true;
 }
 
 bool32 ui_text_unload(UIText* ui_text)
 {
-    if (ui_text->state <= UITextState::INITIALIZED)
+    if (ui_text->state <= ResourceState::INITIALIZED)
         return true;
-    else if (ui_text->state != UITextState::LOADED)
+    else if (ui_text->state != ResourceState::LOADED)
         return false;
 
-    ui_text->state = UITextState::UNLOADING;
+    ui_text->state = ResourceState::UNLOADING;
 
     Renderer::geometry_unload(&ui_text->geometry);
 
@@ -119,7 +119,7 @@ bool32 ui_text_unload(UIText* ui_text)
     identifier_release_id(ui_text->unique_id);
     ui_text->unique_id = 0;
 
-    ui_text->state = UITextState::UNLOADED;
+    ui_text->state = ResourceState::UNLOADED;
     return true;
 }
 
@@ -150,7 +150,7 @@ void ui_text_update(UIText* ui_text)
 
     regenerate_geometry(ui_text);
 
-    if (ui_text->state == UITextState::LOADED)
+    if (ui_text->state == ResourceState::LOADED)
         Renderer::geometry_reload(&ui_text->geometry, old_vertex_buffer_size, old_index_buffer_size);
         
 }

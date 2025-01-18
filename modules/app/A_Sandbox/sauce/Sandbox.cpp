@@ -498,9 +498,9 @@ static bool32 init_render_views(Application* app_inst)
 	Renderer::RenderPassConfig world_pass_configs[world_pass_count];
 
 	Renderer::RenderPassConfig* world_objects_pass_config = &world_pass_configs[0];
-	Renderer::RenderPassConfig* world_grid_pass_config = &world_pass_configs[1];
+	Renderer::RenderPassConfig* world_editor_pass_config = &world_pass_configs[1];
 
-	world_objects_pass_config->name = "Builtin.WorldObjects";
+	world_objects_pass_config->name = "Builtin.World";
 	world_objects_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	world_objects_pass_config->offset = { 0, 0 };
 	world_objects_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
@@ -526,16 +526,16 @@ static bool32 init_render_views(Application* app_inst)
 	world_objects_pass_config->target_config.attachment_configs = world_objects_att_configs;
 	world_objects_pass_config->render_target_count = Renderer::get_window_attachment_count();
 
-	world_grid_pass_config->name = "Builtin.WorldCoordinateGrid";
-	world_grid_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
-	world_grid_pass_config->offset = { 0, 0 };
-	world_grid_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-	world_grid_pass_config->clear_flags = Renderer::RenderpassClearFlags::NONE;
-	world_grid_pass_config->depth = 1.0f;
-	world_grid_pass_config->stencil = 0;
+	world_editor_pass_config->name = "Builtin.WorldEditor";
+	world_editor_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
+	world_editor_pass_config->offset = { 0, 0 };
+	world_editor_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
+	world_editor_pass_config->clear_flags = Renderer::RenderpassClearFlags::NONE;
+	world_editor_pass_config->depth = 1.0f;
+	world_editor_pass_config->stencil = 0;
 
-	const uint32 world_grid_target_att_count = 2;
-	Renderer::RenderTargetAttachmentConfig world_grid_att_configs[world_grid_target_att_count];
+	const uint32 world_editor_target_att_count = 2;
+	Renderer::RenderTargetAttachmentConfig world_grid_att_configs[world_editor_target_att_count];
 	world_grid_att_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
 	world_grid_att_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
 	world_grid_att_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
@@ -548,9 +548,9 @@ static bool32 init_render_views(Application* app_inst)
 	world_grid_att_configs[1].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
 	world_grid_att_configs[1].present_after = false;
 
-	world_grid_pass_config->target_config.attachment_count = world_grid_target_att_count;
-	world_grid_pass_config->target_config.attachment_configs = world_grid_att_configs;
-	world_grid_pass_config->render_target_count = Renderer::get_window_attachment_count();
+	world_editor_pass_config->target_config.attachment_count = world_editor_target_att_count;
+	world_editor_pass_config->target_config.attachment_configs = world_grid_att_configs;
+	world_editor_pass_config->render_target_count = Renderer::get_window_attachment_count();
 
 	RenderViewSystem::register_view(world_view, world_pass_count, world_pass_configs);
 

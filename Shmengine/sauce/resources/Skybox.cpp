@@ -8,10 +8,10 @@
 
 bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 {
-	if (out_skybox->state >= SkyboxState::INITIALIZED)
+	if (out_skybox->state >= ResourceState::INITIALIZED)
 		return false;
 	
-	out_skybox->state = SkyboxState::INITIALIZING;
+	out_skybox->state = ResourceState::INITIALIZING;
 
 	out_skybox->name = config->name;
 	out_skybox->cubemap_name = config->cubemap_name;
@@ -27,14 +27,14 @@ bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), skybox_cube_config);
 	out_skybox->geometry = GeometrySystem::acquire_from_config(&skybox_cube_config, true);
 
-	out_skybox->state = SkyboxState::INITIALIZED;
+	out_skybox->state = ResourceState::INITIALIZED;
 
 	return true;
 }
 
 bool32 skybox_destroy(Skybox* skybox)
 {
-	if (skybox->state != SkyboxState::UNLOADED && !skybox_unload(skybox))
+	if (skybox->state != ResourceState::UNLOADED && !skybox_unload(skybox))
 		return false;
 
 	GeometrySystem::release(skybox->geometry);
@@ -42,17 +42,17 @@ bool32 skybox_destroy(Skybox* skybox)
 	skybox->cubemap_name.free_data();
 	skybox->geometry = 0;
 	skybox->shader_instance_id = INVALID_ID;
-	skybox->state = SkyboxState::DESTROYED;
+	skybox->state = ResourceState::DESTROYED;
 	return true;
 }
 
 bool32 skybox_load(Skybox* skybox)
 {
 
-	if (skybox->state != SkyboxState::INITIALIZED && skybox->state != SkyboxState::UNLOADED)
+	if (skybox->state != ResourceState::INITIALIZED && skybox->state != ResourceState::UNLOADED)
 		return false;
 
-	skybox->state = SkyboxState::LOADING;
+	skybox->state = ResourceState::LOADING;
 	skybox->unique_id = identifier_acquire_new_id(skybox);
 
 	skybox->cubemap.texture = TextureSystem::acquire_cube(skybox->cubemap_name.c_str(), true);
@@ -70,7 +70,7 @@ bool32 skybox_load(Skybox* skybox)
 		return false;
 	}
 
-	skybox->state = SkyboxState::LOADED;
+	skybox->state = ResourceState::LOADED;
 
 	return true;
 
@@ -79,12 +79,12 @@ bool32 skybox_load(Skybox* skybox)
 bool32 skybox_unload(Skybox* skybox)
 {
 
-	if (skybox->state <= SkyboxState::INITIALIZED)
+	if (skybox->state <= ResourceState::INITIALIZED)
 		return true;
-	else if (skybox->state != SkyboxState::LOADED)
+	else if (skybox->state != ResourceState::LOADED)
 		return false;
 
-	skybox->state = SkyboxState::UNLOADING;
+	skybox->state = ResourceState::UNLOADING;
 
 	Shader* skybox_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_skybox);
 
@@ -95,7 +95,7 @@ bool32 skybox_unload(Skybox* skybox)
 
 	identifier_release_id(skybox->unique_id);
 	skybox->unique_id = 0;
-	skybox->state = SkyboxState::UNLOADED;
+	skybox->state = ResourceState::UNLOADED;
 
 	return true;
 }

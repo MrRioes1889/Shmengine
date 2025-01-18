@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "ResourceTypes.hpp"
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
 #include "systems/GeometrySystem.hpp"
@@ -12,18 +13,6 @@ namespace Renderer
 {
 	struct InstanceRenderData;
 }
-
-enum class TerrainState
-{
-	UNINITIALIZED,
-	DESTROYED,
-	INITIALIZING,
-	INITIALIZED,
-	LOADING,
-	LOADED,
-	UNLOADING,
-	UNLOADED
-};
 
 struct TerrainVertex
 {
@@ -68,7 +57,7 @@ struct Terrain
 	String name;	
 	Math::Transform xform;
 	UniqueId unique_id;
-	TerrainState state;
+	ResourceState state;
 
 	uint32 tile_count_x;
 	uint32 tile_count_z;

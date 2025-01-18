@@ -4,7 +4,7 @@
 #include <containers/Darray.hpp>
 #include <utility/MathTypes.hpp>
 
-#include <resources/ResourceTypes.h>
+#include <resources/ResourceTypes.hpp>
 #include <resources/Skybox.hpp>
 #include <resources/Mesh.hpp>
 #include <resources/Terrain.hpp>

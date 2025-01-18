@@ -18,10 +18,10 @@ static bool32 mesh_load_async(Mesh* mesh, bool32 reload);
 
 bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
 {
-    if (out_mesh->state >= MeshState::INITIALIZED)
+    if (out_mesh->state >= ResourceState::INITIALIZED)
         return false;
 
-    out_mesh->state = MeshState::INITIALIZING;
+    out_mesh->state = ResourceState::INITIALIZING;
 
     out_mesh->name = config->name;
     out_mesh->extents = {};
@@ -55,7 +55,7 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
 
     out_mesh->generation = INVALID_ID8;
 
-    out_mesh->state = MeshState::INITIALIZED;
+    out_mesh->state = ResourceState::INITIALIZED;
 
     return true;
 }
@@ -63,13 +63,13 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
 bool32 mesh_init_from_resource(const char* resource_name, Mesh* out_mesh)
 {
 
-    out_mesh->state = MeshState::INITIALIZING;
+    out_mesh->state = ResourceState::INITIALIZING;
 
     MeshResourceData resource = {};
     if (!ResourceSystem::mesh_loader_load(resource_name, 0, &resource))
     {
         SHMERRORV("Failed to load mesh from resource '%s'", resource_name);
-        out_mesh->state = MeshState::UNINITIALIZED;
+        out_mesh->state = ResourceState::UNINITIALIZED;
         return false;
     }
 
@@ -96,7 +96,7 @@ bool32 mesh_init_from_resource(const char* resource_name, Mesh* out_mesh)
 
 bool32 mesh_destroy(Mesh* mesh)
 {
-    if (mesh->state != MeshState::UNLOADED && !mesh_unload(mesh))
+    if (mesh->state != ResourceState::UNLOADED && !mesh_unload(mesh))
         return false;
 
     for (uint32 i = 0; i < mesh->geometries.count; i++)
@@ -104,19 +104,19 @@ bool32 mesh_destroy(Mesh* mesh)
 
     mesh->name.free_data();
 
-    mesh->state = MeshState::DESTROYED;
+    mesh->state = ResourceState::DESTROYED;
     return true;
 }
 
 bool32 mesh_load(Mesh* mesh)
 {
 
-    if (mesh->state != MeshState::INITIALIZED && mesh->state != MeshState::UNLOADED)
+    if (mesh->state != ResourceState::INITIALIZED && mesh->state != ResourceState::UNLOADED)
         return false;
 
-    bool32 is_reload = mesh->state == MeshState::UNLOADED;
+    bool32 is_reload = mesh->state == ResourceState::UNLOADED;
 
-    mesh->state = MeshState::LOADING;
+    mesh->state = ResourceState::LOADING;
     mesh->generation = INVALID_ID8;
     mesh->unique_id = identifier_acquire_new_id(mesh);
 
@@ -129,12 +129,12 @@ bool32 mesh_load(Mesh* mesh)
 bool32 mesh_unload(Mesh* mesh)
 {
 
-    if (mesh->state <= MeshState::INITIALIZED)
+    if (mesh->state <= ResourceState::INITIALIZED)
         return true;
-    else if (mesh->state != MeshState::LOADED)
+    else if (mesh->state != ResourceState::LOADED)
         return false;
 
-    mesh->state = MeshState::UNLOADING;
+    mesh->state = ResourceState::UNLOADING;
 
     mesh->generation = INVALID_ID8;
     identifier_release_id(mesh->unique_id);
@@ -149,7 +149,7 @@ bool32 mesh_unload(Mesh* mesh)
         }
     }
 
-    mesh->state = MeshState::UNLOADED;
+    mesh->state = ResourceState::UNLOADED;
 
     return true;
 
@@ -166,7 +166,7 @@ static void mesh_load_job_success(void* params) {
     Mesh* mesh = mesh_params->out_mesh;  
 
     mesh_params->out_mesh->generation++;
-    mesh_params->out_mesh->state = MeshState::LOADED;
+    mesh_params->out_mesh->state = ResourceState::LOADED;
 
     SHMTRACEV("Successfully loaded mesh '%s'.", mesh->name.c_str());
 

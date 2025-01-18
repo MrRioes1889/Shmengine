@@ -1,23 +1,12 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "ResourceTypes.hpp"
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
 #include "systems/GeometrySystem.hpp"
 
 struct LightingInfo;
-
-enum class MeshState
-{
-	UNINITIALIZED,
-	DESTROYED,
-	INITIALIZING,
-	INITIALIZED,
-	LOADING,
-	LOADED,
-	UNLOADING,
-	UNLOADED
-};
 
 struct MeshGeometryConfig
 {
@@ -45,7 +34,7 @@ struct Mesh
 {
 	String name;
 
-	MeshState state;
+	ResourceState state;
 	UniqueId unique_id;
 	uint8 generation;
 	Darray<MeshGeometry> geometries;

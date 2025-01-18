@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ResourceTypes.hpp"
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
 #include "systems/MaterialSystem.hpp"
@@ -10,18 +11,6 @@ namespace Renderer
 	struct InstanceRenderData;
 }
 
-enum class SkyboxState
-{
-	UNINITIALIZED,
-	DESTROYED,
-	INITIALIZED,
-	INITIALIZING,
-	LOADING,
-	LOADED,
-	UNLOADING,
-	UNLOADED
-};
-
 struct SkyboxConfig
 {
 	const char* name;
@@ -31,7 +20,7 @@ struct SkyboxConfig
 struct Skybox
 {
 	String name;
-	SkyboxState state;
+	ResourceState state;
 	UniqueId unique_id;
 	String cubemap_name;
 	TextureMap cubemap;
