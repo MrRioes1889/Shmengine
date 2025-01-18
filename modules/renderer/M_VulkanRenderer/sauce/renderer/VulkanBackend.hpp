@@ -58,7 +58,7 @@ namespace Renderer::Vulkan
 	bool32 vk_shader_apply_globals(Shader* s);
 	bool32 vk_shader_apply_instance(Shader* s);
 
-	bool32 vk_shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32* out_instance_id);
+	bool32 vk_shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32 instance_id);
 	bool32 vk_shader_release_instance_resources(Shader* s, uint32 instance_id);
 
 	bool32 vk_shader_set_uniform(Shader* frontend_shader, ShaderUniform* uniform, const void* value);

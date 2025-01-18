@@ -544,11 +544,7 @@ bool32 render_view_world_on_render(RenderView* self, Memory::LinearAllocator* fr
 
 			if (globals_set)
 			{
-				if (current_shader->renderer_frame_number != frame_number)
-				{
-					Renderer::shader_apply_globals(current_shader);
-					current_shader->renderer_frame_number = frame_number;
-				}
+				Renderer::shader_apply_globals(current_shader);
 			}
 			else
 			{
@@ -601,7 +597,6 @@ bool32 render_view_world_on_render(RenderView* self, Memory::LinearAllocator* fr
 
 	set_globals_coordinate_grid(internal_data);
 	Renderer::shader_apply_globals(current_shader);
-	current_shader->renderer_frame_number = frame_number;
 
 	Renderer::geometry_draw(&internal_data->coordinate_grid.geometry);
 

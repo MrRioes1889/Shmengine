@@ -195,11 +195,7 @@ bool32 render_view_ui_on_render(RenderView* self, Memory::LinearAllocator* frame
 
 				if (globals_set)
 				{
-					if (current_shader->renderer_frame_number != frame_number)
-					{
-						UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_globals(current_shader));
-						current_shader->renderer_frame_number = frame_number;
-					}
+					UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_globals(current_shader));
 				}
 				else
 				{

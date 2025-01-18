@@ -137,11 +137,26 @@ namespace ShaderFlags
 	typedef uint32 Value;
 }
 
+struct ShaderInstance
+{
+	uint32 id;
+	uint8 last_update_frame_number;
+	uint64 offset;
+
+	Sarray<TextureMap*> instance_texture_maps;
+};
+
 struct Shader
 {
 	uint32 id;
 	ShaderFlags::Value shader_flags;
 	Renderer::RenderTopologyTypeFlags::Value topologies;
+
+	uint8 global_uniform_count;
+	uint8 global_uniform_sampler_count;
+	uint8 instance_uniform_count;
+	uint8 instance_uniform_sampler_count;
+	uint8 local_uniform_count;
 
 	uint64 required_ubo_alignment;
 	uint32 global_ubo_size;
@@ -171,10 +186,13 @@ struct Shader
 	Darray<ShaderAttribute> attributes;
 
 	uint16 attribute_stride;
+	uint8 last_update_frame_number;
+
 	uint32 push_constant_range_count;
 	Range push_constant_ranges[32];
 
-	uint64 renderer_frame_number;
+	uint32 instance_count;
+	ShaderInstance instances[Renderer::RendererConfig::shader_max_instances];
 
 	Renderer::RenderBuffer uniform_buffer;
 

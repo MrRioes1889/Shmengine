@@ -218,8 +218,6 @@ namespace Renderer::Vulkan
 
 		vk_swapchain_create(context->framebuffer_width, context->framebuffer_height, &context->swapchain);
 
-		context->frame_number = 0;
-
 		for (uint32 i = 0; i < RendererConfig::framebuffer_count; i++)
 			context->framebuffer_fences_in_flight[i] = 0;
 
@@ -359,8 +357,6 @@ namespace Renderer::Vulkan
 			SHMINFO("Resized, booting.");
 			return false;
 		}
-
-		context->frame_number++;
 
 		VkResult res = vkWaitForFences(context->device.logical_device, 1, &context->framebuffer_fences[context->bound_sync_object_index], true, UINT64_MAX);
 		if (!vk_result_is_success(res))
@@ -694,8 +690,6 @@ namespace Renderer::Vulkan
 
 		context->recreating_swapchain = true;
 		vkDeviceWaitIdle(context->device.logical_device);
-
-		context->frame_number = 0;
 
 		for (uint32 i = 0; i < RendererConfig::framebuffer_count; i++)
 			context->framebuffer_fences_in_flight[i] = 0;

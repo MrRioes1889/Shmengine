@@ -47,6 +47,8 @@ namespace Renderer
 		bool32 resizing;
 		uint32 frames_since_resize;
 
+		uint8 frame_number;
+
 		RendererConfigFlags::Value flags;
 		
 	};
@@ -63,6 +65,7 @@ namespace Renderer
 
 		system_state->flags = RendererConfigFlags::VSYNC; //| RendererConfigFlags::POWER_SAVING;
 
+		system_state->frame_number = 0;
 		system_state->module.frame_number = 0;
 		system_state->module = sys_config->renderer_module;
 
@@ -153,6 +156,8 @@ namespace Renderer
 				return true;
 			}
 		}
+
+		system_state->frame_number++;
 
 		if (!backend.begin_frame(frame_data))
 		{
@@ -475,7 +480,7 @@ namespace Renderer
 
 		shader->name = config->name;
 		shader->bound_instance_id = INVALID_ID;
-		shader->renderer_frame_number = INVALID_ID64;
+		shader->last_update_frame_number = INVALID_ID8;
 
 		shader->global_texture_maps.init(1, 0, AllocationTag::RENDERER);
 		shader->uniforms.init(1, 0, AllocationTag::RENDERER);
@@ -497,6 +502,43 @@ namespace Renderer
 		if (config->depth_write)
 			shader->shader_flags |= ShaderFlags::DEPTH_WRITE;
 
+		for (uint32 i = 0; i < RendererConfig::shader_max_instances; ++i)
+			shader->instances[i].id = INVALID_ID;
+
+		shader->global_uniform_count = 0;
+		shader->global_uniform_sampler_count = 0;
+		shader->instance_uniform_count = 0;
+		shader->instance_uniform_sampler_count = 0;
+		shader->local_uniform_count = 0;
+
+		for (uint32 i = 0; i < config->uniforms_count; i++)
+		{
+			switch (config->uniforms[i].scope)
+			{
+			case ShaderScope::GLOBAL:
+			{
+				if (config->uniforms[i].type == ShaderUniformType::SAMPLER)
+					shader->global_uniform_sampler_count++;
+				else
+					shader->global_uniform_count++;
+				break;
+			}
+			case ShaderScope::INSTANCE:
+			{
+				if (config->uniforms[i].type == ShaderUniformType::SAMPLER)
+					shader->instance_uniform_sampler_count++;
+				else
+					shader->instance_uniform_count++;
+				break;
+			}
+			case ShaderScope::LOCAL:
+			{
+				shader->local_uniform_count++;
+				break;
+			}
+			}
+		}
+
 		return system_state->module.shader_create(shader, config, renderpass);
 	}
 
@@ -508,6 +550,8 @@ namespace Renderer
 
 	bool32 shader_init(Shader* s) 
 	{
+
+		s->instance_count = 0;
 
 		// Make sure the UBO is aligned according to device requirements.
 		s->global_ubo_stride = (uint32)get_aligned_pow2(s->global_ubo_size, s->required_ubo_alignment);
@@ -552,26 +596,89 @@ namespace Renderer
 
 	bool32 shader_bind_instance(Shader* s, uint32 instance_id) 
 	{
+		s->bound_instance_id = instance_id;
+		s->bound_ubo_offset = (uint32)s->instances[instance_id].offset;
+
 		return system_state->module.shader_bind_instance(s, instance_id);
 	}
 
 	bool32 shader_apply_globals(Shader* s) 
 	{
+		if (s->last_update_frame_number == system_state->frame_number)
+			return true;
+
+		s->last_update_frame_number = system_state->frame_number;
 		return system_state->module.shader_apply_globals(s);
 	}
 
 	bool32 shader_apply_instance(Shader* s) 
 	{
+		if (s->instance_uniform_count < 1 && s->instance_uniform_sampler_count < 1)
+		{
+			SHMERROR("This shader does not use instances.");
+			return false;
+		}
+
+		ShaderInstance* instance = &s->instances[s->bound_instance_id];
+		if (instance->last_update_frame_number == system_state->frame_number)
+			return true;
+
+		instance->last_update_frame_number = system_state->frame_number;
 		return system_state->module.shader_apply_instance(s);
 	}
 
 	bool32 shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32* out_instance_id)
 	{
-		return system_state->module.shader_acquire_instance_resources(s, texture_maps_count, out_instance_id);
+
+		// TODO: dynamic
+		*out_instance_id = INVALID_ID;
+		for (uint32 i = 0; i < 1024; ++i)
+		{
+			if (s->instances[i].id == INVALID_ID)
+			{
+				s->instances[i].id = i;
+				*out_instance_id = i;
+				break;
+			}
+		}
+		if (*out_instance_id == INVALID_ID)
+		{
+			SHMERROR("vulkan_shader_acquire_instance_resources failed to acquire new id");
+			return false;
+		}
+
+		s->instance_count++;
+		ShaderInstance* instance = &s->instances[*out_instance_id];
+
+		if (texture_maps_count)
+			instance->instance_texture_maps.init(texture_maps_count, true, AllocationTag::RENDERER);
+
+		// Allocate some space in the UBO - by the stride, not the size.
+		uint64 size = s->ubo_stride;
+		if (size > 0)
+		{
+			if (!renderbuffer_allocate(&s->uniform_buffer, size, &instance->offset))
+			{
+				SHMERROR("vulkan_material_shader_acquire_resources failed to acquire ubo space");
+				return false;
+			}
+		}
+
+		return system_state->module.shader_acquire_instance_resources(s, texture_maps_count, *out_instance_id);
 	}
 
 	bool32 shader_release_instance_resources(Shader* s, uint32 instance_id) 
 	{
+		ShaderInstance* instance = &s->instances[instance_id];
+
+		instance->instance_texture_maps.free_data();
+
+		renderbuffer_free(&s->uniform_buffer, instance->offset);
+		instance->offset = INVALID_ID64;
+		instance->id = INVALID_ID;
+
+		s->instance_count--;
+
 		return system_state->module.shader_release_instance_resources(s, instance_id);
 	}
 

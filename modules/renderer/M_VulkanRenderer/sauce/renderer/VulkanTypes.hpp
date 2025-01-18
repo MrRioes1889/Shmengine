@@ -178,26 +178,14 @@ namespace Renderer::Vulkan
 		uint32 ids[RendererConfig::framebuffer_count];
 	};
 
-	struct VulkanShaderDescriptorSetState
+	struct VulkanShaderInstanceDescriptor
 	{
 		VkDescriptorSet descriptor_sets[RendererConfig::framebuffer_count];
 		VulkanDescriptorState descriptor_states[RendererConfig::shader_max_bindings];
 	};
 
-	struct VulkanShaderInstanceState
-	{
-		uint32 id;
-		uint8 last_update_frame_number;
-		uint64 offset;
-
-		VulkanShaderDescriptorSetState descriptor_set_state;
-		Sarray<TextureMap*> instance_texture_maps;
-
-	};
-
 	struct VulkanPipelineConfig
 	{
-
 		uint32 vertex_stride;
 		uint32 attribute_count;
 		uint32 descriptor_set_layout_count;
@@ -228,17 +216,9 @@ namespace Renderer::Vulkan
 
 	struct VulkanShader
 	{
-
 		uint32 id;
-		uint32 instance_count;
 
-		uint8 last_update_frame_number;
-
-		uint8 global_uniform_count;
-		uint8 global_uniform_sampler_count;
-		uint8 instance_uniform_count;
-		uint8 instance_uniform_sampler_count;
-		uint8 local_uniform_count;
+		VkPrimitiveTopology current_topology;
 
 		VulkanShaderConfig config;
 
@@ -253,16 +233,11 @@ namespace Renderer::Vulkan
 		VkDescriptorSet global_descriptor_sets[RendererConfig::framebuffer_count];
 
 		void* mapped_uniform_buffer;
-		//Renderbuffer uniform_buffer;
 
-		//VulkanPipeline pipeline;
 		Sarray<VulkanPipeline*> pipelines;
 		uint32 bound_pipeline_id;
 
-		VkPrimitiveTopology current_topology;
-
-		VulkanShaderInstanceState instance_states[RendererConfig::shader_max_instances];
-
+		VulkanShaderInstanceDescriptor instance_descriptors[RendererConfig::shader_max_instances];
 	};
 
 	enum class TaskType
@@ -329,8 +304,6 @@ namespace Renderer::Vulkan
 		uint32 framebuffer_height;
 
 		RingQueue<TaskInfo> end_of_frame_task_queue;
-
-		uint8 frame_number;
 
 		bool8 config_changed;
 		bool8 recreating_swapchain;
