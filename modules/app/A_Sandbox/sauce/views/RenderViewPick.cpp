@@ -91,7 +91,7 @@ static void acquire_shader_instances(const RenderView* self, PickShaderInfo* sha
 	RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 
 	uint32 instance_id;
-	if (!Renderer::shader_acquire_instance_resources(shader_info->shader, 0, 0, &instance_id))
+	if (!Renderer::shader_acquire_instance_resources(shader_info->shader, 0, &instance_id))
 	{
 		SHMFATAL("Failed to acquire shader instance resources.");
 		return;

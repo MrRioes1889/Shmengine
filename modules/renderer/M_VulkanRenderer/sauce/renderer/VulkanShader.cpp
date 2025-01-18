@@ -697,7 +697,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_shader_acquire_instance_resources(Shader* s, uint32 maps_count, TextureMap** maps, uint32* out_instance_id)
+	bool32 vk_shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32* out_instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -722,19 +722,8 @@ namespace Renderer::Vulkan
 		uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
 		uint32 instance_texture_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[sampler_binding_index].descriptorCount;
 
-		if (maps_count)
-		{
-			// Wipe out the memory for the entire array, even if it isn't all used.
-			instance_state->instance_texture_maps.init(maps_count, true, AllocationTag::RENDERER);
-			Texture* default_texture = TextureSystem::get_default_texture();
-			// Set all the texture pointers to default until assigned.
-			for (uint32 i = 0; i < maps_count; ++i)
-			{
-				instance_state->instance_texture_maps[i] = maps[i];
-				if (!maps[i]->texture)
-					instance_state->instance_texture_maps[i]->texture = default_texture;
-			}
-		}	
+		if (texture_maps_count)
+			instance_state->instance_texture_maps.init(texture_maps_count, true, AllocationTag::RENDERER);
 
 		// Allocate some space in the UBO - by the stride, not the size.
 		uint64 size = s->ubo_stride;

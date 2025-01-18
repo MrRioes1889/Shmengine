@@ -565,9 +565,9 @@ namespace Renderer
 		return system_state->module.shader_apply_instance(s);
 	}
 
-	bool32 shader_acquire_instance_resources(Shader* s, uint32 maps_count, TextureMap** maps, uint32* out_instance_id)
+	bool32 shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32* out_instance_id)
 	{
-		return system_state->module.shader_acquire_instance_resources(s, maps_count, maps, out_instance_id);
+		return system_state->module.shader_acquire_instance_resources(s, texture_maps_count, out_instance_id);
 	}
 
 	bool32 shader_release_instance_resources(Shader* s, uint32 instance_id) 

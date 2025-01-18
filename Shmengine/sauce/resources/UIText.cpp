@@ -85,8 +85,7 @@ bool32 ui_text_load(UIText* ui_text)
     ui_text->state = ResourceState::LOADING;
 
     Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
-    TextureMap* font_maps[1] = { &ui_text->font_atlas->map };
-    if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, font_maps, &ui_text->shader_instance_id))
+    if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, &ui_text->shader_instance_id))
     {
         SHMFATAL("Unable to acquire shader resources for font texture map.");
         return false;

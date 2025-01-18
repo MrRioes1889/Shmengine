@@ -77,7 +77,7 @@ namespace Renderer
 	SHMAPI bool32 shader_apply_globals(Shader* shader);
 	SHMAPI bool32 shader_apply_instance(Shader* shader);
 
-	SHMAPI bool32 shader_acquire_instance_resources(Shader* shader, uint32 maps_count, TextureMap** maps, uint32* out_instance_id);
+	SHMAPI bool32 shader_acquire_instance_resources(Shader* shader, uint32 texture_maps_count, uint32* out_instance_id);
 	SHMAPI bool32 shader_release_instance_resources(Shader* shader, uint32 instance_id);
 
 	SHMAPI bool32 shader_set_uniform(Shader* shader, ShaderUniform* uniform, const void* value);

@@ -452,15 +452,9 @@ namespace MaterialSystem
             return false;
         }
 
-        Sarray<TextureMap*> maps(m->maps.capacity, 0);
-        for (uint32 i = 0; i < m->maps.capacity; i++)
-            maps[i] = &m->maps[i];
-
-        bool32 res = Renderer::shader_acquire_instance_resources(shader, maps.capacity, maps.data, &m->shader_instance_id);
+        bool32 res = Renderer::shader_acquire_instance_resources(shader, m->maps.capacity, &m->shader_instance_id);
         if (!res)
             SHMERRORV("Failed to acquire renderer resources for material '%s'.", m->name);
-
-        maps.free_data();
 
         return res;
     }
@@ -537,11 +531,7 @@ namespace MaterialSystem
         }
 
         Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material_phong);
-        TextureMap* maps[maps_count] = {};
-        for (uint32 i = 0; i < maps_count; i++)
-            maps[i] = &mat->maps[i];
-
-        if (!Renderer::shader_acquire_instance_resources(s, maps_count, maps, &mat->shader_instance_id))
+        if (!Renderer::shader_acquire_instance_resources(s, maps_count, &mat->shader_instance_id))
         {
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;
@@ -578,11 +568,7 @@ namespace MaterialSystem
         }
 
         Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
-        TextureMap* maps[maps_count] = {};
-        for (uint32 i = 0; i < maps_count; i++)
-            maps[i] = &mat->maps[i];
-
-        if (!Renderer::shader_acquire_instance_resources(s, maps_count, maps, &mat->shader_instance_id))
+        if (!Renderer::shader_acquire_instance_resources(s, maps_count, &mat->shader_instance_id))
         {
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;

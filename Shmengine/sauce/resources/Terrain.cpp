@@ -277,15 +277,7 @@ bool32 terrain_load(Terrain* terrain)
 	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
 	
 	const uint32 max_map_count = max_terrain_materials_count * 3;
-	TextureMap* maps[max_map_count] = {};
-	for (uint32 mat_i = 0; mat_i < material_count; mat_i++)
-	{
-		maps[mat_i * 3] = &terrain->materials[mat_i].mat->maps[0];
-		maps[mat_i * 3 + 1] = &terrain->materials[mat_i].mat->maps[1];
-		maps[mat_i * 3 + 2] = &terrain->materials[mat_i].mat->maps[2];
-	}	
-
-	if (!Renderer::shader_acquire_instance_resources(terrain_shader, max_map_count, maps, &terrain->shader_instance_id))
+	if (!Renderer::shader_acquire_instance_resources(terrain_shader, max_map_count, &terrain->shader_instance_id))
 		SHMERRORV("Failed to acquire renderer resources for terrain '%s'.", terrain->name.c_str());
 
     terrain->state = ResourceState::LOADED;
