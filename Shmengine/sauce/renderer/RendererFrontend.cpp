@@ -15,13 +15,6 @@
 #include "systems/CameraSystem.hpp"
 #include "systems/RenderViewSystem.hpp"
 
-#include "resources/Mesh.hpp"
-#include "resources/Skybox.hpp"
-#include "resources/Terrain.hpp"
-#include "resources/UIText.hpp"
-#include "resources/Terrain.hpp"
-#include "resources/Box3D.hpp"
-
 #include "optick.h"
 
 // TODO: temporary
@@ -131,7 +124,7 @@ namespace Renderer
 		system_state->module.on_config_changed();
 	}
 
-	bool32 draw_frame(RenderPacket* data, const FrameData* frame_data)
+	bool32 draw_frame(RenderPacket* data, FrameData* frame_data)
 	{
 		OPTICK_EVENT();
 		Module& backend = system_state->module;
@@ -170,7 +163,7 @@ namespace Renderer
 
 		for (uint32 i = 0; i < data->views.capacity; i++)
 		{
-			if (!RenderViewSystem::on_render(data->views[i], frame_data->frame_allocator, system_state->module.frame_number, render_target_index))
+			if (!RenderViewSystem::on_render(data->views[i], frame_data, system_state->module.frame_number, render_target_index))
 			{
 				SHMERRORV("Error rendering view index: %u", i);
 				return false;
@@ -503,7 +496,7 @@ namespace Renderer
 			shader->shader_flags |= ShaderFlags::DEPTH_WRITE;
 
 		for (uint32 i = 0; i < RendererConfig::shader_max_instances; ++i)
-			shader->instances[i].id = INVALID_ID;
+			shader->instances[i].offset = INVALID_ID64;
 
 		shader->global_uniform_count = 0;
 		shader->global_uniform_sampler_count = 0;
@@ -634,9 +627,8 @@ namespace Renderer
 		*out_instance_id = INVALID_ID;
 		for (uint32 i = 0; i < 1024; ++i)
 		{
-			if (s->instances[i].id == INVALID_ID)
+			if (s->instances[i].offset == INVALID_ID64)
 			{
-				s->instances[i].id = i;
 				*out_instance_id = i;
 				break;
 			}
@@ -675,7 +667,6 @@ namespace Renderer
 
 		renderbuffer_free(&s->uniform_buffer, instance->offset);
 		instance->offset = INVALID_ID64;
-		instance->id = INVALID_ID;
 
 		s->instance_count--;
 
@@ -684,7 +675,19 @@ namespace Renderer
 
 	bool32 shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value) 
 	{
-		return system_state->module.shader_set_uniform(s, uniform, value);
+
+		if (uniform->type == ShaderUniformType::SAMPLER)
+		{
+			if (uniform->scope == ShaderScope::GLOBAL)
+				s->global_texture_maps[uniform->location] = (TextureMap*)value;
+			else
+				s->instances[s->bound_instance_id].instance_texture_maps[uniform->location] = (TextureMap*)value;
+
+			return true;
+		}
+
+		return system_state->module.shader_set_uniform(s, uniform, value);	
+		
 	}
 
 	bool32 texture_map_acquire_resources(TextureMap* out_map)
@@ -725,6 +728,7 @@ namespace Renderer
 		}
 
 		return true;
+
 	}
 
 	void renderbuffer_destroy(RenderBuffer* buffer)
@@ -849,177 +853,6 @@ namespace Renderer
 	bool32 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
 	{
 		return system_state->module.renderbuffer_draw(buffer, offset, element_count, bind_only);
-	}
-
-	uint32 mesh_draw(Mesh* mesh, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
-	{
-		return meshes_draw(mesh, 1, view, renderpass_id, shader_id, lighting, frame_data, frustum);
-	}
-
-	uint32 meshes_draw(Mesh* meshes, uint32 mesh_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
-	{
-		RenderViewPacketData packet_data = {};
-		packet_data.geometries = 0;
-		packet_data.geometries_count = 0;
-		packet_data.lighting = lighting;
-		packet_data.renderpass_id = renderpass_id;
-
-		for (uint32 i = 0; i < mesh_count; i++)
-		{
-			Mesh* m = &meshes[i];
-			if (m->generation == INVALID_ID8)
-				continue;
-
-			Math::Mat4 model = Math::transform_get_world(m->transform);
-			for (uint32 j = 0; j < m->geometries.count; j++)
-			{
-				MeshGeometry* g = &m->geometries[j];
-
-				bool32 in_frustum = true;
-				if (frustum)
-				{
-					Math::Vec3f extents_max = Math::vec_mul_mat(g->g_data->extents.max, model);
-					Math::Vec3f center = Math::vec_mul_mat(g->g_data->center, model);
-					Math::Vec3f half_extents = { Math::abs(extents_max.x - center.x), Math::abs(extents_max.y - center.y), Math::abs(extents_max.z - center.z) };
-
-					in_frustum = Math::frustum_intersects_aabb(*frustum, center, half_extents);
-				}
-
-				if (in_frustum)
-				{
-					Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
-					render_data->model = model;
-					render_data->shader_id = shader_id;
-					render_data->get_instance_render_data = MaterialSystem::material_get_instance_render_data;
-					render_data->render_object = g->material;
-					render_data->geometry_data = g->g_data;
-					render_data->has_transparency = (g->material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
-					render_data->unique_id = m->unique_id;
-
-					packet_data.geometries_count++;
-					if (!packet_data.geometries)
-						packet_data.geometries = render_data;
-				}
-			}
-		}
-
-		if (packet_data.geometries_count)
-			RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
-
-		return packet_data.geometries_count;
-	}
-
-	bool32 skybox_draw(Skybox* skybox, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
-	{
-		Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
-		render_data->model = {};
-		render_data->shader_id = shader_id;
-		render_data->get_instance_render_data = skybox_get_instance_render_data;
-		render_data->render_object = skybox;
-		render_data->geometry_data = skybox->geometry;
-		render_data->has_transparency = 0;
-		render_data->unique_id = skybox->unique_id;
-
-		RenderViewPacketData packet_data = {};
-		packet_data.geometries = render_data;
-		packet_data.geometries_count = 1;
-		packet_data.renderpass_id = renderpass_id;
-
-		return RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
-	}
-
-	uint32 terrain_draw(Terrain* terrain, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
-	{
-		return terrains_draw(terrain, 1, view, renderpass_id, shader_id, lighting, frame_data);
-	}
-
-	uint32 terrains_draw(Terrain* terrains, uint32 terrains_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
-	{
-		RenderViewPacketData packet_data = {};
-		packet_data.geometries = 0;
-		packet_data.geometries_count = 0;
-		packet_data.lighting = lighting;
-		packet_data.renderpass_id = renderpass_id;
-
-		for (uint32 i = 0; i < terrains_count; i++)
-		{
-			Terrain* t = &terrains[i];
-
-			Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
-
-			render_data->model = Math::transform_get_world(t->xform);
-			render_data->shader_id = shader_id;
-			render_data->get_instance_render_data = terrain_get_instance_render_data;
-			render_data->render_object = t;
-			render_data->geometry_data = &t->geometry;
-			render_data->has_transparency = 0;
-			render_data->unique_id = t->unique_id;
-
-			packet_data.geometries_count++;
-			if (!packet_data.geometries)
-				packet_data.geometries = render_data;
-		}
-
-		if (packet_data.geometries_count)
-			RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
-
-		return packet_data.geometries_count;
-	}
-
-	bool32 ui_text_draw(UIText* text, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
-	{
-		Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
-		render_data->model = Math::transform_get_world(text->transform);
-		render_data->shader_id = shader_id;
-		render_data->get_instance_render_data = ui_text_get_instance_render_data;
-		render_data->render_object = text;
-		render_data->geometry_data = &text->geometry;
-		render_data->has_transparency = true;
-		render_data->unique_id = text->unique_id;
-
-		RenderViewPacketData packet_data = {};
-		packet_data.geometries = render_data;
-		packet_data.geometries_count = 1;
-		packet_data.renderpass_id = renderpass_id;
-
-		return RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
-	}
-
-	uint32 box3D_draw(Box3D* box, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
-	{
-		return boxes3D_draw(box, 1, view, renderpass_id, shader_id, frame_data);
-	}
-
-	uint32 boxes3D_draw(Box3D* boxes, uint32 boxes_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
-	{
-		RenderViewPacketData packet_data = {};
-		packet_data.geometries = 0;
-		packet_data.geometries_count = 0;
-		packet_data.renderpass_id = renderpass_id;
-
-		for (uint32 i = 0; i < boxes_count; i++)
-		{
-			Box3D* box = &boxes[i];
-
-			Renderer::ObjectRenderData* render_data = (Renderer::ObjectRenderData*)frame_data->frame_allocator->allocate(sizeof(Renderer::ObjectRenderData));
-
-			render_data->model = Math::transform_get_world(box->xform);
-			render_data->shader_id = shader_id;
-			render_data->get_instance_render_data = 0;
-			render_data->render_object = box;
-			render_data->geometry_data = &box->geometry;
-			render_data->has_transparency = 0;
-			render_data->unique_id = box->unique_id;
-
-			packet_data.geometries_count++;
-			if (!packet_data.geometries)
-				packet_data.geometries = render_data;
-		}
-
-		if (packet_data.geometries_count)
-			RenderViewSystem::build_packet(view, frame_data->frame_allocator, &packet_data);
-
-		return packet_data.geometries_count;
 	}
 
 	bool8 is_multithreaded()

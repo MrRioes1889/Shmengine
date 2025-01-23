@@ -280,26 +280,6 @@ namespace Renderer
 		Math::Vec4f color;
 	};
 
-	struct InstanceRenderData
-	{
-		uint32 shader_instance_id;
-		uint32 texture_maps_count;
-
-		void* instance_properties;
-		TextureMap** texture_maps;
-	};
-
-	struct ObjectRenderData
-	{
-		UniqueId unique_id;
-		uint32 shader_id;
-		bool32(*get_instance_render_data)(void* in_object, InstanceRenderData* out_data);
-		GeometryData* geometry_data;
-		void* render_object;
-		Math::Mat4 model;
-		bool8 has_transparency;
-	};
-
 	struct RenderPacket
 	{
 		Darray<RenderView*> views;

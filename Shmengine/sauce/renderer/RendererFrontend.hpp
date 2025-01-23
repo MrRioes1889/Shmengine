@@ -29,7 +29,7 @@ namespace Renderer
 
 	void on_resized(uint32 width, uint32 height);
 
-	bool32 draw_frame(RenderPacket* data, const FrameData* frame_data);
+	bool32 draw_frame(RenderPacket* data, FrameData* frame_data);
 
 	bool32 render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, RenderPass* pass, uint32 width, uint32 height, RenderTarget* out_target);
 	void render_target_destroy(RenderTarget* target, bool32 free_internal_memory);
@@ -100,15 +100,6 @@ namespace Renderer
 	SHMAPI bool32 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data);
 	SHMAPI bool32 renderbuffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size);
 	SHMAPI bool32 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only);
-
-	SHMAPI uint32 mesh_draw(Mesh* mesh, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
-	SHMAPI uint32 meshes_draw(Mesh* meshes, uint32 mesh_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
-	SHMAPI bool32 skybox_draw(Skybox* skybox, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 terrain_draw(Terrain* terrain, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
-	SHMAPI uint32 terrains_draw(Terrain* terrains, uint32 terrains_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
-	SHMAPI bool32 ui_text_draw(UIText* text, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 box3D_draw(Box3D* box, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 boxes3D_draw(Box3D* boxes, uint32 boxes_count, RenderView* view, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
 
 	bool8 is_multithreaded();
 

@@ -155,13 +155,21 @@ namespace Renderer::Vulkan
                 SHMERRORV("vulkan_graphics_pipeline_create: cannot have more than 32 push constant ranges. Passed count: %i", config->push_constant_range_count);
                 return false;
             }
-          
-            for (uint32 i = 0; i < config->push_constant_range_count; ++i) {
+            
+            // TODO: Enable different push_constant ranges for different shader stages. Grouping everything for now;
+            /*for (uint32 i = 0; i < config->push_constant_range_count; ++i) {
                 ranges[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
                 ranges[i].offset = (uint32)config->push_constant_ranges[i].offset;
                 ranges[i].size = (uint32)config->push_constant_ranges[i].size;
             }
             pipeline_layout_create_info.pushConstantRangeCount = config->push_constant_range_count;
+            pipeline_layout_create_info.pPushConstantRanges = ranges;*/
+
+            ranges[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+            ranges[0].offset = 0;
+            ranges[0].size = (uint32)config->push_constant_ranges[config->push_constant_range_count - 1].size + (uint32)config->push_constant_ranges[config->push_constant_range_count - 1].offset;
+
+            pipeline_layout_create_info.pushConstantRangeCount = 1;
             pipeline_layout_create_info.pPushConstantRanges = ranges;
         }
         else {

@@ -2,6 +2,7 @@
 
 #include <core/Event.hpp>
 #include <core/Identifier.hpp>
+#include <core/FrameData.hpp>
 #include <utility/Math.hpp>
 #include <utility/math/Transform.hpp>
 #include <resources/loaders/ShaderLoader.hpp>
@@ -115,7 +116,7 @@ void render_view_ui_on_resize(RenderView* self, uint32 width, uint32 height)
 	}
 }
 
-bool32 render_view_ui_on_build_packet(RenderView* self, Memory::LinearAllocator* frame_allocator, const RenderViewPacketData* packet_data)
+bool32 render_view_ui_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
 {		
 	RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
 
@@ -125,108 +126,111 @@ bool32 render_view_ui_on_build_packet(RenderView* self, Memory::LinearAllocator*
 		return false;
 	}
 
-	self->geometries.copy_memory(packet_data->geometries, packet_data->geometries_count, self->geometries.count);
-
 	return true;
 
 }
 
 void render_view_ui_on_end_frame(RenderView* self)
 {
-	self->geometries.clear();
 }
 
-static bool32 set_globals_ui(UIShaderUniformLocations u_locations, Math::Mat4* projection, Math::Mat4* view)
+static bool32 set_globals_ui(RenderViewUIInternalData* internal_data)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, projection));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, view));
+
+	ShaderSystem::bind_shader(internal_data->ui_shader->id);
+	ShaderSystem::bind_globals();
+
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.view, &internal_data->view_matrix));
+
+	return Renderer::shader_apply_globals(internal_data->ui_shader);
+
+}
+
+static bool32 set_instance_ui(RenderViewUIInternalData* internal_data, RenderViewInstanceData instance)
+{
+
+	ShaderSystem::bind_shader(internal_data->ui_shader->id);
+	ShaderSystem::bind_instance(instance.shader_instance_id);
+
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.properties, instance.instance_properties));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.diffuse_texture, instance.texture_maps[0]));
+
+	return Renderer::shader_apply_instance(internal_data->ui_shader);
+
+}
+
+static bool32 set_locals_ui(RenderViewUIInternalData* internal_data, Math::Mat4* model)
+{
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.model, model));
 
 	return true;
 }
 
-static bool32 set_instance_ui(UIShaderUniformLocations u_locations, Renderer::InstanceRenderData instance, Math::Mat4* model)
-{
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, instance.instance_properties));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, instance.texture_maps[0]));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
-
-	return true;
-}
-
-bool32 render_view_ui_on_render(RenderView* self, Memory::LinearAllocator* frame_allocator, uint32 frame_number, uint64 render_target_index)
+bool32 render_view_ui_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
 
 	OPTICK_EVENT();
 
 	RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
 
-	const uint32 texture_maps_buffer_size = 12;
-	TextureMap* texture_maps_buffer[texture_maps_buffer_size];
+	if (!set_globals_ui(internal_data))
+		SHMERROR("Failed to apply globals to ui shader.");
 
-	for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
+	for (uint32 instance_i = 0; instance_i < self->instances.count; instance_i++)
 	{
+		RenderViewInstanceData* instance_data = &self->instances[instance_i];
 
-		Renderer::RenderPass* renderpass = &self->renderpasses[rp];
+		if (instance_data->shader_instance_id == INVALID_ID)
+			continue;
 
-		if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
+		bool32 instance_set = true;
+		if (instance_data->shader_id == internal_data->ui_shader->id)
+			instance_set = set_instance_ui(internal_data, *instance_data);
+		else
+			SHMERROR("Unknown shader for applying instance.");
+
+		if (!instance_set)
+			SHMERROR("Failed to apply instance.");
+	}
+
+	Renderer::RenderPass* renderpass = &self->renderpasses[0];
+
+	if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
+	{
+		SHMERROR("render_view_ui_on_render - failed to begin renderpass!");
+		return false;
+	}
+
+	uint32 shader_id = INVALID_ID;
+
+	for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
+	{
+		RenderViewGeometryData* render_data = &self->geometries[geometry_i];
+
+		if (render_data->shader_id != shader_id)
 		{
-			SHMERROR("render_view_ui_on_render - failed to begin renderpass!");
-			return false;
+			shader_id = render_data->shader_id;
+			ShaderSystem::use_shader(shader_id);
+			ShaderSystem::bind_globals();
 		}
 
-		uint32 shader_id = INVALID_ID;
-		Shader* current_shader = 0;
+		if (render_data->shader_instance_id != INVALID_ID)
+			ShaderSystem::bind_instance(render_data->shader_instance_id);
 
-		for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
+		if (render_data->object_index != INVALID_ID)
 		{
-			Renderer::ObjectRenderData* object = &self->geometries[geometry_i];
-
-			if (object->shader_id != shader_id)
-			{
-				shader_id = object->shader_id;
-				ShaderSystem::use_shader(shader_id);
-
-				bool32 globals_set = false;
-				if (shader_id == internal_data->ui_shader->id)
-				{
-					globals_set = set_globals_ui(internal_data->ui_shader_u_locations, &internal_data->projection_matrix, &internal_data->view_matrix);
-					current_shader = internal_data->ui_shader;
-				}
-
-				if (globals_set)
-				{
-					UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_globals(current_shader));
-				}
-				else
-				{
-					SHMERROR("Unknown shader or failed to apply globals to shader.");
-					shader_id = INVALID_ID;
-					continue;
-				}
-			}
-
-			Renderer::InstanceRenderData instance = {};
-			instance.texture_maps = texture_maps_buffer;
-			object->get_instance_render_data(object->render_object, &instance);
-			ShaderSystem::bind_instance(instance.shader_instance_id);
-
-			bool32 instance_set = false;
-			if (shader_id == internal_data->ui_shader->id)
-				instance_set = set_instance_ui(internal_data->ui_shader_u_locations, instance, &object->model);
-			else
-				SHMERROR("Unknown shader or failed to apply instance to shader.");
-
-			if (instance_set)
-				UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id)));
-
-			Renderer::geometry_draw(object->geometry_data);
+			Math::Mat4* model = &self->objects[render_data->object_index].model;
+			set_locals_ui(internal_data, model);
 		}
 
-		if (!renderpass_end(renderpass))
-		{
-			SHMERROR("render_view_ui_on_render - draw_frame - failed to end renderpass!");
-			return false;
-		}
+		Renderer::geometry_draw(render_data->geometry_data);
+	}
+
+	if (!renderpass_end(renderpass))
+	{
+		SHMERROR("render_view_ui_on_render - draw_frame - failed to end renderpass!");
+		return false;
 	}
 
 	return true;

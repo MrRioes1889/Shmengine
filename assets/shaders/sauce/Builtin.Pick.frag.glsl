@@ -4,12 +4,13 @@
 
 layout(location = 0) out vec4 out_color;
 
-layout(set = 1, binding = 0) uniform instance_uniform_object
+// Data Transfer Object
+layout(location = 1) in struct DTO 
 {
-    vec3 id_color;
-} instance_ubo;
+	vec4 id_color;
+} in_dto;
 
 void main()
 {
-    out_color = vec4(instance_ubo.id_color, 1.0);  
+    out_color = in_dto.id_color;  
 }

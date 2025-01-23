@@ -11,10 +11,12 @@ struct GeometryData
 
 	uint32 id;
 	bool8 loaded;
-	Math::Vec3f center;
-	Math::Extents3D extents;
+
 	char name[max_geometry_name_length];
 
+	Math::Vec3f center;
+	Math::Extents3D extents;
+	
 	uint32 vertex_size;
 	uint32 vertex_count;
 	uint32 index_count;

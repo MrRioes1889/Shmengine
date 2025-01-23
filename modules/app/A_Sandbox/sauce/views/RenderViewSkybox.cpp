@@ -2,6 +2,7 @@
 
 #include <core/Event.hpp>
 #include <core/Identifier.hpp>
+#include <core/FrameData.hpp>
 #include <utility/Math.hpp>
 #include <utility/math/Transform.hpp>
 #include <resources/loaders/ShaderLoader.hpp>
@@ -113,7 +114,7 @@ void render_view_skybox_on_resize(RenderView* self, uint32 width, uint32 height)
 	}
 }
 
-bool32 render_view_skybox_on_build_packet(RenderView* self, Memory::LinearAllocator* frame_allocator, const RenderViewPacketData* packet_data)
+bool32 render_view_skybox_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
 {
 	RenderViewSkyboxInternalData* internal_data = (RenderViewSkyboxInternalData*)self->internal_data.data;
 
@@ -122,8 +123,6 @@ bool32 render_view_skybox_on_build_packet(RenderView* self, Memory::LinearAlloca
 		SHMERROR("Invalid renderpass id supplied in packet data!");
 		return false;
 	}
-
-	self->geometries.copy_memory(packet_data->geometries, packet_data->geometries_count, self->geometries.count);
 	
 	return true;
 
@@ -131,25 +130,34 @@ bool32 render_view_skybox_on_build_packet(RenderView* self, Memory::LinearAlloca
 
 void render_view_skybox_on_end_frame(RenderView* self)
 {
-	self->geometries.clear();
 }
 
-static bool32 set_globals_skybox(SkyboxShaderUniformLocations u_locations, Math::Mat4* projection, Math::Mat4* view)
+static bool32 set_globals_skybox(RenderViewSkyboxInternalData* internal_data, Math::Mat4* view_matrix)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, projection));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, view));
 
-	return true;
+	ShaderSystem::bind_shader(internal_data->skybox_shader->id);
+	ShaderSystem::bind_globals();
+
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->skybox_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->skybox_shader_u_locations.view, view_matrix));
+
+	return Renderer::shader_apply_globals(internal_data->skybox_shader);
+
 }
 
-static bool32 set_instance_skybox(SkyboxShaderUniformLocations u_locations, Renderer::InstanceRenderData instance, Math::Mat4* model)
+static bool32 set_instance_skybox(RenderViewSkyboxInternalData* internal_data, RenderViewInstanceData instance)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.cube_map, instance.texture_maps[0]));
 
-	return true;
+	ShaderSystem::bind_shader(internal_data->skybox_shader->id);
+	ShaderSystem::bind_instance(instance.shader_instance_id);
+
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->skybox_shader_u_locations.cube_map, instance.texture_maps[0]));
+
+	return Renderer::shader_apply_instance(internal_data->skybox_shader);
+
 }
 
-bool32 render_view_skybox_on_render(RenderView* self, Memory::LinearAllocator* frame_allocator, uint32 frame_number, uint64 render_target_index)
+bool32 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
 	OPTICK_EVENT();
 
@@ -163,74 +171,58 @@ bool32 render_view_skybox_on_render(RenderView* self, Memory::LinearAllocator* f
 		view_matrix.data[13] = 0.0f;
 		view_matrix.data[14] = 0.0f;
 	}
+	
+	if (!set_globals_skybox(internal_data, &view_matrix))
+		SHMERROR("Failed to apply globals to skybox shader.");
 
-	const uint32 texture_maps_buffer_size = 12;
-	TextureMap* texture_maps_buffer[texture_maps_buffer_size];
+	for (uint32 instance_i = 0; instance_i < self->instances.count; instance_i++)
+	{	
+		RenderViewInstanceData* instance_data = &self->instances[instance_i];
 
-	for (uint32 rp = 0; rp < self->renderpasses.capacity; rp++)
+		if (instance_data->shader_instance_id == INVALID_ID)
+			continue;
+
+		bool32 instance_set = true;
+		if (instance_data->shader_id == internal_data->skybox_shader->id)
+			instance_set = set_instance_skybox(internal_data, *instance_data);
+		else
+			SHMERROR("Unknown shader for applying instance.");
+
+		if (!instance_set)
+			SHMERROR("Failed to apply instance.");
+	}
+
+	Renderer::RenderPass* renderpass = &self->renderpasses[0];
+
+	if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 	{
+		SHMERROR("Failed to begin renderpass!");
+		return false;
+	}
 
-		Renderer::RenderPass* renderpass = &self->renderpasses[rp];
+	uint32 shader_id = INVALID_ID;
 
-		if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
-		{
-			SHMERROR("Failed to begin renderpass!");
-			return false;
-		}
-
-		uint32 shader_id = INVALID_ID;
-		Shader* current_shader = 0;
-
-		for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
-		{
-			Renderer::ObjectRenderData* object = &self->geometries[geometry_i];
+	for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
+	{
+		RenderViewGeometryData* render_data = &self->geometries[geometry_i];
 				
-			if (object->shader_id != shader_id)
-			{
-				shader_id = object->shader_id;
-				ShaderSystem::use_shader(shader_id);
-
-				bool32 globals_set = false;
-				if (shader_id == internal_data->skybox_shader->id)
-				{
-					globals_set = set_globals_skybox(internal_data->skybox_shader_u_locations, &internal_data->projection_matrix, &view_matrix);
-					current_shader = internal_data->skybox_shader;
-				}						
-
-				if (globals_set)
-				{
-					UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_globals(current_shader));	
-				}
-				else
-				{
-					SHMERROR("Unknown shader or failed to apply globals to shader.");
-					shader_id = INVALID_ID;
-					continue;
-				}
-			}
-			
-			Renderer::InstanceRenderData instance = {};
-			instance.texture_maps = texture_maps_buffer;
-			object->get_instance_render_data(object->render_object, &instance);
-			ShaderSystem::bind_instance(instance.shader_instance_id);
-
-			bool32 instance_set = false;
-			if (shader_id == internal_data->skybox_shader->id)
-				instance_set = set_instance_skybox(internal_data->skybox_shader_u_locations, instance, &object->model);
-			else
-				SHMERROR("Unknown shader or failed to apply instance to shader.");
-
-			if (instance_set)
-				UNIFORM_APPLY_OR_FAIL(Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id)));
-
-			Renderer::geometry_draw(object->geometry_data);
-		}
-
-		if (!Renderer::renderpass_end(renderpass))
+		if (render_data->shader_id != shader_id)
 		{
-			SHMERROR("render_view_skybox_on_render - draw_frame - failed to end renderpass!");
-			return false;
+			shader_id = render_data->shader_id;
+			ShaderSystem::use_shader(shader_id);
+			ShaderSystem::bind_globals();
 		}
+			
+		if (render_data->shader_instance_id != INVALID_ID)
+			ShaderSystem::bind_instance(render_data->shader_instance_id);
+
+		Renderer::geometry_draw(render_data->geometry_data);
+	}
+
+	if (!Renderer::renderpass_end(renderpass))
+	{
+		SHMERROR("render_view_skybox_on_render - draw_frame - failed to end renderpass!");
+		return false;
 	}
 
 	return true;

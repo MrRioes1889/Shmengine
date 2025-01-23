@@ -11,7 +11,7 @@ struct PointLight;
 struct LightingInfo;
 namespace Renderer
 {
-	struct InstanceRenderData;
+	struct RenderViewInstanceData;
 }
 
 namespace TextureFilter
@@ -222,7 +222,5 @@ namespace MaterialSystem
 	SHMAPI Material* get_default_ui_material();
 
 	void dump_system_stats();
-
-	SHMAPI bool32 material_get_instance_render_data(void* in_material, Renderer::InstanceRenderData* out_data);
 
 }

@@ -24,7 +24,6 @@ struct ApplicationConfig {
 	uint32 start_width, start_height;
 
 	uint64 state_size;
-	uint64 frame_allocator_size;
 	uint64 app_frame_data_size;
 
 	char* name;

@@ -18,5 +18,6 @@ attribute=vec4,in_mat_weights
 # NOTE: For scope: 0=global, 1=instance, 2=local
 uniform=mat4,0,projection
 uniform=mat4,0,view
-uniform=vec3,1,id_color
+
 uniform=mat4,2,model
+uniform=vec3,2,id_color

@@ -2,6 +2,7 @@
 
 #include <core/Event.hpp>
 #include <core/Identifier.hpp>
+#include <core/FrameData.hpp>
 #include <utility/Math.hpp>
 #include <utility/math/Transform.hpp>
 #include <resources/loaders/ShaderLoader.hpp>
@@ -318,6 +319,8 @@ void render_view_world_on_resize(RenderView* self, uint32 width, uint32 height)
 static bool32 set_globals_material_phong(RenderViewWorldInternalData* internal_data)
 {
 	MaterialPhongShaderUniformLocations u_locations = internal_data->material_phong_u_locations;
+	ShaderSystem::bind_shader(internal_data->material_phong_shader->id);
+	ShaderSystem::bind_globals();
 
 	Math::Vec3f camera_position = internal_data->camera->get_position();
 
@@ -339,28 +342,40 @@ static bool32 set_globals_material_phong(RenderViewWorldInternalData* internal_d
 	}
 	else
 	{
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
+		uint32 no_lights = 0;
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &no_lights));
 	}
 
-	return true;
+	return Renderer::shader_apply_globals(internal_data->material_phong_shader);
 }
 
-static bool32 set_instance_material_phong(MaterialPhongShaderUniformLocations u_locations, Renderer::InstanceRenderData instance, Math::Mat4* model)
+static bool32 set_instance_material_phong(RenderViewWorldInternalData* internal_data, RenderViewInstanceData instance)
 {
+	MaterialPhongShaderUniformLocations u_locations = internal_data->material_phong_u_locations;
+	ShaderSystem::bind_shader(internal_data->material_phong_shader->id);
+	ShaderSystem::bind_instance(instance.shader_instance_id);
+
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, instance.instance_properties));
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, instance.texture_maps[0]));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.specular_texture, instance.texture_maps[1]));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.normal_texture, instance.texture_maps[2]));
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
+	return Renderer::shader_apply_instance(internal_data->material_phong_shader);
+}
 
+static bool32 set_locals_material_phong(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
+{
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->material_phong_u_locations.model, model));
 	return true;
 }
 
 static bool32 set_globals_terrain(RenderViewWorldInternalData* internal_data)
 {
+
 	TerrainShaderUniformLocations u_locations = internal_data->terrain_u_locations;
+	ShaderSystem::bind_shader(internal_data->terrain_shader->id);
+	ShaderSystem::bind_globals();
 
 	Math::Vec3f camera_position = internal_data->camera->get_position();
 
@@ -382,51 +397,60 @@ static bool32 set_globals_terrain(RenderViewWorldInternalData* internal_data)
 	}
 	else
 	{
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, 0));
+		uint32 no_lights = 0;
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &no_lights));
 	}
 
-	return true;
+	return Renderer::shader_apply_globals(internal_data->terrain_shader);
 }
 
-static bool32 set_instance_terrain(TerrainShaderUniformLocations u_locations, Renderer::InstanceRenderData instance, Math::Mat4* model)
+static bool32 set_instance_terrain(RenderViewWorldInternalData* internal_data, RenderViewInstanceData instance)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, instance.instance_properties));
+	ShaderSystem::bind_shader(internal_data->terrain_shader->id);
+	ShaderSystem::bind_instance(instance.shader_instance_id);
+
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->terrain_u_locations.properties, instance.instance_properties));
 	for (uint32 i = 0; i < instance.texture_maps_count; i++)
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.samplers[i], instance.texture_maps[i]));
+		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->terrain_u_locations.samplers[i], instance.texture_maps[i]));
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
+	return Renderer::shader_apply_instance(internal_data->terrain_shader);
+}
 
+static bool32 set_locals_terrain(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
+{
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->terrain_u_locations.model, model));
 	return true;
 }
 
 static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data)
 {
-	Color3DShaderUniformLocations u_locations = internal_data->color3D_shader_u_locations;
+	ShaderSystem::bind_shader(internal_data->color3D_shader->id);
+	ShaderSystem::bind_globals();
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.view, &internal_data->camera->get_view()));
 
-	return true;
+	return Renderer::shader_apply_globals(internal_data->color3D_shader);
 }
 
-static bool32 set_instance_color3D(Color3DShaderUniformLocations u_locations, Math::Mat4* model)
+static bool32 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.model, model));
-
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.model, model));
 	return true;
 }
 
 static bool32 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_data)
 {
-	CoordinateGridShaderUniformLocations u_locations = internal_data->coordinate_grid_shader_u_locations;
+	ShaderSystem::bind_shader(internal_data->coordinate_grid_shader->id);
+	ShaderSystem::bind_globals();
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.view, &internal_data->camera->get_view()));
 
-	return true;
+	return Renderer::shader_apply_globals(internal_data->coordinate_grid_shader);
 }
 
-bool32 render_view_world_on_build_packet(RenderView* self, Memory::LinearAllocator* frame_allocator, const RenderViewPacketData* packet_data)
+bool32 render_view_world_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
 {
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
@@ -436,11 +460,15 @@ bool32 render_view_world_on_build_packet(RenderView* self, Memory::LinearAllocat
 		return false;
 	}
 
-	// TODO: Find a way to properly handle per object lighting
+	// TODO: Figure out how to do real per object lighting
 	if (!internal_data->lighting.dir_light)
-		internal_data->lighting = packet_data->lighting;
-		
-	self->geometries.copy_memory(packet_data->geometries, packet_data->geometries_count, self->geometries.count);
+	{
+		for (uint32 i = self->objects.count - packet_data->objects_pushed_count; i < self->objects.count; i++)
+		{
+			if (self->objects[i].lighting.dir_light)
+				internal_data->lighting = self->objects[i].lighting;
+		}
+	}
 
 	return true;
 
@@ -448,67 +476,92 @@ bool32 render_view_world_on_build_packet(RenderView* self, Memory::LinearAllocat
 
 void render_view_world_on_end_frame(RenderView* self)
 {
-	self->geometries.clear();
+	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
+
+	internal_data->lighting = {};
 }
 
-bool32 render_view_world_on_render(RenderView* self, Memory::LinearAllocator* frame_allocator, uint32 frame_number, uint64 render_target_index)
+bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
 
 	struct GeometryDistance
 	{
-		Renderer::ObjectRenderData g;
+		RenderViewGeometryData g;
 		float32 dist;
 
 		SHMINLINE bool8 operator<=(const GeometryDistance& other) { return dist <= other.dist; }
 		SHMINLINE bool8 operator>=(const GeometryDistance& other) { return dist >= other.dist; }
 	};
 
-	OPTICK_EVENT();
+	OPTICK_EVENT();	
 
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
-	void* sorted_geometries_block = frame_allocator->allocate(sizeof(Renderer::ObjectRenderData) * self->geometries.count);
-	Darray<Renderer::ObjectRenderData> sorted_geometries(self->geometries.count, 0, AllocationTag::RENDERER, sorted_geometries_block);
-
-	void* transparent_geometries_block = frame_allocator->allocate(sizeof(Renderer::ObjectRenderData) * self->geometries.count);
-	Darray<GeometryDistance> transparent_geometries(self->geometries.count, 0, AllocationTag::RENDERER, transparent_geometries_block);
-
-	for (uint32 i = 0; i < self->geometries.count; i++)
 	{
-		Renderer::ObjectRenderData* g_data = &self->geometries[i];
+		void* sorted_geometries_block = frame_data->frame_allocator.allocate(sizeof(RenderViewGeometryData) * self->geometries.count);
+		Darray<RenderViewGeometryData> sorted_geometries(self->geometries.count, 0, AllocationTag::RENDERER, sorted_geometries_block);
 
-		if (!g_data->has_transparency)
+		void* transparent_geometries_block = frame_data->frame_allocator.allocate(sizeof(RenderViewGeometryData) * self->geometries.count);
+		Darray<GeometryDistance> transparent_geometries(self->geometries.count, 0, AllocationTag::RENDERER, transparent_geometries_block);
+
+		for (uint32 i = 0; i < self->geometries.count; i++)
 		{
-			sorted_geometries.emplace(*g_data);
+			RenderViewGeometryData* g_data = &self->geometries[i];
+
+			if (!g_data->has_transparency)
+			{
+				sorted_geometries.emplace(*g_data);
+			}
+			else
+			{
+				Math::Vec3f center = Math::vec_transform(g_data->geometry_data->center, self->objects[g_data->object_index].model);
+				float32 distance = Math::vec_distance(center, internal_data->camera->get_position());
+
+				GeometryDistance* g_dist = &transparent_geometries[transparent_geometries.emplace()];
+				g_dist->dist = Math::abs(distance);
+				g_dist->g = *g_data;
+			}
 		}
+
+		quick_sort(transparent_geometries.data, 0, transparent_geometries.count - 1, false);
+		for (uint32 i = 0; i < transparent_geometries.count; i++)
+			sorted_geometries.emplace(transparent_geometries[i].g);			
+
+		self->geometries.copy_memory(sorted_geometries.data, sorted_geometries.count, 0);
+	}
+
+	if (!set_globals_material_phong(internal_data))
+		SHMERROR("Failed to apply globals to material phong shader.");
+	if (!set_globals_terrain(internal_data))
+		SHMERROR("Failed to apply globals to terrain shader.");
+	if (!set_globals_color3D(internal_data))
+		SHMERROR("Failed to apply globals to color3D shader.");
+	if (!set_globals_coordinate_grid(internal_data))
+		SHMERROR("Failed to apply globals to coordinate grid shader.");
+
+	for (uint32 instance_i = 0; instance_i < self->instances.count; instance_i++)
+	{
+		RenderViewInstanceData* instance_data = &self->instances[instance_i];
+
+		if (instance_data->shader_instance_id == INVALID_ID)
+			continue;
+
+		bool32 instance_set = true;
+		if (instance_data->shader_id == internal_data->material_phong_shader->id)
+			instance_set = set_instance_material_phong(internal_data, *instance_data);
+		else if (instance_data->shader_id == internal_data->terrain_shader->id)
+			instance_set = set_instance_terrain(internal_data, *instance_data);
 		else
-		{
-			Math::Vec3f center = Math::vec_transform(g_data->geometry_data->center, g_data->model);
-			float32 distance = Math::vec_distance(center, internal_data->camera->get_position());
+			SHMERROR("Unknown shader for applying instance.");
 
-			GeometryDistance* g_dist = &transparent_geometries[transparent_geometries.emplace()];
-			g_dist->dist = Math::abs(distance);
-			g_dist->g = *g_data;
-		}
+		if (!instance_set)
+			SHMERROR("Failed to apply instance.");
 	}
-
-	quick_sort(transparent_geometries.data, 0, transparent_geometries.count - 1, false);
-	for (uint32 i = 0; i < transparent_geometries.count; i++)
-	{
-		Renderer::ObjectRenderData* render_data = &sorted_geometries[sorted_geometries.emplace()];
-		*render_data = transparent_geometries[i].g;
-	}
-
-	const uint32 texture_maps_buffer_size = 12;
-	TextureMap* texture_maps_buffer[texture_maps_buffer_size];
-
-	Math::Vec3f view_position = internal_data->camera->get_position();
 
 	Renderer::RenderPass* objects_renderpass = &self->renderpasses[0];
 	Renderer::RenderPass* coordinate_grid_renderpass = &self->renderpasses[1];
 		
 	uint32 shader_id = INVALID_ID;
-	Shader* current_shader = 0;
 
 	if (!Renderer::renderpass_begin(objects_renderpass, &objects_renderpass->render_targets[render_target_index]))
 	{
@@ -516,66 +569,32 @@ bool32 render_view_world_on_render(RenderView* self, Memory::LinearAllocator* fr
 		return false;
 	}
 
-	for (uint32 geometry_i = 0; geometry_i < sorted_geometries.count; geometry_i++)
+	for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
 	{
-		Renderer::ObjectRenderData* object = &sorted_geometries[geometry_i];
+		RenderViewGeometryData* render_data = &self->geometries[geometry_i];
 
-		if (object->shader_id != shader_id)
+		if (render_data->shader_id != shader_id)
 		{
-			shader_id = object->shader_id;
+			shader_id = render_data->shader_id;
 			ShaderSystem::use_shader(shader_id);
-
-			bool32 globals_set = false;
-			if (shader_id == internal_data->material_phong_shader->id)
-			{
-				globals_set = set_globals_material_phong(internal_data);
-				current_shader = internal_data->material_phong_shader;
-			}
-			else if (shader_id == internal_data->terrain_shader->id)
-			{
-				globals_set = set_globals_terrain(internal_data);
-				current_shader = internal_data->terrain_shader;
-			}
-			else if (shader_id == internal_data->color3D_shader->id)
-			{
-				globals_set = set_globals_color3D(internal_data);
-				current_shader = internal_data->color3D_shader;
-			}
-
-			if (globals_set)
-			{
-				Renderer::shader_apply_globals(current_shader);
-			}
-			else
-			{
-				SHMERROR("Unknown shader or failed to apply globals to shader.");
-				shader_id = INVALID_ID;
-				continue;
-			}
+			ShaderSystem::bind_globals();
 		}
 
-		Renderer::InstanceRenderData instance = {};
-		instance.texture_maps = texture_maps_buffer;
-		if (object->get_instance_render_data)
+		if (render_data->shader_instance_id != INVALID_ID)
+			ShaderSystem::bind_instance(render_data->shader_instance_id);
+
+		if (render_data->object_index != INVALID_ID)
 		{
-			object->get_instance_render_data(object->render_object, &instance);
-			ShaderSystem::bind_instance(instance.shader_instance_id);
+			Math::Mat4* model = &self->objects[render_data->object_index].model;
+			if (shader_id == internal_data->material_phong_shader->id)
+				set_locals_material_phong(internal_data, model);
+			else if (shader_id == internal_data->terrain_shader->id)
+				set_locals_terrain(internal_data, model);
+			else if (shader_id == internal_data->color3D_shader->id)
+				set_locals_color3D(internal_data, model);
 		}
 
-		bool32 instance_set = false;
-		if (shader_id == internal_data->material_phong_shader->id)
-			instance_set = set_instance_material_phong(internal_data->material_phong_u_locations, instance, &object->model);
-		else if (shader_id == internal_data->terrain_shader->id)
-			instance_set = set_instance_terrain(internal_data->terrain_u_locations, instance, &object->model);
-		else if (shader_id == internal_data->color3D_shader->id)
-			set_instance_color3D(internal_data->color3D_shader_u_locations, &object->model);
-		else
-			SHMERROR("Unknown shader or failed to apply instance to shader.");
-
-		if (instance_set)
-			Renderer::shader_apply_instance(ShaderSystem::get_shader(shader_id));
-
-		Renderer::geometry_draw(object->geometry_data);
+		Renderer::geometry_draw(render_data->geometry_data);
 	}
 
 	if (!Renderer::renderpass_end(objects_renderpass))
@@ -592,11 +611,8 @@ bool32 render_view_world_on_render(RenderView* self, Memory::LinearAllocator* fr
 	}
 
 	// NOTE: Drawing coordinate grid separately
-	current_shader = internal_data->coordinate_grid_shader;
-	ShaderSystem::use_shader(current_shader->id);
-
-	set_globals_coordinate_grid(internal_data);
-	Renderer::shader_apply_globals(current_shader);
+	ShaderSystem::use_shader(internal_data->coordinate_grid_shader->id);
+	ShaderSystem::bind_globals();
 
 	Renderer::geometry_draw(&internal_data->coordinate_grid.geometry);
 
@@ -605,8 +621,6 @@ bool32 render_view_world_on_render(RenderView* self, Memory::LinearAllocator* fr
 		SHMERROR("render_view_world_on_render - draw_frame - failed to end renderpass!");
 		return false;
 	}
-
-	current_shader = 0;
 
 	return true;
 }
