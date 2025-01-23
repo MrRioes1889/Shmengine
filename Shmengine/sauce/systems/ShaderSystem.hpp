@@ -137,11 +137,12 @@ namespace ShaderFlags
 	typedef uint32 Value;
 }
 
+struct Shader;
+
 struct ShaderInstance
 {
-	uint32 id;
-	uint8 last_update_frame_number;
 	uint64 offset;
+	uint8 last_update_frame_number;
 
 	Sarray<TextureMap*> instance_texture_maps;
 };
@@ -222,6 +223,8 @@ namespace ShaderSystem
 	SHMAPI Shader* get_shader(uint32 shader_id);
 	SHMAPI Shader* get_shader(const char* shader_name);
 
+	SHMAPI void bind_shader(uint32 shader_id);
+
 	SHMAPI bool32 use_shader(uint32 shader_id);
 	SHMAPI bool32 use_shader(const char* shader_name);
 
@@ -230,9 +233,10 @@ namespace ShaderSystem
 	SHMAPI bool32 set_uniform(const char* uniform_name, const void* value);
 	SHMAPI bool32 set_uniform(uint16 index, const void* value);
 
+	SHMAPI bool32 bind_globals();
 	SHMAPI bool32 bind_instance(uint32 instance_id);
 
-	SHMAPI uint32 get_material_shader_id();
+	SHMAPI uint32 get_material_phong_shader_id();
 	SHMAPI uint32 get_terrain_shader_id();
 	SHMAPI uint32 get_ui_shader_id();
 	SHMAPI uint32 get_skybox_shader_id();

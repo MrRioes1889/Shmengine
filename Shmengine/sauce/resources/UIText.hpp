@@ -11,7 +11,7 @@
 struct RenderView;
 namespace Renderer
 {
-	struct InstanceRenderData;
+	struct RenderViewInstanceData;
 }
 
 enum class UITextType
@@ -49,5 +49,3 @@ SHMAPI bool32 ui_text_unload(UIText* text);
 SHMAPI void ui_text_set_position(UIText* ui_text, Math::Vec3f position);
 SHMAPI void ui_text_set_text(UIText* ui_text, const char* text);
 SHMAPI void ui_text_update(UIText* ui_text);
-
-SHMAPI bool32 ui_text_get_instance_render_data(void* in_text, Renderer::InstanceRenderData* out_data);

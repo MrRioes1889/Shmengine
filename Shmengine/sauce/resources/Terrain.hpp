@@ -11,7 +11,7 @@ struct Material;
 struct LightinInfo;
 namespace Renderer
 {
-	struct InstanceRenderData;
+	struct RenderViewInstanceData;
 }
 
 struct TerrainVertex
@@ -84,5 +84,3 @@ SHMAPI bool32 terrain_load(Terrain* terrain);
 SHMAPI bool32 terrain_unload(Terrain* terrain);
 
 SHMAPI bool32 terrain_update(Terrain* terrain);
-
-SHMAPI bool32 terrain_get_instance_render_data(void* in_terrain, Renderer::InstanceRenderData* out_data);

@@ -298,17 +298,3 @@ static void regenerate_geometry(UIText* ui_text)
     }
 
 }
-
-bool32 ui_text_get_instance_render_data(void* in_text, Renderer::InstanceRenderData* out_data)
-{
-    UIText* text = (UIText*)in_text;
-
-    static Math::Vec4f white_color = { 1.0f, 1.0f, 1.0f, 1.0f };
-    out_data->instance_properties = &white_color;
-    out_data->texture_maps_count = 1;
-    out_data->texture_maps[0] = &text->font_atlas->map;
-
-    out_data->shader_instance_id = text->shader_instance_id;
-
-    return true;
-}

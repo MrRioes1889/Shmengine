@@ -1,5 +1,7 @@
 #include "Skybox.hpp"
 #include "core/Identifier.hpp"
+#include "core/FrameData.hpp"
+#include "memory/LinearAllocator.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "renderer/RendererGeometry.hpp"
 #include "systems/TextureSystem.hpp"
@@ -99,15 +101,4 @@ bool32 skybox_unload(Skybox* skybox)
 	return true;
 }
 
-bool32 skybox_get_instance_render_data(void* in_skybox, Renderer::InstanceRenderData* out_data)
-{
-	Skybox* skybox = (Skybox*)in_skybox;
 
-	out_data->instance_properties = 0;
-	out_data->texture_maps_count = 1;
-	out_data->texture_maps[0] = &skybox->cubemap;
-
-	out_data->shader_instance_id = skybox->shader_instance_id;
-
-	return true;
-}

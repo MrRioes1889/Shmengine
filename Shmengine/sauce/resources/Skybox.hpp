@@ -8,7 +8,7 @@
 struct GeometryData;
 namespace Renderer 
 {
-	struct InstanceRenderData;
+	struct RenderViewInstanceData;
 }
 
 struct SkyboxConfig
@@ -32,5 +32,3 @@ SHMAPI bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox);
 SHMAPI bool32 skybox_destroy(Skybox* skybox);
 SHMAPI bool32 skybox_load(Skybox* skybox);
 SHMAPI bool32 skybox_unload(Skybox* skybox);
-
-SHMAPI bool32 skybox_get_instance_render_data(void* in_skybox, Renderer::InstanceRenderData* out_data);

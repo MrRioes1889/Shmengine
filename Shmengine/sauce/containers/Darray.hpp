@@ -243,7 +243,6 @@ SHMINLINE void Darray<T>::clear()
 	for (uint32 i = 0; i < count; i++)
 		data[i].~T();
 
-	//Memory::zero_memory(data, sizeof(T) * capacity);
 	count = 0;
 
 }

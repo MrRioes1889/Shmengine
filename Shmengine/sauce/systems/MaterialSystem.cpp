@@ -1,6 +1,8 @@
 #include "MaterialSystem.hpp"
 
 #include "core/Logging.hpp"
+#include "core/FrameData.hpp"
+#include "memory/LinearAllocator.hpp"
 #include "utility/CString.hpp"
 #include "containers/Hashtable.hpp"
 #include "utility/Math.hpp"
@@ -575,20 +577,6 @@ namespace MaterialSystem
         }
 
         mat->shader_id = s->id;
-
-        return true;
-    }
-
-    bool32 material_get_instance_render_data(void* in_material, Renderer::InstanceRenderData* out_data)
-    {
-        Material* mat = (Material*)in_material;
-
-        out_data->instance_properties = mat->properties;
-        out_data->texture_maps_count = mat->maps.capacity;
-        for (uint32 i = 0; i < mat->maps.capacity; i++)
-            out_data->texture_maps[i] = &mat->maps[i];
-
-        out_data->shader_instance_id = mat->shader_instance_id;
 
         return true;
     }

@@ -3,6 +3,8 @@
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
+#include "core/FrameData.hpp"
+#include "memory/LinearAllocator.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "renderer/RendererGeometry.hpp"
 #include "renderer/RendererFrontend.hpp"
@@ -319,22 +321,4 @@ bool32 terrain_unload(Terrain* terrain)
 bool32 terrain_update(Terrain* terrain)
 {
     return true;
-}
-
-bool32 terrain_get_instance_render_data(void* in_terrain, Renderer::InstanceRenderData* out_data)
-{
-	Terrain* terrain = (Terrain*)in_terrain;
-
-	out_data->instance_properties = &terrain->material_properties;
-	out_data->texture_maps_count = terrain->materials.count * 3;
-	for (uint32 mat_i = 0; mat_i < terrain->materials.count; mat_i++)
-	{
-		out_data->texture_maps[mat_i * 3] = &terrain->materials[mat_i].mat->maps[0];
-		out_data->texture_maps[mat_i * 3 + 1] = &terrain->materials[mat_i].mat->maps[1];
-		out_data->texture_maps[mat_i * 3 + 2] = &terrain->materials[mat_i].mat->maps[2];
-	}
-
-	out_data->shader_instance_id = terrain->shader_instance_id;
-
-	return true;
 }

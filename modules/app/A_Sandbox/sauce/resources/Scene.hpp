@@ -13,7 +13,7 @@ struct FrameData;
 namespace Renderer 
 { 
 	struct RenderPacket; 
-	struct ObjectRenderData;
+	struct RenderViewRenderData;
 }
 struct RenderView;
 

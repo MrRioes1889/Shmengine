@@ -117,7 +117,6 @@ bool32 application_boot(Application* app_inst)
 
 	app_inst->config.app_frame_data_size = sizeof(ApplicationFrameData);
 	app_inst->config.state_size = sizeof(ApplicationState);
-	app_inst->config.frame_allocator_size = Mebibytes(64);
 
 	FontSystem::SystemConfig* font_sys_config = &app_inst->config.fontsystem_config;
 	font_sys_config->auto_release = false;
@@ -269,7 +268,7 @@ bool32 application_update(FrameData* frame_data)
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
 	scene_update(&app_state->main_scene);
-	frame_data->frame_allocator->free_all_data();
+	frame_data->frame_allocator.free_all_data();
 
 	uint32 allocation_count = Memory::get_current_allocation_count();
 	app_state->allocation_count = allocation_count;
@@ -356,7 +355,7 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 	frame_data->drawn_geometry_count = 0;
 
 	const uint32 view_count = 4;
-	RenderView** render_views = (RenderView**)frame_data->frame_allocator->allocate(view_count * sizeof(RenderView*));
+	RenderView** render_views = (RenderView**)frame_data->frame_allocator.allocate(view_count * sizeof(RenderView*));
 	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_views);
 
 	uint32 skybox_view_i = packet->views.emplace(RenderViewSystem::get("skybox"));
@@ -369,39 +368,39 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 
 	uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
 
-	Renderer::meshes_draw(app_state->ui_meshes.data, app_state->ui_meshes.count, packet->views[ui_view_i], 0, ui_shader_id, {}, frame_data, 0);
+	RenderViewSystem::meshes_draw(packet->views[ui_view_i], app_state->ui_meshes.data, app_state->ui_meshes.count, 0, ui_shader_id, {}, frame_data, 0);
 
-	Renderer::ui_text_draw(&app_state->debug_info_text, packet->views[ui_view_i], 0, ui_shader_id, frame_data);
+	RenderViewSystem::ui_text_draw(packet->views[ui_view_i], &app_state->debug_info_text, 0, ui_shader_id, frame_data);
 
 	if (DebugConsole::is_visible(&app_state->debug_console))
 	{
 		UIText* console_text = DebugConsole::get_text(&app_state->debug_console);
-		Renderer::ui_text_draw(console_text, packet->views[ui_view_i], 0, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], console_text, 0, ui_shader_id, frame_data);
 
 		UIText* entry_text = DebugConsole::get_entry_text(&app_state->debug_console);
-		Renderer::ui_text_draw(entry_text, packet->views[ui_view_i], 0, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], entry_text, 0, ui_shader_id, frame_data);
 	}
 
-	RenderViewPacketData* pick_packet = (RenderViewPacketData*)frame_data->frame_allocator->allocate(sizeof(RenderViewPacketData));
-	pick_packet->geometries = packet->views[1]->geometries.data;
-	pick_packet->geometries_count = packet->views[1]->geometries.count;
-	pick_packet->renderpass_id = 0;
+	//RenderViewPacketData* pick_packet = (RenderViewPacketData*)frame_data->frame_allocator.allocate(sizeof(RenderViewPacketData));
+	//pick_packet->geometries = packet->views[1]->geometries.data;
+	//pick_packet->geometries_count = 0; //packet->views[1]->geometries.count;
+	//pick_packet->renderpass_id = 0;
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), frame_data->frame_allocator, pick_packet))
-	{
-		SHMERROR("Failed to build packet for view 'pick'.");
-		return false;
-	}
+	//if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), frame_data, pick_packet))
+	//{
+	//	SHMERROR("Failed to build packet for view 'pick'.");
+	//	return false;
+	//}
 
-	pick_packet->geometries = packet->views[2]->geometries.data;
-	pick_packet->geometries_count = packet->views[2]->geometries.count;
-	pick_packet->renderpass_id = 1;
+	//pick_packet->geometries = packet->views[2]->geometries.data;
+	//pick_packet->geometries_count = 0;//packet->views[2]->geometries.count;
+	//pick_packet->renderpass_id = 1;
 
-	if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), frame_data->frame_allocator, pick_packet))
-	{
-		SHMERROR("Failed to build packet for view 'pick'.");
-		return false;
-	}
+	//if (!RenderViewSystem::build_packet(RenderViewSystem::get("pick"), frame_data, pick_packet))
+	//{
+	//	SHMERROR("Failed to build packet for view 'pick'.");
+	//	return false;
+	//}
 
 	return true;
 }
@@ -459,7 +458,7 @@ static bool32 init_render_views(Application* app_inst)
 	Renderer::RenderPassConfig skybox_pass_configs[skybox_pass_count];
 
 	Renderer::RenderPassConfig* skybox_pass_config = &skybox_pass_configs[0];
-	skybox_pass_config->name = "Renderpass.Builtin.Skybox";
+	skybox_pass_config->name = "Builtin.Skybox";
 	skybox_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	skybox_pass_config->offset = { 0, 0 };
 	skybox_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
@@ -571,7 +570,7 @@ static bool32 init_render_views(Application* app_inst)
 	Renderer::RenderPassConfig ui_pass_configs[ui_pass_count];
 
 	Renderer::RenderPassConfig* ui_pass_config = &ui_pass_configs[0];
-	ui_pass_config->name = "Renderpass.Builtin.UI";
+	ui_pass_config->name = "Builtin.UI";
 	ui_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	ui_pass_config->offset = { 0, 0 };
 	ui_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
@@ -612,7 +611,7 @@ static bool32 init_render_views(Application* app_inst)
 	Renderer::RenderPassConfig* world_pick_pass_config = &pick_pass_configs[0];
 	Renderer::RenderPassConfig* ui_pick_pass_config = &pick_pass_configs[1];
 
-	world_pick_pass_config->name = "Renderpass.Builtin.WorldPick";
+	world_pick_pass_config->name = "Builtin.WorldPick";
 	world_pick_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	world_pick_pass_config->offset = { 0, 0 };
 	world_pick_pass_config->clear_color = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -638,7 +637,7 @@ static bool32 init_render_views(Application* app_inst)
 	world_pick_pass_config->target_config.attachment_configs = world_pick_att_configs;
 	world_pick_pass_config->render_target_count = 1;
 
-	ui_pick_pass_config->name = "Renderpass.Builtin.UIPick";
+	ui_pick_pass_config->name = "Builtin.UIPick";
 	ui_pick_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
 	ui_pick_pass_config->offset = { 0, 0 };
 	ui_pick_pass_config->clear_color = { 1.0f, 1.0f, 1.0f, 1.0f };

@@ -8,8 +8,6 @@
 
 #include "resources/loaders/ShaderLoader.hpp"
 
-#include "optick.h"
-
 namespace ShaderSystem
 {
 
@@ -219,10 +217,13 @@ namespace ShaderSystem
 		destroy_shader(&system_state->shaders[shader_id]);
 	}
 
+	void bind_shader(uint32 shader_id)
+	{
+		system_state->bound_shader_id = shader_id;
+	}
+
 	bool32 use_shader(uint32 shader_id)
 	{
-
-		OPTICK_EVENT();
 
 		Shader* shader = get_shader(shader_id);
 		if (!Renderer::shader_use(shader))
@@ -231,13 +232,7 @@ namespace ShaderSystem
 			return false;
 		}
 
-		if (!Renderer::shader_bind_globals(shader))
-		{
-			SHMERRORV("use_shader - Failed binding globals for shader '%s'.", shader->name.c_str());
-			return false;
-		}
-
-		system_state->bound_shader_id = shader_id;
+		bind_shader(shader_id);
 		return true;
 
 	}
@@ -303,6 +298,14 @@ namespace ShaderSystem
 
 	}
 
+	bool32 bind_globals()
+	{
+
+		Shader* shader = &system_state->shaders[system_state->bound_shader_id];
+		return Renderer::shader_bind_globals(shader);
+
+	}
+
 	bool32 bind_instance(uint32 instance_id)
 	{
 
@@ -312,7 +315,7 @@ namespace ShaderSystem
 
 	}
 
-	uint32 get_material_shader_id()
+	uint32 get_material_phong_shader_id()
 	{
 		return system_state->material_shader_id;
 	}

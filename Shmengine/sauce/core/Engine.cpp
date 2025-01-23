@@ -8,7 +8,6 @@
 #include "core/Event.hpp"
 #include "core/Input.hpp"
 #include "core/Console.hpp"
-#include "memory/LinearAllocator.hpp"
 #include "utility/CString.hpp"
 
 #include "renderer/RendererFrontend.hpp"
@@ -33,7 +32,6 @@ namespace Engine
 		Memory::LinearAllocator systems_allocator;
 
 		FrameData frame_data;
-		Memory::LinearAllocator frame_allocator;
 
 		void* logging_system_state;
 		void* input_system_state;
@@ -113,9 +111,9 @@ namespace Engine
 		if (app_inst->config.state_size)
 			app_inst->state = Memory::allocate(app_inst->config.state_size, AllocationTag::APPLICATION);
 
-		engine_state->frame_data.frame_allocator = &engine_state->frame_allocator;
-		void* f_data = Memory::allocate(app_inst->config.frame_allocator_size, AllocationTag::ENGINE);
-		engine_state->frame_data.frame_allocator->init(app_inst->config.frame_allocator_size, f_data);
+		uint64 frame_allocator_size = Mebibytes(32);
+		void* f_data = Memory::allocate(frame_allocator_size, AllocationTag::ENGINE);
+		engine_state->frame_data.frame_allocator.init(frame_allocator_size, f_data);
 
 		if (app_inst->config.app_frame_data_size)
 			engine_state->frame_data.app_data = Memory::allocate(app_inst->config.app_frame_data_size, AllocationTag::APPLICATION);
@@ -166,7 +164,7 @@ namespace Engine
 			engine_state->frame_data.delta_time = last_frametime;
 			engine_state->frame_data.total_time += last_frametime;
 
-			engine_state->frame_allocator.free_all_data();
+			engine_state->frame_data.frame_allocator.free_all_data();
 
 			SubsystemManager::update(&engine_state->frame_data);
 
@@ -201,7 +199,7 @@ namespace Engine
 
 				for (uint32 i = 0; i < render_packet.views.capacity; i++)
 				{
-					render_packet.views[i]->on_end_frame(render_packet.views[i]);
+					RenderViewSystem::on_end_frame(render_packet.views[i]);
 				}
 
 				metrics_update_render();

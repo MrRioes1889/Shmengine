@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
-
-namespace Memory { struct LinearAllocator; }
+#include "memory/LinearAllocator.hpp"
 
 struct FrameData
 {
@@ -11,6 +10,6 @@ struct FrameData
 
 	uint32 drawn_geometry_count;
 
-	Memory::LinearAllocator* frame_allocator;
+	Memory::LinearAllocator frame_allocator;
 	void* app_data;
 };

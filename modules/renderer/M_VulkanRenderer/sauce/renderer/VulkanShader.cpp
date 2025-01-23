@@ -314,31 +314,6 @@ namespace Renderer::Vulkan
 			stage_create_infos[i] = v_shader->stages[i].shader_stage_create_info;
 		}
 
-		/*VulkanPipelineConfig p_config = {};
-		p_config.renderpass = v_shader->renderpass;
-		p_config.vertex_stride = shader->attribute_stride;
-		p_config.attribute_count = shader->attributes.count;
-		p_config.attribute_descriptions = v_shader->config.attributes;
-		p_config.descriptor_set_layout_count = v_shader->config.descriptor_set_count;
-		p_config.descriptor_set_layouts = v_shader->descriptor_set_layouts;
-		p_config.stage_count = v_shader->config.stage_count;
-		p_config.stages = stage_create_infos;
-		p_config.viewport = viewport;
-		p_config.scissor = scissor;
-		p_config.cull_mode = v_shader->config.cull_mode;
-		p_config.is_wireframe = false;
-		p_config.shader_flags = shader->shader_flags;
-		p_config.push_constant_range_count = shader->push_constant_range_count;
-		p_config.push_constant_ranges = shader->push_constant_ranges;
-
-		bool32 pipeline_result = vk_pipeline_create(&p_config, &v_shader->pipeline);
-
-		if (!pipeline_result)
-		{
-			SHMERROR("Failed to load graphics pipeline for object shader.");
-			return false;
-		}*/
-
 		v_shader->pipelines.init((uint32)VulkanTopologyCLass::TOPOLOGY_CLASS_COUNT, 0);
 
 		RenderTopologyTypeFlags::Value pipeline_topologies[(uint32)VulkanTopologyCLass::TOPOLOGY_CLASS_COUNT];
@@ -698,35 +673,21 @@ namespace Renderer::Vulkan
 
 	bool32 vk_shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value)
 	{
-
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
-		if (uniform->type == ShaderUniformType::SAMPLER)
+		
+		if (uniform->scope == ShaderScope::LOCAL)
 		{
-			if (uniform->scope == ShaderScope::GLOBAL)
-			{
-				s->global_texture_maps[uniform->location] = (TextureMap*)value;
-			}
-			else
-			{
-				s->instances[s->bound_instance_id].instance_texture_maps[uniform->location] = (TextureMap*)value;
-			}
+			VkCommandBuffer command_buffer = context->graphics_command_buffers[context->bound_framebuffer_index].handle;
+			vkCmdPushConstants(command_buffer, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform->offset, uniform->size, value);
 		}
 		else
 		{
-			if (uniform->scope == ShaderScope::LOCAL)
-			{
-				// Is local, using push constants. Do this immediately.
-				VkCommandBuffer command_buffer = context->graphics_command_buffers[context->bound_framebuffer_index].handle;
-				vkCmdPushConstants(command_buffer, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform->offset, uniform->size, value);
-			}
-			else
-			{
-				// Map the appropriate memory location and copy the data over.
-				uint64 addr = (uint64)v_shader->mapped_uniform_buffer;
-				addr += s->bound_ubo_offset + uniform->offset;
-				Memory::copy_memory(value, (void*)addr, uniform->size);
-			}
+			// Map the appropriate memory location and copy the data over.
+			uint64 addr = (uint64)v_shader->mapped_uniform_buffer;
+			addr += s->bound_ubo_offset + uniform->offset;
+			Memory::copy_memory(value, (void*)addr, uniform->size);
 		}
+
 		return true;
 	}
 
