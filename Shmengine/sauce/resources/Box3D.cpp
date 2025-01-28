@@ -107,6 +107,8 @@ bool32 box3D_update(Box3D* box)
 	if (box->state == ResourceState::LOADED)
 		return Renderer::geometry_reload(&box->geometry, box->geometry.vertices.size(), 0);
 
+	box->is_dirty = false;
+
 	return true;
 }
 

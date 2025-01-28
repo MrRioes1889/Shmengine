@@ -173,6 +173,18 @@ namespace Engine
 				engine_state->is_running = false;
 			}
 
+			static float64 timer = 0;
+			timer += last_frametime;
+
+			if (timer > 1.0)
+			{
+				char window_title[128] = {};
+				CString::safe_print_s<float64>(window_title, 128, "Sandbox - Last frametime: %lf4 ms", engine_state->frame_data.delta_time * 1000.0);
+				Platform::set_window_text(window_title);
+				Platform::update_file_watches();
+				timer = 0.0;
+			}
+
 			Input::frame_start();
 
 			if (!engine_state->is_suspended)

@@ -1,0 +1,272 @@
+#include "RenderViewWorldEditor.hpp"
+
+#include <core/Event.hpp>
+#include <core/Identifier.hpp>
+#include <core/FrameData.hpp>
+#include <utility/Math.hpp>
+#include <utility/math/Transform.hpp>
+#include <resources/loaders/ShaderLoader.hpp>
+#include <resources/Mesh.hpp>
+#include <systems/GeometrySystem.hpp>
+#include <systems/ShaderSystem.hpp>
+#include <systems/MaterialSystem.hpp>
+#include <systems/CameraSystem.hpp>
+#include <systems/RenderViewSystem.hpp>
+#include <renderer/RendererFrontend.hpp>
+#include <utility/Sort.hpp>
+
+#include <optick.h>
+
+struct VertexCoordinateGrid
+{
+	uint32 index;
+};
+
+struct CoordinateGrid
+{
+	GeometryData geometry;
+};
+
+struct RenderViewWorldInternalData {
+	Shader* color3D_shader;
+	Color3DShaderUniformLocations color3D_shader_u_locations;
+
+	Shader* coordinate_grid_shader;
+	CoordinateGridShaderUniformLocations coordinate_grid_shader_u_locations;
+
+	float32 near_clip;
+	float32 far_clip;
+	float32 fov;
+
+	Math::Mat4 projection_matrix;
+
+	CoordinateGrid coordinate_grid;
+
+	Camera* camera;
+};
+
+static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
+{
+
+	RenderView* self = (RenderView*)listener_inst;
+	if (!self)
+		return false;
+
+	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
+	if (!internal_data)
+		return false;
+
+	switch (code)
+	{
+	case SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
+	{
+		RenderViewSystem::regenerate_render_targets(self);
+		return false;
+	}
+	}
+
+	return false;
+}
+
+bool32 render_view_world_editor_on_register(RenderView* self)
+{
+
+	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::RENDERER);
+	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
+
+	internal_data->color3D_shader_u_locations.view = INVALID_ID16;
+	internal_data->color3D_shader_u_locations.projection = INVALID_ID16;
+	internal_data->color3D_shader_u_locations.model = INVALID_ID16;
+
+	internal_data->coordinate_grid_shader_u_locations.view = INVALID_ID16;
+	internal_data->coordinate_grid_shader_u_locations.projection = INVALID_ID16;
+	internal_data->coordinate_grid_shader_u_locations.near = INVALID_ID16;
+	internal_data->coordinate_grid_shader_u_locations.far = INVALID_ID16;
+
+	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_coordinate_grid, &self->renderpasses[0]))
+	{
+		SHMERROR("Failed to create coordinate grid shader.");
+		return false;
+	}
+
+	internal_data->color3D_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_color3D);
+	internal_data->coordinate_grid_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_coordinate_grid);
+
+	internal_data->color3D_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "projection");
+	internal_data->color3D_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "view");
+	internal_data->color3D_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "model");
+
+	internal_data->coordinate_grid_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "projection");
+	internal_data->coordinate_grid_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "view");
+	internal_data->coordinate_grid_shader_u_locations.near = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "near");
+	internal_data->coordinate_grid_shader_u_locations.far = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "far");
+
+	internal_data->near_clip = 0.1f;
+	internal_data->far_clip = 4000.0f;
+	internal_data->fov = Math::deg_to_rad(45.0f);
+
+	internal_data->projection_matrix = Math::mat_perspective(internal_data->fov, 1280.0f / 720.0f, internal_data->near_clip, internal_data->far_clip);
+	internal_data->camera = CameraSystem::get_default_camera();
+
+	GeometryData* grid_geometry = &internal_data->coordinate_grid.geometry;
+	grid_geometry->id = INVALID_ID;
+	grid_geometry->vertex_size = sizeof(VertexCoordinateGrid);
+	grid_geometry->vertex_count = 6;
+	grid_geometry->vertices.init(grid_geometry->vertex_size * grid_geometry->vertex_count, 0);
+	SarrayRef<byte, VertexCoordinateGrid> grid_vertices(&grid_geometry->vertices);
+	for (uint32 i = 0; i < grid_vertices.capacity; i++)
+		grid_vertices[i].index = i;
+
+	Renderer::geometry_load(grid_geometry);
+
+	Event::event_register((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
+	Event::event_register((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
+
+	return true;
+
+}
+
+void render_view_world_editor_on_unregister(RenderView* self)
+{
+	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
+
+	Renderer::geometry_unload(&internal_data->coordinate_grid.geometry);
+
+	Event::event_unregister((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
+	Event::event_unregister((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
+}
+
+void render_view_world_editor_on_resize(RenderView* self, uint32 width, uint32 height)
+{
+	if (self->width == width && self->height == height)
+		return;
+
+	RenderViewWorldInternalData* data = (RenderViewWorldInternalData*)self->internal_data.data;
+
+	self->width = (uint16)width;
+	self->height = (uint16)height;
+	float32 aspect = (float32)width / (float32)height;
+	data->projection_matrix = Math::mat_perspective(data->fov, aspect, data->near_clip, data->far_clip);
+
+	for (uint32 i = 0; i < self->renderpasses.capacity; i++)
+	{
+		self->renderpasses[i].dim.width = width;
+		self->renderpasses[i].dim.height = height;
+	}
+}
+
+static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data)
+{
+	ShaderSystem::bind_shader(internal_data->color3D_shader->id);
+	ShaderSystem::bind_globals();
+
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.view, &internal_data->camera->get_view()));
+
+	return Renderer::shader_apply_globals(internal_data->color3D_shader);
+}
+
+static bool32 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
+{
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.model, model));
+	return true;
+}
+
+static bool32 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_data)
+{
+	ShaderSystem::bind_shader(internal_data->coordinate_grid_shader->id);
+	ShaderSystem::bind_globals();
+
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.view, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.near, &internal_data->near_clip));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.far, &internal_data->far_clip));
+
+	return Renderer::shader_apply_globals(internal_data->coordinate_grid_shader);
+}
+
+bool32 render_view_world_editor_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
+{
+	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
+
+	return true;
+}
+
+void render_view_world_editor_on_end_frame(RenderView* self)
+{
+}
+
+bool32 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
+{
+
+	OPTICK_EVENT();
+
+	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
+
+	if (!set_globals_color3D(internal_data))
+		SHMERROR("Failed to apply globals to color3D shader.");
+	if (!set_globals_coordinate_grid(internal_data))
+		SHMERROR("Failed to apply globals to coordinate grid shader.");
+
+	for (uint32 instance_i = 0; instance_i < self->instances.count; instance_i++)
+	{
+		RenderViewInstanceData* instance_data = &self->instances[instance_i];
+
+		if (instance_data->shader_instance_id == INVALID_ID)
+			continue;
+
+		bool32 instance_set = true;
+		SHMERROR("Unknown shader for applying instance.");
+
+		if (!instance_set)
+			SHMERROR("Failed to apply instance.");
+	}
+
+	Renderer::RenderPass* renderpass = &self->renderpasses[0];
+
+	uint32 shader_id = INVALID_ID;
+
+	if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
+	{
+		SHMERROR("render_view_world_on_render - failed to begin renderpass!");
+		return false;
+	}
+
+	for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
+	{
+		RenderViewGeometryData* render_data = &self->geometries[geometry_i];
+
+		if (render_data->shader_id != shader_id)
+		{
+			shader_id = render_data->shader_id;
+			ShaderSystem::use_shader(shader_id);
+			ShaderSystem::bind_globals();
+		}
+
+		if (render_data->shader_instance_id != INVALID_ID)
+			ShaderSystem::bind_instance(render_data->shader_instance_id);
+
+		if (render_data->object_index != INVALID_ID)
+		{
+			Math::Mat4* model = &self->objects[render_data->object_index].model;
+			if (shader_id == internal_data->color3D_shader->id)
+				set_locals_color3D(internal_data, model);
+		}
+
+		Renderer::geometry_draw(render_data->geometry_data);
+	}
+
+	// NOTE: Drawing coordinate grid separately
+	ShaderSystem::use_shader(internal_data->coordinate_grid_shader->id);
+	ShaderSystem::bind_globals();
+
+	Renderer::geometry_draw(&internal_data->coordinate_grid.geometry);
+
+	if (!Renderer::renderpass_end(renderpass))
+	{
+		SHMERROR("render_view_world_on_render - draw_frame - failed to end renderpass!");
+		return false;
+	}
+
+	return true;
+}

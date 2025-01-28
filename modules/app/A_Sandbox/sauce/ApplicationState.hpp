@@ -16,6 +16,7 @@
 #include <resources/Skybox.hpp>
 #include <resources/Mesh.hpp>
 #include <resources/Box3D.hpp>
+#include <resources/Gizmo3D.hpp>
 // end
 
 struct ApplicationState
@@ -28,6 +29,8 @@ struct ApplicationState
     Math::Frustum camera_frustum;
 
     Scene main_scene;
+
+    Gizmo3D editor_gizmo;
 
     Darray<Mesh> ui_meshes;
     UIText debug_info_text;

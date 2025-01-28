@@ -39,9 +39,7 @@ namespace Platform
     static float64 clock_frequency;
     static LARGE_INTEGER start_time;
 
-    static void update_file_watches();
-
-    static bool32 win32_translate_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param);
+    static bool32 win32_process_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param);
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param);
 
     bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
@@ -176,19 +174,16 @@ namespace Platform
 
     bool32 pump_messages()
     {
-        OPTICK_EVENT();
-
         MSG message;
-        while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) 
+        while (PeekMessageA(&message, NULL, 0, 0, PM_REMOVE)) 
         {
-            if (!win32_translate_message_fast(message.message, message.wParam, message.lParam))
+            if (!win32_process_message_fast(message.message, message.wParam, message.lParam))
             {
                 TranslateMessage(&message);
                 DispatchMessageA(&message);
             }
         }
 
-        update_file_watches();
         return TRUE;
     }
 
@@ -289,18 +284,18 @@ namespace Platform
         return ReturnCode::SUCCESS;
     }
 
-   bool32 unregister_file_watch(uint32 watch_id)
-   {
-       if (watch_id > plat_state->file_watches.count - 1)
-           return false;
+    bool32 unregister_file_watch(uint32 watch_id)
+    {
+        if (watch_id > plat_state->file_watches.count - 1)
+            return false;
 
-       plat_state->file_watches[watch_id].file_path.free_data();
-       plat_state->file_watches.remove_at(watch_id);
+        plat_state->file_watches[watch_id].file_path.free_data();
+        plat_state->file_watches.remove_at(watch_id);
 
-       return true;
-   }
+        return true;
+    }
 
-    static void update_file_watches()
+    void update_file_watches()
     {
 
         for (uint32 i = 0; i < plat_state->file_watches.count; i++)
@@ -341,8 +336,6 @@ namespace Platform
     void console_write(const char* message, uint8 color)
     {
         HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-        //HANDLE console_handle = ((internal_state*)(state))->console_handle;
-        // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
         static uint8 levels[6] = { 64, 4, 6, 2, 1, 8 };
         SetConsoleTextAttribute(console_handle, levels[color]);
         OutputDebugStringA(message);
@@ -354,8 +347,6 @@ namespace Platform
     void console_write_error(const char* message, uint8 color)
     {
         HANDLE console_handle = GetStdHandle(STD_ERROR_HANDLE);
-        //HANDLE console_handle = ((internal_state*)(state))->console_handle;
-        // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
         static uint8 levels[6] = { 64, 4, 6, 2, 1, 8 };
         SetConsoleTextAttribute(console_handle, levels[color]);
         OutputDebugStringA(message);
@@ -466,7 +457,12 @@ namespace Platform
         MessageBoxA(plat_state->hwnd, message, prompt, MB_OK);
     }
 
-    static bool32 win32_translate_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param)
+    void set_window_text(const char* s)
+    {
+        SetWindowTextA(plat_state->hwnd, s);
+    }
+
+    static bool32 win32_process_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param)
     {
         switch (msg) {
         case WM_MOVE:
@@ -482,8 +478,6 @@ namespace Platform
             UINT input_size = sizeof(input_buffer);
 
             GetRawInputData((HRAWINPUT)l_param, RID_INPUT, input_buffer, &input_size, sizeof(RAWINPUTHEADER));
-
-            //RAWINPUT* raw = (RAWINPUT*)input_buffer;
 
             if (input_buffer[0].header.dwType == RIM_TYPEMOUSE)
             {
@@ -552,6 +546,12 @@ namespace Platform
             Input::process_mousebutton(button, pressed);
             break;
         }
+        case WM_NCMOUSEMOVE:
+        case WM_NCMOUSELEAVE:
+        case WM_MOUSELEAVE:
+        {
+            return true;
+        }
         default:
         {
             return false;
@@ -594,10 +594,26 @@ namespace Platform
             Event::event_fire(SystemEventCode::WINDOW_RESIZED, 0, e);
             break;
         }
-        /*case WM_NCHITTEST:
+        case WM_NCHITTEST:
         {
-            return 0;
-        }*/
+            return DefWindowProcA(hwnd, msg, w_param, l_param);
+        }
+        case WM_SETTEXT:
+        {
+            return DefWindowProcA(hwnd, msg, w_param, l_param);
+        }
+        case WM_SETCURSOR:
+        {
+            return DefWindowProcA(hwnd, msg, w_param, l_param);
+        }
+        case 174: //???
+        {
+            return DefWindowProcA(hwnd, msg, w_param, l_param);
+        }
+        case WM_GETICON:
+        {
+            return DefWindowProcA(hwnd, msg, w_param, l_param);
+        }
         default:
         {
             return DefWindowProcA(hwnd, msg, w_param, l_param);

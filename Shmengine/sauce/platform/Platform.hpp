@@ -53,6 +53,7 @@ namespace Platform
 	ReturnCode get_last_error();
 
 	bool32 pump_messages();
+	void update_file_watches();
 
 	SHMAPI const char* get_root_dir();
 
@@ -87,6 +88,7 @@ namespace Platform
 	SHMAPI bool32 load_dynamic_library_function(DynamicLibrary* lib, const char* name, void** out_function);
 
 	SHMAPI void message_box(const char* prompt, const char* message);
+	SHMAPI void set_window_text(const char* s);
 
 }
 

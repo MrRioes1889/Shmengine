@@ -16,16 +16,6 @@
 
 #include <optick.h>
 
-struct UIShaderUniformLocations
-{
-	uint16 projection;
-	uint16 view;
-	uint16 diffuse_texture;
-	uint16 model;
-
-	uint16 properties;
-};
-
 struct RenderViewUIInternalData {
 	Shader* ui_shader;
 	UIShaderUniformLocations ui_shader_u_locations;
@@ -120,14 +110,7 @@ bool32 render_view_ui_on_build_packet(RenderView* self, FrameData* frame_data, c
 {		
 	RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
 
-	if (packet_data->renderpass_id + 1 > self->renderpasses.capacity)
-	{
-		SHMERROR("Invalid renderpass id supplied in packet data!");
-		return false;
-	}
-
 	return true;
-
 }
 
 void render_view_ui_on_end_frame(RenderView* self)

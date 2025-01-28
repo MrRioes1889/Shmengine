@@ -205,14 +205,7 @@ bool32 render_view_pick_on_build_packet(RenderView* self, FrameData* frame_data,
 {
 	RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 
-	if (packet_data->renderpass_id + 1 > self->renderpasses.capacity)
-	{
-		SHMERROR("Invalid renderpass id supplied in packet data!");
-		return false;
-	}
-
 	return true;
-
 }
 
 void render_view_pick_on_end_frame(RenderView* self)
@@ -348,7 +341,7 @@ bool32 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint3
 
 	}
 
-	Texture* t = &internal_data->color_target_attachment_texture;
+	/*Texture* t = &internal_data->color_target_attachment_texture;
 
 	uint8 pixel[4] = {};
 	Math::Vec2i mouse_pos = Input::get_mouse_position();
@@ -367,7 +360,7 @@ bool32 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint3
 		e_data.ui32[0] = id;
 		Event::event_fire(SystemEventCode::OBJECT_HOVER_ID_CHANGED, 0, e_data);
 		internal_data->hovered_object_id = id;
-	}	
+	}*/
 
 	return true;
 

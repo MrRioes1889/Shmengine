@@ -6,15 +6,16 @@
 #include "core/Subsystems.hpp"
 
 struct FrameData;
+struct Camera;
 
 struct Mesh;
 struct Terrain;
 struct UIText;
 struct Box3D;
+struct Gizmo3D;
 
 struct RenderViewPacketData
 {
-	uint32 renderpass_id;
 	uint32 geometries_pushed_count;
 	uint32 instances_pushed_count;
 	uint32 objects_pushed_count;
@@ -95,13 +96,14 @@ namespace RenderViewSystem
 
 	SHMAPI void regenerate_render_targets(RenderView* view);
 
-	SHMAPI uint32 mesh_draw(RenderView* view, Mesh* mesh, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
-	SHMAPI uint32 meshes_draw(RenderView* view, Mesh* meshes, uint32 mesh_count, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
-	SHMAPI bool32 skybox_draw(RenderView* view, Skybox* skybox, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 terrain_draw(RenderView* view, Terrain* terrain, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
-	SHMAPI uint32 terrains_draw(RenderView* view, Terrain* terrains, uint32 terrains_count, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
-	SHMAPI bool32 ui_text_draw(RenderView* view, UIText* text, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 box3D_draw(RenderView* view, Box3D* box, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 boxes3D_draw(RenderView* view, Box3D* boxes, uint32 boxes_count, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 mesh_draw(RenderView* view, Mesh* mesh, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
+	SHMAPI uint32 meshes_draw(RenderView* view, Mesh* meshes, uint32 mesh_count, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
+	SHMAPI bool32 skybox_draw(RenderView* view, Skybox* skybox, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 terrain_draw(RenderView* view, Terrain* terrain, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
+	SHMAPI uint32 terrains_draw(RenderView* view, Terrain* terrains, uint32 terrains_coun, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
+	SHMAPI bool32 ui_text_draw(RenderView* view, UIText* text, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 box3D_draw(RenderView* view, Box3D* box, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 boxes3D_draw(RenderView* view, Box3D* boxes, uint32 boxes_count, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 gizmo3D_draw(RenderView* view, Gizmo3D* gizmo, uint32 shader_id, FrameData* frame_data, Camera* camera);
 
 }

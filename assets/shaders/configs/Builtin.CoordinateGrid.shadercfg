@@ -13,3 +13,5 @@ attribute=uint32,in_index
 # NOTE: For scope: 0=global, 1=instance, 2=local
 uniform=mat4,0,projection
 uniform=mat4,0,view
+uniform=float32,0,near
+uniform=float32,0,far

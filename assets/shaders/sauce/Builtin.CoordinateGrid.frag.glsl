@@ -10,13 +10,12 @@ layout(location = 1) in struct DTO
     vec3 far_point;
 } in_dto;
 
-float near = 0.01;
-float far = 100.0;
-
 layout(set = 0, binding = 0) uniform global_uniform_object
 {
     mat4 projection;
     mat4 view;
+    float near;
+    float far;
 } global_ubo;
 
 vec4 grid(vec3 fragPos3D, float scale, bool drawAxis) {
@@ -44,8 +43,8 @@ float computeDepth(vec3 pos) {
 float computeLinearDepth(vec3 pos) {
     vec4 clip_space_pos = global_ubo.projection * global_ubo.view * vec4(pos.xyz, 1.0);
     float clip_space_depth = (clip_space_pos.z / clip_space_pos.w) * 2.0 - 1.0; // put back between -1 and 1
-    float linearDepth = (2.0 * near * far) / (far + near - clip_space_depth * (far - near)); // get linear value between 0.01 and 100
-    return linearDepth / far; // normalize
+    float linearDepth = (2.0 * global_ubo.near * global_ubo.far) / (global_ubo.far + global_ubo.near - clip_space_depth * (global_ubo.far - global_ubo.near)); // get linear value between 0.01 and 100
+    return linearDepth / global_ubo.far; // normalize
 }
 
 void main() {
@@ -57,7 +56,6 @@ void main() {
     float linearDepth = computeLinearDepth(fragPos3D);
     float fading = max(0, (0.5 - linearDepth));
 
-    //out_color = (grid(fragPos3D, 10, true) + grid(fragPos3D, 1, true))* float(t > 0); // adding multiple resolution for the grid
     out_color = (grid(fragPos3D, 0.1, true) + grid(fragPos3D, 1, true)) * float(t > 0); // adding multiple resolution for the grid
     out_color.a *= fading;
 }

@@ -2,6 +2,7 @@
 
 #include "core/Logging.hpp"
 #include "core/FrameData.hpp"
+#include "renderer/Camera.hpp"
 #include "utility/CString.hpp"
 #include "containers/Hashtable.hpp"
 #include "renderer/RendererFrontend.hpp"
@@ -14,6 +15,7 @@
 #include "resources/UIText.hpp"
 #include "resources/Terrain.hpp"
 #include "resources/Box3D.hpp"
+#include "resources/Gizmo3D.hpp"
 
 namespace RenderViewSystem
 {
@@ -243,18 +245,17 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = material->shader_instance_id;
 	}
 
-	uint32 mesh_draw(RenderView* view, Mesh* mesh, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
+	uint32 mesh_draw(RenderView* view, Mesh* mesh, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
 	{
-		return meshes_draw(view, mesh, 1, renderpass_id, shader_id, lighting, frame_data, frustum);
+		return meshes_draw(view, mesh, 1, shader_id, lighting, frame_data, frustum);
 	}
 
-	uint32 meshes_draw(RenderView* view, Mesh* meshes, uint32 mesh_count, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
+	uint32 meshes_draw(RenderView* view, Mesh* meshes, uint32 mesh_count, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
 	{
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
 		packet_data.objects_pushed_count = 0;
-		packet_data.renderpass_id = renderpass_id;
 
 		for (uint32 i = 0; i < mesh_count; i++)
 		{
@@ -315,13 +316,12 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = skybox->shader_instance_id;
 	}
 
-	bool32 skybox_draw(RenderView* view, Skybox* skybox, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
+	bool32 skybox_draw(RenderView* view, Skybox* skybox, uint32 shader_id, FrameData* frame_data)
 	{
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
 		packet_data.objects_pushed_count = 0;
-		packet_data.renderpass_id = renderpass_id;
 
 		RenderViewGeometryData* render_data = &view->geometries[view->geometries.emplace()];
 		render_data->object_index = INVALID_ID;
@@ -353,18 +353,17 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = terrain->shader_instance_id;
 	}
 
-	uint32 terrain_draw(RenderView* view, Terrain* terrain, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
+	uint32 terrain_draw(RenderView* view, Terrain* terrain, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
 	{
-		return terrains_draw(view, terrain, 1, renderpass_id, shader_id, lighting, frame_data);
+		return terrains_draw(view, terrain, 1, shader_id, lighting, frame_data);
 	}
 
-	uint32 terrains_draw(RenderView* view, Terrain* terrains, uint32 terrains_count, uint32 renderpass_id, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
+	uint32 terrains_draw(RenderView* view, Terrain* terrains, uint32 terrains_count, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
 	{
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
 		packet_data.objects_pushed_count = 0;
-		packet_data.renderpass_id = renderpass_id;
 
 		for (uint32 i = 0; i < terrains_count; i++)
 		{
@@ -405,13 +404,12 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = text->shader_instance_id;
 	}
 
-	bool32 ui_text_draw(RenderView* view, UIText* text, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
+	bool32 ui_text_draw(RenderView* view, UIText* text, uint32 shader_id, FrameData* frame_data)
 	{
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
 		packet_data.objects_pushed_count = 0;
-		packet_data.renderpass_id = renderpass_id;
 
 		RenderViewObjectData* object_data = &view->objects[view->objects.emplace()];
 		object_data->model = Math::transform_get_world(text->transform);
@@ -434,18 +432,17 @@ namespace RenderViewSystem
 		return RenderViewSystem::build_packet(view, frame_data, &packet_data);
 	}
 
-	uint32 box3D_draw(RenderView* view, Box3D* box, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
+	uint32 box3D_draw(RenderView* view, Box3D* box, uint32 shader_id, FrameData* frame_data)
 	{
-		return boxes3D_draw(view, box, 1, renderpass_id, shader_id, frame_data);
+		return boxes3D_draw(view, box, 1, shader_id, frame_data);
 	}
 
-	uint32 boxes3D_draw(RenderView* view, Box3D* boxes, uint32 boxes_count, uint32 renderpass_id, uint32 shader_id, FrameData* frame_data)
+	uint32 boxes3D_draw(RenderView* view, Box3D* boxes, uint32 boxes_count, uint32 shader_id, FrameData* frame_data)
 	{
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
 		packet_data.objects_pushed_count = 0;
-		packet_data.renderpass_id = renderpass_id;
 
 		for (uint32 i = 0; i < boxes_count; i++)
 		{
@@ -469,5 +466,39 @@ namespace RenderViewSystem
 		RenderViewSystem::build_packet(view, frame_data, &packet_data);
 
 		return packet_data.geometries_pushed_count;
+	}
+
+	uint32 gizmo3D_draw(RenderView* view, Gizmo3D* gizmo, uint32 shader_id, FrameData* frame_data, Camera* camera)
+	{
+		RenderViewPacketData packet_data = {};
+		packet_data.geometries_pushed_count = 0;
+		packet_data.instances_pushed_count = 0;
+		packet_data.objects_pushed_count = 0;
+
+		RenderViewObjectData* object_data = &view->objects[view->objects.emplace()];
+		object_data->model = Math::transform_get_world(gizmo->xform);
+		Math::Vec3f camera_pos = camera->get_position();
+		Math::Vec3f gizmo_pos = gizmo->xform.position;
+		// TODO: Should get this from the camera/viewport.
+		float32 fov = Math::deg_to_rad(45.0f);
+		float32 dist = Math::vec_distance(camera_pos, gizmo_pos);
+		float32 fixed_size = 0.1f;  // TODO: Make this a configurable option for gizmo size.
+		float32 scale_scalar = ((2.0f * Math::tan(fov * 0.5f)) * dist) * fixed_size;
+		Math::Mat4 scale = Math::mat_scale({scale_scalar, scale_scalar, scale_scalar});
+		object_data->model = Math::mat_mul(object_data->model, scale);
+
+		object_data->unique_id = gizmo->unique_id;
+		object_data->lighting = {};
+		packet_data.objects_pushed_count++;
+
+		RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
+		geo_render_data->object_index = view->objects.count - 1;
+		geo_render_data->shader_instance_id = INVALID_ID;
+		geo_render_data->shader_id = shader_id;
+		geo_render_data->geometry_data = &gizmo->geometry;
+		geo_render_data->has_transparency = 0;
+		packet_data.geometries_pushed_count++;
+
+		return RenderViewSystem::build_packet(view, frame_data, &packet_data);
 	}
 }

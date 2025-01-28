@@ -15,6 +15,7 @@ namespace SandboxRenderViews
     {
         SKYBOX,
         WORLD,
+        WORLD_EDITOR,
         UI,
         PICK,
         VIEW_COUNT

@@ -201,6 +201,72 @@ struct Shader
 
 };
 
+struct SkyboxShaderUniformLocations
+{
+	uint16 projection;
+	uint16 view;
+	uint16 cube_map;
+};
+
+struct UIShaderUniformLocations
+{
+	uint16 projection;
+	uint16 view;
+	uint16 diffuse_texture;
+	uint16 model;
+
+	uint16 properties;
+};
+
+struct MaterialPhongShaderUniformLocations
+{
+	uint16 projection;
+	uint16 view;
+	uint16 model;
+	uint16 ambient_color;
+	uint16 camera_position;
+	uint16 diffuse_texture;
+	uint16 specular_texture;
+	uint16 normal_texture;
+	uint16 render_mode;
+	uint16 dir_light;
+	uint16 p_lights;
+	uint16 p_lights_count;
+
+	uint16 properties;
+};
+
+struct TerrainShaderUniformLocations
+{
+	uint16 projection;
+	uint16 view;
+	uint16 model;
+	uint16 ambient_color;
+	uint16 camera_position;
+	uint16 render_mode;
+	uint16 dir_light;
+	uint16 p_lights;
+	uint16 p_lights_count;
+
+	uint16 properties;
+	uint16 samplers[max_terrain_materials_count * 3];
+};
+
+struct Color3DShaderUniformLocations
+{
+	uint16 projection;
+	uint16 view;
+	uint16 model;
+};
+
+struct CoordinateGridShaderUniformLocations
+{
+	uint16 projection;
+	uint16 view;
+	uint16 near;
+	uint16 far;
+};
+
 namespace ShaderSystem
 {
 

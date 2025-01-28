@@ -169,6 +169,21 @@ static void on_console_scroll_hold(KeyCode::Value key, Input::KeymapBindingType 
 	accumulated_time = 0.0f;
 }
 
+static void on_set_gizmo_mode(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
+{
+	Gizmo3D* gizmo = (Gizmo3D*)user_data;
+
+	if (key == KeyCode::NUM_1)
+		gizmo3D_set_mode(gizmo, GizmoMode::NONE);
+	else if (key == KeyCode::NUM_2)
+		gizmo3D_set_mode(gizmo, GizmoMode::MOVE);
+	else if (key == KeyCode::NUM_3)
+		gizmo3D_set_mode(gizmo, GizmoMode::ROTATE);
+	else if (key == KeyCode::NUM_4)
+		gizmo3D_set_mode(gizmo, GizmoMode::SCALE);
+	else
+		return;
+}
 
 void add_keymaps()
 {
@@ -193,6 +208,11 @@ void add_keymaps()
 	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, Input::KeymapModifierFlags::CONTROL, world_render_view, on_render_mode_change);
 	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, Input::KeymapModifierFlags::CONTROL, world_render_view, on_render_mode_change);
 	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, Input::KeymapModifierFlags::CONTROL, world_render_view, on_render_mode_change);
+
+	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
+	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
+	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
+	global_keymap.add_binding(KeyCode::NUM_4, Input::KeymapBindingType::PRESS, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
 
 	global_keymap.add_binding(KeyCode::L, Input::KeymapBindingType::PRESS, 0, 0, on_load_scene);
 	global_keymap.add_binding(KeyCode::U, Input::KeymapBindingType::PRESS, 0, 0, on_unload_scene);

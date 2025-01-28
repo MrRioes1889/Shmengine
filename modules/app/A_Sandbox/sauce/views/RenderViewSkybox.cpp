@@ -16,13 +16,6 @@
 
 #include <optick.h>
 
-struct SkyboxShaderUniformLocations
-{
-	uint16 projection;
-	uint16 view;
-	uint16 cube_map;
-};
-
 struct RenderViewSkyboxInternalData {
 	Shader* skybox_shader;
 	SkyboxShaderUniformLocations skybox_shader_u_locations;
@@ -117,15 +110,8 @@ void render_view_skybox_on_resize(RenderView* self, uint32 width, uint32 height)
 bool32 render_view_skybox_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
 {
 	RenderViewSkyboxInternalData* internal_data = (RenderViewSkyboxInternalData*)self->internal_data.data;
-
-	if (packet_data->renderpass_id + 1 > self->renderpasses.capacity)
-	{
-		SHMERROR("Invalid renderpass id supplied in packet data!");
-		return false;
-	}
 	
 	return true;
-
 }
 
 void render_view_skybox_on_end_frame(RenderView* self)

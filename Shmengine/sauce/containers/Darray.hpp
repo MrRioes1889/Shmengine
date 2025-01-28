@@ -82,6 +82,11 @@ struct Darray
 	SHMINLINE T* transfer_data();
 
 	SHMINLINE void copy_memory(const void* source, uint32 copy_count, uint32 array_offset);
+
+	SHMINLINE void zero_memory()
+	{
+		Memory::zero_memory(data, this->size());
+	}
 	
 	SHMINLINE T& operator[](uint32 index)
 	{

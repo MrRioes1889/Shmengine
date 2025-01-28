@@ -5,8 +5,8 @@ IF "%1"=="" (echo Error: need to provide build directory as first argument && ex
 SET build_dir=%1
 
 IF NOT EXIST %build_dir%OptickCore.dll (
-    echo "copying optick dll to output directory : vendor/Optick/lib/x64/debug/OptickCore.dll -> %build_dir%OptickCore.dll"
-    ROBOCOPY "%wd%vendor\Optick\lib\x64\release" "%build_dir%"" "OptickCore.dll"
+    echo "copying optick dll to output directory : %wd%vendor\Optick\lib\x64\debug -> %build_dir%"
+    ROBOCOPY "%wd%vendor\Optick\lib\x64\debug " "%build_dir% " "OptickCore.dll"
     IF %ERRORLEVEL% GEQ 2 (echo Error: %ERRORLEVEL% && exit)
 )
 

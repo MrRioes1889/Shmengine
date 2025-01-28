@@ -8,6 +8,8 @@ layout(set = 0, binding = 0) uniform global_uniform_object
 {
     mat4 projection;
     mat4 view;
+    float near;
+    float far;
 } global_ubo;
 
 // Data Transfer Object
