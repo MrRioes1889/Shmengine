@@ -26,17 +26,17 @@ typedef uint32 UniqueId;
 
 typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
-inline const uint32 max_filename_length = 256;
-inline const uint32 max_mesh_name_length = 128;
-inline const uint32 max_geometry_name_length = 128;
-inline const uint32 max_material_name_length = 128;
-inline const uint32 max_shader_name_length = 128;
-inline const uint32 max_shader_stage_name_length = 64;
-inline const uint32 max_shader_attribute_name_length = 64;
-inline const uint32 max_shader_uniform_name_length = 64;
-inline const uint32 max_texture_name_length = 128;
-inline const uint32 max_terrain_name_length = 128;
-inline const uint32 max_buffer_name_length = 128;
+inline const uint32 max_filename_length = 255;
+inline const uint32 max_mesh_name_length = 127;
+inline const uint32 max_geometry_name_length = 127;
+inline const uint32 max_material_name_length = 127;
+inline const uint32 max_shader_name_length = 127;
+inline const uint32 max_shader_stage_name_length = 63;
+inline const uint32 max_shader_attribute_name_length = 63;
+inline const uint32 max_shader_uniform_name_length = 63;
+inline const uint32 max_texture_name_length = 127;
+inline const uint32 max_terrain_name_length = 127;
+inline const uint32 max_buffer_name_length = 127;
 
 inline const uint32 max_terrain_materials_count = 4;
 

@@ -15,6 +15,7 @@
 #include <resources/UIText.hpp>
 #include <resources/Skybox.hpp>
 #include <resources/Mesh.hpp>
+#include <resources/Line3D.hpp>
 #include <resources/Box3D.hpp>
 #include <resources/Gizmo3D.hpp>
 // end
@@ -34,6 +35,8 @@ struct ApplicationState
 
     Darray<Mesh> ui_meshes;
     UIText debug_info_text;
+
+    Darray<Line3D> test_raycast_lines;
 
     Input::Keymap console_keymap;
 

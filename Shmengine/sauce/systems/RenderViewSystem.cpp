@@ -15,6 +15,7 @@
 #include "resources/UIText.hpp"
 #include "resources/Terrain.hpp"
 #include "resources/Box3D.hpp"
+#include "resources/Line3D.hpp"
 #include "resources/Gizmo3D.hpp"
 
 namespace RenderViewSystem
@@ -459,6 +460,42 @@ namespace RenderViewSystem
 			geo_render_data->shader_instance_id = INVALID_ID;
 			geo_render_data->shader_id = shader_id;
 			geo_render_data->geometry_data = &box->geometry;
+			geo_render_data->has_transparency = 0;
+			packet_data.geometries_pushed_count++;
+		}
+
+		RenderViewSystem::build_packet(view, frame_data, &packet_data);
+
+		return packet_data.geometries_pushed_count;
+	}
+
+	uint32 line3D_draw(RenderView* view, Line3D* line, uint32 shader_id, FrameData* frame_data)
+	{
+		return lines3D_draw(view, line, 1, shader_id, frame_data);
+	}
+
+	uint32 lines3D_draw(RenderView* view, Line3D* lines, uint32 lines_count, uint32 shader_id, FrameData* frame_data)
+	{
+		RenderViewPacketData packet_data = {};
+		packet_data.geometries_pushed_count = 0;
+		packet_data.instances_pushed_count = 0;
+		packet_data.objects_pushed_count = 0;
+
+		for (uint32 i = 0; i < lines_count; i++)
+		{
+			Line3D* line = &lines[i];
+
+			RenderViewObjectData* object_data = &view->objects[view->objects.emplace()];
+			object_data->model = Math::transform_get_world(line->xform);
+			object_data->unique_id = line->unique_id;
+			object_data->lighting = {};
+			packet_data.objects_pushed_count++;
+
+			RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
+			geo_render_data->object_index = view->objects.count - 1;
+			geo_render_data->shader_instance_id = INVALID_ID;
+			geo_render_data->shader_id = shader_id;
+			geo_render_data->geometry_data = &line->geometry;
 			geo_render_data->has_transparency = 0;
 			packet_data.geometries_pushed_count++;
 		}

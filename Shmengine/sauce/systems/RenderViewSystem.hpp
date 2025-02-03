@@ -12,6 +12,7 @@ struct Mesh;
 struct Terrain;
 struct UIText;
 struct Box3D;
+struct Line3D;
 struct Gizmo3D;
 
 struct RenderViewPacketData
@@ -104,6 +105,8 @@ namespace RenderViewSystem
 	SHMAPI bool32 ui_text_draw(RenderView* view, UIText* text, uint32 shader_id, FrameData* frame_data);
 	SHMAPI uint32 box3D_draw(RenderView* view, Box3D* box, uint32 shader_id, FrameData* frame_data);
 	SHMAPI uint32 boxes3D_draw(RenderView* view, Box3D* boxes, uint32 boxes_count, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 line3D_draw(RenderView* view, Line3D* line, uint32 shader_id, FrameData* frame_data);
+	SHMAPI uint32 lines3D_draw(RenderView* view, Line3D* lines, uint32 lines_count, uint32 shader_id, FrameData* frame_data);
 	SHMAPI uint32 gizmo3D_draw(RenderView* view, Gizmo3D* gizmo, uint32 shader_id, FrameData* frame_data, Camera* camera);
 
 }

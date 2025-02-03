@@ -6,6 +6,21 @@
 
 namespace Math
 {
+	enum class Ray3DHitType
+	{
+		NONE,
+		OBB,
+		SURFACE
+	};
+
+	struct Ray3DHitInfo
+	{
+		Ray3DHitType type;
+		UniqueId unique_id;
+		Vec3f position;
+		float32 distance;
+	};
+
 
 	SHMAPI Plane3D plane_3d_create(Vec3f p1, Vec3f norm);
 
@@ -18,6 +33,11 @@ namespace Math
 
 	SHMAPI bool32 frustum_intersects_sphere(Frustum f,  Vec3f center, float32 radius);
 	SHMAPI bool32 frustum_intersects_aabb(Frustum f,  Vec3f center,  Vec3f extents);
+
+	SHMAPI Ray3D ray3D_create(Vec3f origin, Vec3f direction);
+	SHMAPI Ray3D ray3D_create_from_screen(Vec2f screen_pos, Vec2f viewport_size, Vec3f origin, Mat4 view, Mat4 projection);
+
+	SHMAPI bool32 ray3D_cast_obb(Extents3D bb_extents, Mat4 bb_model, Ray3D ray, float32* out_dist);
 
 	//------- Quat functions
 

@@ -39,9 +39,34 @@ static bool32 init_render_views(Application* app_inst);
 static void register_events();
 static void unregister_events();
 
-static bool32 application_on_key_pressed(uint16 code, void* sender, void* listener_inst, EventData data)
+static bool32 application_on_mousebutton_released(uint16 code, void* sender, void* listener_inst, EventData data)
 {
-	//SHMDEBUGV("Key pressed, Code: %u", data.ui32[0]);
+
+	if (app_state->main_scene.state != ResourceState::LOADED)
+		return false;
+
+	int16 x = data.i16[1];
+	int16 y = data.i16[2];
+
+	Math::Mat4 view = app_state->world_camera->get_view();
+	Math::Vec3f origin = app_state->world_camera->get_position();
+	Math::Mat4 projection = Math::mat_perspective(Math::deg_to_rad(45.0f), (float32)app_state->width / app_state->height, 0.1f, 4000.0f);
+
+	Math::Ray3D ray = Math::ray3D_create_from_screen({(float32)x, (float32)y}, {(float32)app_state->width, (float32)app_state->height }, origin, view, projection);
+	Math::Ray3DHitInfo hit_info = scene_raycast(&app_state->main_scene, ray);
+
+	if (hit_info.type == Math::Ray3DHitType::NONE)
+	{
+		SHMDEBUG("Raycast: No object hit.");
+		return false;
+	}
+
+	SHMDEBUGV("Raycast: Hit object %u at %f/%f/%f.", hit_info.unique_id, hit_info.position.x, hit_info.position.y, hit_info.position.z);
+
+	Line3D* new_line = &app_state->test_raycast_lines[app_state->test_raycast_lines.emplace()];
+	if (!line3D_init(origin, hit_info.position, { 1.0f, 1.0f, 0.0f, 1.0f }, new_line) || !line3D_load(new_line))
+		SHMERROR("Failed to init or load new test line!");
+	
 	return false;
 }
 
@@ -105,6 +130,9 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 		{
 			SHMDEBUG("Unloading main scene...");
 			scene_unload(&app_state->main_scene);
+			for (uint32 i = 0; i < app_state->test_raycast_lines.count; i++)
+				line3D_destroy(&app_state->test_raycast_lines[i]);
+			app_state->test_raycast_lines.clear();
 		}
 	}
 
@@ -250,6 +278,8 @@ bool32 application_init(Application* app_inst)
 	ui_mesh->transform = Math::transform_create();
 	ui_mesh->generation = 0;
 
+	app_state->test_raycast_lines.init(32, 0);
+
 	return true;
 }
 
@@ -259,6 +289,9 @@ void application_shutdown()
 	scene_destroy(&app_state->main_scene);
 	ui_text_destroy(&app_state->debug_info_text);
 	gizmo3D_destroy(&app_state->editor_gizmo);
+
+	for (uint32 i = 0; i < app_state->test_raycast_lines.count; i++)
+		line3D_destroy(&app_state->test_raycast_lines[i]);
 
 	DebugConsole::destroy(&app_state->debug_console);
 
@@ -376,6 +409,8 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 
 	if (app_state->main_scene.state == ResourceState::LOADED)
 		scene_draw(&app_state->main_scene, packet->views[skybox_view_i], packet->views[world_view_i], &app_state->camera_frustum, frame_data);
+
+	RenderViewSystem::lines3D_draw(packet->views[world_view_i], app_state->test_raycast_lines.data, app_state->test_raycast_lines.count, color3D_shader_id, frame_data);
 
 	RenderViewSystem::gizmo3D_draw(packet->views[world_editor_view_i], &app_state->editor_gizmo, color3D_shader_id, frame_data, app_state->world_camera);
 
@@ -680,7 +715,7 @@ static bool32 init_render_views(Application* app_inst)
 
 static void register_events()
 {
-	Event::event_register(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
+	Event::event_register(SystemEventCode::BUTTON_RELEASED, app_state, application_on_mousebutton_released);
 
 	Event::event_register(SystemEventCode::OBJECT_HOVER_ID_CHANGED, app_state, application_on_event);
 
@@ -691,7 +726,7 @@ static void register_events()
 
 static void unregister_events()
 {
-	Event::event_unregister(SystemEventCode::KEY_PRESSED, 0, application_on_key_pressed);
+	Event::event_unregister(SystemEventCode::BUTTON_RELEASED, app_state, application_on_mousebutton_released);
 
 	Event::event_unregister(SystemEventCode::OBJECT_HOVER_ID_CHANGED, app_state, application_on_event);
 

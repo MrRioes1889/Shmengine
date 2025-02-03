@@ -11,30 +11,30 @@ namespace Math
 
 	int32 round_f_to_i(float32 x)
 	{
-		return (int32)roundf(x);
+		return (int32)(x + 0.5f);
 	}
 	int64 round_f_to_i64(float32 x)
 	{
-		return (int64)roundf(x);
+		return (int64)(x + 0.5f);
 	}
 
 	int32 round_f_to_i(float64 x)
 	{
-		return (int32)round(x);
+		return (int32)(x + 0.5);
 	}
 	int64 round_f_to_i64(float64 x)
 	{
-		return (int64)round(x);
+		return (int64)(x + 0.5);
 	}
 
 	int32 floor_f_to_i(float32 x)
 	{
-		return (int32)floorf(x);
+		return (int32)(x);
 	}
 
 	int32 ceil_f_to_i(float32 x)
 	{
-		return (int32)ceilf(x);
+		return (int32)(x + 0.999999f);
 	}
 
 	float32 sqrt(float32 a)
@@ -176,6 +176,98 @@ namespace Math
 				return false;
 		}
 
+		return true;
+	}
+
+	Ray3D ray3D_create(Vec3f origin, Vec3f direction)
+	{
+		return { .origin = origin, .direction = direction };
+	}
+
+	Ray3D ray3D_create_from_screen(Vec2f screen_pos, Vec2f viewport_size, Vec3f origin, Mat4 view, Mat4 projection)
+	{
+		Ray3D ray = { 0 };
+		ray.origin = origin;
+		// Get normalized device coordinates (i.e. -1:1 range).
+		Vec3f ray_ndc;
+		ray_ndc.x = (2.0f * screen_pos.x) / viewport_size.x - 1.0f;
+		ray_ndc.y = 1.0f - (2.0f * screen_pos.y) / viewport_size.y;
+		ray_ndc.z = 1.0f;
+		// Clip space
+		Vec4f ray_clip = { ray_ndc.x, ray_ndc.y, -1.0f, 1.0f };
+		// Eye/Camera
+		Vec4f ray_eye = mat_mul_vec(mat_inverse(projection), ray_clip);
+		// Unproject xy, change wz to "forward".
+		ray_eye = { ray_eye.x, ray_eye.y, -1.0f, 0.0f };
+		// Convert to world coordinates;
+		Vec4f dir4 = mat_mul_vec(view, ray_eye);
+		ray.direction = { dir4.x, dir4.y, dir4.z };
+		normalize(ray.direction);
+		return ray;
+	}
+
+	bool32 ray3D_cast_obb(Extents3D bb_extents, Mat4 bb_model, Ray3D ray, float32* out_dist)
+	{
+		// Intersection based on the Real-Time Rendering and Essential Mathematics for Games
+
+		// The nearest "far" intersection (within the x, y and z plane pairs)
+		float32 nearest_far_intersection = 0.0f;
+		// The farthest "near" intersection (withing the x, y and z plane pairs)
+		float32 farthest_near_intersection = 100000.0f;
+		// Pick out the world position from the model matrix.
+		Vec3f oriented_pos_world = { bb_model.data[12], bb_model.data[13], bb_model.data[14] };
+		// Transform the extents - This will orient/scale them to the model matrix.
+		bb_extents.min = mat_mul_vec(bb_model, bb_extents.min);
+		bb_extents.max = mat_mul_vec(bb_model, bb_extents.max);
+		// The distance between the world position and the ray's origin.
+		Vec3f delta = oriented_pos_world - ray.origin;
+		// Test for intersection with the other planes perpendicular to each axis.
+		Vec3f x_axis = mat_right(bb_model);
+		Vec3f y_axis = mat_up(bb_model);
+		Vec3f z_axis = mat_backward(bb_model);
+		Vec3f axes[3] = { x_axis, y_axis, z_axis };
+		for (uint32 i = 0; i < 3; ++i) 
+		{
+			float32 e = inner_product(axes[i], delta);
+			float32 f = inner_product(ray.direction, axes[i]);
+			if (abs(f) > 0.0001f) 
+			{
+				// Store distances between the ray origin and the ray-plane intersections in t1, and t2.
+				// Intersection with the "left" plane.
+				float32 t1 = (e + bb_extents.min.e[i]) / f;
+				// Intersection with the "right" plane.
+				float32 t2 = (e + bb_extents.max.e[i]) / f;
+				// Ensure that t1 is the nearest intersection, and swap if need be.
+				if (t1 > t2) 
+				{
+					float32 temp = t1;
+					t1 = t2;
+					t2 = temp;
+				}
+
+				if (t2 < farthest_near_intersection)
+					farthest_near_intersection = t2;
+
+				if (t1 > nearest_far_intersection)
+					nearest_far_intersection = t1;
+
+				// If the "far" is closer than the "near", then we can say that there is no intersection.
+				if (farthest_near_intersection < nearest_far_intersection)
+					return false;
+
+			}
+			else 
+			{
+				// Edge case, where the ray is almost parallel to the planes, then they don't have any intersection.
+				if (-e + bb_extents.min.e[i] > 0.0f || -e + bb_extents.max.e[i] < 0.0f)
+					return false;
+			}
+		}
+		// This basically prevents interections from within a bounding box if the ray originates there.
+		if (nearest_far_intersection == 0.0f)
+			return false;
+
+		*out_dist = nearest_far_intersection;
 		return true;
 	}
 

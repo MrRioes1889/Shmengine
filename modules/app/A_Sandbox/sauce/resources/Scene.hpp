@@ -121,3 +121,5 @@ PointLight* scene_get_point_light(Scene* scene, uint32 index);
 
 bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view, const Math::Frustum* camera_frustum, FrameData* frame_data);
 
+Math::Ray3DHitInfo scene_raycast(Scene* scene, Math::Ray3D ray);
+

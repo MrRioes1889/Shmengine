@@ -5,6 +5,7 @@
 #include <core/Logging.hpp>
 #include <core/FrameData.hpp>
 #include <utility/Math.hpp>
+#include <utility/math/Geometry.hpp>
 #include <resources/loaders/MeshLoader.hpp>
 #include <resources/Mesh.hpp>
 #include <resources/Terrain.hpp>
@@ -816,4 +817,25 @@ bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view,
 	frame_data->drawn_geometry_count += RenderViewSystem::boxes3D_draw(world_view, scene->p_light_boxes.data, scene->p_light_boxes.count, color3D_shader_id, frame_data);
 
 	return true;
+}
+
+Math::Ray3DHitInfo scene_raycast(Scene* scene, Math::Ray3D ray) 
+{
+
+	Math::Ray3DHitInfo hit_info = {};
+
+	for (uint32 i = 0; i < scene->meshes.count; ++i) {
+		Mesh* mesh = &scene->meshes[i];
+		Math::Mat4 model = Math::transform_get_world(mesh->transform);
+		float32 dist;
+		if (Math::ray3D_cast_obb(mesh->extents, model, ray, &dist) && (hit_info.type == Math::Ray3DHitType::NONE || dist < hit_info.distance)) 
+		{
+			hit_info.distance = dist;
+			hit_info.type = Math::Ray3DHitType::OBB;
+			hit_info.position = ray.origin + (ray.direction * hit_info.distance);
+			hit_info.unique_id = mesh->unique_id;
+		}
+	}
+
+	return hit_info;
 }

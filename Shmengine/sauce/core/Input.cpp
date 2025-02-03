@@ -223,14 +223,16 @@ namespace Input
 
     void process_mousebutton(MouseButton::Value button, bool8 pressed)
     {
-        if (system_state->mouse_cur.buttons[button] != pressed)
-        {
-            system_state->mouse_cur.buttons[button] = pressed;
+        if (system_state->mouse_cur.buttons[button] == pressed)
+            return;
 
-            EventData e;
-            e.ui32[0] = button;
-            Event::event_fire(pressed ? (uint16)SystemEventCode::BUTTON_PRESSED : (uint16)SystemEventCode::BUTTON_RELEASED, 0, e);
-        }
+        system_state->mouse_cur.buttons[button] = pressed;
+
+        EventData e;
+        e.ui8[0] = button;
+        e.i16[1] = (int16)system_state->mouse_pos.x;
+        e.i16[2] = (int16)system_state->mouse_pos.y;
+        Event::event_fire(pressed ? (uint16)SystemEventCode::BUTTON_PRESSED : (uint16)SystemEventCode::BUTTON_RELEASED, 0, e);
     }
 
     void process_mouse_move(int32 x, int32 y)

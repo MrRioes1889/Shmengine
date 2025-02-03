@@ -208,14 +208,24 @@ namespace Math
 		Vec3f max;
 	};
 
-	struct Plane3D {
+	struct Plane3D 
+	{
 		Vec3f normal;
 		float32 distance;
 	};
 
-	struct Frustum {
+	struct Frustum 
+	{
 		// Top, bottom, right, left, far, near
 		Plane3D sides[6];
 	};
+
+	struct Ray3D
+	{
+		Vec3f origin;
+		Vec3f direction;
+	};
+
+
 
 }
