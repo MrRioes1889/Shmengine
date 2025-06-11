@@ -151,6 +151,8 @@ namespace Renderer
 		}
 
 		system_state->frame_number++;
+		if (!data->views.capacity)
+			return true;
 
 		if (!backend.begin_frame(frame_data))
 		{

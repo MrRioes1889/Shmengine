@@ -332,7 +332,7 @@ inline SHMINLINE void Darray<T>::pop()
 		return;
 
 	T* pop_ptr = data + (count - 1);
-	(*pop_ptr).~T();
+	pop_ptr->~T();
 	Memory::zero_memory(pop_ptr, sizeof(T));
 	count--;
 

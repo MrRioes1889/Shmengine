@@ -8,7 +8,7 @@
 typedef bool32(*FP_create_renderer_module)(Renderer::Module* out_module);
 typedef uint64(*FP_get_module_state_size)();
 
-static const char* application_module_name = "A_Sandbox";
+static const char* application_module_name = "A_Sandbox2D";
 static const char* renderer_module_name = "M_VulkanRenderer";
 
 static bool32 load_application_library(Application* app, const char* lib_filename, bool32 reload) 

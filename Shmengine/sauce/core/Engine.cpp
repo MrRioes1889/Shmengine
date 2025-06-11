@@ -95,7 +95,7 @@ namespace Engine
 		}
 
 		app_inst->stage = ApplicationStage::BOOTING;
-		if (!app_inst->boot(app_inst))
+		if (!app_inst->boot(&app_inst->config))
 		{
 			SHMFATAL("Failed to boot application!");
 			return false;
@@ -119,6 +119,8 @@ namespace Engine
 			engine_state->frame_data.app_data = Memory::allocate(app_inst->config.app_frame_data_size, AllocationTag::APPLICATION);
 
 		destroy_application_config(&app_inst->config);
+
+		app_inst->limit_framerate = app_inst->config.limit_framerate;
 
 		app_inst->stage = ApplicationStage::INITIALIZING;
 		if (!app_inst->init(app_inst))
@@ -223,17 +225,17 @@ namespace Engine
 			float64 frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
 			float64 remaining_s = target_frame_seconds - frame_elapsed_time;
 
-			bool32 limit_frames = true;
-
-			if (remaining_s > 0 && limit_frames)
+			if (remaining_s > 0 && app_inst->limit_framerate)
 			{
 				int32 remaining_ms = (int32)(remaining_s * 1000) - 1;
 				if (remaining_ms > 0)
 					Platform::sleep(remaining_ms);
 				frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
-
+			}
+			if (app_inst->limit_framerate)
+			{
 				while (frame_elapsed_time < target_frame_seconds)
-					frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();				
+					frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
 			}
 
 			frame_count++;			

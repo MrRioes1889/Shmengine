@@ -45,27 +45,31 @@ static bool32 application_on_mousebutton_released(uint16 code, void* sender, voi
 	if (app_state->main_scene.state != ResourceState::LOADED)
 		return false;
 
-	int16 x = data.i16[1];
-	int16 y = data.i16[2];
-
-	Math::Mat4 view = app_state->world_camera->get_view();
-	Math::Vec3f origin = app_state->world_camera->get_position();
-	Math::Mat4 projection = Math::mat_perspective(Math::deg_to_rad(45.0f), (float32)app_state->width / app_state->height, 0.1f, 4000.0f);
-
-	Math::Ray3D ray = Math::ray3D_create_from_screen({(float32)x, (float32)y}, {(float32)app_state->width, (float32)app_state->height }, origin, view, projection);
-	Math::Ray3DHitInfo hit_info = scene_raycast(&app_state->main_scene, ray);
-
-	if (hit_info.type == Math::Ray3DHitType::NONE)
+	if (data.ui8[0] == MouseButton::LMB)
 	{
-		SHMDEBUG("Raycast: No object hit.");
-		return false;
+		int16 x = data.i16[1];
+		int16 y = data.i16[2];
+
+		Math::Mat4 view = app_state->world_camera->get_view();
+		Math::Vec3f origin = app_state->world_camera->get_position();
+		Math::Mat4 projection = Math::mat_perspective(Math::deg_to_rad(45.0f), (float32)app_state->width / app_state->height, 0.1f, 4000.0f);
+
+		Math::Ray3D ray = Math::ray3D_create_from_screen({ (float32)x, (float32)y }, { (float32)app_state->width, (float32)app_state->height }, origin, view, projection);
+		Math::Ray3DHitInfo hit_info = scene_raycast(&app_state->main_scene, ray);
+
+		if (hit_info.type == Math::Ray3DHitType::NONE)
+		{
+			SHMDEBUG("Raycast: No object hit.");
+			return false;
+		}
+
+		SHMDEBUGV("Raycast: Hit object %u at %f/%f/%f.", hit_info.unique_id, hit_info.position.x, hit_info.position.y, hit_info.position.z);
+
+		Line3D* new_line = &app_state->test_raycast_lines[app_state->test_raycast_lines.emplace()];
+		if (!line3D_init(origin, hit_info.position, { 1.0f, 1.0f, 0.0f, 1.0f }, new_line) || !line3D_load(new_line))
+			SHMERROR("Failed to init or load new test line!");
 	}
-
-	SHMDEBUGV("Raycast: Hit object %u at %f/%f/%f.", hit_info.unique_id, hit_info.position.x, hit_info.position.y, hit_info.position.z);
-
-	Line3D* new_line = &app_state->test_raycast_lines[app_state->test_raycast_lines.emplace()];
-	if (!line3D_init(origin, hit_info.position, { 1.0f, 1.0f, 0.0f, 1.0f }, new_line) || !line3D_load(new_line))
-		SHMERROR("Failed to init or load new test line!");
+	
 	
 	return false;
 }

@@ -1,5 +1,3 @@
-require "cmake"
-
 workspace "Shmengine"
     architecture "x64"
     configurations {"Debug", "ODebug", "Release"}
@@ -11,9 +9,10 @@ engine_name = "Shmengine"
 app_name = "Application"
 tests_name = "Tests"
 vulkan_renderer_module_name = "M_VulkanRenderer"
-sandbox_app_module_name = "A_Sandbox"
+sandbox_app_module_name = "A_Sandbox" 
+sandbox2D_app_module_name = "A_Sandbox2D"
 compiler = "msc"
-project_location = "%{wks.location}"
+workspace_dir = "%{wks.location}"
 
 common_premake_flags = {"FatalWarnings", "MultiProcessorCompile"}
 
@@ -36,33 +35,33 @@ project  (engine_name)
     kind "SharedLib"
     language "C++"
     toolset (compiler)
-    location (project_location .. "/" .. engine_name)
+    location (workspace_dir .. "/" .. engine_name)
 
-    targetdir (project_location .. "/bin/" .. outputdir)
-	objdir    (project_location .. "/bin-int/")
+    targetdir (workspace_dir .. "/bin/" .. outputdir)
+	objdir    (workspace_dir .. "/bin-int/")
 
     -- pchheader "mpch.hpp"
-    -- pchsource project_location .. "/%{prj.name}/sauce/mpch.cpp"
+    -- pchsource workspace_dir .. "/%{prj.name}/sauce/mpch.cpp"
 
     files
 	{
-        project_location .. "/" .. engine_name .. "/sauce/**.h",
-		project_location .. "/" .. engine_name .. "/sauce/**.hpp",
-        project_location .. "/" .. engine_name .. "/sauce/**.c",
-		project_location .. "/" .. engine_name .. "/sauce/**.cpp",
+        workspace_dir .. "/" .. engine_name .. "/sauce/**.h",
+		workspace_dir .. "/" .. engine_name .. "/sauce/**.hpp",
+        workspace_dir .. "/" .. engine_name .. "/sauce/**.c",
+		workspace_dir .. "/" .. engine_name .. "/sauce/**.cpp",
 	}
 
     includedirs
 	{
-        project_location .. "/" .. engine_name .. "/sauce",
-        project_location .. "/vendor/Optick/include", 
+        workspace_dir .. "/" .. engine_name .. "/sauce",
+        workspace_dir .. "/vendor/Optick/include", 
 	}
 
     links
     {
         "Winmm.lib",
         "user32.lib",     
-        project_location .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
+        workspace_dir .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
     } 
 
     flags (common_premake_flags)
@@ -109,27 +108,27 @@ project  (vulkan_renderer_module_name)
     kind "SharedLib"
     language "C++"
     toolset (compiler)
-    location (project_location .. "/modules/renderer/" .. vulkan_renderer_module_name)
+    location (workspace_dir .. "/modules/renderer/" .. vulkan_renderer_module_name)
 
-    targetdir (project_location .. "/bin/" .. outputdir)
-	objdir    (project_location .. "/bin-int/")
+    targetdir (workspace_dir .. "/bin/" .. outputdir)
+	objdir    (workspace_dir .. "/bin-int/")
 
     -- pchheader "mpch.hpp"
-    -- pchsource project_location .. "/%{prj.name}/sauce/mpch.cpp"
+    -- pchsource workspace_dir .. "/%{prj.name}/sauce/mpch.cpp"
 
     files
 	{
-        project_location .. "/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.h",
-		project_location .. "/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.hpp",
-        project_location .. "/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.c",
-		project_location .. "/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.cpp",
+        workspace_dir .. "/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.h",
+		workspace_dir .. "/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.hpp",
+        workspace_dir .. "/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.c",
+		workspace_dir .. "/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce/**.cpp",
 	}
 
     includedirs
 	{
-        project_location .. "/" .. engine_name .. "/sauce",        
+        workspace_dir .. "/" .. engine_name .. "/sauce",        
         "$(VULKAN_SDK)/Include",
-        project_location .. "/vendor/Optick/include", 
+        workspace_dir .. "/vendor/Optick/include", 
 	}
 
     links
@@ -137,8 +136,8 @@ project  (vulkan_renderer_module_name)
         "$(VULKAN_SDK)/Lib/vulkan-1.lib",
         "Winmm.lib",
         "user32.lib",
-        project_location .. "/bin/" .. outputdir .. "Shmengine.lib",
-        project_location .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
+        workspace_dir .. "/bin/" .. outputdir .. "Shmengine.lib",
+        workspace_dir .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
     } 
 
     flags (common_premake_flags)
@@ -177,33 +176,98 @@ project  (sandbox_app_module_name)
     kind "SharedLib"
     language "C++"
     toolset (compiler)
-    location (project_location .. "/modules/app/" .. sandbox_app_module_name)
+    location (workspace_dir .. "/modules/app/" .. sandbox_app_module_name)
 
-    targetdir (project_location .. "/bin/" .. outputdir)
-	objdir    (project_location .. "/bin-int/")
+    targetdir (workspace_dir .. "/bin/" .. outputdir)
+	objdir    (workspace_dir .. "/bin-int/")
 
     -- pchheader "mpch.hpp"
-    -- pchsource project_location .. "/%{prj.name}/sauce/mpch.cpp"
+    -- pchsource workspace_dir .. "/%{prj.name}/sauce/mpch.cpp"
 
     files
 	{
-        project_location .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.h",
-		project_location .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.hpp",
-        project_location .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.c",
-		project_location .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.cpp",
+        workspace_dir .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.h",
+		workspace_dir .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.hpp",
+        workspace_dir .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.c",
+		workspace_dir .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.cpp",
 	}
 
     includedirs
 	{
-        project_location .. "/" .. engine_name .. "/sauce",
-        project_location .. "/vendor/Optick/include", 
+        workspace_dir .. "/" .. engine_name .. "/sauce",
+        workspace_dir .. "/vendor/Optick/include", 
 	}
 
     links
     {
         "Winmm.lib",
-        project_location .. "/bin/" .. outputdir .. "Shmengine.lib",
-        project_location .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
+        workspace_dir .. "/bin/" .. outputdir .. "Shmengine.lib",
+        workspace_dir .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
+    } 
+
+    flags (common_premake_flags)
+
+    filter "system:windows"
+        defines {"LIB_COMPILE", "PLATFORM_WINDOWS", "_WIN32", "SHMEXPORT"}
+        warnings "High"
+        inlining ("Explicit")
+        systemversion "latest"
+		cppdialect "C++20"
+        staticruntime "off"
+
+    if compiler == "clang" then
+        buildoptions (common_clang_compiler_flags)
+    else
+        buildoptions (common_msvc_compiler_flags)
+    end
+
+    filter "configurations:Debug"
+        defines {"DEBUG"}
+        symbols "On"
+
+    filter "configurations:ODebug"
+        defines {"DEBUG"}
+        symbols "On"
+        optimize "On"
+
+    filter "configurations:Release"
+        defines {"NDEBUG"}
+        optimize "On"
+        
+--------------------------------------------------------------------------------------------------------------------------------
+
+project  (sandbox2D_app_module_name)
+    dependson (engine_name)
+    kind "SharedLib"
+    language "C++"
+    toolset (compiler)
+    location (workspace_dir .. "/modules/app/" .. sandbox2D_app_module_name)
+
+    targetdir (workspace_dir .. "/bin/" .. outputdir)
+	objdir    (workspace_dir .. "/bin-int/")
+
+    -- pchheader "mpch.hpp"
+    -- pchsource workspace_dir .. "/%{prj.name}/sauce/mpch.cpp"
+
+    files
+	{
+        workspace_dir .. "/modules/app/" .. sandbox2D_app_module_name .. "/sauce/**.h",
+		workspace_dir .. "/modules/app/" .. sandbox2D_app_module_name .. "/sauce/**.hpp",
+        workspace_dir .. "/modules/app/" .. sandbox2D_app_module_name .. "/sauce/**.c",
+		workspace_dir .. "/modules/app/" .. sandbox2D_app_module_name .. "/sauce/**.cpp",
+	}
+
+    includedirs
+	{
+        workspace_dir .. "/" .. engine_name .. "/sauce",
+        workspace_dir .. "/vendor/Optick/include", 
+	}
+
+    links
+    {
+        "Winmm.lib",
+        workspace_dir .. "/bin/" .. outputdir .. "Shmengine.lib",
+        workspace_dir .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
     } 
 
     flags (common_premake_flags)
@@ -241,30 +305,31 @@ project (app_name)
     dependson (engine_name)
     dependson (vulkan_renderer_module_name)
     dependson (sandbox_app_module_name)
+    dependson (sandbox2D_app_module_name)
     kind "WindowedApp"
     language "C++"
     toolset (compiler)
-    location (project_location .. "/%{prj.name}")
+    location (workspace_dir .. "/%{prj.name}")
 
-    targetdir (project_location .. "/bin/" .. outputdir)
-	objdir    (project_location .. "/bin-int/")
+    targetdir (workspace_dir .. "/bin/" .. outputdir)
+	objdir    (workspace_dir .. "/bin-int/")
 
     -- pchheader "mpch.hpp"
-    -- pchsource project_location .. "/%{prj.name}/sauce/mpch.cpp"
+    -- pchsource workspace_dir .. "/%{prj.name}/sauce/mpch.cpp"
 
     files
 	{
-        project_location .. "/" .. app_name .. "/sauce/**.h",
-		project_location .. "/" .. app_name .. "/sauce/**.hpp",
-        project_location .. "/" .. app_name .. "/sauce/**.c",
-		project_location .. "/" .. app_name .. "/sauce/**.cpp",
+        workspace_dir .. "/" .. app_name .. "/sauce/**.h",
+		workspace_dir .. "/" .. app_name .. "/sauce/**.hpp",
+        workspace_dir .. "/" .. app_name .. "/sauce/**.c",
+		workspace_dir .. "/" .. app_name .. "/sauce/**.cpp",
 	}
 
     includedirs
 	{
-		project_location .. "/" .. app_name .. "/sauce",
-        project_location .. "/" .. engine_name .. "/sauce",
-        project_location .. "/vendor/Optick/include", 
+		workspace_dir .. "/" .. app_name .. "/sauce",
+        workspace_dir .. "/" .. engine_name .. "/sauce",
+        workspace_dir .. "/vendor/Optick/include", 
 	}
 
     links
@@ -272,8 +337,8 @@ project (app_name)
         "user32.lib",
         "Gdi32.lib",
         "Winmm.lib",
-        project_location .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
-        project_location .. "/bin/" .. outputdir .. "Shmengine.lib",   
+        workspace_dir .. "/vendor/Optick/lib/x64/release/OptickCore.lib",   
+        workspace_dir .. "/bin/" .. outputdir .. "Shmengine.lib",   
     }
 
     flags (common_premake_flags)

@@ -26,6 +26,8 @@ struct ApplicationConfig {
 	uint64 state_size;
 	uint64 app_frame_data_size;
 
+	bool8 limit_framerate;
+
 	char* name;
 
 	FontSystem::SystemConfig fontsystem_config;
@@ -40,7 +42,7 @@ struct Application
 {
 	ApplicationConfig config;
 
-	typedef bool32(*FP_boot)(Application* app_inst);
+	typedef bool32(*FP_boot)(ApplicationConfig* app_config);
 	typedef bool32(*FP_init)(Application* app_inst);
 	typedef void(*FP_shutdown)();
 	typedef bool32(*FP_update)(FrameData* frame_data);
@@ -58,8 +60,6 @@ struct Application
 	FP_on_module_reload on_module_reload;
 	FP_on_module_unload on_module_unload;
 
-	ApplicationStage stage;
-
 	Sarray<RenderView> render_views;
 	
 	void* state;
@@ -67,4 +67,8 @@ struct Application
 
 	Platform::DynamicLibrary renderer_lib;
 	Platform::DynamicLibrary application_lib;
+
+	ApplicationStage stage;
+	bool8 limit_framerate;
+
 };
