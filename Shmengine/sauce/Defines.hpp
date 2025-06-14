@@ -26,47 +26,51 @@ typedef uint32 UniqueId;
 
 typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
-inline const uint32 max_filename_length = 255;
-inline const uint32 max_mesh_name_length = 127;
-inline const uint32 max_geometry_name_length = 127;
-inline const uint32 max_material_name_length = 127;
-inline const uint32 max_shader_name_length = 127;
-inline const uint32 max_shader_stage_name_length = 63;
-inline const uint32 max_shader_attribute_name_length = 63;
-inline const uint32 max_shader_uniform_name_length = 63;
-inline const uint32 max_texture_name_length = 127;
-inline const uint32 max_terrain_name_length = 127;
-inline const uint32 max_buffer_name_length = 127;
+namespace Constants
+{
 
-inline const uint32 max_terrain_materials_count = 4;
+	inline constexpr uint32 max_filename_length = 255;
+	inline constexpr uint32 max_mesh_name_length = 127;
+	inline constexpr uint32 max_geometry_name_length = 127;
+	inline constexpr uint32 max_material_name_length = 127;
+	inline constexpr uint32 max_shader_name_length = 127;
+	inline constexpr uint32 max_shader_stage_name_length = 63;
+	inline constexpr uint32 max_shader_attribute_name_length = 63;
+	inline constexpr uint32 max_shader_uniform_name_length = 63;
+	inline constexpr uint32 max_texture_name_length = 127;
+	inline constexpr uint32 max_terrain_name_length = 127;
+	inline constexpr uint32 max_buffer_name_length = 127;
 
-#define PI 3.14159265358979323846f
-#define DOUBLE_PI (2.0f * PI)
-#define HALF_PI (0.5f * PI)
-#define QUARTER_PI (0.25f * PI)
-#define ONE_OVER_PI (1.0f / PI)
-#define ONE_OVER_TWO_PI (1.0f / DOUBLE_PI)
-#define SQRT_TWO 1.41421356237309504880f
-#define SQRT_THREE 1.73205080756887729352f
-#define SQRT_ONE_OVER_TWO 0.70710678118654752440f
-#define SQRT_ONE_OVER_THREE 0.57735026918962576450f
-#define DEG2RAD_MULTIPLIER (PI / 180.0f)
-#define RAD2DEG_MULTIPLIER (180.0f / PI)
+	inline constexpr uint32 max_terrain_materials_count = 4;
 
-// A huge number that should be larger than any valid number used.
-#define INFINITY 1e30f
+	inline constexpr float32 PI = 3.14159265358979323846f;
+	inline constexpr float32 DOUBLE_PI = (2.0f * PI);
+	inline constexpr float32 HALF_PI = (0.5f * PI);
+	inline constexpr float32 QUARTER_PI = (0.25f * PI);
+	inline constexpr float32 ONE_OVER_PI = (1.0f / PI);
+	inline constexpr float32 ONE_OVER_TWO_PI = (1.0f / DOUBLE_PI);
+	inline constexpr float32 SQRT_TWO = 1.41421356237309504880f;
+	inline constexpr float32 SQRT_THREE = 1.73205080756887729352f;
+	inline constexpr float32 SQRT_ONE_OVER_TWO = 0.70710678118654752440f;
+	inline constexpr float32 SQRT_ONE_OVER_THREE = 0.57735026918962576450f;
+	inline constexpr float32 DEG2RAD_MULTIPLIER = (PI / 180.0f);
+	inline constexpr float32 RAD2DEG_MULTIPLIER = (180.0f / PI);
 
-// Smallest positive number where 1.0 + FLOAT_EPSILON != 0
-#define FLOAT_EPSILON 1.192092896e-07f
+	// A huge number that should be larger than any valid number used.
+	inline constexpr float32 INFINITY = 1e30f;
 
-#define PTR_BYTES_OFFSET(ptr, bytes) (((uint8*)ptr) + (bytes))
+	// Smallest positive number where 1.0 + FLOAT_EPSILON != 0
+	inline constexpr float32 FLOAT_EPSILON = 1.192092896e-07f;
 
-#define MAX_FILEPATH_LENGTH 256
+	inline constexpr uint32 MAX_FILEPATH_LENGTH = 256;
 
-#define INVALID_ID64 0xFFFFFFFFFFFFFFFFU
-#define INVALID_ID 0xFFFFFFFFU
-#define INVALID_ID16 0xFFFFU
-#define INVALID_ID8 0xFFU
+	inline constexpr uint64 max_u64 = 0xFFFFFFFFFFFFFFFF;
+	inline constexpr uint32 max_u32 = 0xFFFFFFFF;
+	inline constexpr uint16 max_u16 = 0xFFFF;
+	inline constexpr uint8 max_u8 = 0xFF;
+
+}
+
 
 // Properly define static assertions.
 #if defined(__clang__) || defined(__gcc__)
@@ -75,10 +79,12 @@ inline const uint32 max_terrain_materials_count = 4;
 #define STATIC_ASSERT static_assert
 #endif
 
-#define Kibibytes(x) ((x) * 1024ULL)
-#define Mebibytes(x) (Kibibytes(x) * 1024ULL)
-#define Gibibytes(x) (Mebibytes(x) * 1024ULL)
-#define Tebibytes(x) (Gibibytes(x) * 1024ULL)
+inline constexpr uint64 kibibytes(uint64 x) { return x * 1024ULL; }
+inline constexpr uint64 mebibytes(uint64 x) { return kibibytes(x) * 1024ULL; }
+inline constexpr uint64 gibibytes(uint64 x) { return mebibytes(x) * 1024ULL; }
+inline constexpr uint64 tebibytes(uint64 x) { return gibibytes(x) * 1024ULL; }
+
+inline constexpr uint8* PTR_BYTES_OFFSET(void* ptr, int64 offset) { return ((uint8*)ptr) + (offset); }
 
 // Ensure all types are of the correct size.
 STATIC_ASSERT(sizeof(uint8) == 1, "Expected u8 to be 1 byte.");

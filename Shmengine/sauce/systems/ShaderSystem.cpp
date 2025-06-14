@@ -51,19 +51,19 @@ namespace ShaderSystem
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
 		system_state->config = *sys_config;
-		system_state->bound_shader_id = INVALID_ID;
+		system_state->bound_shader_id = Constants::max_u32;
 
-		system_state->material_shader_id = INVALID_ID;
-		system_state->terrain_shader_id = INVALID_ID;
-		system_state->ui_shader_id = INVALID_ID;
-		system_state->skybox_shader_id = INVALID_ID;
-		system_state->color3D_shader_id = INVALID_ID;
+		system_state->material_shader_id = Constants::max_u32;
+		system_state->terrain_shader_id = Constants::max_u32;
+		system_state->ui_shader_id = Constants::max_u32;
+		system_state->skybox_shader_id = Constants::max_u32;
+		system_state->color3D_shader_id = Constants::max_u32;
 
 		uint64 hashtable_data_size = sizeof(uint32) * sys_config->max_shader_count;
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
 		system_state->lookup.init(sys_config->max_shader_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
-		system_state->lookup.floodfill(INVALID_ID);
+		system_state->lookup.floodfill(Constants::max_u32);
 
 		uint64 shader_array_size = sizeof(Shader) * sys_config->max_shader_count;
 		void* shader_array = allocator_callback(allocator, shader_array_size);
@@ -71,7 +71,7 @@ namespace ShaderSystem
 
 		for (uint32 i = 0; i < system_state->shaders.capacity; i++)
 		{
-			system_state->shaders[i].id = INVALID_ID;
+			system_state->shaders[i].id = Constants::max_u32;
 		}
 
 		return true;
@@ -85,7 +85,7 @@ namespace ShaderSystem
 
 		for (uint32 i = 0; i < system_state->shaders.capacity; i++)
 		{
-			if (system_state->shaders[i].id != INVALID_ID)
+			if (system_state->shaders[i].id != Constants::max_u32)
 				destroy_shader(&system_state->shaders[i]);
 		}
 
@@ -102,7 +102,7 @@ namespace ShaderSystem
 		using namespace Renderer;
 
 		uint32 id = new_shader_id();
-		if (id == INVALID_ID)
+		if (id == Constants::max_u32)
 		{
 			SHMERROR("shader_create - Unable to find free slot for new shader");
 			return false;
@@ -143,15 +143,15 @@ namespace ShaderSystem
 			return false;
 		}
 
-		if (system_state->material_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_material_phong)) 
+		if (system_state->material_shader_id == Constants::max_u32 && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_material_phong)) 
 			system_state->material_shader_id = shader->id;
-		else if (system_state->terrain_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_terrain)) 
+		else if (system_state->terrain_shader_id == Constants::max_u32 && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_terrain)) 
 			system_state->terrain_shader_id = shader->id;
-		else if (system_state->ui_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_ui)) 
+		else if (system_state->ui_shader_id == Constants::max_u32 && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_ui)) 
 			system_state->ui_shader_id = shader->id;
-		else if (system_state->skybox_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_skybox)) 
+		else if (system_state->skybox_shader_id == Constants::max_u32 && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_skybox)) 
 			system_state->skybox_shader_id = shader->id;
-		else if (system_state->color3D_shader_id == INVALID_ID && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_color3D))
+		else if (system_state->color3D_shader_id == Constants::max_u32 && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_color3D))
 			system_state->color3D_shader_id = shader->id;
 
 		return true;
@@ -186,7 +186,7 @@ namespace ShaderSystem
 
 	Shader* get_shader(uint32 shader_id)
 	{
-		if (shader_id >= system_state->config.max_shader_count || system_state->shaders[shader_id].id == INVALID_ID) {
+		if (shader_id >= system_state->config.max_shader_count || system_state->shaders[shader_id].id == Constants::max_u32) {
 			return 0;
 		}
 		return &system_state->shaders[shader_id];
@@ -211,7 +211,7 @@ namespace ShaderSystem
 	static void destroy_shader(const char* shader_name)
 	{
 		uint32 shader_id = get_shader_id(shader_name);
-		if (shader_id == INVALID_ID)
+		if (shader_id == Constants::max_u32)
 			return;
 
 		destroy_shader(&system_state->shaders[shader_id]);
@@ -240,7 +240,7 @@ namespace ShaderSystem
 	bool32 use_shader(const char* shader_name)
 	{
 		uint32 shader_id = get_shader_id(shader_name);
-		if (shader_id == INVALID_ID)
+		if (shader_id == Constants::max_u32)
 			return false;
 
 		return use_shader(shader_id);
@@ -249,12 +249,12 @@ namespace ShaderSystem
 	uint16 get_uniform_index(Shader* shader, const char* uniform_name)
 	{
 
-		uint16 index = INVALID_ID16;
+		uint16 index = Constants::max_u16;
 		index = shader->uniform_lookup.get_value(uniform_name);
-		if (index == INVALID_ID16)
+		if (index == Constants::max_u16)
 		{
 			SHMERRORV("Shader '%s' does not have a uniform named '%s' registered.", shader->name.c_str(), uniform_name);
-			return INVALID_ID16;
+			return Constants::max_u16;
 		}
 
 		return shader->uniforms[index].index;
@@ -287,7 +287,7 @@ namespace ShaderSystem
 	bool32 set_uniform(const char* uniform_name, const void* value)
 	{
 
-		if (system_state->bound_shader_id == INVALID_ID) {
+		if (system_state->bound_shader_id == Constants::max_u32) {
 			SHMERROR("set_uniform - called without a shader in use.");
 			return false;
 		}
@@ -457,10 +457,10 @@ namespace ShaderSystem
 	{
 		for (uint32 i = 0; i < system_state->config.max_shader_count; i++)
 		{
-			if (system_state->shaders[i].id == INVALID_ID)
+			if (system_state->shaders[i].id == Constants::max_u32)
 				return i;
 		}
-		return INVALID_ID;
+		return Constants::max_u32;
 	}
 
 	static bool32 uniform_add(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool32 is_sampler)
@@ -491,7 +491,7 @@ namespace ShaderSystem
 		}
 		else
 		{
-			entry.set_index = INVALID_ID8;
+			entry.set_index.invalidate();
 			Range r = get_aligned_range(shader->push_constant_size, size, 4);
 
 			entry.offset = (uint32)r.offset;

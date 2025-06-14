@@ -58,8 +58,8 @@ namespace Renderer
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		char renderer_module_filename[MAX_FILEPATH_LENGTH];
-		CString::print_s(renderer_module_filename, MAX_FILEPATH_LENGTH, "%s%s%s", Platform::dynamic_library_prefix, sys_config->renderer_module_name, Platform::dynamic_library_ext);
+		char renderer_module_filename[Constants::MAX_FILEPATH_LENGTH];
+		CString::print_s(renderer_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s", Platform::dynamic_library_prefix, sys_config->renderer_module_name, Platform::dynamic_library_ext);
 		if (!Platform::load_dynamic_library(sys_config->renderer_module_name, renderer_module_filename, &system_state->renderer_lib))
 			return false;
 
@@ -93,7 +93,7 @@ namespace Renderer
 			return false;
 		}
 
-		uint64 vertex_buffer_size = Mebibytes(64);
+		uint64 vertex_buffer_size = mebibytes(64);
 		if (!renderbuffer_create("s_general_vertex_buffer", RenderBufferType::VERTEX, vertex_buffer_size, true, &system_state->general_vertex_buffer))
 		{
 			SHMERROR("Error creating vertex buffer");
@@ -101,7 +101,7 @@ namespace Renderer
 		}
 		renderbuffer_bind(&system_state->general_vertex_buffer, 0);
 
-		uint64 index_buffer_size = Mebibytes(8);
+		uint64 index_buffer_size = mebibytes(8);
 		if (!renderbuffer_create("s_general_index_buffer", RenderBufferType::INDEX, index_buffer_size, true, &system_state->general_index_buffer))
 		{
 			SHMERROR("Error creating index buffer");
@@ -489,15 +489,15 @@ namespace Renderer
 	{
 
 		shader->name = config->name;
-		shader->bound_instance_id = INVALID_ID;
-		shader->last_update_frame_number = INVALID_ID8;
+		shader->bound_instance_id = Constants::max_u32;
+		shader->last_update_frame_number = Constants::max_u8;
 
 		shader->global_texture_maps.init(1, 0, AllocationTag::RENDERER);
 		shader->uniforms.init(1, 0, AllocationTag::RENDERER);
 		shader->attributes.init(1, 0, AllocationTag::RENDERER);
 
 		shader->uniform_lookup.init(1024, 0);
-		shader->uniform_lookup.floodfill(INVALID_ID16);
+		shader->uniform_lookup.floodfill(Constants::max_u16);
 
 		shader->global_ubo_size = 0;
 		shader->ubo_size = 0;
@@ -513,7 +513,7 @@ namespace Renderer
 			shader->shader_flags |= ShaderFlags::DEPTH_WRITE;
 
 		for (uint32 i = 0; i < RendererConfig::shader_max_instances; ++i)
-			shader->instances[i].offset = INVALID_ID64;
+			shader->instances[i].offset = Constants::max_u64;
 
 		shader->global_uniform_count = 0;
 		shader->global_uniform_sampler_count = 0;
@@ -570,8 +570,8 @@ namespace Renderer
 		// Uniform  buffer.
 		// TODO: max count should be configurable, or perhaps long term support of buffer resizing.
 		uint64 total_buffer_size = s->global_ubo_stride + (s->ubo_stride * RendererConfig::max_material_count);  // global + (locals)
-		char u_buffer_name[max_buffer_name_length];
-		CString::print_s(u_buffer_name, max_buffer_name_length, "%s%s", s->name.c_str(), "_u_buf");
+		char u_buffer_name[Constants::max_buffer_name_length];
+		CString::print_s(u_buffer_name, Constants::max_buffer_name_length, "%s%s", s->name.c_str(), "_u_buf");
 		if (!renderbuffer_create(u_buffer_name, RenderBufferType::UNIFORM, total_buffer_size, true, &s->uniform_buffer))
 		{
 			SHMERROR("Vulkan buffer creation failed for object shader.");
@@ -641,16 +641,16 @@ namespace Renderer
 	{
 
 		// TODO: dynamic
-		*out_instance_id = INVALID_ID;
+		*out_instance_id = Constants::max_u32;
 		for (uint32 i = 0; i < 1024; ++i)
 		{
-			if (s->instances[i].offset == INVALID_ID64)
+			if (s->instances[i].offset == Constants::max_u64)
 			{
 				*out_instance_id = i;
 				break;
 			}
 		}
-		if (*out_instance_id == INVALID_ID)
+		if (*out_instance_id == Constants::max_u32)
 		{
 			SHMERROR("vulkan_shader_acquire_instance_resources failed to acquire new id");
 			return false;
@@ -683,7 +683,7 @@ namespace Renderer
 		instance->instance_texture_maps.free_data();
 
 		renderbuffer_free(&s->uniform_buffer, instance->offset);
-		instance->offset = INVALID_ID64;
+		instance->offset = Constants::max_u64;
 
 		s->instance_count--;
 

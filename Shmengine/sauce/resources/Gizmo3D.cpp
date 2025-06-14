@@ -18,7 +18,7 @@ bool32 gizmo3D_init(Gizmo3D* out_gizmo)
 
 	out_gizmo->xform = Math::transform_create();
 
-	out_gizmo->unique_id = INVALID_ID;
+	out_gizmo->unique_id = Constants::max_u32;
 
 	GeometryData* geometry = &out_gizmo->geometry;
 	geometry->vertex_size = sizeof(Renderer::VertexColor3D);
@@ -36,7 +36,7 @@ bool32 gizmo3D_init(Gizmo3D* out_gizmo)
 
 	update_vertices(out_gizmo);
 
-	out_gizmo->geometry.id = INVALID_ID;
+	out_gizmo->geometry.id = Constants::max_u32;
 
 	out_gizmo->state = ResourceState::INITIALIZED;
 
@@ -91,7 +91,7 @@ bool32 gizmo3D_unload(Gizmo3D* gizmo)
 	Renderer::geometry_unload(&gizmo->geometry);
 
 	identifier_release_id(gizmo->unique_id);
-	gizmo->unique_id = INVALID_ID;
+	gizmo->unique_id = Constants::max_u32;
 	gizmo->state = ResourceState::UNLOADED;
 
 	return true;
@@ -279,11 +279,11 @@ static void update_vertices(Gizmo3D* gizmo)
 		// z
 		for (uint32 i = 0; i < rotate_circle_segments; ++i, j += 2) {
 			// 2 at a time to form a line.
-			float32 theta = (float32)i / rotate_circle_segments * DOUBLE_PI;
+			float32 theta = (float32)i / rotate_circle_segments * Constants::DOUBLE_PI;
 			vertices[j].position.x = radius * Math::cos(theta);
 			vertices[j].position.y = radius * Math::sin(theta);
 			vertices[j].color = blue;
-			theta = (float32)((i + 1) % rotate_circle_segments) / rotate_circle_segments * DOUBLE_PI;
+			theta = (float32)((i + 1) % rotate_circle_segments) / rotate_circle_segments * Constants::DOUBLE_PI;
 			vertices[j + 1].position.x = radius * Math::cos(theta);
 			vertices[j + 1].position.y = radius * Math::sin(theta);
 			vertices[j + 1].color = blue;
@@ -291,11 +291,11 @@ static void update_vertices(Gizmo3D* gizmo)
 		// y
 		for (uint32 i = 0; i < rotate_circle_segments; ++i, j += 2) {
 			// 2 at a time to form a line.
-			float32 theta = (float32)i / rotate_circle_segments * DOUBLE_PI;
+			float32 theta = (float32)i / rotate_circle_segments * Constants::DOUBLE_PI;
 			vertices[j].position.x = radius * Math::cos(theta);
 			vertices[j].position.z = radius * Math::sin(theta);
 			vertices[j].color = green;
-			theta = (float32)((i + 1) % rotate_circle_segments) / rotate_circle_segments * DOUBLE_PI;
+			theta = (float32)((i + 1) % rotate_circle_segments) / rotate_circle_segments * Constants::DOUBLE_PI;
 			vertices[j + 1].position.x = radius * Math::cos(theta);
 			vertices[j + 1].position.z = radius * Math::sin(theta);
 			vertices[j + 1].color = green;
@@ -303,11 +303,11 @@ static void update_vertices(Gizmo3D* gizmo)
 		// x
 		for (uint32 i = 0; i < rotate_circle_segments; ++i, j += 2) {
 			// 2 at a time to form a line.
-			float32 theta = (float32)i / rotate_circle_segments * DOUBLE_PI;
+			float32 theta = (float32)i / rotate_circle_segments * Constants::DOUBLE_PI;
 			vertices[j].position.y = radius * Math::cos(theta);
 			vertices[j].position.z = radius * Math::sin(theta);
 			vertices[j].color = red;
-			theta = (float32)((i + 1) % rotate_circle_segments) / rotate_circle_segments * DOUBLE_PI;
+			theta = (float32)((i + 1) % rotate_circle_segments) / rotate_circle_segments * Constants::DOUBLE_PI;
 			vertices[j + 1].position.y = radius * Math::cos(theta);
 			vertices[j + 1].position.z = radius * Math::sin(theta);
 			vertices[j + 1].color = red;

@@ -3,6 +3,7 @@
 #include "Defines.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "core/Subsystems.hpp"
+#include "core/Identifier.hpp"
 
 #define UNIFORM_APPLY_OR_FAIL(expr)                  \
     if ((!expr)) {                                      \
@@ -69,14 +70,14 @@ enum class ShaderState
 
 struct ShaderAttributeConfig
 {
-	char name[max_shader_attribute_name_length];
+	char name[Constants::max_shader_attribute_name_length];
 	uint32 size;
 	ShaderAttributeType type;
 };
 
 struct ShaderUniformConfig
 {
-	char name[max_shader_uniform_name_length];
+	char name[Constants::max_shader_uniform_name_length];
 	uint32 size;
 	uint32 location;
 	ShaderUniformType type;
@@ -86,7 +87,7 @@ struct ShaderUniformConfig
 struct ShaderStageConfig
 {
 	ShaderStage::Value stage;
-	char filename[max_filename_length];
+	char filename[Constants::max_filename_length];
 };
 
 struct ShaderConfig
@@ -114,7 +115,7 @@ struct ShaderUniform
 	uint16 location;
 	uint16 index;
 	uint16 size;
-	uint8 set_index;
+	Id8 set_index;
 
 	ShaderScope scope;
 	ShaderUniformType type;
@@ -249,7 +250,7 @@ struct TerrainShaderUniformLocations
 	uint16 p_lights_count;
 
 	uint16 properties;
-	uint16 samplers[max_terrain_materials_count * 3];
+	uint16 samplers[Constants::max_terrain_materials_count * 3];
 };
 
 struct Color3DShaderUniformLocations

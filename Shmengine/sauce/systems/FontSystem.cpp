@@ -71,11 +71,11 @@ namespace FontSystem
 		void* bitmap_hashtable_data = allocator_callback(allocator, bitmap_hashtable_data_size);
 		system_state->registered_bitmap_font_table.init(sys_config->max_bitmap_font_config_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, bitmap_hashtable_data);
 
-		system_state->registered_bitmap_font_table.floodfill(INVALID_ID16);
+		system_state->registered_bitmap_font_table.floodfill(Constants::max_u16);
 
 		for (uint32 i = 0; i < sys_config->max_bitmap_font_config_count; ++i)
 		{
-			system_state->registered_bitmap_fonts[i].id = INVALID_ID16;
+			system_state->registered_bitmap_fonts[i].id = Constants::max_u16;
 			system_state->registered_bitmap_fonts[i].reference_count = 0;
 		}
 
@@ -86,11 +86,11 @@ namespace FontSystem
 		void* truetype_hashtable_data = allocator_callback(allocator, truetype_hashtable_data_size);
 		system_state->registered_truetype_font_table.init(sys_config->max_truetype_font_config_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, truetype_hashtable_data);
 
-		system_state->registered_truetype_font_table.floodfill(INVALID_ID16);
+		system_state->registered_truetype_font_table.floodfill(Constants::max_u16);
 
 		for (uint32 i = 0; i < sys_config->max_truetype_font_config_count; ++i)
 		{
-			system_state->registered_truetype_fonts[i].id = INVALID_ID16;
+			system_state->registered_truetype_fonts[i].id = Constants::max_u16;
 			system_state->registered_truetype_fonts[i].reference_count = 0;
 		}
 
@@ -114,11 +114,11 @@ namespace FontSystem
 	{
 		for (uint16 i = 0; i < system_state->config.max_bitmap_font_config_count; i++)
 		{
-			if (system_state->registered_bitmap_fonts[i].id != INVALID_ID16)
+			if (system_state->registered_bitmap_fonts[i].id != Constants::max_u16)
 			{
 				FontAtlas* font = &system_state->registered_bitmap_fonts[i].font_data.atlas;
 				destroy_font_data(font);
-				system_state->registered_bitmap_fonts[i].id = INVALID_ID16;
+				system_state->registered_bitmap_fonts[i].id = Constants::max_u16;
 
 				ResourceSystem::bitmap_font_loader_unload(&system_state->registered_bitmap_fonts[i].font_data);
 			}
@@ -126,7 +126,7 @@ namespace FontSystem
 
 		for (uint16 i = 0; i < system_state->config.max_truetype_font_config_count; i++)
 		{
-			if (system_state->registered_truetype_fonts[i].id == INVALID_ID16)
+			if (system_state->registered_truetype_fonts[i].id == Constants::max_u16)
 				continue;
 
 			for (uint32 j = 0; j < system_state->registered_truetype_fonts[i].size_variants.count; j++)
@@ -134,7 +134,7 @@ namespace FontSystem
 
 			system_state->registered_truetype_fonts[i].codepoints.free_data();
 			system_state->registered_truetype_fonts[i].size_variants.free_data();
-			system_state->registered_truetype_fonts[i].id = INVALID_ID16;
+			system_state->registered_truetype_fonts[i].id = Constants::max_u16;
 			ResourceSystem::truetype_font_loader_unload(&system_state->registered_truetype_fonts[i].resource_data);
 		}
 	}
@@ -144,7 +144,7 @@ namespace FontSystem
 		
 		uint16 id = system_state->registered_truetype_font_table.get_value(config.name);
 
-		if (id != INVALID_ID16)
+		if (id != Constants::max_u16)
 		{
 			SHMWARNV("load_truetype_font - Font named '%s' already exists!", config.name);
 			return true;
@@ -152,14 +152,14 @@ namespace FontSystem
 
 		for (uint16 i = 0; i < system_state->config.max_truetype_font_config_count; i++)
 		{
-			if (system_state->registered_truetype_fonts[i].id == INVALID_ID16)
+			if (system_state->registered_truetype_fonts[i].id == Constants::max_u16)
 			{
 				id = i;
 				break;
 			}
 		}
 
-		if (id == INVALID_ID16)
+		if (id == Constants::max_u16)
 		{
 			SHMERROR("load_truetype_font - No space left to allocate bitmap font!");
 			return false;
@@ -209,7 +209,7 @@ namespace FontSystem
 
 		uint16 id = system_state->registered_bitmap_font_table.get_value(config.name);
 
-		if (id != INVALID_ID16)
+		if (id != Constants::max_u16)
 		{
 			SHMWARNV("load_bitmap_font - Font named '%s' already exists!", config.name);
 			return true;
@@ -217,14 +217,14 @@ namespace FontSystem
 
 		for (uint16 i = 0; i < system_state->config.max_bitmap_font_config_count; i++)
 		{
-			if (system_state->registered_bitmap_fonts[i].id == INVALID_ID16)
+			if (system_state->registered_bitmap_fonts[i].id == Constants::max_u16)
 			{
 				id = i;
 				break;
 			}
 		}
 
-		if (id == INVALID_ID16)
+		if (id == Constants::max_u16)
 		{
 			SHMERROR("load_bitmap_font - No space left to allocate bitmap font!");
 			return false;
@@ -253,7 +253,7 @@ namespace FontSystem
 		{
 			uint16 id = system_state->registered_bitmap_font_table.get_value(font_name);
 
-			if (id == INVALID_ID16)
+			if (id == Constants::max_u16)
 			{
 				SHMERRORV("acquire - No bitmap font named '%s' found!", font_name);
 				return false;
@@ -269,7 +269,7 @@ namespace FontSystem
 		{
 			uint16 id = system_state->registered_truetype_font_table.get_value(font_name);
 
-			if (id == INVALID_ID16)
+			if (id == Constants::max_u16)
 			{
 				SHMERRORV("acquire - No truetype font named '%s' found!", font_name);
 				return false;
@@ -326,7 +326,7 @@ namespace FontSystem
 
 		uint16 id = system_state->registered_truetype_font_table.get_value(font->face);
 
-		if (id == INVALID_ID16)
+		if (id == Constants::max_u16)
 		{
 			SHMERRORV("verify_atlas - No truetype font named '%s' found!", font->face);
 			return false;

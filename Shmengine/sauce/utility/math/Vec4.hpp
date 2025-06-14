@@ -126,7 +126,7 @@ namespace Math
 		return a;
 	}
 
-	SHMINLINE bool32 vec_compare(Vec4f v1, Vec4f v2, float32 tolerance = FLOAT_EPSILON)
+	SHMINLINE bool32 vec_compare(Vec4f v1, Vec4f v2, float32 tolerance = Constants::FLOAT_EPSILON)
 	{
 		return (
 			abs(v1.x - v2.x) <= tolerance && 

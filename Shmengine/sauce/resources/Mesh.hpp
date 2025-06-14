@@ -16,7 +16,7 @@ struct MeshGeometryConfig
 
 struct MeshGeometry
 {
-	char material_name[max_material_name_length];
+	char material_name[Constants::max_material_name_length];
 
 	GeometryData* g_data;
 	Material* material;

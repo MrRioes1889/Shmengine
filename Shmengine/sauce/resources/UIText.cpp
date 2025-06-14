@@ -37,7 +37,7 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
     out_ui_text->text = config->text_content;
     out_ui_text->transform = Math::transform_create();
 
-    out_ui_text->shader_instance_id = INVALID_ID;
+    out_ui_text->shader_instance_id = Constants::max_u32;
 
     uint32 text_length = out_ui_text->text.len();
     if (text_length < 1)
@@ -113,7 +113,7 @@ bool32 ui_text_unload(UIText* ui_text)
     Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
     Renderer::shader_release_instance_resources(ui_shader, ui_text->shader_instance_id);
 
-    ui_text->shader_instance_id = INVALID_ID;
+    ui_text->shader_instance_id = Constants::max_u32;
 
     identifier_release_id(ui_text->unique_id);
     ui_text->unique_id = 0;

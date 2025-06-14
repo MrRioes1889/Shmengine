@@ -49,7 +49,7 @@ namespace RenderViewSystem
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
 		system_state->lookup_table.init(sys_config->max_view_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
-		system_state->lookup_table.floodfill(INVALID_ID);
+		system_state->lookup_table.floodfill(Constants::max_u32);
 
 		for (uint32 i = 0; i < sys_config->max_view_count; ++i)
 			system_state->registered_views[i] = 0;
@@ -59,7 +59,7 @@ namespace RenderViewSystem
 
 	void system_shutdown(void* state)
 	{
-		system_state->lookup_table.floodfill(INVALID_ID);
+		system_state->lookup_table.floodfill(Constants::max_u32);
 		for (uint32 i = 0; i < system_state->config.max_view_count; i++)
 		{
 			if (system_state->registered_views[i])
@@ -76,7 +76,7 @@ namespace RenderViewSystem
 	{
 
 		uint32 ref_id = system_state->lookup_table.get_value(view->name);
-		if (ref_id != INVALID_ID) {
+		if (ref_id != Constants::max_u32) {
 			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", view->name);
 			return false;
 		}
@@ -88,7 +88,7 @@ namespace RenderViewSystem
 			}
 		}
 
-		if (ref_id == INVALID_ID) {
+		if (ref_id == Constants::max_u32) {
 			SHMERROR("RenderViewSystem::create - No available space for a new view. Change system config to account for more.");
 			return false;
 		}
@@ -139,7 +139,7 @@ namespace RenderViewSystem
 	RenderView* get(const char* name)
 	{
 		uint32 id = system_state->lookup_table.get_value(name);
-		if (id == INVALID_ID)
+		if (id == Constants::max_u32)
 			return 0;
 
 		return system_state->registered_views[id];
@@ -261,7 +261,7 @@ namespace RenderViewSystem
 		for (uint32 i = 0; i < mesh_count; i++)
 		{
 			Mesh* m = &meshes[i];
-			if (m->generation == INVALID_ID8)
+			if (m->generation == Constants::max_u8)
 				continue;
 
 			RenderViewObjectData* object_data = &view->objects[view->objects.emplace()];
@@ -325,7 +325,7 @@ namespace RenderViewSystem
 		packet_data.objects_pushed_count = 0;
 
 		RenderViewGeometryData* render_data = &view->geometries[view->geometries.emplace()];
-		render_data->object_index = INVALID_ID;
+		render_data->object_index = Constants::max_u32;
 		render_data->shader_id = shader_id;
 		render_data->shader_instance_id = skybox->shader_instance_id;
 		render_data->geometry_data = skybox->geometry;
@@ -457,7 +457,7 @@ namespace RenderViewSystem
 
 			RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
 			geo_render_data->object_index = view->objects.count - 1;
-			geo_render_data->shader_instance_id = INVALID_ID;
+			geo_render_data->shader_instance_id = Constants::max_u32;
 			geo_render_data->shader_id = shader_id;
 			geo_render_data->geometry_data = &box->geometry;
 			geo_render_data->has_transparency = 0;
@@ -493,7 +493,7 @@ namespace RenderViewSystem
 
 			RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
 			geo_render_data->object_index = view->objects.count - 1;
-			geo_render_data->shader_instance_id = INVALID_ID;
+			geo_render_data->shader_instance_id = Constants::max_u32;
 			geo_render_data->shader_id = shader_id;
 			geo_render_data->geometry_data = &line->geometry;
 			geo_render_data->has_transparency = 0;
@@ -530,7 +530,7 @@ namespace RenderViewSystem
 
 		RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
 		geo_render_data->object_index = view->objects.count - 1;
-		geo_render_data->shader_instance_id = INVALID_ID;
+		geo_render_data->shader_instance_id = Constants::max_u32;
 		geo_render_data->shader_id = shader_id;
 		geo_render_data->geometry_data = &gizmo->geometry;
 		geo_render_data->has_transparency = 0;

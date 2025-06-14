@@ -61,16 +61,16 @@ namespace MaterialSystem
         // Fill the hashtable with invalid references to use as a default.
         MaterialReference invalid_ref;
         invalid_ref.auto_release = false;
-        invalid_ref.handle = INVALID_ID;  // Primary reason for needing default values.
+        invalid_ref.handle = Constants::max_u32;  // Primary reason for needing default values.
         invalid_ref.reference_count = 0;
         system_state->registered_material_table.floodfill(invalid_ref);
 
         // Invalidate all materials in the array.
         uint32 count = system_state->config.max_material_count;
         for (uint32 i = 0; i < count; ++i) {
-            system_state->registered_materials[i].id = INVALID_ID;
-            system_state->registered_materials[i].generation = INVALID_ID;
-            system_state->registered_materials[i].shader_instance_id = INVALID_ID;
+            system_state->registered_materials[i].id = Constants::max_u32;
+            system_state->registered_materials[i].generation = Constants::max_u32;
+            system_state->registered_materials[i].shader_instance_id = Constants::max_u32;
         }
 
         return true;
@@ -87,7 +87,7 @@ namespace MaterialSystem
         uint32 count = system_state->config.max_material_count;
         for (uint32 i = 0; i < count; ++i) 
         {
-            if (system_state->registered_materials[i].id != INVALID_ID) 
+            if (system_state->registered_materials[i].id != Constants::max_u32) 
                 destroy_material(&system_state->registered_materials[i]);
         }
 
@@ -153,14 +153,14 @@ namespace MaterialSystem
             ref.auto_release = auto_release;
 
         ref.reference_count++;
-        if (ref.handle == INVALID_ID) 
+        if (ref.handle == Constants::max_u32) 
         {
             // This means no material exists here. Find a free index first.
             uint32 count = system_state->config.max_material_count;
             Material* m = 0;
             for (uint32 i = 0; i < count; ++i) 
             {
-                if (system_state->registered_materials[i].id == INVALID_ID) 
+                if (system_state->registered_materials[i].id == Constants::max_u32) 
                 {
                     // A free slot has been found. Use its index as the handle.
                     ref.handle = i;
@@ -170,7 +170,7 @@ namespace MaterialSystem
             }
 
             // Make sure an empty slot was actually found.
-            if (!m || ref.handle == INVALID_ID)
+            if (!m || ref.handle == Constants::max_u32)
             {
                 SHMFATAL("material_system_acquire - Material system cannot hold anymore materials. Adjust configuration to allow more.");
                 return 0;
@@ -212,7 +212,7 @@ namespace MaterialSystem
                 return 0;
             }
 
-            if (m->generation == INVALID_ID) 
+            if (m->generation == Constants::max_u32) 
                 m->generation = 0;
             else
                 m->generation++;
@@ -229,8 +229,8 @@ namespace MaterialSystem
         }
         MaterialReference ref = system_state->registered_material_table.get_value(name);
 
-        char name_copy[max_material_name_length];
-        CString::copy(name, name_copy, max_material_name_length);
+        char name_copy[Constants::max_material_name_length];
+        CString::copy(name, name_copy, Constants::max_material_name_length);
 
         if (ref.reference_count == 0) {
             SHMWARNV("Tried to release non-existent material: '%s'", name_copy);
@@ -245,7 +245,7 @@ namespace MaterialSystem
             destroy_material(m);
 
             // Reset the reference.
-            ref.handle = INVALID_ID;
+            ref.handle = Constants::max_u32;
             ref.auto_release = false;
             //SHMTRACEV("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name_copy);
         }
@@ -262,8 +262,8 @@ namespace MaterialSystem
         for (uint32 i = 0; i < system_state->registered_material_table.element_count; i++) 
         {
             MaterialReference* r = &system_state->registered_material_table.buffer[i];
-            if (r->reference_count > 0 || r->handle != INVALID_ID) {
-                if (r->handle != INVALID_ID) 
+            if (r->reference_count > 0 || r->handle != Constants::max_u32) {
+                if (r->handle != Constants::max_u32) 
                 {
                     SHMTRACEV("Material name: %s", system_state->registered_materials[r->handle].name);
                     SHMTRACEV("Material ref (handle/refCount): (%u/%u)", r->handle, r->reference_count);
@@ -314,7 +314,7 @@ namespace MaterialSystem
         Memory::zero_memory(m, sizeof(Material));
 
         // name
-        CString::copy(config->name, m->name, max_material_name_length);
+        CString::copy(config->name, m->name, Constants::max_material_name_length);
 
         m->shader_id = ShaderSystem::get_id(config->shader_name);
         m->type = config->type;
@@ -473,10 +473,10 @@ namespace MaterialSystem
         }
 
         // Release renderer resources.
-        if (m->shader_id != INVALID_ID && m->shader_instance_id != INVALID_ID)
+        if (m->shader_id != Constants::max_u32 && m->shader_instance_id != Constants::max_u32)
         {
             Renderer::shader_release_instance_resources(ShaderSystem::get_shader(m->shader_id), m->shader_instance_id);
-            m->shader_id = INVALID_ID;
+            m->shader_id = Constants::max_u32;
         }
 
         if (m->properties)
@@ -484,9 +484,9 @@ namespace MaterialSystem
 
         // Zero it out, invalidate IDs.
         Memory::zero_memory(m, sizeof(Material));
-        m->id = INVALID_ID;
-        m->generation = INVALID_ID;
-        m->shader_instance_id = INVALID_ID;
+        m->id = Constants::max_u32;
+        m->generation = Constants::max_u32;
+        m->shader_instance_id = Constants::max_u32;
     }
 
     Material* get_default_material()
@@ -510,10 +510,10 @@ namespace MaterialSystem
         Material* mat = &system_state->default_material;
 
         Memory::zero_memory(mat, sizeof(Material));
-        mat->id = INVALID_ID;
+        mat->id = Constants::max_u32;
         mat->type = MaterialType::PHONG;
-        mat->generation = INVALID_ID;
-        CString::copy(SystemConfig::default_name, mat->name, max_material_name_length);
+        mat->generation = Constants::max_u32;
+        CString::copy(SystemConfig::default_name, mat->name, Constants::max_material_name_length);
 
         mat->properties_size = sizeof(MaterialPhongProperties);
         static MaterialPhongProperties default_properties = {};
@@ -549,10 +549,10 @@ namespace MaterialSystem
         Material* mat = &system_state->default_ui_material;
 
         Memory::zero_memory(mat, sizeof(Material));
-        mat->id = INVALID_ID;
+        mat->id = Constants::max_u32;
         mat->type = MaterialType::UI;
-        mat->generation = INVALID_ID;
-        CString::copy(SystemConfig::default_ui_name, mat->name, max_material_name_length);
+        mat->generation = Constants::max_u32;
+        CString::copy(SystemConfig::default_ui_name, mat->name, Constants::max_material_name_length);
 
         mat->properties_size = sizeof(MaterialUIProperties);
         static MaterialUIProperties default_properties = {};

@@ -19,7 +19,7 @@ bool32 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Li
 	out_line->point1 = point1;
 	out_line->color = color;
 
-	out_line->unique_id = INVALID_ID;
+	out_line->unique_id = Constants::max_u32;
 
 	GeometryData* geometry = &out_line->geometry;
 	geometry->vertex_size = sizeof(Renderer::VertexColor3D);
@@ -33,7 +33,7 @@ bool32 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Li
 	
 	update_vertices(out_line);
 
-	out_line->geometry.id = INVALID_ID;
+	out_line->geometry.id = Constants::max_u32;
 
 	out_line->state = ResourceState::INITIALIZED;
 
@@ -88,7 +88,7 @@ bool32 line3D_unload(Line3D* line)
 	Renderer::geometry_unload(&line->geometry);
 
 	identifier_release_id(line->unique_id);
-	line->unique_id = INVALID_ID;
+	line->unique_id = Constants::max_u32;
 	line->state = ResourceState::UNLOADED;
 
 	return true;

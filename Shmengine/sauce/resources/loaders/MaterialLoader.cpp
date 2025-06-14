@@ -233,10 +233,10 @@ namespace ResourceSystem
 	{
 
 		const char* format = "%s%s%s%s";
-		char full_filepath[MAX_FILEPATH_LENGTH];
+		char full_filepath[Constants::MAX_FILEPATH_LENGTH];
 
 		CString::safe_print_s<const char*, const char*, const char*, const char*>
-			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name, ".shmt");
+			(full_filepath, Constants::MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name, ".shmt");
 
 		FileSystem::FileHandle f;
 		if (!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f))
@@ -255,8 +255,8 @@ namespace ResourceSystem
         ParserScope scope = ParserScope::MATERIAL;
 
         out_resource->auto_release = true;
-        CString::copy(Renderer::RendererConfig::builtin_shader_name_material_phong, out_resource->shader_name, max_shader_name_length);
-		CString::copy(name, out_resource->name, max_material_name_length);
+        CString::copy(Renderer::RendererConfig::builtin_shader_name_material_phong, out_resource->shader_name, Constants::max_shader_name_length);
+		CString::copy(name, out_resource->name, Constants::max_material_name_length);
 
         out_resource->type = MaterialType::PHONG;
         out_resource->maps.init(3, 0, AllocationTag::RESOURCE);
@@ -279,8 +279,8 @@ namespace ResourceSystem
         String var_name;
         String value;
 
-        uint32 property_i = INVALID_ID;
-        uint32 texture_map_i = INVALID_ID;
+        uint32 property_i = Constants::max_u32;
+        uint32 texture_map_i = Constants::max_u32;
 
         bool32 success = true;
 
@@ -361,7 +361,7 @@ namespace ResourceSystem
             {
                 if (var_name.equal_i("name"))
                 {
-                    CString::copy(value.c_str(), out_resource->name, max_material_name_length);
+                    CString::copy(value.c_str(), out_resource->name, Constants::max_material_name_length);
                 }
                 else if (var_name.equal_i("type"))
                 {
@@ -369,7 +369,7 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("shader"))
                 {
-                    CString::copy(value.c_str(), out_resource->shader_name, max_shader_name_length);
+                    CString::copy(value.c_str(), out_resource->shader_name, Constants::max_shader_name_length);
                 }
             }
             else if (scope == ParserScope::PROPERTIES)
@@ -385,11 +385,11 @@ namespace ResourceSystem
 
                 if (var_name.equal_i("name"))
                 {
-                    CString::copy(value.c_str(), map->name, max_texture_name_length);
+                    CString::copy(value.c_str(), map->name, Constants::max_texture_name_length);
                 }
                 if (var_name.equal_i("texture_name"))
                 {
-                    CString::copy(value.c_str(), map->texture_name, max_texture_name_length);
+                    CString::copy(value.c_str(), map->texture_name, Constants::max_texture_name_length);
                 }
                 else if (var_name.equal_i("filter_min"))
                 {
@@ -438,7 +438,7 @@ namespace ResourceSystem
         MaterialResourceData current_resource = {};
         current_resource.auto_release = true;
         current_resource.type = MaterialType::PHONG;
-        CString::copy(Renderer::RendererConfig::builtin_shader_name_material_phong, current_resource.shader_name, max_shader_name_length);
+        CString::copy(Renderer::RendererConfig::builtin_shader_name_material_phong, current_resource.shader_name, Constants::max_shader_name_length);
         current_resource.maps.init(3, 0);
         current_resource.properties.init(2, 0);
 
@@ -516,8 +516,8 @@ namespace ResourceSystem
                 values.right_of_last('\\');
                 TextureMapResourceData* map = &current_resource.maps[current_resource.maps.emplace()];
                 *map = default_map;
-                CString::copy(values.c_str(), map->texture_name, max_texture_name_length);
-                CString::copy("diffuse", map->name, max_texture_name_length);
+                CString::copy(values.c_str(), map->texture_name, Constants::max_texture_name_length);
+                CString::copy("diffuse", map->name, Constants::max_texture_name_length);
                 diffuse_parsed = true;
             }
             else if (identifier.nequal_i("map_Ks", 6) && !specular_parsed)
@@ -527,8 +527,8 @@ namespace ResourceSystem
                 values.right_of_last('\\');
                 TextureMapResourceData* map = &current_resource.maps[current_resource.maps.emplace()];
                 *map = default_map;
-                CString::copy(values.c_str(), map->texture_name, max_texture_name_length);
-                CString::copy("specular", map->name, max_texture_name_length);
+                CString::copy(values.c_str(), map->texture_name, Constants::max_texture_name_length);
+                CString::copy("specular", map->name, Constants::max_texture_name_length);
                 diffuse_parsed = true;
             }
             else if ((identifier.nequal_i("map_bump", 8) || identifier.nequal_i("bump", 4)) && !normal_parsed)
@@ -538,8 +538,8 @@ namespace ResourceSystem
                 values.right_of_last('\\');
                 TextureMapResourceData* map = &current_resource.maps[current_resource.maps.emplace()];
                 *map = default_map;
-                CString::copy(values.c_str(), map->texture_name, max_texture_name_length);
-                CString::copy("normal", map->name, max_texture_name_length);
+                CString::copy(values.c_str(), map->texture_name, Constants::max_texture_name_length);
+                CString::copy("normal", map->name, Constants::max_texture_name_length);
                 normal_parsed = true;
             }
             else if (identifier.nequal_i("newmtl", 6))
@@ -562,7 +562,7 @@ namespace ResourceSystem
                 }
 
                 hit_name = true;
-                CString::copy(values.c_str(), current_resource.name, max_material_name_length);
+                CString::copy(values.c_str(), current_resource.name, Constants::max_material_name_length);
             }
 
             line_number++;
@@ -589,10 +589,10 @@ namespace ResourceSystem
     {
 
         const char* format = "%s%s%s%s";
-        char full_filepath[MAX_FILEPATH_LENGTH];
+        char full_filepath[Constants::MAX_FILEPATH_LENGTH];
 
         CString::safe_print_s<const char*, const char*, const char*, const char*>
-            (full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, resource->name, ".shmt");
+            (full_filepath, Constants::MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, resource->name, ".shmt");
 
         FileSystem::FileHandle f;
 

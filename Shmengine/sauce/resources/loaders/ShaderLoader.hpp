@@ -5,7 +5,7 @@
 
 struct ShaderResourceData
 {
-	char name[max_shader_name_length];
+	char name[Constants::max_shader_name_length];
 
 	Darray<ShaderAttributeConfig> attributes;
 	Darray<ShaderUniformConfig> uniforms;

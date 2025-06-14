@@ -57,12 +57,12 @@ namespace Math
 
 	SHMINLINE float32 deg_to_rad(float32 deg)
 	{
-		return deg * DEG2RAD_MULTIPLIER;
+		return deg * Constants::DEG2RAD_MULTIPLIER;
 	}
 
 	SHMINLINE float32 rad_to_deg(float32 rad)
 	{
-		return rad * RAD2DEG_MULTIPLIER;
+		return rad * Constants::RAD2DEG_MULTIPLIER;
 	}
 
 	SHMINLINE float32 range_convert_f32(float32 value, float32 old_min, float32 old_max, float32 new_min, float32 new_max) 
@@ -98,7 +98,7 @@ namespace Math
 		*out_b = (uint32)(v.b * 255.0f);
 	}
 
-	SHMINLINE bool8 float_cmp(float32 f0, float32 f1, float32 epsilon = FLOAT_EPSILON)
+	SHMINLINE bool8 float_cmp(float32 f0, float32 f1, float32 epsilon = Constants::FLOAT_EPSILON)
 	{
 		return (Math::abs(f0 - f1) < epsilon);
 	}

@@ -23,7 +23,7 @@ bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 	out_skybox->cubemap.filter_magnify = TextureFilter::LINEAR;
 	out_skybox->cubemap.repeat_u = out_skybox->cubemap.repeat_v = out_skybox->cubemap.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
 
-	out_skybox->shader_instance_id = INVALID_ID;
+	out_skybox->shader_instance_id = Constants::max_u32;
 
 	GeometrySystem::GeometryConfig skybox_cube_config = {};
 	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), skybox_cube_config);
@@ -43,7 +43,7 @@ bool32 skybox_destroy(Skybox* skybox)
 	skybox->name.free_data();
 	skybox->cubemap_name.free_data();
 	skybox->geometry = 0;
-	skybox->shader_instance_id = INVALID_ID;
+	skybox->shader_instance_id = Constants::max_u32;
 	skybox->state = ResourceState::DESTROYED;
 	return true;
 }

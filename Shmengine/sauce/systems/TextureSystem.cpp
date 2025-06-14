@@ -75,14 +75,14 @@ namespace TextureSystem
 
 		TextureReference invalid_ref;
 		invalid_ref.auto_release = false;
-		invalid_ref.handle = INVALID_ID;
+		invalid_ref.handle = Constants::max_u32;
 		invalid_ref.reference_count = 0;
 		system_state->registered_texture_table.floodfill(invalid_ref);
 
 		for (uint32 i = 0; i < sys_config->max_texture_count; i++)
 		{
-			system_state->registered_textures[i].id = INVALID_ID;
-			system_state->registered_textures[i].generation = INVALID_ID;
+			system_state->registered_textures[i].id = Constants::max_u32;
+			system_state->registered_textures[i].generation = Constants::max_u32;
 		}
 
 		create_default_textures();
@@ -97,7 +97,7 @@ namespace TextureSystem
 		{
 			for (uint32 i = 0; i < system_state->config.max_texture_count; i++)
 			{
-				if (system_state->registered_textures[i].generation != INVALID_ID)
+				if (system_state->registered_textures[i].generation != Constants::max_u32)
 					Renderer::texture_destroy(&system_state->registered_textures[i]);
 			}
 
@@ -133,7 +133,7 @@ namespace TextureSystem
 			return &system_state->default_normal;
 		}
 
-		uint32 id = INVALID_ID;
+		uint32 id = Constants::max_u32;
 		if (!add_texture_reference(name, TextureType::TYPE_2D, auto_release, false, &id))
 		{
 			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
@@ -147,7 +147,7 @@ namespace TextureSystem
 	Texture* acquire_cube(const char* name, bool32 auto_release)
 	{
 
-		uint32 id = INVALID_ID;
+		uint32 id = Constants::max_u32;
 		if (!add_texture_reference(name, TextureType::TYPE_CUBE, auto_release, false, &id))
 		{
 			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
@@ -161,7 +161,7 @@ namespace TextureSystem
 	Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency)
 	{
 
-		uint32 id = INVALID_ID;
+		uint32 id = Constants::max_u32;
 		if (!add_texture_reference(name, TextureType::TYPE_2D, false, true, &id))
 		{
 			SHMERRORV("acquire_writable - failed to obtain new id for texture: '%s'.", name);
@@ -170,11 +170,11 @@ namespace TextureSystem
 
 		Texture* t = &system_state->registered_textures[id];
 		t->id = id;
-		CString::copy(name, t->name, max_texture_name_length);
+		CString::copy(name, t->name, Constants::max_texture_name_length);
 		t->width = width;
 		t->height = height;
 		t->channel_count = channel_count;
-		t->generation = INVALID_ID;
+		t->generation = Constants::max_u32;
 		t->type = TextureType::TYPE_2D;
 		t->flags = 0;
 		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
@@ -188,7 +188,7 @@ namespace TextureSystem
 	bool32 wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture)
 	{
 
-		uint32 id = INVALID_ID;
+		uint32 id = Constants::max_u32;
 		Texture* t = 0;
 
 		if (register_texture)
@@ -214,11 +214,11 @@ namespace TextureSystem
 		}
 
 		t->id = id;
-		CString::copy(name, t->name, max_texture_name_length);
+		CString::copy(name, t->name, Constants::max_texture_name_length);
 		t->width = width;
 		t->height = height;
 		t->channel_count = channel_count;
-		t->generation = INVALID_ID;
+		t->generation = Constants::max_u32;
 		t->type = TextureType::TYPE_2D;
 		t->flags = 0;
 		t->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
@@ -274,7 +274,7 @@ namespace TextureSystem
 			return;
 
 
-		uint32 id = INVALID_ID;
+		uint32 id = Constants::max_u32;
 		if (!remove_texture_reference(name, &id))
 		{
 			SHMERRORV("release - failed to release texture : '%s'.", name);
@@ -321,7 +321,7 @@ namespace TextureSystem
 
 		Renderer::texture_destroy(&old);
 
-		if (texture_params->current_generation == INVALID_ID)
+		if (texture_params->current_generation == Constants::max_u32)
 			texture_params->out_texture->generation = 0;
 		else
 			texture_params->out_texture->generation = texture_params->current_generation + 1;
@@ -367,7 +367,7 @@ namespace TextureSystem
 		load_params->temp_texture.height = config->height;
 
 		load_params->current_generation = load_params->out_texture->generation;
-		load_params->out_texture->generation = INVALID_ID;
+		load_params->out_texture->generation = Constants::max_u32;
 
 		uint8* pixels = config->pixels;
 		uint64 size = load_params->temp_texture.width * load_params->temp_texture.height * load_params->temp_texture.channel_count;
@@ -382,8 +382,8 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(load_params->resource_name, load_params->temp_texture.name, max_texture_name_length);
-		load_params->temp_texture.generation = INVALID_ID;
+		CString::copy(load_params->resource_name, load_params->temp_texture.name, Constants::max_texture_name_length);
+		load_params->temp_texture.generation = Constants::max_u32;
 		load_params->temp_texture.flags = 0;
 		load_params->temp_texture.flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
 
@@ -409,7 +409,7 @@ namespace TextureSystem
 		return true;
 	}
 
-	static bool32 load_cube_textures(const char* name, const char texture_names[6][max_texture_name_length], Texture* t)
+	static bool32 load_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t)
 	{
 
 		Buffer pixels = {};
@@ -434,9 +434,9 @@ namespace TextureSystem
 				t->width = img_resource_data.width;
 				t->height = img_resource_data.height;
 
-				t->generation = INVALID_ID;
+				t->generation = Constants::max_u32;
 				t->flags = 0;
-				CString::copy(texture_names[i], t->name, max_texture_name_length);
+				CString::copy(texture_names[i], t->name, Constants::max_texture_name_length);
 
 				image_size = t->width * t->height * t->channel_count;
 				pixels.init(image_size * 6, 0, AllocationTag::TEXTURE);			
@@ -499,48 +499,48 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(SystemConfig::default_name, system_state->default_texture.name, max_texture_name_length);
+		CString::copy(SystemConfig::default_name, system_state->default_texture.name, Constants::max_texture_name_length);
 		system_state->default_texture.width = tex_dim;
 		system_state->default_texture.height = tex_dim;
 		system_state->default_texture.channel_count = 4;
-		system_state->default_texture.id = INVALID_ID;
-		system_state->default_texture.generation = INVALID_ID;
+		system_state->default_texture.id = Constants::max_u32;
+		system_state->default_texture.generation = Constants::max_u32;
 		system_state->default_texture.type = TextureType::TYPE_2D;
 		system_state->default_texture.flags = 0;
 
 		Renderer::texture_create(pixels, &system_state->default_texture);
-		system_state->default_texture.generation = INVALID_ID;
+		system_state->default_texture.generation = Constants::max_u32;
 
 		// Diffuse texture.
 		SHMTRACE("Creating default diffuse texture...");
 		uint8 diff_pixels[16 * 16 * 4];
 		Memory::set_memory(diff_pixels, 0xFF, sizeof(diff_pixels));
-		CString::copy(SystemConfig::default_diffuse_name, system_state->default_diffuse.name, max_texture_name_length);
+		CString::copy(SystemConfig::default_diffuse_name, system_state->default_diffuse.name, Constants::max_texture_name_length);
 		system_state->default_diffuse.width = 16;
 		system_state->default_diffuse.height = 16;
 		system_state->default_diffuse.channel_count = 4;
-		system_state->default_diffuse.generation = INVALID_ID;
+		system_state->default_diffuse.generation = Constants::max_u32;
 		system_state->default_diffuse.type = TextureType::TYPE_2D;
 		system_state->default_diffuse.flags = 0;
 		Renderer::texture_create(diff_pixels, &system_state->default_diffuse);
 		// Manually set the texture generation to invalid since this is a default texture.
-		system_state->default_diffuse.generation = INVALID_ID;
+		system_state->default_diffuse.generation = Constants::max_u32;
 
 		// Specular texture.
 		SHMTRACE("Creating default specular texture...");
 		uint8 spec_pixels[16 * 16 * 4];
 		// Default spec map is black (no specular)
 		Memory::zero_memory(spec_pixels, sizeof(spec_pixels));
-		CString::copy(SystemConfig::default_specular_name, system_state->default_specular.name, max_texture_name_length);
+		CString::copy(SystemConfig::default_specular_name, system_state->default_specular.name, Constants::max_texture_name_length);
 		system_state->default_specular.width = 16;
 		system_state->default_specular.height = 16;
 		system_state->default_specular.channel_count = 4;
-		system_state->default_specular.generation = INVALID_ID;
+		system_state->default_specular.generation = Constants::max_u32;
 		system_state->default_specular.type = TextureType::TYPE_2D;
 		system_state->default_specular.flags = 0;
 		Renderer::texture_create(spec_pixels, &system_state->default_specular);
 		// Manually set the texture generation to invalid since this is a default texture.
-		system_state->default_specular.generation = INVALID_ID;
+		system_state->default_specular.generation = Constants::max_u32;
 
 		// Normal texture
 		SHMTRACE("Creating default normal texture...");
@@ -560,16 +560,16 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(SystemConfig::default_normal_name, system_state->default_normal.name, max_texture_name_length);
+		CString::copy(SystemConfig::default_normal_name, system_state->default_normal.name, Constants::max_texture_name_length);
 		system_state->default_normal.width = 16;
 		system_state->default_normal.height = 16;
 		system_state->default_normal.channel_count = 4;
-		system_state->default_normal.generation = INVALID_ID;
+		system_state->default_normal.generation = Constants::max_u32;
 		system_state->default_normal.type = TextureType::TYPE_2D;
 		system_state->default_normal.flags = 0;
 		Renderer::texture_create(normal_pixels, &system_state->default_normal);
 		// Manually set the texture generation to invalid since this is a default texture.
-		system_state->default_normal.generation = INVALID_ID;
+		system_state->default_normal.generation = Constants::max_u32;
 
 	}
 
@@ -589,24 +589,24 @@ namespace TextureSystem
 		Renderer::texture_destroy(t);
 
 		Memory::zero_memory(t, sizeof(t));
-		t->id = INVALID_ID;
-		t->generation = INVALID_ID;
+		t->id = Constants::max_u32;
+		t->generation = Constants::max_u32;
 	}
 
 	static bool32 add_texture_reference(const char* name, TextureType type, bool32 auto_release, bool32 skip_load, uint32* out_texture_id)
 	{
 
-		*out_texture_id = INVALID_ID;
+		*out_texture_id = Constants::max_u32;
 		TextureReference& ref = system_state->registered_texture_table.get_ref(name);
 		if (ref.reference_count == 0)
 				ref.auto_release = auto_release;
 		ref.reference_count++;
 
-		if (ref.handle == INVALID_ID)
+		if (ref.handle == Constants::max_u32)
 		{
 			for (uint32 i = 0; i < system_state->config.max_texture_count; i++)
 			{
-				if (system_state->registered_textures[i].id == INVALID_ID)
+				if (system_state->registered_textures[i].id == Constants::max_u32)
 				{
 					ref.handle = i;
 					*out_texture_id = ref.handle;
@@ -614,7 +614,7 @@ namespace TextureSystem
 				}
 			}
 
-			if (ref.handle == INVALID_ID)
+			if (ref.handle == Constants::max_u32)
 			{
 				SHMFATAL("Could not acquire new texture to texture system since no free slots are left!");
 				return false;
@@ -627,18 +627,18 @@ namespace TextureSystem
 			{
 				if (type == TextureType::TYPE_CUBE)
 				{
-					char texture_names[6][max_texture_name_length];
+					char texture_names[6][Constants::max_texture_name_length];
 
-					CString::safe_print_s<const char*>(texture_names[0], max_texture_name_length, "%s_r", name);
-					CString::safe_print_s<const char*>(texture_names[1], max_texture_name_length, "%s_l", name);
-					CString::safe_print_s<const char*>(texture_names[2], max_texture_name_length, "%s_u", name);
-					CString::safe_print_s<const char*>(texture_names[3], max_texture_name_length, "%s_d", name);
-					CString::safe_print_s<const char*>(texture_names[4], max_texture_name_length, "%s_f", name);
-					CString::safe_print_s<const char*>(texture_names[5], max_texture_name_length, "%s_b", name);
+					CString::safe_print_s<const char*>(texture_names[0], Constants::max_texture_name_length, "%s_r", name);
+					CString::safe_print_s<const char*>(texture_names[1], Constants::max_texture_name_length, "%s_l", name);
+					CString::safe_print_s<const char*>(texture_names[2], Constants::max_texture_name_length, "%s_u", name);
+					CString::safe_print_s<const char*>(texture_names[3], Constants::max_texture_name_length, "%s_d", name);
+					CString::safe_print_s<const char*>(texture_names[4], Constants::max_texture_name_length, "%s_f", name);
+					CString::safe_print_s<const char*>(texture_names[5], Constants::max_texture_name_length, "%s_b", name);
 
 					if (!load_cube_textures(name, texture_names, t))
 					{
-						*out_texture_id = INVALID_ID;
+						*out_texture_id = Constants::max_u32;
 						SHMERRORV("Failed to load texture: '%s'", name);
 						return 0;
 					}
@@ -647,13 +647,13 @@ namespace TextureSystem
 				{
 					if (!load_texture(name, t))
 					{
-						*out_texture_id = INVALID_ID;
+						*out_texture_id = Constants::max_u32;
 						SHMERRORV("Failed to load texture: '%s'", name);
 						return 0;
 					}		
 				}	
 
-				CString::copy(name, t->name, max_texture_name_length);
+				CString::copy(name, t->name, Constants::max_texture_name_length);
 				t->id = ref.handle;
 			}		
 
@@ -673,7 +673,7 @@ namespace TextureSystem
 	static bool32 remove_texture_reference(const char* name, uint32* out_texture_id)
 	{
 
-		*out_texture_id = INVALID_ID;
+		*out_texture_id = Constants::max_u32;
 		TextureReference& ref = system_state->registered_texture_table.get_ref(name);
 		if (ref.reference_count == 0)
 		{
@@ -697,7 +697,7 @@ namespace TextureSystem
 
 			destroy_texture(t);
 
-			ref.handle = INVALID_ID;
+			ref.handle = Constants::max_u32;
 			ref.auto_release = false;
 
 			//SHMTRACEV("Released Texture '%s'. Texture unloaded because reference count == 0 and auto_release enabled.", name, ref.reference_count);

@@ -46,7 +46,7 @@ namespace GeometrySystem
         // Invalidate all geometries in the array.
         uint32 count = system_state->config.max_geometry_count;
         for (uint32 i = 0; i < count; ++i)
-            system_state->registered_geometries[i].geometry.id = INVALID_ID;
+            system_state->registered_geometries[i].geometry.id = Constants::max_u32;
 
         if (!create_default_geometries()) {
             SHMFATAL("Failed to create default geometries. Application cannot continue.");
@@ -68,7 +68,7 @@ namespace GeometrySystem
 
 	GeometryData* acquire_by_id(uint32 id)
 	{
-		if (id != INVALID_ID && system_state->registered_geometries[id].geometry.id != INVALID_ID)
+		if (id != Constants::max_u32 && system_state->registered_geometries[id].geometry.id != Constants::max_u32)
 		{
 			system_state->registered_geometries[id].reference_count++;
 			return &system_state->registered_geometries[id].geometry;
@@ -84,7 +84,7 @@ namespace GeometrySystem
 		GeometryData* g = 0;
 		for (uint32 i = 0; i < system_state->config.max_geometry_count; i++)
 		{
-			if (system_state->registered_geometries[i].geometry.id == INVALID_ID)
+			if (system_state->registered_geometries[i].geometry.id == Constants::max_u32)
 			{
 				system_state->registered_geometries[i].reference_count = 1;
 				system_state->registered_geometries[i].auto_release = auto_release;
@@ -112,7 +112,7 @@ namespace GeometrySystem
 
 	void release(GeometryData* g, GeometryConfig* out_revert_config)
 	{
-		if (g->id != INVALID_ID)
+		if (g->id != Constants::max_u32)
 		{
 			GeometryReference& ref = system_state->registered_geometries[g->id];
 
@@ -140,7 +140,7 @@ namespace GeometrySystem
 
 	uint32 get_ref_count(GeometryData* geometry)
 	{
-		if (geometry->id == INVALID_ID)
+		if (geometry->id == Constants::max_u32)
 			return 0;
 
 		GeometryReference ref = system_state->registered_geometries[geometry->id];
@@ -179,7 +179,7 @@ namespace GeometrySystem
 
 		if (out_config)
 		{
-			CString::copy(g->name, out_config->name, max_geometry_name_length);
+			CString::copy(g->name, out_config->name, Constants::max_geometry_name_length);
 
 			out_config->center = g->center;
 			out_config->extents.min = g->extents.min;
@@ -192,7 +192,7 @@ namespace GeometrySystem
 			out_config->indices.steal(g->indices);
 		}
 		
-		g->id = INVALID_ID;
+		g->id = Constants::max_u32;
 
 		g->vertices.free_data();
 		g->indices.free_data();
@@ -241,7 +241,7 @@ namespace GeometrySystem
 		system_state->default_geometry.indices.init(system_state->default_geometry.index_count, 0, AllocationTag::ARRAY, indices);
 
 		// Send the geometry off to the renderer to be uploaded to the GPU.
-		system_state->default_geometry.id = INVALID_ID;
+		system_state->default_geometry.id = Constants::max_u32;
 		
 		if (!Renderer::geometry_load(&system_state->default_geometry)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
@@ -282,7 +282,7 @@ namespace GeometrySystem
 		system_state->default_geometry_2d.indices.init(system_state->default_geometry_2d.index_count, 0, AllocationTag::ARRAY, indices_2d);
 
 		// Send the geometry off to the renderer to be uploaded to the GPU.
-		system_state->default_geometry_2d.id = INVALID_ID;
+		system_state->default_geometry_2d.id = Constants::max_u32;
 		if (!Renderer::geometry_load(&system_state->default_geometry_2d)) {
 			SHMFATAL("Failed to create default geometry. Application cannot continue.");
 			return false;

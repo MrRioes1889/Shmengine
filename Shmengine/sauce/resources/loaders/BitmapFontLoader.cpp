@@ -51,7 +51,7 @@ namespace ResourceSystem
     {
 
         const char* format = "%s%s%s";
-        String full_filepath_wo_extension(MAX_FILEPATH_LENGTH);
+        String full_filepath_wo_extension(Constants::MAX_FILEPATH_LENGTH);
 
         safe_print_s<const char*, const char*, const char*>
             (full_filepath_wo_extension, format, get_base_path(), loader_type_path, name);
@@ -61,7 +61,7 @@ namespace ResourceSystem
         supported_file_types[0] = { ".shmbmf", BitmapFontFileType::SHMBMF};
         supported_file_types[1] = { ".fnt", BitmapFontFileType::FNT};
 
-        String full_filepath(MAX_FILEPATH_LENGTH);
+        String full_filepath(Constants::MAX_FILEPATH_LENGTH);
         BitmapFontFileType file_type = BitmapFontFileType::NOT_FOUND;
         for (uint32 i = 0; i < supported_file_type_count; i++)
         {
@@ -91,7 +91,7 @@ namespace ResourceSystem
         {
         case BitmapFontFileType::FNT:
         {
-            String shmbmf_filepath(MAX_FILEPATH_LENGTH);
+            String shmbmf_filepath(Constants::MAX_FILEPATH_LENGTH);
             shmbmf_filepath = full_filepath_wo_extension;
             shmbmf_filepath.append(".shmbmf");
             res = import_fnt_file(&f, name, shmbmf_filepath.c_str(), out_resource);
@@ -143,8 +143,8 @@ namespace ResourceSystem
         out_data->atlas.glyphs.init(256, 0, AllocationTag::BITMAP_FONT);
         for (uint32 i = 0; i < out_data->atlas.glyphs.capacity; i++)
         {
-            out_data->atlas.glyphs[i].codepoint = INVALID_ID;
-            out_data->atlas.glyphs[i].kernings_offset = INVALID_ID;
+            out_data->atlas.glyphs[i].codepoint = Constants::max_u32;
+            out_data->atlas.glyphs[i].kernings_offset = Constants::max_u32;
         }
 
         // Read each line of the file.
@@ -289,7 +289,7 @@ namespace ResourceSystem
         }
 
         quick_sort(out_data->atlas.kernings.data, 0, out_data->atlas.kernings.count - 1);
-        uint32 old_codepoint = INVALID_ID;
+        uint32 old_codepoint = Constants::max_u32;
         for (uint32 i = 0; i < out_data->atlas.kernings.count; i++)
         {
             uint32 codepoint = out_data->atlas.kernings[i].codepoint_0;

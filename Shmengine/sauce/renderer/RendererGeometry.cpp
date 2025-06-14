@@ -96,10 +96,10 @@ namespace Renderer
 		}
 
 		if (name && CString::length(name) > 0) {
-			CString::copy(name, out_config.name, max_geometry_name_length);
+			CString::copy(name, out_config.name, Constants::max_geometry_name_length);
 		}
 		else {
-			CString::copy(GeometrySystem::SystemConfig::default_name, out_config.name, max_geometry_name_length);
+			CString::copy(GeometrySystem::SystemConfig::default_name, out_config.name, Constants::max_geometry_name_length);
 		}
 
 	}
@@ -260,10 +260,10 @@ namespace Renderer
 		geometry_generate_mesh_tangents(out_config.vertex_count, (Vertex3D*)out_config.vertices.data, out_config.index_count, out_config.indices.data );
 
 		if (name && CString::length(name) > 0) {
-			CString::copy(name, out_config.name, max_geometry_name_length);
+			CString::copy(name, out_config.name, Constants::max_geometry_name_length);
 		}
 		else {
-			CString::copy(GeometrySystem::SystemConfig::default_name, out_config.name, max_geometry_name_length);
+			CString::copy(GeometrySystem::SystemConfig::default_name, out_config.name, Constants::max_geometry_name_length);
 		}
 
 	}
@@ -386,10 +386,10 @@ namespace Renderer
 
     static bool8 vertex3d_equal(Vertex3D vert_0, Vertex3D vert_1) {
         return 
-            (Math::vec_compare(vert_0.position, vert_1.position, FLOAT_EPSILON) &&
-            Math::vec_compare(vert_0.normal, vert_1.normal, FLOAT_EPSILON) &&
-            Math::vec_compare(vert_0.tex_coords, vert_1.tex_coords, FLOAT_EPSILON) &&
-            Math::vec_compare(vert_0.color, vert_1.color, FLOAT_EPSILON));
+            (Math::vec_compare(vert_0.position, vert_1.position, Constants::FLOAT_EPSILON) &&
+            Math::vec_compare(vert_0.normal, vert_1.normal, Constants::FLOAT_EPSILON) &&
+            Math::vec_compare(vert_0.tex_coords, vert_1.tex_coords, Constants::FLOAT_EPSILON) &&
+            Math::vec_compare(vert_0.color, vert_1.color, Constants::FLOAT_EPSILON));
     }
 
     void reassign_index(uint32 index_count, uint32* indices, uint32 from, uint32 to) {

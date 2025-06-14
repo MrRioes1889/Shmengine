@@ -22,7 +22,7 @@ struct TerrainVertex
 	Math::Vec4f color;
 	Math::Vec3f tangent;
 
-	float32 material_weights[max_terrain_materials_count];
+	float32 material_weights[Constants::max_terrain_materials_count];
 };
 
 struct TerrainVertexInfo
@@ -50,7 +50,7 @@ struct Terrain
 {
 	struct SubMaterial
 	{
-		char name[max_material_name_length];
+		char name[Constants::max_material_name_length];
 		Material* mat;
 	};
 

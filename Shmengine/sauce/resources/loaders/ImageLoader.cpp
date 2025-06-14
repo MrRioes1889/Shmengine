@@ -24,19 +24,19 @@ namespace ResourceSystem
 		const char* format = "%s%s%s";
 		const int32 required_channel_count = 4;
 		stbi_set_flip_vertically_on_load_thread(load_params->flip_y);
-		char full_filepath[MAX_FILEPATH_LENGTH];
+		char full_filepath[Constants::MAX_FILEPATH_LENGTH];
 
 		CString::safe_print_s<const char*, const char*, const char*>
-			(full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name);
+			(full_filepath, Constants::MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name);
 
 		const uint32 valid_extension_count = 4;
 		bool32 found = false;
 		const char* extensions[valid_extension_count] = { ".tga", ".png", ".jpg", ".bmp" };
-		char full_filepath_tmp[MAX_FILEPATH_LENGTH] = {};
+		char full_filepath_tmp[Constants::MAX_FILEPATH_LENGTH] = {};
 		for (uint32 i = 0; i < valid_extension_count; i++)
 		{			
-			CString::copy(full_filepath, full_filepath_tmp, MAX_FILEPATH_LENGTH);
-			CString::append(full_filepath_tmp, MAX_FILEPATH_LENGTH, extensions[i]);
+			CString::copy(full_filepath, full_filepath_tmp, Constants::MAX_FILEPATH_LENGTH);
+			CString::append(full_filepath_tmp, Constants::MAX_FILEPATH_LENGTH, extensions[i]);
 			if (FileSystem::file_exists(full_filepath_tmp))
 			{
 				found = true;
@@ -49,7 +49,7 @@ namespace ResourceSystem
 			return false;
 		}
 
-		CString::copy(full_filepath_tmp,full_filepath, MAX_FILEPATH_LENGTH);
+		CString::copy(full_filepath_tmp,full_filepath, Constants::MAX_FILEPATH_LENGTH);
 
 		int32 width;
 		int32 height;

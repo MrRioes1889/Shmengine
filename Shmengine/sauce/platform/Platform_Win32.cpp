@@ -87,7 +87,7 @@ namespace Platform
         plat_state->file_watches.init(8, 0);
 
         for (uint32 i = 0; i < plat_state->windows.capacity; i++)
-            plat_state->windows[i].id = INVALID_ID; 
+            plat_state->windows[i].id = Constants::max_u32; 
         
         return TRUE; 
     }
@@ -102,13 +102,13 @@ namespace Platform
 
     bool32 create_window(WindowConfig config)
     {
-        uint32 window_id = INVALID_ID;
+        uint32 window_id = Constants::max_u32;
         for (uint32 i = 0; i < plat_state->windows.capacity; i++)
         {
-            if (!plat_state->windows[i].handle.h_wnd && plat_state->windows[i].id == INVALID_ID)
+            if (!plat_state->windows[i].handle.h_wnd && plat_state->windows[i].id == Constants::max_u32)
                 window_id = i;
         }
-        if (window_id == INVALID_ID)
+        if (window_id == Constants::max_u32)
             return false;
 
         Window* window = &plat_state->windows[window_id];
@@ -176,14 +176,14 @@ namespace Platform
     {
         Window* window = &plat_state->windows[window_id];
 
-        if (window->id == INVALID_ID)
+        if (window->id == Constants::max_u32)
             return;
         if (plat_state->active_window == window)
             plat_state->active_window = 0;
 
 		DestroyWindow((HWND)window->handle.h_wnd);
         *window = {};
-        window->id = INVALID_ID;
+        window->id = Constants::max_u32;
     }
 
     const Window* get_active_window()
@@ -248,9 +248,9 @@ namespace Platform
         if (alignment > 1)
         {
 #if DEV_SYSTEM
-            static uint64 start_adress = Gibibytes(1) * 1024 * 4;
+            static uint64 start_adress = gibibytes(1) * 1024 * 4;
             void* ret = VirtualAlloc((void*)start_adress, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-            start_adress += Gibibytes(16);
+            start_adress += gibibytes(16);
             return ret;
 #else
             return _aligned_malloc(size, alignment);
@@ -294,7 +294,7 @@ namespace Platform
     Platform::ReturnCode register_file_watch(const char* path, uint32* out_watch_id)
     {
 
-        *out_watch_id = INVALID_ID;
+        *out_watch_id = Constants::max_u32;
 
         for (uint32 i = 0; i < plat_state->file_watches.count; i++)
         {
@@ -447,7 +447,7 @@ namespace Platform
             return false;
 
         CString::copy(name, out_lib->name, sizeof(out_lib->name));
-        CString::copy(name, out_lib->filename, MAX_FILEPATH_LENGTH);
+        CString::copy(name, out_lib->filename, Constants::MAX_FILEPATH_LENGTH);
         out_lib->handle = lib;
 
         SHMINFOV("Loaded dynamic library '%s'", name);

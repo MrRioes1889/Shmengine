@@ -11,7 +11,7 @@ struct MeshGeometryConfig;
 struct MeshGeometryResourceData
 {
 	GeometrySystem::GeometryConfig data_config;
-	char material_name[max_geometry_name_length];
+	char material_name[Constants::max_geometry_name_length];
 };
 
 struct MeshResourceData

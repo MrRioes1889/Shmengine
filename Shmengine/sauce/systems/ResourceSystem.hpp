@@ -7,7 +7,7 @@ namespace ResourceSystem
 
 	struct SystemConfig
 	{
-		char asset_base_path[MAX_FILEPATH_LENGTH];
+		char asset_base_path[Constants::MAX_FILEPATH_LENGTH];
 	};
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);

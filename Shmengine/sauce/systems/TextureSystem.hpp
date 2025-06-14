@@ -29,7 +29,7 @@ struct Texture
 
 	Buffer internal_data = {};
 
-	char name[max_texture_name_length];
+	char name[Constants::max_texture_name_length];
 	uint32 id;
 	TextureType type;
 	uint32 width;

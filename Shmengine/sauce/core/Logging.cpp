@@ -27,9 +27,9 @@ namespace Log
         system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
         //D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log
-        char dir[MAX_FILEPATH_LENGTH];
-        CString::copy(Platform::get_root_dir(), dir, MAX_FILEPATH_LENGTH);
-        CString::append(dir, MAX_FILEPATH_LENGTH, "console.log");
+        char dir[Constants::MAX_FILEPATH_LENGTH];
+        CString::copy(Platform::get_root_dir(), dir, Constants::MAX_FILEPATH_LENGTH);
+        CString::append(dir, Constants::MAX_FILEPATH_LENGTH, "console.log");
         if (!FileSystem::file_open(dir, FILE_MODE_WRITE, &system_state->log_file))
         {
             Platform::console_write_error("Error: Unable to open console.log file for writing", LOG_LEVEL_ERROR);

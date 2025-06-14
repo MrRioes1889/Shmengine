@@ -38,7 +38,7 @@ namespace ResourceSystem
     {
 
         const char* format = "%s%s%s";
-        String full_filepath_wo_extension(MAX_FILEPATH_LENGTH);
+        String full_filepath_wo_extension(Constants::MAX_FILEPATH_LENGTH);
 
         safe_print_s<const char*, const char*, const char*>
             (full_filepath_wo_extension, format, get_base_path(), loader_type_path, name);
@@ -48,7 +48,7 @@ namespace ResourceSystem
         supported_file_types[0] = { ".shmttf", TruetypeFontFileType::SHMTTF };
         supported_file_types[1] = { ".ttf", TruetypeFontFileType::TTF };
 
-        String full_filepath(MAX_FILEPATH_LENGTH);
+        String full_filepath(Constants::MAX_FILEPATH_LENGTH);
         TruetypeFontFileType file_type = TruetypeFontFileType::NOT_FOUND;
         for (uint32 i = 0; i < supported_file_type_count; i++)
         {
@@ -78,7 +78,7 @@ namespace ResourceSystem
         {
         case TruetypeFontFileType::TTF:
         {
-            String shmttf_filepath(MAX_FILEPATH_LENGTH);
+            String shmttf_filepath(Constants::MAX_FILEPATH_LENGTH);
             shmttf_filepath = full_filepath_wo_extension;
             shmttf_filepath.append(".shmttf");
             res = import_ttf_file(&f, name, shmttf_filepath.c_str(), out_data);

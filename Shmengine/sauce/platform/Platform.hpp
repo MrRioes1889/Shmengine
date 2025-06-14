@@ -25,7 +25,7 @@ namespace Platform
 	struct DynamicLibrary
 	{
 		char name[256];
-		char filename[MAX_FILEPATH_LENGTH];
+		char filename[Constants::MAX_FILEPATH_LENGTH];
 		void* handle;
 		uint32 watch_id;
 	};

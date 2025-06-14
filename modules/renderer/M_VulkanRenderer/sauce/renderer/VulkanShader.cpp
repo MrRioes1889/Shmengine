@@ -89,8 +89,8 @@ namespace Renderer::Vulkan
 		v_shader->config.pool_sizes[0] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 };
 		v_shader->config.pool_sizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096 };
 
-		v_shader->config.descriptor_sets[0].sampler_binding_index = INVALID_ID8;
-		v_shader->config.descriptor_sets[1].sampler_binding_index = INVALID_ID8;
+		v_shader->config.descriptor_sets[0].sampler_binding_index.invalidate();
+		v_shader->config.descriptor_sets[1].sampler_binding_index.invalidate();
 
 		v_shader->config.cull_mode = config->cull_mode;
 
@@ -334,7 +334,7 @@ namespace Renderer::Vulkan
 		if (shader->topologies & RenderTopologyTypeFlags::TRIANGLE_LIST || shader->topologies & RenderTopologyTypeFlags::TRIANGLE_STRIP || shader->topologies & RenderTopologyTypeFlags::TRIANGLE_FAN)
 			v_shader->pipelines[(uint32)VulkanTopologyCLass::TRIANGLE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
 
-		v_shader->bound_pipeline_id = INVALID_ID;
+		v_shader->bound_pipeline_id = Constants::max_u32;
 		for (uint32 i = 0; i < v_shader->pipelines.capacity; i++)
 		{
 			if (!v_shader->pipelines[i])
@@ -364,7 +364,7 @@ namespace Renderer::Vulkan
 				return false;
 			}
 
-			if (v_shader->bound_pipeline_id == INVALID_ID)
+			if (v_shader->bound_pipeline_id == Constants::max_u32)
 			{
 				v_shader->bound_pipeline_id = i;
 
@@ -396,7 +396,7 @@ namespace Renderer::Vulkan
 			}	
 		}
 
-		if (v_shader->bound_pipeline_id == INVALID_ID)
+		if (v_shader->bound_pipeline_id == Constants::max_u32)
 		{
 			SHMERROR("No available topology classes are available, so a pipeline cannot be bound. Check shader configuration.");
 			return false;
@@ -543,7 +543,7 @@ namespace Renderer::Vulkan
 
 		if (s->instance_uniform_count)
 		{	
-			if (*instance_ubo_generation == INVALID_ID8 /*|| *global_ubo_generation != material->generation*/)
+			if (*instance_ubo_generation == Constants::max_u8 /*|| *global_ubo_generation != material->generation*/)
 			{
 				descriptor_writes[descriptor_count] = ubo_descriptor;
 				descriptor_count++;
@@ -567,7 +567,7 @@ namespace Renderer::Vulkan
 				TextureMap* map = s->instances[s->bound_instance_id].instance_texture_maps[i];
 				Texture* t = map->texture;
 
-				if (t->generation == INVALID_ID)
+				if (t->generation == Constants::max_u32)
 					t = TextureSystem::get_default_texture();
 
 				VulkanImage* image = (VulkanImage*)t->internal_data.data;
@@ -623,8 +623,8 @@ namespace Renderer::Vulkan
 		{
 			for (uint32 j = 0; j < 3; ++j)
 			{
-				instance_descriptor->descriptor_states[i].generations[j] = INVALID_ID8;
-				instance_descriptor->descriptor_states[i].ids[j] = INVALID_ID;
+				instance_descriptor->descriptor_states[i].generations[j] = Constants::max_u8;
+				instance_descriptor->descriptor_states[i].ids[j] = Constants::max_u32;
 			}
 		}
 

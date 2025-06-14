@@ -177,7 +177,7 @@ struct MaterialUIProperties
 
 struct MaterialTerrainProperties
 {
-	MaterialPhongProperties materials[max_terrain_materials_count];
+	MaterialPhongProperties materials[Constants::max_terrain_materials_count];
 	Math::Vec3f padding;
 	uint32 materials_count;
 };
@@ -190,7 +190,7 @@ struct Material
 	uint32 generation;	
 	uint32 shader_id;
 	uint32 shader_instance_id;
-	char name[max_material_name_length];
+	char name[Constants::max_material_name_length];
 	
 	Sarray<TextureMap> maps;
 

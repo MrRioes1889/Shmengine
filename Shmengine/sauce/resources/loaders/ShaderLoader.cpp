@@ -16,10 +16,10 @@ namespace ResourceSystem
 
         using namespace Renderer;
         const char* format = "%s%s%s%s";
-        char full_filepath[MAX_FILEPATH_LENGTH];
+        char full_filepath[Constants::MAX_FILEPATH_LENGTH];
 
         CString::safe_print_s<const char*, const char*, const char*, const char*>
-            (full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name, ".shadercfg");
+            (full_filepath, Constants::MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name, ".shadercfg");
 
         FileSystem::FileHandle f;
         if (!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f))
@@ -78,7 +78,7 @@ namespace ResourceSystem
             }
             else if (var_name.equal_i("name")) 
             {
-                CString::copy(value.c_str(), out_resource->name, max_shader_name_length) ;
+                CString::copy(value.c_str(), out_resource->name, Constants::max_shader_name_length) ;
             }
             else if (var_name.equal_i("renderpass")) 
             {
@@ -134,7 +134,7 @@ namespace ResourceSystem
                     out_resource->stages.set_count(stage_filenames.count);
 
                 for (uint32 i = 0; i < stage_filenames.count; i++)
-                    CString::copy(stage_filenames[i].c_str(), out_resource->stages[i].filename, max_filename_length);
+                    CString::copy(stage_filenames[i].c_str(), out_resource->stages[i].filename, Constants::max_filename_length);
 
                 for (uint32 i = 0; i < stage_filenames.count; i++)
                     stage_filenames[i].free_data();
@@ -249,7 +249,7 @@ namespace ResourceSystem
 
                     if (attribute.size)
                     {
-                        CString::copy(tmp[1].c_str(), attribute.name, max_shader_attribute_name_length);
+                        CString::copy(tmp[1].c_str(), attribute.name, Constants::max_shader_attribute_name_length);
                         out_resource->attributes.emplace(attribute);
                     }
 
@@ -382,7 +382,7 @@ namespace ResourceSystem
                         if (uniform.type == ShaderUniformType::SAMPLER)
                             uniform.size = 0;
 
-                        CString::copy(tmp[2].c_str(), uniform.name, max_shader_uniform_name_length);
+                        CString::copy(tmp[2].c_str(), uniform.name, Constants::max_shader_uniform_name_length);
                         out_resource->uniforms.emplace(uniform);
                     }
                 }

@@ -31,7 +31,6 @@ namespace CameraSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 
-
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
 		system_state->config = *(SystemConfig*)config;
@@ -43,11 +42,11 @@ namespace CameraSystem
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
 		system_state->registered_camera_table.init(system_state->config.max_camera_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
-		system_state->registered_camera_table.floodfill(INVALID_ID16);
+		system_state->registered_camera_table.floodfill(Constants::max_u16);
 
 		for (uint32 i = 0; i < system_state->config.max_camera_count; ++i)
 		{
-			system_state->registered_cameras[i].id = INVALID_ID16;
+			system_state->registered_cameras[i].id = Constants::max_u16;
 			system_state->registered_cameras[i].reference_count = 0;
 		}
 
@@ -69,15 +68,15 @@ namespace CameraSystem
 
 		uint16& ref_id = system_state->registered_camera_table.get_ref(name);
 
-		if (ref_id == INVALID_ID16)
+		if (ref_id == Constants::max_u16)
 		{
 			for (uint16 i = 0; i < system_state->config.max_camera_count; ++i) {
-				if (system_state->registered_cameras[i].id == INVALID_ID16) {
+				if (system_state->registered_cameras[i].id == Constants::max_u16) {
 					ref_id = i;
 					break;
 				}
 			}
-			if (ref_id == INVALID_ID16) {
+			if (ref_id == Constants::max_u16) {
 				SHMERROR("camera_system_acquire failed to acquire new slot. Adjust camera system config to allow more. Null returned.");
 				return 0;
 			}
@@ -100,14 +99,14 @@ namespace CameraSystem
 
 		uint16& ref_id = system_state->registered_camera_table.get_ref(name);
 
-		if (ref_id == INVALID_ID16)
+		if (ref_id == Constants::max_u16)
 			return;
 
 		system_state->registered_cameras[ref_id].reference_count--;
 		if (system_state->registered_cameras[ref_id].reference_count <= 0)
 		{
 			system_state->registered_cameras[ref_id].cam.reset();
-			system_state->registered_cameras[ref_id].id = INVALID_ID16;
+			system_state->registered_cameras[ref_id].id = Constants::max_u16;
 			ref_id = system_state->registered_cameras[ref_id].id;
 		}
 		

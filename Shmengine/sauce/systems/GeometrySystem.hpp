@@ -12,7 +12,7 @@ struct GeometryData
 	uint32 id;
 	bool8 loaded;
 
-	char name[max_geometry_name_length];
+	char name[Constants::max_geometry_name_length];
 
 	Math::Vec3f center;
 	Math::Extents3D extents;
@@ -47,7 +47,7 @@ namespace GeometrySystem
 
 		Sarray<byte> vertices;	
 		Sarray<uint32> indices;
-		char name[max_geometry_name_length];
+		char name[Constants::max_geometry_name_length];
 
 		Math::Vec3f center;
 		Math::Extents3D extents;

@@ -73,7 +73,7 @@ namespace JobSystem
 		system_state->high_prio_queue.init(1024, 0);
 
 		for (uint32 i = 0; i < SystemConfig::max_job_results_count; i++)
-			system_state->pending_results[i].id = INVALID_ID;
+			system_state->pending_results[i].id = Constants::max_u32;
 
 		SHMDEBUGV("Main thread id is: %u", Threading::get_thread_id());
 		SHMDEBUGV("Spawning %u job threads.", system_state->config.job_thread_count);
@@ -143,10 +143,10 @@ namespace JobSystem
 			JobResultEntry entry = system_state->pending_results[i];
 			Threading::mutex_unlock(&system_state->results_mutex);
 
-			if (entry.id != INVALID_ID)
+			if (entry.id != Constants::max_u32)
 			{
 				Threading::mutex_lock(&system_state->results_mutex);
-				system_state->pending_results[i].id = INVALID_ID;
+				system_state->pending_results[i].id = Constants::max_u32;
 				Threading::mutex_unlock(&system_state->results_mutex);
 
 				system_state->pending_results_count--;
@@ -260,7 +260,7 @@ namespace JobSystem
 	{
 
 		JobResultEntry entry;
-		entry.id = INVALID_ID;
+		entry.id = Constants::max_u32;
 		entry.params_size = param_size;
 		entry.on_complete = callback;
 		entry.params = 0;
@@ -273,7 +273,7 @@ namespace JobSystem
 		Threading::mutex_lock(&system_state->results_mutex);
 		for (uint32 i = 0; i < SystemConfig::max_job_results_count; i++)
 		{
-			if (system_state->pending_results[i].id == INVALID_ID)
+			if (system_state->pending_results[i].id == Constants::max_u32)
 			{
 				system_state->pending_results[i] = entry;
 				system_state->pending_results[i].id = i;

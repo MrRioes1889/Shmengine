@@ -224,10 +224,10 @@ namespace Engine
 
 	static bool32 boot_application(ApplicationConfig* app_config)
 	{
-		char application_module_filename[MAX_FILEPATH_LENGTH];
-		char application_loaded_module_filename[MAX_FILEPATH_LENGTH];
-		CString::print_s(application_module_filename, MAX_FILEPATH_LENGTH, "%s%s%s%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
-		CString::print_s(application_loaded_module_filename, MAX_FILEPATH_LENGTH, "%s%s%s_loaded%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
+		char application_module_filename[Constants::MAX_FILEPATH_LENGTH];
+		char application_loaded_module_filename[Constants::MAX_FILEPATH_LENGTH];
+		CString::print_s(application_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
+		CString::print_s(application_loaded_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s_loaded%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
 
 		Platform::ReturnCode r_code;
 		do
@@ -275,7 +275,7 @@ namespace Engine
 		if (app_config->state_size)
 			app_inst->state = Memory::allocate(app_config->state_size, AllocationTag::APPLICATION);
 
-		uint64 frame_allocator_size = Mebibytes(32);
+		uint64 frame_allocator_size = mebibytes(32);
 		void* f_data = Memory::allocate(frame_allocator_size, AllocationTag::ENGINE);
 		engine_state->frame_data.frame_allocator.init(frame_allocator_size, f_data);
 
@@ -344,10 +344,10 @@ namespace Engine
 
 		Platform::sleep(100);
 
-		char application_module_filename[MAX_FILEPATH_LENGTH];
-		char application_loaded_module_filename[MAX_FILEPATH_LENGTH];
-		CString::print_s(application_module_filename, MAX_FILEPATH_LENGTH, "%s%s%s%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
-		CString::print_s(application_loaded_module_filename, MAX_FILEPATH_LENGTH, "%s%s%s_loaded%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
+		char application_module_filename[Constants::MAX_FILEPATH_LENGTH];
+		char application_loaded_module_filename[Constants::MAX_FILEPATH_LENGTH];
+		CString::print_s(application_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
+		CString::print_s(application_loaded_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s_loaded%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
 
 		Platform::ReturnCode r_code;
 		do

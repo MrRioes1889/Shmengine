@@ -2,6 +2,7 @@
 
 #include <Defines.hpp>
 #include <core/Assert.hpp>
+#include <core/Identifier.hpp>
 #include <platform/Platform.hpp>
 #include <containers/Sarray.hpp>
 #include <containers/Buffer.hpp>
@@ -136,7 +137,7 @@ namespace Renderer::Vulkan
 
 	struct VulkanDescriptorSetConfig
 	{
-		uint8 sampler_binding_index;
+		Id8 sampler_binding_index;
 		uint8 binding_count;
 		VkDescriptorSetLayoutBinding bindings[RendererConfig::shader_max_bindings];
 	};

@@ -33,8 +33,8 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     out_terrain->name = config->name;
     out_terrain->xform = Math::transform_create();
 
-	out_terrain->shader_instance_id = INVALID_ID;
-	out_terrain->unique_id = INVALID_ID;
+	out_terrain->shader_instance_id = Constants::max_u32;
+	out_terrain->unique_id = Constants::max_u32;
 
 	out_terrain->material_properties = {};
 
@@ -47,7 +47,7 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     out_terrain->materials.init(config->materials_count, DarrayFlags::NON_RESIZABLE);
     out_terrain->materials.set_count(config->materials_count);
     for (uint32 i = 0; i < config->materials_count; i++)
-        CString::copy(config->material_names[i], out_terrain->materials[i].name, max_material_name_length);
+        CString::copy(config->material_names[i], out_terrain->materials[i].name, Constants::max_material_name_length);
 
 	if (!out_terrain->tile_count_x)
 	{
@@ -174,7 +174,7 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     Renderer::geometry_generate_terrain_tangents(out_terrain->geometry.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
         out_terrain->geometry.index_count, out_terrain->geometry.indices.data);
 
-    out_terrain->geometry.id = INVALID_ID;
+    out_terrain->geometry.id = Constants::max_u32;
 
     out_terrain->state = ResourceState::INITIALIZED;
 
@@ -207,7 +207,7 @@ bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrai
     config.scale_y = resource.scale_y;
 
     config.materials_count = resource.sub_materials_count;
-    const char* submaterial_names[max_terrain_materials_count];
+    const char* submaterial_names[Constants::max_terrain_materials_count];
     for (uint32 i = 0; i < config.materials_count; i++)
         submaterial_names[i] = resource.sub_material_names[i].name;
 
@@ -263,7 +263,7 @@ bool32 terrain_load(Terrain* terrain)
 	Material* default_material = MaterialSystem::get_default_material();
 
 	// Phong properties and maps for each material.
-	for (uint32 mat_i = 0; mat_i < max_terrain_materials_count; mat_i++) {
+	for (uint32 mat_i = 0; mat_i < Constants::max_terrain_materials_count; mat_i++) {
 		// Properties.
 		MaterialPhongProperties* mat_props = &terrain->material_properties.materials[mat_i];
 		// Use default material unless within the material count.
@@ -278,7 +278,7 @@ bool32 terrain_load(Terrain* terrain)
 
 	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
 	
-	const uint32 max_map_count = max_terrain_materials_count * 3;
+	const uint32 max_map_count = Constants::max_terrain_materials_count * 3;
 	if (!Renderer::shader_acquire_instance_resources(terrain_shader, max_map_count, &terrain->shader_instance_id))
 		SHMERRORV("Failed to acquire renderer resources for terrain '%s'.", terrain->name.c_str());
 
@@ -300,7 +300,7 @@ bool32 terrain_unload(Terrain* terrain)
 
 	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
 	Renderer::shader_release_instance_resources(terrain_shader, terrain->shader_instance_id);
-	terrain->shader_instance_id = INVALID_ID;
+	terrain->shader_instance_id = Constants::max_u32;
 
 	for (uint32 ter_i = 0; ter_i < terrain->materials.count; ter_i++)
 	{
@@ -311,7 +311,7 @@ bool32 terrain_unload(Terrain* terrain)
     Renderer::geometry_unload(&terrain->geometry);
 
 	identifier_release_id(terrain->unique_id);
-	terrain->unique_id = INVALID_ID;
+	terrain->unique_id = Constants::max_u32;
     terrain->state = ResourceState::UNLOADED;
 
     return true;

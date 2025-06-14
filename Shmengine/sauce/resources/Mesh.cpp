@@ -32,7 +32,7 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
     for (uint32 i = 0; i < config->g_configs_count; i++)
     {
         MeshGeometry* g = &out_mesh->geometries[i];
-        CString::copy(config->g_configs[i].material_name, g->material_name, max_material_name_length);
+        CString::copy(config->g_configs[i].material_name, g->material_name, Constants::max_material_name_length);
         g->g_data = GeometrySystem::acquire_from_config(config->g_configs[i].data_config, true);
         g->material = 0;
 
@@ -53,7 +53,7 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
 
     out_mesh->center = (out_mesh->extents.min + out_mesh->extents.max) * 0.5f;
 
-    out_mesh->generation = INVALID_ID8;
+    out_mesh->generation = Constants::max_u8;
 
     out_mesh->state = ResourceState::INITIALIZED;
 
@@ -117,7 +117,7 @@ bool32 mesh_load(Mesh* mesh)
     bool32 is_reload = mesh->state == ResourceState::UNLOADED;
 
     mesh->state = ResourceState::LOADING;
-    mesh->generation = INVALID_ID8;
+    mesh->generation = Constants::max_u8;
     mesh->unique_id = identifier_acquire_new_id(mesh);
 
     mesh_load_async(mesh, is_reload);
@@ -136,7 +136,7 @@ bool32 mesh_unload(Mesh* mesh)
 
     mesh->state = ResourceState::UNLOADING;
 
-    mesh->generation = INVALID_ID8;
+    mesh->generation = Constants::max_u8;
     identifier_release_id(mesh->unique_id);
 
     for (uint32 i = 0; i < mesh->geometries.count; ++i)
@@ -201,7 +201,7 @@ static bool32 mesh_load_job_start(void* params, void* result_data) {
 
 static bool32 mesh_load_async(Mesh* mesh, bool32 reload)
 {
-    mesh->generation = INVALID_ID8;
+    mesh->generation = Constants::max_u8;
 
     JobSystem::JobInfo job = JobSystem::job_create(mesh_load_job_start, mesh_load_job_success, mesh_load_job_fail, sizeof(MeshLoadParams), sizeof(MeshLoadParams));
     MeshLoadParams* params = (MeshLoadParams*)job.params;

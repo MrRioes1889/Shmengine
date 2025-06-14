@@ -17,7 +17,7 @@ bool32 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 	out_box->xform = Math::transform_create();
 	out_box->color = color;
 
-	out_box->unique_id = INVALID_ID;
+	out_box->unique_id = Constants::max_u32;
 
 	GeometryData* geometry = &out_box->geometry;
 	geometry->vertex_size = sizeof(Renderer::VertexColor3D);
@@ -36,7 +36,7 @@ bool32 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 
 	update_vertices(out_box);
 
-	out_box->geometry.id = INVALID_ID;
+	out_box->geometry.id = Constants::max_u32;
 
 	out_box->state = ResourceState::INITIALIZED;
 
@@ -91,7 +91,7 @@ bool32 box3D_unload(Box3D* box)
 	Renderer::geometry_unload(&box->geometry);
 
 	identifier_release_id(box->unique_id);
-	box->unique_id = INVALID_ID;
+	box->unique_id = Constants::max_u32;
 	box->state = ResourceState::UNLOADED;
 
 	return true;

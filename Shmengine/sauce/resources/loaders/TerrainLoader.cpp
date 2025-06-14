@@ -27,10 +27,10 @@ namespace ResourceSystem
     {
 
         const char* format = "%s%s%s%s";
-        char full_filepath[MAX_FILEPATH_LENGTH];
+        char full_filepath[Constants::MAX_FILEPATH_LENGTH];
 
         CString::safe_print_s<const char*, const char*, const char*, const char*>
-            (full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name, ".shmter");
+            (full_filepath, Constants::MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name, ".shmter");
 
         FileSystem::FileHandle f;
         if (!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f))
@@ -112,11 +112,11 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("name"))
                 {
-                    CString::copy(value.c_str(), out_resource->name, max_terrain_name_length);
+                    CString::copy(value.c_str(), out_resource->name, Constants::max_terrain_name_length);
                 }
                 else if (var_name.equal_i("heightmap_resource_name"))
                 {
-                    CString::copy(value.c_str(), out_resource->heightmap_name, max_texture_name_length);
+                    CString::copy(value.c_str(), out_resource->heightmap_name, Constants::max_texture_name_length);
                 }
                 else if (var_name.equal_i("tile_count_x"))
                 {
@@ -140,8 +140,8 @@ namespace ResourceSystem
                 }
                 else if (var_name.equal_i("material"))
                 {
-                    if (out_resource->sub_materials_count < max_terrain_materials_count)
-                        CString::copy(value.c_str(), out_resource->sub_material_names[out_resource->sub_materials_count++].name, max_material_name_length);
+                    if (out_resource->sub_materials_count < Constants::max_terrain_materials_count)
+                        CString::copy(value.c_str(), out_resource->sub_material_names[out_resource->sub_materials_count++].name, Constants::max_material_name_length);
                 }
             }
             

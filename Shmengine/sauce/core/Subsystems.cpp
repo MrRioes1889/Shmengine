@@ -84,7 +84,7 @@ namespace SubsystemManager
 	bool32 init_basic()
 	{
 		Memory::SystemConfig mem_config;
-		mem_config.total_allocation_size = Gibibytes(1);
+		mem_config.total_allocation_size = gibibytes(1);
 
 		if (!register_system(SubsystemType::MEMORY, Memory::system_init, Memory::system_shutdown, 0, &mem_config))
 		{
@@ -92,7 +92,7 @@ namespace SubsystemManager
 			return false;
 		}
 
-		uint64 allocator_size = Mebibytes(64);
+		uint64 allocator_size = mebibytes(64);
 		manager_state.allocator.init(allocator_size);
 
 		return register_known_systems_pre_boot();
@@ -199,8 +199,8 @@ namespace SubsystemManager
 	{
 
 		ResourceSystem::SystemConfig resource_sys_config;
-		CString::copy(Platform::get_root_dir(), resource_sys_config.asset_base_path, MAX_FILEPATH_LENGTH);
-		CString::append(resource_sys_config.asset_base_path, MAX_FILEPATH_LENGTH, "../../../assets/");
+		CString::copy(Platform::get_root_dir(), resource_sys_config.asset_base_path, Constants::MAX_FILEPATH_LENGTH);
+		CString::append(resource_sys_config.asset_base_path, Constants::MAX_FILEPATH_LENGTH, "../../../assets/");
 
 		if (!register_system(SubsystemType::RESOURCE_SYSTEM, ResourceSystem::system_init, ResourceSystem::system_shutdown, 0, &resource_sys_config))
 		{

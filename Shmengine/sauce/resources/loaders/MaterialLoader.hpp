@@ -5,8 +5,8 @@
 
 struct TextureMapResourceData
 {
-	char name[max_texture_name_length];
-	char texture_name[max_texture_name_length];
+	char name[Constants::max_texture_name_length];
+	char texture_name[Constants::max_texture_name_length];
 	TextureFilter::Value filter_min;
 	TextureFilter::Value filter_mag;
 	TextureRepeat::Value repeat_u;
@@ -16,8 +16,8 @@ struct TextureMapResourceData
 
 struct MaterialResourceData
 {
-	char name[max_material_name_length];
-	char shader_name[max_shader_name_length];
+	char name[Constants::max_material_name_length];
+	char shader_name[Constants::max_shader_name_length];
 
 	MaterialType type;
 	bool32 auto_release;

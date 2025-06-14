@@ -59,10 +59,10 @@ namespace Console
 	bool32 register_consumer(void* inst, FP_consumer_write callback, uint32* out_consumer_id)
 	{
 
-		uint32 first_free_index = INVALID_ID;
+		uint32 first_free_index = Constants::max_u32;
 		for (uint32 i = 0; i < SystemState::max_consumer_count; i++)
 		{
-			if (!system_state->consumers[i].instance && first_free_index == INVALID_ID)
+			if (!system_state->consumers[i].instance && first_free_index == Constants::max_u32)
 			{
 				first_free_index = i;
 			}			
@@ -75,7 +75,7 @@ namespace Console
 		}
 
 		*out_consumer_id = first_free_index;
-		if (*out_consumer_id == INVALID_ID)
+		if (*out_consumer_id == Constants::max_u32)
 		{
 			SHMERROR("Could not find free slot for console consumer.");
 			return false;
