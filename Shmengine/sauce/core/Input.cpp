@@ -258,7 +258,7 @@ namespace Input
     bool32 clip_cursor()
     {
         system_state->cursor_clipped = (!system_state->cursor_clipped);
-        return Platform::clip_cursor(system_state->cursor_clipped);
+        return Platform::clip_cursor(Platform::get_active_window(), system_state->cursor_clipped);
     }
 
     bool32 is_key_down(KeyCode::Value key)

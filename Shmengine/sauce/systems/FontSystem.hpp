@@ -86,8 +86,8 @@ namespace FontSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	bool32 load_truetype_font(const TruetypeFontConfig& config);
-	bool32 load_bitmap_font(const BitmapFontConfig& config);
+	SHMAPI bool32 load_truetype_font(const TruetypeFontConfig& config);
+	SHMAPI bool32 load_bitmap_font(const BitmapFontConfig& config);
 
 	bool32 acquire(const char* font_name, uint16 font_size, UIText* text);
 	bool32 release(UIText* text);

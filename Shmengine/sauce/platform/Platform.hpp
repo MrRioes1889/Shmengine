@@ -18,7 +18,8 @@ namespace Platform
 
 	inline const char* dynamic_library_ext = ".dll";
 	inline const char* dynamic_library_prefix = "";
-
+#else
+	
 #endif
 
 	struct DynamicLibrary
@@ -38,17 +39,35 @@ namespace Platform
 		FILE_ALREADY_EXISTS
 	};
 
-	struct SystemConfig 
+	struct WindowConfig
 	{
-		const char* application_name;
-		uint32 x;
-		uint32 y;
-		uint32 width;
-		uint32 height;
+		const char* title;
+		uint32 pos_x, pos_y;
+		uint32 width, height;
+	};
+
+	struct Window
+	{
+		WindowHandle handle;
+		const char* title;
+		uint32 id;
+		uint32 pos_x, pos_y;
+		uint32 client_width, client_height;
+		bool32 cursor_clipped;
+	};
+
+	struct SystemConfig
+	{
+
 	};
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
+
+	bool32 create_window(WindowConfig config);
+	void destroy_window(uint32 window_id);
+
+	SHMAPI const Window* get_active_window();
 
 	ReturnCode get_last_error();
 
@@ -79,16 +98,14 @@ namespace Platform
 
 	Math::Vec2i get_cursor_pos();
 	void set_cursor_pos(int32 x, int32 y);
-	bool32 clip_cursor(bool32 clip);
-
-	SHMAPI WindowHandle get_window_handle();
+	bool32 clip_cursor(const Window* window, bool32 clip);
 
 	SHMAPI bool32 load_dynamic_library(const char* name, const char* filename, DynamicLibrary* out_lib);
 	SHMAPI bool32 unload_dynamic_library(DynamicLibrary* lib);
 	SHMAPI bool32 load_dynamic_library_function(DynamicLibrary* lib, const char* name, void** out_function);
 
 	SHMAPI void message_box(const char* prompt, const char* message);
-	SHMAPI void set_window_text(const char* s);
+	SHMAPI void set_window_text(WindowHandle window_handle, const char* s);
 
 }
 

@@ -23,7 +23,7 @@ namespace Sandbox2DRenderViews
 extern "C"
 {
 
-	SHMAPI bool32 application_boot(ApplicationConfig* app_config);
+	SHMAPI bool32 application_load_config(ApplicationConfig* out_config);
 
 	SHMAPI bool32 application_init(Application* app_inst);
 

@@ -21,7 +21,7 @@ namespace Renderer
 	{
 		const char* application_name;
 		RendererConfigFlags::Value flags;
-		Module renderer_module;
+		const char* renderer_module_name;
 	};
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);

@@ -2,6 +2,7 @@
 #include "core/Event.hpp"
 #include "core/Input.hpp"
 #include "core/Logging.hpp"
+#include "containers/Sarray.hpp"
 #include "memory/LinearAllocator.hpp"
 
 #include "optick.h"
@@ -23,13 +24,9 @@ namespace Platform
 
     struct PlatformState {
         HINSTANCE h_instance;
-        HWND hwnd;
-        bool32 cursor_clipped;
-        uint32 client_x;
-        uint32 client_y;
-        uint32 client_width;
-        uint32 client_height;        
 
+        Window* active_window;
+        Sarray<Window> windows;
         Darray<FileWatch> file_watches;
     };
 
@@ -50,9 +47,7 @@ namespace Platform
 
         plat_state->h_instance = GetModuleHandleA(0);
 
-        plat_state->cursor_clipped = false;
-
-        // Setup and register window class.
+		// Setup and register window class.
         HICON icon = LoadIcon(plat_state->h_instance, IDI_APPLICATION);
         WNDCLASSA wc;
         memset(&wc, 0, sizeof(wc));
@@ -64,23 +59,72 @@ namespace Platform
         wc.hIcon = icon;
         wc.hCursor = LoadCursor(NULL, IDC_ARROW);  // NULL; // Manage the cursor manually
         wc.hbrBackground = NULL;                   // Transparent
-        wc.lpszClassName = "shmengine_window_class";
+        wc.lpszClassName = "default_window_class";
 
         if (!RegisterClassA(&wc)) {
             MessageBoxA(0, "Window registration failed", "Error", MB_ICONEXCLAMATION | MB_OK);
             return FALSE;
+        }  
+
+		// Setup mouse for low-level offset input messages
+        RAWINPUTDEVICE Rid[1];
+        Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+        Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+        Rid[0].dwFlags = RIDEV_INPUTSINK;
+        Rid[0].hwndTarget = NULL;
+        RegisterRawInputDevices(Rid, 1, sizeof(Rid[0]));
+
+        // Clock setup
+        LARGE_INTEGER frequency;
+        QueryPerformanceFrequency(&frequency);
+        clock_frequency = 1.0 / (float64)frequency.QuadPart;
+        QueryPerformanceCounter(&start_time);
+
+        timeBeginPeriod(1);
+
+        plat_state->active_window = 0;
+        plat_state->windows.init(4, 0);
+        plat_state->file_watches.init(8, 0);
+
+        for (uint32 i = 0; i < plat_state->windows.capacity; i++)
+            plat_state->windows[i].id = INVALID_ID; 
+        
+        return TRUE; 
+    }
+
+    void system_shutdown(void* state) 
+    {
+        for (uint32 i = 0; i < plat_state->windows.capacity; i++)
+            destroy_window(i);
+
+        FreeConsole();
+    }
+
+    bool32 create_window(WindowConfig config)
+    {
+        uint32 window_id = INVALID_ID;
+        for (uint32 i = 0; i < plat_state->windows.capacity; i++)
+        {
+            if (!plat_state->windows[i].handle.h_wnd && plat_state->windows[i].id == INVALID_ID)
+                window_id = i;
         }
+        if (window_id == INVALID_ID)
+            return false;
+
+        Window* window = &plat_state->windows[window_id];
+        window->cursor_clipped = false;
 
         // Create window
-        plat_state->client_x = sys_config->x;
-        plat_state->client_y = sys_config->y;
-        plat_state->client_width = sys_config->width;
-        plat_state->client_height = sys_config->height;
+        window->title = config.title;
+        window->pos_x = config.pos_x;
+        window->pos_y = config.pos_y;
+        window->client_width = config.width;
+        window->client_height = config.height;
 
-        uint32 window_x = plat_state->client_x;
-        uint32 window_y = plat_state->client_y;
-        uint32 window_width = plat_state->client_width;
-        uint32 window_height = plat_state->client_height;
+        uint32 window_x = window->pos_x;
+        uint32 window_y = window->pos_y;
+        uint32 window_width = window->client_width;
+        uint32 window_height = window->client_height;
 
         uint32 window_style = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
         uint32 window_ex_style = WS_EX_APPWINDOW;
@@ -101,59 +145,50 @@ namespace Platform
         window_width += border_rect.right - border_rect.left;
         window_height += border_rect.bottom - border_rect.top;
 
-        //console_write("Hallo :)", 3);
-
         HWND handle = CreateWindowExA(
-            window_ex_style, "shmengine_window_class", sys_config->application_name,
+            window_ex_style, "default_window_class", window->title,
             window_style, window_x, window_y, window_width, window_height,
             0, 0, plat_state->h_instance, 0);
 
-        if (handle == 0) {
+        if (handle == 0) 
+        {
             MessageBoxA(NULL, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
-
             return FALSE;
         }
-        else {
-            plat_state->hwnd = handle;
-        }
+
+        window->handle.h_instance = plat_state->h_instance;
+        window->handle.h_wnd = handle; 
+        window->id = window_id;
 
         // Show the window
-        bool32 should_activate = 1;  // TODO: if the window should not accept input, this should be false.
-        int32 show_window_command_flags = should_activate ? SW_SHOW : SW_SHOWNOACTIVATE;
+        bool32 activate = 1;  // TODO: if the window should not accept input, this should be false.
+        int32 show_window_command_flags = activate ? SW_SHOW : SW_SHOWNOACTIVATE;
+        if (activate)
+            plat_state->active_window = window;
         // If initially minimized, use SW_MINIMIZE : SW_SHOWMINNOACTIVE;
         // If initially maximized, use SW_SHOWMAXIMIZED : SW_MAXIMIZE
-        ShowWindow(plat_state->hwnd, show_window_command_flags);
+        ShowWindow((HWND)window->handle.h_wnd, show_window_command_flags);
 
-        // Setup mouse for low-level offset input messages
-        RAWINPUTDEVICE Rid[1];
-        Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-        Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
-        Rid[0].dwFlags = RIDEV_INPUTSINK;
-        Rid[0].hwndTarget = plat_state->hwnd;
-        RegisterRawInputDevices(Rid, 1, sizeof(Rid[0]));
-
-        // Clock setup
-        LARGE_INTEGER frequency;
-        QueryPerformanceFrequency(&frequency);
-        clock_frequency = 1.0 / (float64)frequency.QuadPart;
-        QueryPerformanceCounter(&start_time);
-
-        timeBeginPeriod(1);
-
-        plat_state->file_watches.init(8, 0);
-
-        return TRUE;
+        return true;
     }
 
-    void system_shutdown(void* state) {
+    void destroy_window(uint32 window_id)
+    {
+        Window* window = &plat_state->windows[window_id];
 
-        if (plat_state) {
-            DestroyWindow(plat_state->hwnd);
-            plat_state->hwnd = 0;
-        }
+        if (window->id == INVALID_ID)
+            return;
+        if (plat_state->active_window == window)
+            plat_state->active_window = 0;
 
-        FreeConsole();
+		DestroyWindow((HWND)window->handle.h_wnd);
+        *window = {};
+        window->id = INVALID_ID;
+    }
 
+    const Window* get_active_window()
+    {
+        return plat_state->active_window;
     }
 
     ReturnCode get_last_error()
@@ -377,16 +412,16 @@ namespace Platform
         SetCursorPos(x, y);
     }
 
-    bool32 clip_cursor(bool32 clip)
+    bool32 clip_cursor(const Window* window, bool32 clip)
     {
         ShowCursor(!clip);
 
-        Math::Vec2i client_center = { (int32)plat_state->client_width / 2, (int32)plat_state->client_height / 2 };
+        Math::Vec2i client_center = { (int32)window->client_width / 2, (int32)window->client_height / 2 };
 
         if (clip)
         {           
             RECT window_rect = {};
-            GetWindowRect(plat_state->hwnd, &window_rect);
+            GetWindowRect((HWND)window->handle.h_wnd, &window_rect);
             if (!ClipCursor(&window_rect))
             {
                 SHMDEBUG("ClipCursor failed!");
@@ -398,18 +433,10 @@ namespace Platform
             ClipCursor(0);
         }
 
-        set_cursor_pos(client_center.x + (int32)plat_state->client_x, client_center.y + (int32)plat_state->client_y);
+        set_cursor_pos(client_center.x + (int32)window->pos_x, client_center.y + (int32)window->pos_y);
         Input::process_mouse_move(client_center.x, client_center.y);
 
         return true;
-    }
-
-    WindowHandle get_window_handle()
-    {
-        WindowHandle ret;
-        ret.h_instance = plat_state->h_instance;
-        ret.h_wnd = plat_state->hwnd;
-        return ret;
     }
 
     bool32 load_dynamic_library(const char* name, const char* filename, DynamicLibrary* out_lib)
@@ -454,23 +481,18 @@ namespace Platform
 
     void message_box(const char* prompt, const char* message)
     {
-        MessageBoxA(plat_state->hwnd, message, prompt, MB_OK);
+        MessageBoxA(NULL, message, prompt, MB_OK);
     }
 
-    void set_window_text(const char* s)
+    void set_window_text(WindowHandle window_handle, const char* s)
     {
-        SetWindowTextA(plat_state->hwnd, s);
+        SetWindowTextA((HWND)window_handle.h_wnd, s);
     }
 
     static bool32 win32_process_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param)
     {
-        switch (msg) {
-        case WM_MOVE:
+        switch (msg) 
         {
-            plat_state->client_x = LOWORD(l_param);
-            plat_state->client_y = HIWORD(l_param);
-            break;
-        }
         case WM_INPUT:
         {
 
@@ -564,12 +586,25 @@ namespace Platform
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param) 
     {
 
-        switch (msg) {
+        switch (msg) 
+        {
         case WM_ERASEBKGND:
         {
             // Notify the OS that erasing will be handled by the application to prevent flicker.
             return 1;
-        }       
+        }
+        case WM_ACTIVATE:
+        {
+            if (!(LOWORD(w_param) & (WA_ACTIVE | WA_CLICKACTIVE)))
+				return DefWindowProcA(hwnd, msg, w_param, l_param);
+
+			for (uint32 i = 0; i < plat_state->windows.capacity; i++)
+			{
+                if (plat_state->windows[i].handle.h_wnd == hwnd)
+                    plat_state->active_window = &plat_state->windows[i];
+			}
+            return DefWindowProcA(hwnd, msg, w_param, l_param);
+        }
         case WM_CLOSE:
         {
             Event::event_fire(SystemEventCode::APPLICATION_QUIT, 0, {});
@@ -582,16 +617,43 @@ namespace Platform
         }  
         case WM_SIZE:
         {
+            Window* window = 0;
+			for (uint32 i = 0; i < plat_state->windows.capacity; i++)
+			{
+                if (plat_state->windows[i].handle.h_wnd == hwnd)
+                    window = &plat_state->windows[i];
+			}
+            if (!window)
+                break;
+
             // Get the updated size.
             RECT r;
-            GetClientRect(plat_state->hwnd, &r);
-            plat_state->client_width = r.right - r.left;
-            plat_state->client_height = r.bottom - r.top;
+            GetClientRect(hwnd, &r);
+            if (window->client_width == (uint32)(r.right - r.left) && window->client_height == (uint32)(r.bottom - r.top))
+                break;
+
+            window->client_width = r.right - r.left;
+            window->client_height = r.bottom - r.top;
 
             EventData e = {};
-            e.ui32[0] = plat_state->client_width;
-            e.ui32[1] = plat_state->client_height;
+            e.ui32[0] = window->client_width;
+            e.ui32[1] = window->client_height;
             Event::event_fire(SystemEventCode::WINDOW_RESIZED, 0, e);
+            break;
+        }
+        case WM_MOVE:
+        {
+            Window* window = 0;
+			for (uint32 i = 0; i < plat_state->windows.capacity; i++)
+			{
+                if (plat_state->windows[i].handle.h_wnd == hwnd)
+                    window = &plat_state->windows[i];
+			}
+            if (!window)
+                break;
+
+            window->pos_x = LOWORD(l_param);
+            window->pos_y = HIWORD(l_param);
             break;
         }
         case WM_NCHITTEST:

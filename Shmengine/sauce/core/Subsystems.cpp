@@ -45,13 +45,13 @@ namespace SubsystemManager
 			INPUT,
 			EVENT,
 			PLATFORM,
+
 			RESOURCE_SYSTEM,
 			RENDERER,
 			SHADER_SYSTEM,
 			JOB_SYSTEM,
 			CAMERA_SYSTEM,
 			RENDERVIEW_SYSTEM,
-			
 			TEXTURE_SYSTEM,
 			FONT_SYSTEM,	
 			MATERIAL_SYSTEM,
@@ -72,8 +72,8 @@ namespace SubsystemManager
 	static ManagerState manager_state = {};
 
 	static bool32 register_system(SubsystemType::Value type, FP_system_init init_callback, FP_system_shutdown shutdown_callback, FP_system_update update_callback, void* config);
-	static bool32 register_known_systems_pre_boot(ApplicationConfig* app_config);
-	static bool32 register_known_systems_post_boot(ApplicationConfig* app_config);
+	static bool32 register_known_systems_pre_boot();
+	static bool32 register_known_systems_post_boot(const ApplicationConfig* app_config);
 
 	static void* allocate_system(void* allocator, uint64 size)
 	{
@@ -81,15 +81,24 @@ namespace SubsystemManager
 		return lin_allocator->allocate(size);
 	}
 
-	bool32 init_basic(ApplicationConfig* app_config)
+	bool32 init_basic()
 	{
+		Memory::SystemConfig mem_config;
+		mem_config.total_allocation_size = Gibibytes(1);
+
+		if (!register_system(SubsystemType::MEMORY, Memory::system_init, Memory::system_shutdown, 0, &mem_config))
+		{
+			SHMFATAL("Failed to register memory subsystem!");
+			return false;
+		}
+
 		uint64 allocator_size = Mebibytes(64);
 		manager_state.allocator.init(allocator_size);
 
-		return register_known_systems_pre_boot(app_config);
+		return register_known_systems_pre_boot();
 	}
 
-	bool32 init_advanced(ApplicationConfig* app_config)
+	bool32 init_advanced(const ApplicationConfig* app_config)
 	{
 		return register_known_systems_post_boot(app_config);
 	}
@@ -149,14 +158,8 @@ namespace SubsystemManager
 
 	}
 
-	static bool32 register_known_systems_pre_boot(ApplicationConfig* app_config)
+	static bool32 register_known_systems_pre_boot()
 	{
-
-		if (!register_system(SubsystemType::MEMORY, 0, Memory::system_shutdown, 0, 0))
-		{
-			SHMFATAL("Failed to register console subsystem!");
-			return false;
-		}
 
 		if (!register_system(SubsystemType::CONSOLE, Console::system_init, Console::system_shutdown, 0, 0))
 		{
@@ -182,18 +185,18 @@ namespace SubsystemManager
 			return false;
 		}
 
-		Platform::SystemConfig platform_sys_config;
-		platform_sys_config.application_name = app_config->name;
-		platform_sys_config.x = app_config->start_pos_x;
-		platform_sys_config.y = app_config->start_pos_y;
-		platform_sys_config.width = app_config->start_width;
-		platform_sys_config.height = app_config->start_height;
-
-		if (!register_system(SubsystemType::PLATFORM, Platform::system_init, Platform::system_shutdown, 0, &platform_sys_config))
+		if (!register_system(SubsystemType::PLATFORM, Platform::system_init, Platform::system_shutdown, 0, 0))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
 		}
+
+		return true;
+
+	}
+
+	static bool32 register_known_systems_post_boot(const ApplicationConfig* app_config)
+	{
 
 		ResourceSystem::SystemConfig resource_sys_config;
 		CString::copy(Platform::get_root_dir(), resource_sys_config.asset_base_path, MAX_FILEPATH_LENGTH);
@@ -208,7 +211,7 @@ namespace SubsystemManager
 		Renderer::SystemConfig renderer_sys_config;
 		renderer_sys_config.application_name = app_config->name;
 		renderer_sys_config.flags = 0;
-		renderer_sys_config.renderer_module = app_config->renderer_module;
+		renderer_sys_config.renderer_module_name = app_config->renderer_module_name;
 
 		if (!register_system(SubsystemType::RENDERER, Renderer::system_init, Renderer::system_shutdown, 0, &renderer_sys_config))
 		{
@@ -279,13 +282,6 @@ namespace SubsystemManager
 			return false;
 		}
 
-		return true;
-
-	}
-
-	static bool32 register_known_systems_post_boot(ApplicationConfig* app_config)
-	{
-
 		TextureSystem::SystemConfig texture_sys_config;
 		texture_sys_config.max_texture_count = 0x10000;
 
@@ -295,7 +291,14 @@ namespace SubsystemManager
 			return false;
 		}
 
-		if (!register_system(SubsystemType::FONT_SYSTEM, FontSystem::system_init, FontSystem::system_shutdown, 0, &app_config->fontsystem_config))
+		FontSystem::SystemConfig font_sys_config;
+		font_sys_config.auto_release = false;
+		font_sys_config.default_bitmap_font_count = 0;
+		font_sys_config.default_truetype_font_count = 0;
+		font_sys_config.max_bitmap_font_config_count = 15;
+		font_sys_config.max_truetype_font_config_count = 15;
+
+		if (!register_system(SubsystemType::FONT_SYSTEM, FontSystem::system_init, FontSystem::system_shutdown, 0, &font_sys_config))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;

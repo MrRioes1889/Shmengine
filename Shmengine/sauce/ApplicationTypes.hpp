@@ -3,6 +3,7 @@
 #include "core/Engine.hpp"
 #include "platform/Platform.hpp"
 #include "systems/FontSystem.hpp"
+#include "systems/RenderViewSystem.hpp"
 #include "renderer/RendererTypes.hpp"
 
 struct FrameData;
@@ -18,8 +19,11 @@ enum class ApplicationStage
 	SHUTTING_DOWN
 };
 
-struct ApplicationConfig {
+struct ApplicationConfig 
+{
 
+	const char* name;
+	const char* renderer_module_name;
 	int32 start_pos_x, start_pos_y;
 	uint32 start_width, start_height;
 
@@ -27,22 +31,12 @@ struct ApplicationConfig {
 	uint64 app_frame_data_size;
 
 	bool8 limit_framerate;
-
-	char* name;
-
-	FontSystem::SystemConfig fontsystem_config;
-	Sarray<FontSystem::BitmapFontConfig> bitmap_font_configs;
-	Sarray<FontSystem::TruetypeFontConfig> truetype_font_configs;
-
-	Renderer::Module renderer_module;
 	
 };
 
 struct Application
 {
-	ApplicationConfig config;
-
-	typedef bool32(*FP_boot)(ApplicationConfig* app_config);
+	typedef bool32(*FP_load_config)(ApplicationConfig* out_config);
 	typedef bool32(*FP_init)(Application* app_inst);
 	typedef void(*FP_shutdown)();
 	typedef bool32(*FP_update)(FrameData* frame_data);
@@ -50,8 +44,8 @@ struct Application
 	typedef void(*FP_on_resize)(uint32 width, uint32 height);
 	typedef void(*FP_on_module_reload)(void* app_state);
 	typedef void(*FP_on_module_unload)();
-		
-	FP_boot boot;
+
+	FP_load_config load_config;
 	FP_init init;
 	FP_shutdown shutdown;
 	FP_update update;
@@ -61,14 +55,17 @@ struct Application
 	FP_on_module_unload on_module_unload;
 
 	Sarray<RenderView> render_views;
-	
-	void* state;
-	void* engine_state;
 
-	Platform::DynamicLibrary renderer_lib;
+	void* state;
+
+	const Platform::Window* main_window;
+
 	Platform::DynamicLibrary application_lib;
+
+	const char* name;
 
 	ApplicationStage stage;
 	bool8 limit_framerate;
+	bool32 is_suspended;
 
 };

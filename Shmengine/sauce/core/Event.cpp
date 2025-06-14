@@ -33,7 +33,6 @@ namespace Event
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
 		SHMINFO("Event subsystem initialized!");
-		Engine::on_event_system_initialized();
 
 		return true;
 	}

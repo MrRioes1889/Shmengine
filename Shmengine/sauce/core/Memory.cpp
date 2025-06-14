@@ -58,12 +58,12 @@ namespace Memory
         out_allocator->init(size, buffer->data, nodes_size, main_nodes, page_size, node_count_limit);
     }
 
-    bool32 system_init(SystemConfig config)
+    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
 
         system_state = (SystemState*)platform_allocate(sizeof(SystemState), true);
         zero_memory(system_state, sizeof(SystemState));
-        system_state->config = config;
+        system_state->config = *((SystemConfig*)config);
 
         if (!Threading::mutex_create(&system_state->allocation_mutex))
         {
@@ -71,7 +71,7 @@ namespace Memory
             return false;
         }
 
-        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, 0, config.total_allocation_size, AllocatorPageSize::TINY, AllocationTag::MAIN_MEMORY, 10000, 64);
+        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, 0, system_state->config.total_allocation_size, AllocatorPageSize::TINY, AllocationTag::MAIN_MEMORY, 10000, 64);
         init_buffer_and_allocator_pair(&system_state->string_memory, &system_state->string_allocator, &system_state->main_allocator, Mebibytes(64), AllocatorPageSize::SMALL, AllocationTag::ALLOCATORS, 100000, 64);
 
         system_state->allocated_size = 0;

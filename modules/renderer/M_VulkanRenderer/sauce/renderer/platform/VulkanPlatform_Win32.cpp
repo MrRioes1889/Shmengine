@@ -13,16 +13,18 @@ namespace Renderer::Vulkan
    
     bool32 create_vulkan_surface()
     {
-	    Platform::WindowHandle handle = Platform::get_window_handle();
+        const Platform::Window* client = Platform::get_active_window();
 
         VkWin32SurfaceCreateInfoKHR create_info = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-        create_info.hinstance = (HINSTANCE)handle.h_instance;
-        create_info.hwnd = (HWND)handle.h_wnd;
+        create_info.hinstance = (HINSTANCE)client->handle.h_instance;
+        create_info.hwnd = (HWND)client->handle.h_wnd;
         VkResult result = vkCreateWin32SurfaceKHR(context->instance, &create_info, context->allocator_callbacks, &context->surface);
         if (result != VK_SUCCESS) {
             SHMFATAL("Vulkan surface creation failed.");
             return false;
         }
+
+        context->surface_client = client;
         return true;
     }
 

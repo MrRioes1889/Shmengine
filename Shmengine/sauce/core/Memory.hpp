@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "core/Subsystems.hpp"
 
 enum class AllocationTag
 {
@@ -48,7 +49,7 @@ namespace Memory
 		uint64 total_allocation_size;
 	};
 
-	bool32 system_init(SystemConfig config);
+	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
 	SHMAPI void* allocate(uint64 size, AllocationTag tag, uint16 alignment = 1);

@@ -35,37 +35,19 @@ static bool32 init_render_views(Application* app_inst);
 static void register_events();
 static void unregister_events();
 
-bool32 application_boot(ApplicationConfig* app_config)
+bool32 application_load_config(ApplicationConfig* out_config)
 {
-	app_config->app_frame_data_size = sizeof(ApplicationFrameData);
-	app_config->state_size = sizeof(ApplicationState);
+	out_config->app_frame_data_size = sizeof(ApplicationFrameData);
+	out_config->state_size = sizeof(ApplicationState);
 
-	FontSystem::SystemConfig* font_sys_config = &app_config->fontsystem_config;
-	font_sys_config->auto_release = false;
-	font_sys_config->max_bitmap_font_config_count = 15;
-	font_sys_config->max_truetype_font_config_count = 15;
+	out_config->start_pos_x = 100;
+	out_config->start_pos_y = 100;
+	out_config->start_width = 1600;
+	out_config->start_height = 900;
+	out_config->name = "Shmengine Sandbox2D";   
+	out_config->renderer_module_name = "M_VulkanRenderer";
 
-	font_sys_config->default_bitmap_font_count = 2;
-	app_config->bitmap_font_configs.init(font_sys_config->default_bitmap_font_count, 0);
-	font_sys_config->bitmap_font_configs = app_config->bitmap_font_configs.data;
-
-	font_sys_config->bitmap_font_configs[0].name = "Noto Serif 21px";
-	font_sys_config->bitmap_font_configs[0].resource_name = "NotoSerif_21";
-	font_sys_config->bitmap_font_configs[0].size = 21;
-
-	font_sys_config->bitmap_font_configs[1].name = "Roboto Mono 21px";
-	font_sys_config->bitmap_font_configs[1].resource_name = "RobotoMono_21";
-	font_sys_config->bitmap_font_configs[1].size = 21;
-	
-	font_sys_config->default_truetype_font_count = 1;
-	app_config->truetype_font_configs.init(font_sys_config->default_truetype_font_count, 0);
-	font_sys_config->truetype_font_configs = app_config->truetype_font_configs.data;
-
-	font_sys_config->truetype_font_configs[0].name = "Martian Mono";
-	font_sys_config->truetype_font_configs[0].resource_name = "MartianMono";
-	font_sys_config->truetype_font_configs[0].default_size = 21;
-
-	app_config->limit_framerate = true;
+	out_config->limit_framerate = true;
 	
 	return true;
 }
@@ -75,7 +57,7 @@ bool32 application_init(Application* app_inst)
 	app_state = (ApplicationState*)app_inst->state;
 
 	if (!init_render_views(app_inst))
-	{			
+	{
 		SHMFATAL("Failed to initialize render views!");
 		return false;
 	}
@@ -84,6 +66,26 @@ bool32 application_init(Application* app_inst)
 	add_keymaps();
 
 	app_state->allocation_count = 0;
+
+	FontSystem::BitmapFontConfig bitmap_font_configs[2] = {};
+	bitmap_font_configs[0].name = "Noto Serif 21px";
+	bitmap_font_configs[0].resource_name = "NotoSerif_21";
+	bitmap_font_configs[0].size = 21;
+
+	bitmap_font_configs[1].name = "Roboto Mono 21px";
+	bitmap_font_configs[1].resource_name = "RobotoMono_21";
+	bitmap_font_configs[1].size = 21;
+
+	FontSystem::TruetypeFontConfig truetype_font_configs[1] = {};
+	truetype_font_configs[0].name = "Martian Mono";
+	truetype_font_configs[0].resource_name = "MartianMono";
+	truetype_font_configs[0].default_size = 21;
+
+	if (!FontSystem::load_bitmap_font(bitmap_font_configs[0]) || !FontSystem::load_bitmap_font(bitmap_font_configs[1]) || !FontSystem::load_truetype_font(truetype_font_configs[0]))
+	{
+		SHMERROR("Failed to load default fonts.");
+		return false;
+	}
 
 	DebugConsole::init(&app_state->debug_console);
 	DebugConsole::load(&app_state->debug_console);
@@ -230,7 +232,7 @@ static bool32 init_render_views(Application* app_inst)
 
 		Renderer::RenderPassConfig* canvas_pass_config = &canvas_pass_configs[0];
 		canvas_pass_config->name = "Builtin.Canvas";
-		canvas_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
+		canvas_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
 		canvas_pass_config->offset = { 0, 0 };
 		canvas_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
 		canvas_pass_config->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER;
@@ -271,7 +273,7 @@ static bool32 init_render_views(Application* app_inst)
 
 		Renderer::RenderPassConfig* ui_pass_config = &ui_pass_configs[0];
 		ui_pass_config->name = "Builtin.UI";
-		ui_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
+		ui_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
 		ui_pass_config->offset = { 0, 0 };
 		ui_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
 		ui_pass_config->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER;

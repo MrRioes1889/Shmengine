@@ -4,6 +4,7 @@
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "core/FrameData.hpp"
+#include "platform/Platform.hpp"
 #include "memory/LinearAllocator.hpp"
 #include "memory/Freelist.hpp"
 #include "utility/math/Transform.hpp"
@@ -26,6 +27,7 @@ namespace Renderer
 {
 	struct SystemState
 	{
+		Platform::DynamicLibrary renderer_lib;
 		Renderer::Module module;
 		void* module_context;
 
@@ -46,6 +48,8 @@ namespace Renderer
 		
 	};
 
+	typedef bool32(*FP_create_renderer_module)(Renderer::Module* out_module);
+
 	static SystemState* system_state = 0;
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
@@ -54,13 +58,23 @@ namespace Renderer
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
+		char renderer_module_filename[MAX_FILEPATH_LENGTH];
+		CString::print_s(renderer_module_filename, MAX_FILEPATH_LENGTH, "%s%s%s", Platform::dynamic_library_prefix, sys_config->renderer_module_name, Platform::dynamic_library_ext);
+		if (!Platform::load_dynamic_library(sys_config->renderer_module_name, renderer_module_filename, &system_state->renderer_lib))
+			return false;
+
+		FP_create_renderer_module create_renderer_module = 0;
+		if (!Platform::load_dynamic_library_function(&system_state->renderer_lib, "create_module", (void**)&create_renderer_module))
+			return false;
+
+		if (!create_renderer_module(&system_state->module))
+			return false;
 		system_state->flags = sys_config->flags;
 
 		system_state->flags = RendererConfigFlags::VSYNC; //| RendererConfigFlags::POWER_SAVING;
 
 		system_state->frame_number = 0;
 		system_state->module.frame_number = 0;
-		system_state->module = sys_config->renderer_module;
 
 		system_state->framebuffer_width = 1600;
 		system_state->framebuffer_height = 900;
@@ -110,6 +124,7 @@ namespace Renderer
 		if (system_state->module_context)
 			Memory::free_memory(system_state->module_context);
 
+		Platform::unload_dynamic_library(&system_state->renderer_lib);
 		system_state = 0;
 	}
 

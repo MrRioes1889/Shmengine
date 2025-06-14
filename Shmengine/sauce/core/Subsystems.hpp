@@ -14,8 +14,8 @@ typedef bool32 (*FP_system_update)(void* state, const FrameData* frame_data);
 namespace SubsystemManager
 {
 	
-	bool32 init_basic(ApplicationConfig* app_config);
-	bool32 init_advanced(ApplicationConfig* app_config);
+	bool32 init_basic();
+	bool32 init_advanced(const ApplicationConfig* app_config);
 
 	void shutdown_basic();
 	void shutdown_advanced();

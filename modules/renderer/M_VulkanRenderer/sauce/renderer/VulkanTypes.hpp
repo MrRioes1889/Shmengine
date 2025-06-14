@@ -2,6 +2,7 @@
 
 #include <Defines.hpp>
 #include <core/Assert.hpp>
+#include <platform/Platform.hpp>
 #include <containers/Sarray.hpp>
 #include <containers/Buffer.hpp>
 #include <containers/RingQueue.hpp>
@@ -267,6 +268,7 @@ namespace Renderer::Vulkan
 
 		VkInstance instance;
 		VkAllocationCallbacks* allocator_callbacks;
+		const Platform::Window* surface_client;
 		VkSurfaceKHR surface;
 		VulkanDevice device;
 
