@@ -92,36 +92,36 @@ bool32 render_view_world_on_register(RenderView* self)
 	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::RENDERER);
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
-	internal_data->material_phong_u_locations.view = INVALID_ID16;
-	internal_data->material_phong_u_locations.projection = INVALID_ID16;
-	internal_data->material_phong_u_locations.diffuse_texture = INVALID_ID16;
-	internal_data->material_phong_u_locations.specular_texture = INVALID_ID16;
-	internal_data->material_phong_u_locations.normal_texture = INVALID_ID16;
-	internal_data->material_phong_u_locations.camera_position = INVALID_ID16;
-	internal_data->material_phong_u_locations.ambient_color = INVALID_ID16;
-	internal_data->material_phong_u_locations.model = INVALID_ID16;
-	internal_data->material_phong_u_locations.render_mode = INVALID_ID16;
-	internal_data->material_phong_u_locations.dir_light = INVALID_ID16;
-	internal_data->material_phong_u_locations.p_lights = INVALID_ID16;
-	internal_data->material_phong_u_locations.p_lights_count = INVALID_ID16;
-	internal_data->material_phong_u_locations.properties = INVALID_ID16;
+	internal_data->material_phong_u_locations.view = Constants::max_u16;
+	internal_data->material_phong_u_locations.projection = Constants::max_u16;
+	internal_data->material_phong_u_locations.diffuse_texture = Constants::max_u16;
+	internal_data->material_phong_u_locations.specular_texture = Constants::max_u16;
+	internal_data->material_phong_u_locations.normal_texture = Constants::max_u16;
+	internal_data->material_phong_u_locations.camera_position = Constants::max_u16;
+	internal_data->material_phong_u_locations.ambient_color = Constants::max_u16;
+	internal_data->material_phong_u_locations.model = Constants::max_u16;
+	internal_data->material_phong_u_locations.render_mode = Constants::max_u16;
+	internal_data->material_phong_u_locations.dir_light = Constants::max_u16;
+	internal_data->material_phong_u_locations.p_lights = Constants::max_u16;
+	internal_data->material_phong_u_locations.p_lights_count = Constants::max_u16;
+	internal_data->material_phong_u_locations.properties = Constants::max_u16;
 
-	internal_data->terrain_u_locations.view = INVALID_ID16;
-	internal_data->terrain_u_locations.projection = INVALID_ID16;
-	internal_data->terrain_u_locations.camera_position = INVALID_ID16;
-	internal_data->terrain_u_locations.ambient_color = INVALID_ID16;
-	internal_data->terrain_u_locations.model = INVALID_ID16;
-	internal_data->terrain_u_locations.render_mode = INVALID_ID16;
-	internal_data->terrain_u_locations.dir_light = INVALID_ID16;
-	internal_data->terrain_u_locations.p_lights = INVALID_ID16;
-	internal_data->terrain_u_locations.p_lights_count = INVALID_ID16;
-	internal_data->terrain_u_locations.properties = INVALID_ID16;
-	for (uint32 i = 0; i < max_terrain_materials_count * 3; i++)
-		internal_data->terrain_u_locations.samplers[i] = INVALID_ID16;
+	internal_data->terrain_u_locations.view = Constants::max_u16;
+	internal_data->terrain_u_locations.projection = Constants::max_u16;
+	internal_data->terrain_u_locations.camera_position = Constants::max_u16;
+	internal_data->terrain_u_locations.ambient_color = Constants::max_u16;
+	internal_data->terrain_u_locations.model = Constants::max_u16;
+	internal_data->terrain_u_locations.render_mode = Constants::max_u16;
+	internal_data->terrain_u_locations.dir_light = Constants::max_u16;
+	internal_data->terrain_u_locations.p_lights = Constants::max_u16;
+	internal_data->terrain_u_locations.p_lights_count = Constants::max_u16;
+	internal_data->terrain_u_locations.properties = Constants::max_u16;
+	for (uint32 i = 0; i < Constants::max_terrain_materials_count * 3; i++)
+		internal_data->terrain_u_locations.samplers[i] = Constants::max_u16;
 
-	internal_data->color3D_shader_u_locations.view = INVALID_ID16;
-	internal_data->color3D_shader_u_locations.projection = INVALID_ID16;
-	internal_data->color3D_shader_u_locations.model = INVALID_ID16;
+	internal_data->color3D_shader_u_locations.view = Constants::max_u16;
+	internal_data->color3D_shader_u_locations.projection = Constants::max_u16;
+	internal_data->color3D_shader_u_locations.model = Constants::max_u16;
 
 	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_material_phong, &self->renderpasses[0]))
 	{
@@ -436,7 +436,7 @@ bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint
 	{
 		RenderViewInstanceData* instance_data = &self->instances[instance_i];
 
-		if (instance_data->shader_instance_id == INVALID_ID)
+		if (instance_data->shader_instance_id == Constants::max_u32)
 			continue;
 
 		bool32 instance_set = true;
@@ -453,7 +453,7 @@ bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint
 
 	Renderer::RenderPass* renderpass = &self->renderpasses[0];
 		
-	uint32 shader_id = INVALID_ID;
+	uint32 shader_id = Constants::max_u32;
 
 	if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 	{
@@ -472,10 +472,10 @@ bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint
 			ShaderSystem::bind_globals();
 		}
 
-		if (render_data->shader_instance_id != INVALID_ID)
+		if (render_data->shader_instance_id != Constants::max_u32)
 			ShaderSystem::bind_instance(render_data->shader_instance_id);
 
-		if (render_data->object_index != INVALID_ID)
+		if (render_data->object_index != Constants::max_u32)
 		{
 			Math::Mat4* model = &self->objects[render_data->object_index].model;
 			if (shader_id == internal_data->material_phong_shader->id)

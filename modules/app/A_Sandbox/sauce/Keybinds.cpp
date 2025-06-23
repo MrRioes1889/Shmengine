@@ -1,7 +1,7 @@
 #include "Keybinds.hpp"
 
 #include "ApplicationState.hpp"
-#include "DebugConsole.hpp"
+#include "ui/DebugConsole.hpp"
 
 #include <core/Event.hpp>
 #include <core/Logging.hpp>
@@ -39,9 +39,9 @@ static float32 camera_turnspeed = 2.5f;
 static void on_camera_yaw(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	float32 f = 0.0f;
-	if (key == KeyCode::LEFT)
+	if (key == KeyCode::Left)
 		f = 1.0f;
-	else if (key == KeyCode::RIGHT)
+	else if (key == KeyCode::Right)
 		f = -1.0f;
 
 	float64 delta_time = Engine::get_frame_delta_time();
@@ -51,9 +51,9 @@ static void on_camera_yaw(KeyCode::Value key, Input::KeymapBindingType type, Inp
 static void on_camera_pitch(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	float32 f = 0.0f;
-	if (key == KeyCode::UP)
+	if (key == KeyCode::Up)
 		f = 1.0f;
-	else if (key == KeyCode::DOWN)
+	else if (key == KeyCode::Down)
 		f = -1.0f;
 
 	float64 delta_time = Engine::get_frame_delta_time();
@@ -107,11 +107,11 @@ static void on_camera_down(KeyCode::Value key, Input::KeymapBindingType type, In
 static void on_render_mode_change(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	EventData data = {};
-	if (key == KeyCode::NUM_1)
+	if (key == KeyCode::Num_1)
 		data.i32[0] = Renderer::ViewMode::DEFAULT;
-	else if (key == KeyCode::NUM_2)
+	else if (key == KeyCode::Num_2)
 		data.i32[0] = Renderer::ViewMode::LIGHTING;
-	else if (key == KeyCode::NUM_3)
+	else if (key == KeyCode::Num_3)
 		data.i32[0] = Renderer::ViewMode::NORMALS;
 	else
 		return;
@@ -134,55 +134,30 @@ static void on_unload_scene(KeyCode::Value key, Input::KeymapBindingType type, I
 	Event::event_fire(SystemEventCode::DEBUG2, user_data, {});
 }
 
-static void on_console_change_visibility(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
-{
-	bool8 set_visible = !DebugConsole::is_visible(&app_state->debug_console);
-
-	DebugConsole::set_visible(&app_state->debug_console, set_visible);
-	if (set_visible)
-		Input::push_keymap(&app_state->console_keymap);
-	else
-		Input::pop_keymap();
-}
-
-static void on_console_scroll(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
-{
-	if (key == KeyCode::UP)
-		DebugConsole::scroll_up(&app_state->debug_console);
-	else
-		DebugConsole::scroll_down(&app_state->debug_console);
-}
-
-static void on_console_scroll_hold(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
-{
-	static float64 accumulated_time = 0.0f;
-
-	float64 delta_time = Engine::get_frame_delta_time();
-	accumulated_time += delta_time;
-	if (accumulated_time < 0.1f)
-		return;
-
-	if (key == KeyCode::UP)
-		DebugConsole::scroll_up(&app_state->debug_console);
-	else
-		DebugConsole::scroll_down(&app_state->debug_console);
-	accumulated_time = 0.0f;
-}
-
 static void on_set_gizmo_mode(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
 {
 	Gizmo3D* gizmo = (Gizmo3D*)user_data;
 
-	if (key == KeyCode::NUM_1)
+	if (key == KeyCode::Num_1)
 		gizmo3D_set_mode(gizmo, GizmoMode::NONE);
-	else if (key == KeyCode::NUM_2)
+	else if (key == KeyCode::Num_2)
 		gizmo3D_set_mode(gizmo, GizmoMode::MOVE);
-	else if (key == KeyCode::NUM_3)
+	else if (key == KeyCode::Num_3)
 		gizmo3D_set_mode(gizmo, GizmoMode::ROTATE);
-	else if (key == KeyCode::NUM_4)
+	else if (key == KeyCode::Num_4)
 		gizmo3D_set_mode(gizmo, GizmoMode::SCALE);
 	else
 		return;
+}
+
+static void on_console_show(KeyCode::Value key, Input::KeymapBindingType type, Input::KeymapModifierFlags::Value modifiers, void* user_data)
+{
+	DebugConsole* console = (DebugConsole*)user_data;
+	if(console->is_visible())
+		return;
+
+	console->set_visible(true);
+	Input::push_keymap(&console->keymap);
 }
 
 void add_keymaps()
@@ -190,57 +165,40 @@ void add_keymaps()
 
 	Input::Keymap global_keymap;
 	global_keymap.init();
-	global_keymap.add_binding(KeyCode::ESCAPE, Input::KeymapBindingType::PRESS, 0, 0, on_escape);
+	global_keymap.add_binding(KeyCode::Escape, Input::KeymapBindingType::Press, 0, 0, on_escape);
 
-	global_keymap.add_binding(KeyCode::LEFT, Input::KeymapBindingType::HOLD, 0, 0, on_camera_yaw);
-	global_keymap.add_binding(KeyCode::RIGHT, Input::KeymapBindingType::HOLD, 0, 0, on_camera_yaw);
-	global_keymap.add_binding(KeyCode::UP, Input::KeymapBindingType::HOLD, 0, 0, on_camera_pitch);
-	global_keymap.add_binding(KeyCode::DOWN, Input::KeymapBindingType::HOLD, 0, 0, on_camera_pitch);
+	global_keymap.add_binding(KeyCode::Left, Input::KeymapBindingType::Hold, 0, 0, on_camera_yaw);
+	global_keymap.add_binding(KeyCode::Right, Input::KeymapBindingType::Hold, 0, 0, on_camera_yaw);
+	global_keymap.add_binding(KeyCode::Up, Input::KeymapBindingType::Hold, 0, 0, on_camera_pitch);
+	global_keymap.add_binding(KeyCode::Down, Input::KeymapBindingType::Hold, 0, 0, on_camera_pitch);
 
-	global_keymap.add_binding(KeyCode::W, Input::KeymapBindingType::HOLD, 0, 0, on_camera_forward);
-	global_keymap.add_binding(KeyCode::S, Input::KeymapBindingType::HOLD, 0, 0, on_camera_backward);
-	global_keymap.add_binding(KeyCode::A, Input::KeymapBindingType::HOLD, 0, 0, on_camera_left);
-	global_keymap.add_binding(KeyCode::D, Input::KeymapBindingType::HOLD, 0, 0, on_camera_right);
-	global_keymap.add_binding(KeyCode::SPACE, Input::KeymapBindingType::HOLD, 0, 0, on_camera_up);
-	global_keymap.add_binding(KeyCode::SHIFT, Input::KeymapBindingType::HOLD, 0, 0, on_camera_down);
+	global_keymap.add_binding(KeyCode::W, Input::KeymapBindingType::Hold, 0, 0, on_camera_forward);
+	global_keymap.add_binding(KeyCode::S, Input::KeymapBindingType::Hold, 0, 0, on_camera_backward);
+	global_keymap.add_binding(KeyCode::A, Input::KeymapBindingType::Hold, 0, 0, on_camera_left);
+	global_keymap.add_binding(KeyCode::D, Input::KeymapBindingType::Hold, 0, 0, on_camera_right);
+	global_keymap.add_binding(KeyCode::Space, Input::KeymapBindingType::Hold, 0, 0, on_camera_up);
+	global_keymap.add_binding(KeyCode::Shift, Input::KeymapBindingType::Hold, 0, 0, on_camera_down);
 
 	RenderView* world_render_view = RenderViewSystem::get("world");
-	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, Input::KeymapModifierFlags::CONTROL, world_render_view, on_render_mode_change);
-	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, Input::KeymapModifierFlags::CONTROL, world_render_view, on_render_mode_change);
-	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, Input::KeymapModifierFlags::CONTROL, world_render_view, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::Num_1, Input::KeymapBindingType::Press, Input::KeymapModifierFlags::Control, world_render_view, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::Num_2, Input::KeymapBindingType::Press, Input::KeymapModifierFlags::Control, world_render_view, on_render_mode_change);
+	global_keymap.add_binding(KeyCode::Num_3, Input::KeymapBindingType::Press, Input::KeymapModifierFlags::Control, world_render_view, on_render_mode_change);
 
-	global_keymap.add_binding(KeyCode::NUM_1, Input::KeymapBindingType::PRESS, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
-	global_keymap.add_binding(KeyCode::NUM_2, Input::KeymapBindingType::PRESS, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
-	global_keymap.add_binding(KeyCode::NUM_3, Input::KeymapBindingType::PRESS, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
-	global_keymap.add_binding(KeyCode::NUM_4, Input::KeymapBindingType::PRESS, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
+	global_keymap.add_binding(KeyCode::Num_1, Input::KeymapBindingType::Press, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
+	global_keymap.add_binding(KeyCode::Num_2, Input::KeymapBindingType::Press, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
+	global_keymap.add_binding(KeyCode::Num_3, Input::KeymapBindingType::Press, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
+	global_keymap.add_binding(KeyCode::Num_4, Input::KeymapBindingType::Press, 0, &app_state->editor_gizmo, on_set_gizmo_mode);
 
-	global_keymap.add_binding(KeyCode::L, Input::KeymapBindingType::PRESS, 0, 0, on_load_scene);
-	global_keymap.add_binding(KeyCode::U, Input::KeymapBindingType::PRESS, 0, 0, on_unload_scene);
-	global_keymap.add_binding(KeyCode::T, Input::KeymapBindingType::PRESS, 0, 0, on_texture_swap);
-	global_keymap.add_binding(KeyCode::C, Input::KeymapBindingType::PRESS, 0, 0, on_clip_cursor);
-	global_keymap.add_binding(KeyCode::M, Input::KeymapBindingType::PRESS, 0, 0, on_allocation_count_check);
+	global_keymap.add_binding(KeyCode::L, Input::KeymapBindingType::Press, 0, 0, on_load_scene);
+	global_keymap.add_binding(KeyCode::U, Input::KeymapBindingType::Press, 0, 0, on_unload_scene);
+	global_keymap.add_binding(KeyCode::T, Input::KeymapBindingType::Press, 0, 0, on_texture_swap);
+	global_keymap.add_binding(KeyCode::C, Input::KeymapBindingType::Press, 0, 0, on_clip_cursor);
+	global_keymap.add_binding(KeyCode::M, Input::KeymapBindingType::Press, 0, 0, on_allocation_count_check);
 
-	global_keymap.add_binding(KeyCode::GRAVE, Input::KeymapBindingType::PRESS, 0, 0, on_console_change_visibility);
+	global_keymap.add_binding(KeyCode::Accent, Input::KeymapBindingType::Press, 0, &app_state->debug_console, on_console_show);
 
 	Input::push_keymap(&global_keymap);
 
-	app_state->console_keymap.init();
-	app_state->console_keymap.overrides_all = true;
-
-	app_state->console_keymap.add_binding(KeyCode::ESCAPE, Input::KeymapBindingType::PRESS, 0, 0, on_console_change_visibility);
-
-	app_state->console_keymap.add_binding(KeyCode::UP, Input::KeymapBindingType::PRESS, 0, 0, on_console_scroll);
-	app_state->console_keymap.add_binding(KeyCode::DOWN, Input::KeymapBindingType::PRESS, 0, 0, on_console_scroll);
-	app_state->console_keymap.add_binding(KeyCode::UP, Input::KeymapBindingType::HOLD, 0, 0, on_console_scroll_hold);
-	app_state->console_keymap.add_binding(KeyCode::DOWN, Input::KeymapBindingType::HOLD, 0, 0, on_console_scroll_hold);
-
-	if (DebugConsole::is_visible(&app_state->debug_console))
-		Input::push_keymap(&app_state->console_keymap);
-
+	app_state->debug_console.setup_keymap();
 }
 
-void remove_keymaps()
-{
-	Input::clear_keymaps();
-	app_state->console_keymap.clear();
-}

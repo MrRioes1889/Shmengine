@@ -190,12 +190,17 @@ project  (sandbox_app_module_name)
 		workspace_dir .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.hpp",
         workspace_dir .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.c",
 		workspace_dir .. "/modules/app/" .. sandbox_app_module_name .. "/sauce/**.cpp",
+        workspace_dir .. "/modules/app/Common/sauce/**.h",
+		workspace_dir .. "/modules/app/Common/sauce/**.hpp",
+        workspace_dir .. "/modules/app/Common/sauce/**.c",
+		workspace_dir .. "/modules/app/Common/sauce/**.cpp",
 	}
 
     includedirs
 	{
         workspace_dir .. "/" .. engine_name .. "/sauce",
         workspace_dir .. "/vendor/Optick/include", 
+		workspace_dir .. "/modules/app/Common/sauce",
 	}
 
     links
@@ -255,12 +260,17 @@ project  (sandbox2D_app_module_name)
 		workspace_dir .. "/modules/app/" .. sandbox2D_app_module_name .. "/sauce/**.hpp",
         workspace_dir .. "/modules/app/" .. sandbox2D_app_module_name .. "/sauce/**.c",
 		workspace_dir .. "/modules/app/" .. sandbox2D_app_module_name .. "/sauce/**.cpp",
+        workspace_dir .. "/modules/app/Common/sauce/**.h",
+		workspace_dir .. "/modules/app/Common/sauce/**.hpp",
+        workspace_dir .. "/modules/app/Common/sauce/**.c",
+		workspace_dir .. "/modules/app/Common/sauce/**.cpp",
 	}
 
     includedirs
 	{
         workspace_dir .. "/" .. engine_name .. "/sauce",
         workspace_dir .. "/vendor/Optick/include", 
+		workspace_dir .. "/modules/app/Common/sauce",
 	}
 
     links

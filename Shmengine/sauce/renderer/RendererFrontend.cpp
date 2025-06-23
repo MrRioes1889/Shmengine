@@ -58,8 +58,8 @@ namespace Renderer
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		char renderer_module_filename[Constants::MAX_FILEPATH_LENGTH];
-		CString::print_s(renderer_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s", Platform::dynamic_library_prefix, sys_config->renderer_module_name, Platform::dynamic_library_ext);
+		char renderer_module_filename[Constants::max_filepath_length];
+		CString::print_s(renderer_module_filename, Constants::max_filepath_length, "%s%s%s", Platform::dynamic_library_prefix, sys_config->renderer_module_name, Platform::dynamic_library_ext);
 		if (!Platform::load_dynamic_library(sys_config->renderer_module_name, renderer_module_filename, &system_state->renderer_lib))
 			return false;
 

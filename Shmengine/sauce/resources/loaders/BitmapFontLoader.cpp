@@ -51,7 +51,7 @@ namespace ResourceSystem
     {
 
         const char* format = "%s%s%s";
-        String full_filepath_wo_extension(Constants::MAX_FILEPATH_LENGTH);
+        String full_filepath_wo_extension(Constants::max_filepath_length);
 
         safe_print_s<const char*, const char*, const char*>
             (full_filepath_wo_extension, format, get_base_path(), loader_type_path, name);
@@ -61,7 +61,7 @@ namespace ResourceSystem
         supported_file_types[0] = { ".shmbmf", BitmapFontFileType::SHMBMF};
         supported_file_types[1] = { ".fnt", BitmapFontFileType::FNT};
 
-        String full_filepath(Constants::MAX_FILEPATH_LENGTH);
+        String full_filepath(Constants::max_filepath_length);
         BitmapFontFileType file_type = BitmapFontFileType::NOT_FOUND;
         for (uint32 i = 0; i < supported_file_type_count; i++)
         {
@@ -91,7 +91,7 @@ namespace ResourceSystem
         {
         case BitmapFontFileType::FNT:
         {
-            String shmbmf_filepath(Constants::MAX_FILEPATH_LENGTH);
+            String shmbmf_filepath(Constants::max_filepath_length);
             shmbmf_filepath = full_filepath_wo_extension;
             shmbmf_filepath.append(".shmbmf");
             res = import_fnt_file(&f, name, shmbmf_filepath.c_str(), out_resource);

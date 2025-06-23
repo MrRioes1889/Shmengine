@@ -199,8 +199,8 @@ namespace SubsystemManager
 	{
 
 		ResourceSystem::SystemConfig resource_sys_config;
-		CString::copy(Platform::get_root_dir(), resource_sys_config.asset_base_path, Constants::MAX_FILEPATH_LENGTH);
-		CString::append(resource_sys_config.asset_base_path, Constants::MAX_FILEPATH_LENGTH, "../../../assets/");
+		CString::copy(Platform::get_root_dir(), resource_sys_config.asset_base_path, Constants::max_filepath_length);
+		CString::append(resource_sys_config.asset_base_path, Constants::max_filepath_length, "../../../assets/");
 
 		if (!register_system(SubsystemType::RESOURCE_SYSTEM, ResourceSystem::system_init, ResourceSystem::system_shutdown, 0, &resource_sys_config))
 		{

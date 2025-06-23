@@ -1,7 +1,7 @@
 #include "Sandbox2D.hpp"
 #include "ApplicationState.hpp"
 #include "Keybinds.hpp"
-#include "DebugConsole.hpp"
+#include "ui/DebugConsole.hpp"
 
 #include "views/RenderViewCanvas.hpp"
 #include "views/RenderViewUI.hpp"
@@ -34,6 +34,8 @@ static bool32 init_render_views(Application* app_inst);
 
 static void register_events();
 static void unregister_events();
+
+static bool32 on_debug_event(uint16 code, void* sender, void* listener_inst, EventData e_data);
 
 bool32 application_load_config(ApplicationConfig* out_config)
 {
@@ -87,8 +89,8 @@ bool32 application_init(Application* app_inst)
 		return false;
 	}
 
-	DebugConsole::init(&app_state->debug_console);
-	DebugConsole::load(&app_state->debug_console);
+	app_state->debug_console.init();
+	app_state->debug_console.load();
 
 	UITextConfig ui_text_config = {};
 	ui_text_config.type = UITextType::TRUETYPE;
@@ -111,7 +113,7 @@ void application_shutdown()
 	// TODO: temp
 	ui_text_destroy(&app_state->debug_info_text);
 
-	DebugConsole::destroy(&app_state->debug_console);
+	app_state->debug_console.destroy();
 	app_state->ui_meshes.free_data();
 
 	unregister_events();
@@ -125,7 +127,7 @@ bool32 application_update(FrameData* frame_data)
 	uint32 allocation_count = Memory::get_current_allocation_count();
 	app_state->allocation_count = allocation_count;
 
-	DebugConsole::update(&app_state->debug_console);
+	app_state->debug_console.update();
 
 	static float64 last_frametime = 0.0;
 	static float64 last_logictime = 0.0;
@@ -169,12 +171,12 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 
 	RenderViewSystem::ui_text_draw(packet->views[ui_view_i], &app_state->debug_info_text, ui_shader_id, frame_data);
 
-	if (DebugConsole::is_visible(&app_state->debug_console))
+	if (app_state->debug_console.is_visible())
 	{
-		UIText* console_text = DebugConsole::get_text(&app_state->debug_console);
+		UIText* console_text = app_state->debug_console.get_text();
 		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], console_text, ui_shader_id, frame_data);
 
-		UIText* entry_text = DebugConsole::get_entry_text(&app_state->debug_console);
+		UIText* entry_text = app_state->debug_console.get_entry_text();
 		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], entry_text, ui_shader_id, frame_data);
 	}
 
@@ -198,15 +200,15 @@ void application_on_module_reload(void* application_state)
 	app_state = (ApplicationState*)application_state;
 
 	register_events();
-	DebugConsole::on_module_reload(&app_state->debug_console);
+	app_state->debug_console.on_module_reload();
 	add_keymaps();
 }
 
 void application_on_module_unload()
 {
 	unregister_events();
-	DebugConsole::on_module_unload(&app_state->debug_console);
-	remove_keymaps();
+	app_state->debug_console.on_module_unload();
+	Input::clear_keymaps();
 }
 
 static bool32 init_render_views(Application* app_inst)
@@ -298,12 +300,26 @@ static bool32 init_render_views(Application* app_inst)
 	return true;
 }
 
+static bool32 on_debug_event(uint16 code, void* sender, void* listener_inst, EventData e_data)
+{
+	if (code == SystemEventCode::KEY_PRESSED)
+	{
+		uint32 key_code = e_data.ui32[0];
+		SHMDEBUGV("Pressed Key. Code: %u", key_code);
+	}
+
+	return false;
+}
+
 static void register_events()
 {
+	//Event::event_register(SystemEventCode::KEY_PRESSED, 0, on_debug_event);
 	return;
 }
 
 static void unregister_events()
 {
+	//Event::event_unregister(SystemEventCode::KEY_PRESSED, 0, on_debug_event);
 	return;
 }
+

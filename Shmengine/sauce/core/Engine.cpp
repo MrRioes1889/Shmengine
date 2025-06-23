@@ -120,11 +120,10 @@ namespace Engine
 		{		
 			metrics_update_frame();
 			last_frametime = metrics_last_frametime();
-
-			OPTICK_FRAME("MainThread");
-
 			engine_state->frame_data.delta_time = last_frametime;
 			engine_state->frame_data.total_time += last_frametime;
+
+			OPTICK_FRAME("MainThread");
 
 			engine_state->frame_data.frame_allocator.free_all_data();
 
@@ -183,14 +182,17 @@ namespace Engine
 			Input::frame_end(&engine_state->frame_data);
 
 			float64 frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
-			float64 remaining_s = target_frame_seconds - frame_elapsed_time;
+			static float64 remaining_s = target_frame_seconds - frame_elapsed_time;
 
 			if (remaining_s > 0 && app_inst->limit_framerate)
 			{
-				int32 remaining_ms = (int32)(remaining_s * 1000) - 1;
+				// NOTE: Only using platform sleep for delays of > 2ms, since sleeping reliably for 1ms is asking too much, apparently
+				static int32 remaining_ms = (int32)(remaining_s * 1000.0) - 2;
 				if (remaining_ms > 0)
 					Platform::sleep(remaining_ms);
-				frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
+
+				while(frame_elapsed_time < target_frame_seconds)
+					frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
 			}
 			if (app_inst->limit_framerate)
 			{
@@ -224,10 +226,10 @@ namespace Engine
 
 	static bool32 boot_application(ApplicationConfig* app_config)
 	{
-		char application_module_filename[Constants::MAX_FILEPATH_LENGTH];
-		char application_loaded_module_filename[Constants::MAX_FILEPATH_LENGTH];
-		CString::print_s(application_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
-		CString::print_s(application_loaded_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s_loaded%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
+		char application_module_filename[Constants::max_filepath_length];
+		char application_loaded_module_filename[Constants::max_filepath_length];
+		CString::print_s(application_module_filename, Constants::max_filepath_length, "%s%s%s%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
+		CString::print_s(application_loaded_module_filename, Constants::max_filepath_length, "%s%s%s_loaded%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
 
 		Platform::ReturnCode r_code;
 		do
@@ -344,10 +346,10 @@ namespace Engine
 
 		Platform::sleep(100);
 
-		char application_module_filename[Constants::MAX_FILEPATH_LENGTH];
-		char application_loaded_module_filename[Constants::MAX_FILEPATH_LENGTH];
-		CString::print_s(application_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
-		CString::print_s(application_loaded_module_filename, Constants::MAX_FILEPATH_LENGTH, "%s%s%s_loaded%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
+		char application_module_filename[Constants::max_filepath_length];
+		char application_loaded_module_filename[Constants::max_filepath_length];
+		CString::print_s(application_module_filename, Constants::max_filepath_length, "%s%s%s%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
+		CString::print_s(application_loaded_module_filename, Constants::max_filepath_length, "%s%s%s_loaded%s", Platform::get_root_dir(), Platform::dynamic_library_prefix, application_module_name, Platform::dynamic_library_ext);
 
 		Platform::ReturnCode r_code;
 		do

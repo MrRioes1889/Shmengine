@@ -9,10 +9,10 @@ static void update_vertices(Box3D* out_box);
 
 bool32 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 {
-	if (out_box->state >= ResourceState::INITIALIZED)
+	if (out_box->state >= ResourceState::Initialized)
 		return false;
 
-	out_box->state = ResourceState::INITIALIZING;
+	out_box->state = ResourceState::Initializing;
 
 	out_box->xform = Math::transform_create();
 	out_box->color = color;
@@ -38,32 +38,32 @@ bool32 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 
 	out_box->geometry.id = Constants::max_u32;
 
-	out_box->state = ResourceState::INITIALIZED;
+	out_box->state = ResourceState::Initialized;
 
 	return true;
 }
 
 bool32 box3D_destroy(Box3D* box)
 {
-	if (box->state != ResourceState::UNLOADED && !box3D_unload(box))
+	if (box->state != ResourceState::Unloaded && !box3D_unload(box))
 		return false;
 
 	box->geometry.vertices.free_data();
 	box->geometry.indices.free_data();
 
-	box->state = ResourceState::DESTROYED;
+	box->state = ResourceState::Destroyed;
 	return true;
 }
 
 bool32 box3D_load(Box3D* box)
 {
 
-	if (box->state != ResourceState::INITIALIZED && box->state != ResourceState::UNLOADED)
+	if (box->state != ResourceState::Initialized && box->state != ResourceState::Unloaded)
 		return false;
 
-	bool32 is_reload = box->state == ResourceState::UNLOADED;
+	bool32 is_reload = box->state == ResourceState::Unloaded;
 
-	box->state = ResourceState::LOADING;
+	box->state = ResourceState::Loading;
 	box->unique_id = identifier_acquire_new_id(box);
 
 	if (!Renderer::geometry_load(&box->geometry))
@@ -72,7 +72,7 @@ bool32 box3D_load(Box3D* box)
 		return false;
 	}
 
-	box->state = ResourceState::LOADED;
+	box->state = ResourceState::Loaded;
 
 	return true;
 
@@ -81,18 +81,18 @@ bool32 box3D_load(Box3D* box)
 bool32 box3D_unload(Box3D* box)
 {
 
-	if (box->state <= ResourceState::INITIALIZED)
+	if (box->state <= ResourceState::Initialized)
 		return true;
-	else if (box->state != ResourceState::LOADED)
+	else if (box->state != ResourceState::Loaded)
 		return false;
 
-	box->state = ResourceState::UNLOADING;
+	box->state = ResourceState::Unloading;
 
 	Renderer::geometry_unload(&box->geometry);
 
 	identifier_release_id(box->unique_id);
 	box->unique_id = Constants::max_u32;
-	box->state = ResourceState::UNLOADED;
+	box->state = ResourceState::Unloaded;
 
 	return true;
 
@@ -104,7 +104,7 @@ bool32 box3D_update(Box3D* box)
 		return true;
 
 	update_vertices(box);
-	if (box->state == ResourceState::LOADED)
+	if (box->state == ResourceState::Loaded)
 		return Renderer::geometry_reload(&box->geometry, box->geometry.vertices.size(), 0);
 
 	box->is_dirty = false;

@@ -11,10 +11,10 @@ static const uint32 rotate_circle_segments = 32;
 
 bool32 gizmo3D_init(Gizmo3D* out_gizmo)
 {
-	if (out_gizmo->state >= ResourceState::INITIALIZED)
+	if (out_gizmo->state >= ResourceState::Initialized)
 		return false;
 
-	out_gizmo->state = ResourceState::INITIALIZING;
+	out_gizmo->state = ResourceState::Initializing;
 
 	out_gizmo->xform = Math::transform_create();
 
@@ -38,32 +38,32 @@ bool32 gizmo3D_init(Gizmo3D* out_gizmo)
 
 	out_gizmo->geometry.id = Constants::max_u32;
 
-	out_gizmo->state = ResourceState::INITIALIZED;
+	out_gizmo->state = ResourceState::Initialized;
 
 	return true;
 }
 
 bool32 gizmo3D_destroy(Gizmo3D* gizmo)
 {
-	if (gizmo->state != ResourceState::UNLOADED && !gizmo3D_unload(gizmo))
+	if (gizmo->state != ResourceState::Unloaded && !gizmo3D_unload(gizmo))
 		return false;
 
 	gizmo->geometry.vertices.free_data();
 	gizmo->geometry.indices.free_data();
 
-	gizmo->state = ResourceState::DESTROYED;
+	gizmo->state = ResourceState::Destroyed;
 	return true;
 }
 
 bool32 gizmo3D_load(Gizmo3D* gizmo)
 {
 
-	if (gizmo->state != ResourceState::INITIALIZED && gizmo->state != ResourceState::UNLOADED)
+	if (gizmo->state != ResourceState::Initialized && gizmo->state != ResourceState::Unloaded)
 		return false;
 
-	bool32 is_reload = gizmo->state == ResourceState::UNLOADED;
+	bool32 is_reload = gizmo->state == ResourceState::Unloaded;
 
-	gizmo->state = ResourceState::LOADING;
+	gizmo->state = ResourceState::Loading;
 	gizmo->unique_id = identifier_acquire_new_id(gizmo);
 
 	if (!Renderer::geometry_load(&gizmo->geometry))
@@ -72,7 +72,7 @@ bool32 gizmo3D_load(Gizmo3D* gizmo)
 		return false;
 	}
 
-	gizmo->state = ResourceState::LOADED;
+	gizmo->state = ResourceState::Loaded;
 
 	return true;
 
@@ -81,18 +81,18 @@ bool32 gizmo3D_load(Gizmo3D* gizmo)
 bool32 gizmo3D_unload(Gizmo3D* gizmo)
 {
 
-	if (gizmo->state <= ResourceState::INITIALIZED)
+	if (gizmo->state <= ResourceState::Initialized)
 		return true;
-	else if (gizmo->state != ResourceState::LOADED)
+	else if (gizmo->state != ResourceState::Loaded)
 		return false;
 
-	gizmo->state = ResourceState::UNLOADING;
+	gizmo->state = ResourceState::Unloading;
 
 	Renderer::geometry_unload(&gizmo->geometry);
 
 	identifier_release_id(gizmo->unique_id);
 	gizmo->unique_id = Constants::max_u32;
-	gizmo->state = ResourceState::UNLOADED;
+	gizmo->state = ResourceState::Unloaded;
 
 	return true;
 
@@ -104,7 +104,7 @@ bool32 gizmo3D_update(Gizmo3D* gizmo)
 		return true;
 
 	update_vertices(gizmo);
-	if (gizmo->state == ResourceState::LOADED)
+	if (gizmo->state == ResourceState::Loaded)
 		return Renderer::geometry_reload(&gizmo->geometry, gizmo->geometry.vertices.size(), 0);
 
 	gizmo->is_dirty = false;

@@ -28,10 +28,10 @@ namespace ResourceSystem
     {
 
         const char* format = "%s%s%s%s";
-        char full_filepath[MAX_FILEPATH_LENGTH];
+        char full_filepath[Constants::max_filepath_length];
 
         CString::safe_print_s<const char*, const char*, const char*, const char*>
-            (full_filepath, MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name, ".shmene");
+            (full_filepath, Constants::max_filepath_length, format, get_base_path(), loader_type_path, name, ".shmene");
 
         FileSystem::FileHandle f;
         if (!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f))
@@ -115,11 +115,11 @@ namespace ResourceSystem
         out_resource->dir_lights.init(dir_lights_count, 0, AllocationTag::RESOURCE);
         out_resource->point_lights.init(point_lights_count, 0, AllocationTag::RESOURCE);
 
-        uint32 dir_light_i = INVALID_ID;
-        uint32 point_light_i = INVALID_ID;
-        uint32 mesh_i = INVALID_ID;
-        uint32 skybox_i = INVALID_ID;
-        uint32 terrain_i = INVALID_ID;
+        uint32 dir_light_i = Constants::max_u32;
+        uint32 point_light_i = Constants::max_u32;
+        uint32 mesh_i = Constants::max_u32;
+        uint32 skybox_i = Constants::max_u32;
+        uint32 terrain_i = Constants::max_u32;
 
         out_resource->transform = Math::transform_create();
 
@@ -200,7 +200,7 @@ namespace ResourceSystem
                                 cube_mesh->geometries.init(1, 0);
                                 cube_mesh->geometries.emplace();
                                 Renderer::generate_cube_config(cube_dim.x, cube_dim.y, cube_dim.z, cube_tiling.x, cube_tiling.y, cube_mesh->name.c_str(), cube_mesh->geometries[0].data_config);
-                                CString::copy(cube_material_name.c_str(), cube_mesh->geometries[0].material_name, max_material_name_length);
+                                CString::copy(cube_material_name.c_str(), cube_mesh->geometries[0].material_name, Constants::max_material_name_length);
                             }
                             else
                             {

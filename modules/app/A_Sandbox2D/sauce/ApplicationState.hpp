@@ -7,7 +7,7 @@
 #include <utility/MathTypes.hpp>
 #include <systems/CameraSystem.hpp>
 
-#include "DebugConsole.hpp"
+#include "ui/DebugConsole.hpp"
 
 // TODO: temp
 #include <resources/Mesh.hpp>
@@ -23,8 +23,7 @@ struct ApplicationState
     Darray<Mesh> ui_meshes;
     UIText debug_info_text;
 
-    Input::Keymap console_keymap;
-    DebugConsole::ConsoleState debug_console;
+    DebugConsole debug_console;
 
 };
 

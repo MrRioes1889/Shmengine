@@ -79,27 +79,27 @@ namespace Input
 
     static bool32 check_modifiers(KeymapModifierFlags::Value modifiers)
     {
-        if (modifiers & KeymapModifierFlags::SHIFT)
+        if (modifiers & KeymapModifierFlags::Shift)
         {
-            if (!is_key_down(KeyCode::SHIFT) && !is_key_down(KeyCode::LSHIFT) && !is_key_down(KeyCode::RSHIFT))
+            if (!is_key_down(KeyCode::Shift) && !is_key_down(KeyCode::LShift) && !is_key_down(KeyCode::RShift))
                 return false;
         }
 
-        if (modifiers & KeymapModifierFlags::CONTROL)
+        if (modifiers & KeymapModifierFlags::Control)
         {
-            if (!is_key_down(KeyCode::CONTROL) && !is_key_down(KeyCode::LCONTROL) && !is_key_down(KeyCode::RCONTROL))
+            if (!is_key_down(KeyCode::Control) && !is_key_down(KeyCode::LControl) && !is_key_down(KeyCode::RControl))
                 return false;
         }
 
-        if (modifiers & KeymapModifierFlags::ALT)
+        if (modifiers & KeymapModifierFlags::Alt)
         {
-            if (!is_key_down(KeyCode::LALT))
+            if (!is_key_down(KeyCode::LAlt))
                 return false;
         }
 
-        if (modifiers & KeymapModifierFlags::ALT_GR)
+        if (modifiers & KeymapModifierFlags::AltGr)
         {
-            if (!is_key_down(KeyCode::RALT))
+            if (!is_key_down(KeyCode::RAlt))
                 return false;
         }
 
@@ -132,12 +132,12 @@ namespace Input
 
                 while (binding)
                 {
-                    if (binding->type == KeymapBindingType::UNSET)
+                    if (binding->type == KeymapBindingType::Unset)
                     {
                         unset = true;
                         break;
                     }
-                    else if (binding->type == KeymapBindingType::HOLD)
+                    else if (binding->type == KeymapBindingType::Hold)
                     {
                         if (binding->callback && check_modifiers(binding->modifiers))
                             binding->callback(key, binding->type, binding->modifiers, binding->user_data);
@@ -188,24 +188,18 @@ namespace Input
             {
                 Keymap* map = &system_state->keymap_stack[m];
                 KeymapBinding* binding = &map->entries[key].bindings[0];
-                bool32 unset = false;
+                bool8 unset = false;
 
                 while (binding)
                 {
-                    if (binding->type == KeymapBindingType::UNSET)
+                    if (binding->type == KeymapBindingType::Unset)
                     {
                         unset = true;
-                        break;
                     }
-                    else if (pressed && binding->type == KeymapBindingType::PRESS)
+                    else if (((pressed && binding->type == KeymapBindingType::Press) || (!pressed && binding->type == KeymapBindingType::Release)) &&
+                        binding->callback && check_modifiers(binding->modifiers))
                     {
-                        if (binding->callback && check_modifiers(binding->modifiers))
-                            binding->callback(key, binding->type, binding->modifiers, binding->user_data);
-                    }
-                    else if (!pressed && binding->type == KeymapBindingType::RELEASE)
-                    {
-                        if (binding->callback && check_modifiers(binding->modifiers))
-                            binding->callback(key, binding->type, binding->modifiers, binding->user_data);
+                        binding->callback(key, binding->type, binding->modifiers, binding->user_data);
                     }
 
                     binding = binding->next;
@@ -247,12 +241,12 @@ namespace Input
 
     void process_mouse_scroll(int32 delta)
     {
-        if (delta)
-        {
-            EventData e;
-            e.i32[0] = delta;
-            Event::event_fire(SystemEventCode::MOUSE_SCROLL, 0, e);
-        }
+        if (!delta)
+            return;
+
+		EventData e;
+		e.i32[0] = delta;
+		Event::event_fire(SystemEventCode::MOUSE_SCROLL, 0, e);
     }
 
     bool32 clip_cursor()

@@ -242,14 +242,14 @@ bool32 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint3
 		uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
 		uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
 
-		uint32 shader_id = INVALID_ID;
+		uint32 shader_id = Constants::max_u32;
 		Shader* pick_shader = 0;
 
 		for (uint32 geometry_i = 0; geometry_i < internal_data->world_view->geometries.count; geometry_i++)
 		{
 			RenderViewGeometryData* render_data = &internal_data->world_view->geometries[geometry_i];
 
-			if (render_data->object_index == INVALID_ID)
+			if (render_data->object_index == Constants::max_u32)
 				continue;
 
 			if (render_data->shader_id != shader_id)
@@ -295,14 +295,14 @@ bool32 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint3
 			return false;
 		}
 
-		shader_id = INVALID_ID;
+		shader_id = Constants::max_u32;
 		pick_shader = 0;
 
 		for (uint32 geometry_i = 0; geometry_i < internal_data->ui_view->geometries.count; geometry_i++)
 		{
 			RenderViewGeometryData* render_data = &internal_data->ui_view->geometries[geometry_i];
 
-			if (render_data->object_index == INVALID_ID)
+			if (render_data->object_index == Constants::max_u32)
 				continue;
 
 			if (render_data->shader_id != shader_id)
@@ -349,7 +349,7 @@ bool32 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint3
 	uint32 mouse_y = (uint32)clamp(mouse_pos.y, 0, self->height - 1);	
 	Renderer::texture_read_pixel(t, mouse_x, mouse_y, (uint32*)&pixel);
 
-	uint32 id = INVALID_ID;
+	uint32 id = Constants::max_u32;
 	id = Math::rgb_to_uint32(pixel[0], pixel[1], pixel[2]);
 	if ((id & 0xFFFFFF) == 0xFFFFFF)
 		id = 0;
@@ -394,13 +394,13 @@ bool32 render_view_pick_regenerate_attachment_target(const RenderView* self, uin
 	uint32 height = self->renderpasses[pass_index].dim.height;
 	bool8 has_transparency = false;
 
-	attachment->texture->id = INVALID_ID;
+	attachment->texture->id = Constants::max_u32;
 	attachment->texture->type = TextureType::TYPE_2D;
-	CString::copy(texture_name, attachment->texture->name, max_texture_name_length);
+	CString::copy(texture_name, attachment->texture->name, Constants::max_texture_name_length);
 	attachment->texture->width = width;
 	attachment->texture->height = height;
 	attachment->texture->channel_count = 4;
-	attachment->texture->generation = INVALID_ID;
+	attachment->texture->generation = Constants::max_u32;
 	attachment->texture->flags |= TextureFlags::IS_WRITABLE | TextureFlags::IS_READABLE;
 	attachment->texture->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
 	if (attachment->type == Renderer::RenderTargetAttachmentType::DEPTH)

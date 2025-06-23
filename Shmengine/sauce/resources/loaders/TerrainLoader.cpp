@@ -27,10 +27,10 @@ namespace ResourceSystem
     {
 
         const char* format = "%s%s%s%s";
-        char full_filepath[Constants::MAX_FILEPATH_LENGTH];
+        char full_filepath[Constants::max_filepath_length];
 
         CString::safe_print_s<const char*, const char*, const char*, const char*>
-            (full_filepath, Constants::MAX_FILEPATH_LENGTH, format, get_base_path(), loader_type_path, name, ".shmter");
+            (full_filepath, Constants::max_filepath_length, format, get_base_path(), loader_type_path, name, ".shmter");
 
         FileSystem::FileHandle f;
         if (!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f))

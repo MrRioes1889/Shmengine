@@ -76,7 +76,7 @@ namespace ResourceSystem
     {
 
         const char* format = "%s%s%s";
-        String full_filepath_wo_extension(Constants::MAX_FILEPATH_LENGTH);
+        String full_filepath_wo_extension(Constants::max_filepath_length);
 
         safe_print_s<const char*, const char*, const char*>
             (full_filepath_wo_extension, format, get_base_path(), loader_type_path, name);
@@ -86,7 +86,7 @@ namespace ResourceSystem
         supported_file_types[0] = { ".shmesh", MeshFileType::SHMESH };
         supported_file_types[1] = { ".obj", MeshFileType::OBJ };
 
-        String full_filepath(Constants::MAX_FILEPATH_LENGTH);
+        String full_filepath(Constants::max_filepath_length);
         MeshFileType file_type = MeshFileType::NOT_FOUND;
         for (uint32 i = 0; i < supported_file_type_count; i++)
         {
@@ -118,7 +118,7 @@ namespace ResourceSystem
         {
         case MeshFileType::OBJ:
         {
-            String shmesh_filepath(Constants::MAX_FILEPATH_LENGTH);
+            String shmesh_filepath(Constants::max_filepath_length);
             shmesh_filepath = full_filepath_wo_extension;
             shmesh_filepath.append(".shmesh");
             res = import_obj_file(&f, full_filepath.c_str(), name, shmesh_filepath.c_str(), out_resource);
@@ -180,9 +180,9 @@ namespace ResourceSystem
 
         Darray<MeshGroupData> groups(4, 0);
 
-        String material_file_name(Constants::MAX_FILEPATH_LENGTH);
+        String material_file_name(Constants::max_filepath_length);
 
-        String name(Constants::MAX_FILEPATH_LENGTH);
+        String name(Constants::max_filepath_length);
         uint32 current_mat_name_count = 0;
         Darray<String> material_names(64, 0);
 

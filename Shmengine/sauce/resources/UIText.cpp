@@ -21,10 +21,10 @@ static const uint32 quad_index_count = 6;
 bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 {
 
-    if (out_ui_text->state >= ResourceState::INITIALIZED)
+    if (out_ui_text->state >= ResourceState::Initialized)
         return false;
 
-    out_ui_text->state = ResourceState::INITIALIZING;
+    out_ui_text->state = ResourceState::Initializing;
 
     out_ui_text->type = config->type;
 
@@ -56,7 +56,8 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 
     out_ui_text->unique_id = identifier_acquire_new_id(out_ui_text);
 
-    out_ui_text->state = ResourceState::INITIALIZED;
+    out_ui_text->is_dirty = true;
+    out_ui_text->state = ResourceState::Initialized;
 
     return true;
 
@@ -64,7 +65,7 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 
 bool32 ui_text_destroy(UIText* ui_text)
 {
-    if (ui_text->state != ResourceState::UNLOADED && !ui_text_unload(ui_text))
+    if (ui_text->state != ResourceState::Unloaded && !ui_text_unload(ui_text))
         return false;
 
     ui_text->text.free_data();
@@ -72,17 +73,17 @@ bool32 ui_text_destroy(UIText* ui_text)
     ui_text->geometry.vertices.free_data();
     ui_text->geometry.indices.free_data();
 
-    ui_text->state = ResourceState::DESTROYED;
+    ui_text->state = ResourceState::Destroyed;
 
     return true;
 }
 
 bool32 ui_text_load(UIText* ui_text)
 {
-    if (ui_text->state != ResourceState::INITIALIZED && ui_text->state != ResourceState::UNLOADED)
+    if (ui_text->state != ResourceState::Initialized && ui_text->state != ResourceState::Unloaded)
         return false;
 
-    ui_text->state = ResourceState::LOADING;
+    ui_text->state = ResourceState::Loading;
 
     Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
     if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, &ui_text->shader_instance_id))
@@ -94,19 +95,19 @@ bool32 ui_text_load(UIText* ui_text)
     regenerate_geometry(ui_text);
     Renderer::geometry_load(&ui_text->geometry);
 
-    ui_text->state = ResourceState::LOADED;
+    ui_text->state = ResourceState::Loaded;
 
     return true;
 }
 
 bool32 ui_text_unload(UIText* ui_text)
 {
-    if (ui_text->state <= ResourceState::INITIALIZED)
+    if (ui_text->state <= ResourceState::Initialized)
         return true;
-    else if (ui_text->state != ResourceState::LOADED)
+    else if (ui_text->state != ResourceState::Loaded)
         return false;
 
-    ui_text->state = ResourceState::UNLOADING;
+    ui_text->state = ResourceState::Unloading;
 
     Renderer::geometry_unload(&ui_text->geometry);
 
@@ -118,26 +119,34 @@ bool32 ui_text_unload(UIText* ui_text)
     identifier_release_id(ui_text->unique_id);
     ui_text->unique_id = 0;
 
-    ui_text->state = ResourceState::UNLOADED;
+    ui_text->state = ResourceState::Unloaded;
     return true;
 }
 
 void ui_text_set_position(UIText* ui_text, Math::Vec3f position)
 {
     Math::transform_set_position(ui_text->transform, position);
+    ui_text->is_dirty = true;
 }
 
-void ui_text_set_text(UIText* ui_text, const char* text)
+void ui_text_set_text(UIText* ui_text, const char* text, int32 length)
 {   
-    OPTICK_EVENT();
     if (ui_text->text == text)
         return;  
 
-    ui_text->text = text;
+    if (length >= 0)
+        ui_text->text.copy_n(text, length);
+    else
+        ui_text->text = text;
+
+    ui_text->is_dirty = true;
 }
 
 void ui_text_update(UIText* ui_text)
 {
+    if (!ui_text->is_dirty)
+        return;
+
     if (!FontSystem::verify_atlas(ui_text->font_atlas, ui_text->text.c_str()))
     {
         SHMERROR("Font atlas verification failed");
@@ -149,9 +158,10 @@ void ui_text_update(UIText* ui_text)
 
     regenerate_geometry(ui_text);
 
-    if (ui_text->state == ResourceState::LOADED)
+    if (ui_text->state == ResourceState::Loaded)
         Renderer::geometry_reload(&ui_text->geometry, old_vertex_buffer_size, old_index_buffer_size);
         
+    ui_text->is_dirty = false;
 }
 
 static void regenerate_geometry(UIText* ui_text)
@@ -204,35 +214,35 @@ static void regenerate_geometry(UIText* ui_text)
             codepoint = -1;
         }
 
-        FontGlyph* g = 0;
+        FontGlyph* glyph = 0;
         for (uint32 i = 0; i < ui_text->font_atlas->glyphs.capacity; ++i) {
             if (ui_text->font_atlas->glyphs[i].codepoint == codepoint) {
-                g = &ui_text->font_atlas->glyphs[i];
+                glyph = &ui_text->font_atlas->glyphs[i];
                 break;
             }
         }
 
-        if (!g) {
+        if (!glyph) {
             // If not found, use the codepoint -1
             codepoint = -1;
             for (uint32 i = 0; i < ui_text->font_atlas->glyphs.capacity; ++i) {
                 if (ui_text->font_atlas->glyphs[i].codepoint == codepoint) {
-                    g = &ui_text->font_atlas->glyphs[i];
+                    glyph = &ui_text->font_atlas->glyphs[i];
                     break;
                 }
             }
         }
 
-        if (g) {
+        if (glyph) {
             // Found the glyph. generate points.
-            float32 minx = x + g->x_offset;
-            float32 miny = y + g->y_offset;
-            float32 maxx = minx + g->width;
-            float32 maxy = miny + g->height;
-            float32 tminx = (float32)g->x / ui_text->font_atlas->atlas_size_x;
-            float32 tmaxx = (float32)(g->x + g->width) / ui_text->font_atlas->atlas_size_x;
-            float32 tminy = (float32)g->y / ui_text->font_atlas->atlas_size_y;
-            float32 tmaxy = (float32)(g->y + g->height) / ui_text->font_atlas->atlas_size_y;
+            float32 minx = x + glyph->x_offset;
+            float32 miny = y + glyph->y_offset;
+            float32 maxx = minx + glyph->width;
+            float32 maxy = miny + glyph->height;
+            float32 tminx = (float32)glyph->x / ui_text->font_atlas->atlas_size_x;
+            float32 tmaxx = (float32)(glyph->x + glyph->width) / ui_text->font_atlas->atlas_size_x;
+            float32 tminy = (float32)glyph->y / ui_text->font_atlas->atlas_size_y;
+            float32 tmaxy = (float32)(glyph->y + glyph->height) / ui_text->font_atlas->atlas_size_y;
             // Flip the y axis for system text
             if (ui_text->type == UITextType::TRUETYPE) {
                 tminy = 1.0f - tminy;
@@ -273,7 +283,7 @@ static void regenerate_geometry(UIText* ui_text)
                     }
                 }
             }
-            x += g->x_advance + kerning;
+            x += glyph->x_advance + kerning;
 
         }
         else {
@@ -283,7 +293,6 @@ static void regenerate_geometry(UIText* ui_text)
             continue;
         }
 
-        // Index data 210301
         geometry->indices[(uc * 6) + 0] = (uc * 4) + 2;
         geometry->indices[(uc * 6) + 1] = (uc * 4) + 1;
         geometry->indices[(uc * 6) + 2] = (uc * 4) + 0;

@@ -10,21 +10,21 @@ namespace Input
 	{
 		enum
 		{
-			SHIFT = 1 << 0,
-			CONTROL = 1 << 1,
-			ALT = 1 << 2,
-			ALT_GR = 1 << 3
+			Shift = 1 << 0,
+			Control = 1 << 1,
+			Alt = 1 << 2,
+			AltGr = 1 << 3
 		};
 		typedef uint32 Value;
 	}
 
 	enum class KeymapBindingType
 	{
-		UNDEFINED = 0,
-		PRESS = 1,
-		RELEASE = 2,
-		HOLD = 3,
-		UNSET = 4
+		Undefined = 0,
+		Press = 1,
+		Release = 2,
+		Hold = 3,
+		Unset = 4
 	};
 
 	typedef void (*FP_keybind_callback)(KeyCode::Value key, KeymapBindingType binding_type, KeymapModifierFlags::Value modifiers, void* user_data);

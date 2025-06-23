@@ -62,7 +62,7 @@ namespace Constants
 	// Smallest positive number where 1.0 + FLOAT_EPSILON != 0
 	inline constexpr float32 FLOAT_EPSILON = 1.192092896e-07f;
 
-	inline constexpr uint32 MAX_FILEPATH_LENGTH = 256;
+	inline constexpr uint32 max_filepath_length = 256;
 
 	inline constexpr uint64 max_u64 = 0xFFFFFFFFFFFFFFFF;
 	inline constexpr uint32 max_u32 = 0xFFFFFFFF;

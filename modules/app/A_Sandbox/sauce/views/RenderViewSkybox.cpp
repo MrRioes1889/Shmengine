@@ -54,9 +54,9 @@ bool32 render_view_skybox_on_register(RenderView* self)
 	self->internal_data.init(sizeof(RenderViewSkyboxInternalData), 0, AllocationTag::RENDERER);
 	RenderViewSkyboxInternalData* internal_data = (RenderViewSkyboxInternalData*)self->internal_data.data;
 
-	internal_data->skybox_shader_u_locations.projection = INVALID_ID16;
-	internal_data->skybox_shader_u_locations.view = INVALID_ID16;
-	internal_data->skybox_shader_u_locations.cube_map = INVALID_ID16;
+	internal_data->skybox_shader_u_locations.projection = Constants::max_u16;
+	internal_data->skybox_shader_u_locations.view = Constants::max_u16;
+	internal_data->skybox_shader_u_locations.cube_map = Constants::max_u16;
 
 	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_skybox, &self->renderpasses[0]))
 	{
@@ -165,7 +165,7 @@ bool32 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uin
 	{	
 		RenderViewInstanceData* instance_data = &self->instances[instance_i];
 
-		if (instance_data->shader_instance_id == INVALID_ID)
+		if (instance_data->shader_instance_id == Constants::max_u32)
 			continue;
 
 		bool32 instance_set = true;
@@ -186,7 +186,7 @@ bool32 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uin
 		return false;
 	}
 
-	uint32 shader_id = INVALID_ID;
+	uint32 shader_id = Constants::max_u32;
 
 	for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
 	{
@@ -199,7 +199,7 @@ bool32 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uin
 			ShaderSystem::bind_globals();
 		}
 			
-		if (render_data->shader_instance_id != INVALID_ID)
+		if (render_data->shader_instance_id != Constants::max_u32)
 			ShaderSystem::bind_instance(render_data->shader_instance_id);
 
 		Renderer::geometry_draw(render_data->geometry_data);

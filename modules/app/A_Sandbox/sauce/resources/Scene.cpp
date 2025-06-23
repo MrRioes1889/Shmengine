@@ -22,10 +22,10 @@ static uint32 global_scene_id = 0;
 bool32 scene_init(SceneConfig* config, Scene* out_scene)
 {
 
-	if (out_scene->state >= ResourceState::INITIALIZED)
+	if (out_scene->state >= ResourceState::Initialized)
 		return false;
 
-	out_scene->state = ResourceState::INITIALIZING;
+	out_scene->state = ResourceState::Initializing;
 
 	out_scene->name = config->name;
 	out_scene->description = config->description;
@@ -130,10 +130,10 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 
 bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 {
-	if (out_scene->state >= ResourceState::INITIALIZED)
+	if (out_scene->state >= ResourceState::Initialized)
 		return false;
 
-	out_scene->state = ResourceState::INITIALIZING;
+	out_scene->state = ResourceState::Initializing;
 
 	SceneResourceData resource = {};
 	if (!ResourceSystem::scene_loader_load(resource_name, 0, &resource))
@@ -231,10 +231,10 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 bool32 scene_destroy(Scene* scene)
 {
 
-	if (scene->state != ResourceState::UNLOADED && !scene_unload(scene))
+	if (scene->state != ResourceState::Unloaded && !scene_unload(scene))
 		return false;
 
-	if (scene->skybox.state >= ResourceState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::Initialized)
 	{
 		if (!skybox_destroy(&scene->skybox))
 		{
@@ -269,7 +269,7 @@ bool32 scene_destroy(Scene* scene)
 	scene->name.free_data();
 	scene->description.free_data();
 
-	scene->state = ResourceState::DESTROYED;
+	scene->state = ResourceState::Destroyed;
 
 	return true;
 
@@ -278,12 +278,12 @@ bool32 scene_destroy(Scene* scene)
 bool32 scene_load(Scene* scene)
 {
 
-	if (scene->state != ResourceState::INITIALIZED && scene->state != ResourceState::UNLOADED)
+	if (scene->state != ResourceState::Initialized && scene->state != ResourceState::Unloaded)
 		return false;
 
-	scene->state = ResourceState::LOADING;
+	scene->state = ResourceState::Loading;
 
-	if (scene->skybox.state >= ResourceState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::Initialized)
 	{
 		if (!skybox_load(&scene->skybox))
 		{
@@ -326,12 +326,12 @@ bool32 scene_load(Scene* scene)
 bool32 scene_unload(Scene* scene)
 {
 
-	if (scene->state <= ResourceState::INITIALIZED)
+	if (scene->state <= ResourceState::Initialized)
 		return true;
-	else if (scene->state != ResourceState::LOADED)
+	else if (scene->state != ResourceState::Loaded)
 		return false;
 
-	scene->state = ResourceState::UNLOADING;
+	scene->state = ResourceState::Unloading;
 
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
@@ -351,7 +351,7 @@ bool32 scene_unload(Scene* scene)
 		}
 	}
 
-	if (scene->skybox.state >= ResourceState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::Initialized)
 	{
 		if (!skybox_unload(&scene->skybox))
 		{
@@ -369,7 +369,7 @@ bool32 scene_unload(Scene* scene)
 		}
 	}
 
-	scene->state = ResourceState::UNLOADED;
+	scene->state = ResourceState::Unloaded;
 
 	return true;
 
@@ -389,16 +389,16 @@ bool32 scene_update(Scene* scene)
 		box3D_update(&scene->p_light_boxes[i]);
 	}	
 
-	if (scene->state == ResourceState::INITIALIZING)
+	if (scene->state == ResourceState::Initializing)
 	{
 		bool32 objects_initialized = true;
 
-		if (scene->skybox.state != ResourceState::INITIALIZED)
+		if (scene->skybox.state != ResourceState::Initialized)
 			objects_initialized = false;
 
 		for (uint32 i = 0; i < scene->meshes.count; i++)
 		{
-			if (scene->meshes[i].state != ResourceState::INITIALIZED)
+			if (scene->meshes[i].state != ResourceState::Initialized)
 			{
 				objects_initialized = false;
 				break;
@@ -407,7 +407,7 @@ bool32 scene_update(Scene* scene)
 
 		for (uint32 i = 0; i < scene->terrains.count; i++)
 		{
-			if (scene->terrains[i].state != ResourceState::INITIALIZED)
+			if (scene->terrains[i].state != ResourceState::Initialized)
 			{
 				objects_initialized = false;
 				break;
@@ -416,7 +416,7 @@ bool32 scene_update(Scene* scene)
 
 		for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
 		{
-			if (scene->p_light_boxes[i].state != ResourceState::INITIALIZED)
+			if (scene->p_light_boxes[i].state != ResourceState::Initialized)
 			{
 				objects_initialized = false;
 				break;
@@ -424,18 +424,18 @@ bool32 scene_update(Scene* scene)
 		}
 
 		if (objects_initialized)
-			scene->state = ResourceState::INITIALIZED;
+			scene->state = ResourceState::Initialized;
 	}
-	else if (scene->state == ResourceState::LOADING)
+	else if (scene->state == ResourceState::Loading)
 	{
 		bool32 objects_loaded = true;
 
-		if (scene->skybox.state != ResourceState::LOADED)
+		if (scene->skybox.state != ResourceState::Loaded)
 			objects_loaded = false;
 
 		for (uint32 i = 0; i < scene->meshes.count; i++)
 		{
-			if (scene->meshes[i].state != ResourceState::LOADED)
+			if (scene->meshes[i].state != ResourceState::Loaded)
 			{
 				objects_loaded = false;
 				break;
@@ -444,7 +444,7 @@ bool32 scene_update(Scene* scene)
 
 		for (uint32 i = 0; i < scene->terrains.count; i++)
 		{
-			if (scene->terrains[i].state != ResourceState::LOADED)
+			if (scene->terrains[i].state != ResourceState::Loaded)
 			{
 				objects_loaded = false;
 				break;
@@ -453,7 +453,7 @@ bool32 scene_update(Scene* scene)
 
 		for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
 		{
-			if (scene->p_light_boxes[i].state != ResourceState::LOADED)
+			if (scene->p_light_boxes[i].state != ResourceState::Loaded)
 			{
 				objects_loaded = false;
 				break;
@@ -461,7 +461,7 @@ bool32 scene_update(Scene* scene)
 		}
 
 		if (objects_loaded)
-			scene->state = ResourceState::LOADED;
+			scene->state = ResourceState::Loaded;
 	}
 	/*else if (scene->state == ResourceState::UNLOADING)
 	{
@@ -520,7 +520,7 @@ bool32 scene_add_point_light(Scene* scene, PointLight light)
 		return false;
 	}
 
-	if (scene->state == ResourceState::LOADED)
+	if (scene->state == ResourceState::Loaded)
 	{
 		if (!box3D_load(light_box))
 		{
@@ -567,7 +567,7 @@ bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 
 	mesh->transform = config->transform;
 
-	if (scene->state == ResourceState::LOADED)
+	if (scene->state == ResourceState::Loaded)
 	{
 		if (!mesh_load(mesh))
 		{
@@ -621,7 +621,7 @@ bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 //bool32 scene_remove_mesh(Scene* scene, const char* name)
 //{
 //
-//	uint32 mesh_index = INVALID_ID;
+//	uint32 mesh_index = Constants::max_u32;
 //	for (uint32 i = 0; i < scene->meshes.count; i++)
 //	{
 //		if (scene->meshes[i].name.equal_i(name))
@@ -631,7 +631,7 @@ bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 //		}
 //	}
 //	
-//	if (mesh_index == INVALID_ID)
+//	if (mesh_index == Constants::max_u32)
 //		return false;
 //
 //	return scene_remove_mesh(scene, mesh_index);
@@ -660,7 +660,7 @@ bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 
 	terrain->xform = config->xform;
 
-	if (scene->state == ResourceState::LOADED)
+	if (scene->state == ResourceState::Loaded)
 	{
 		if (!terrain_load(terrain))
 		{
@@ -675,7 +675,7 @@ bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 //bool32 scene_remove_terrain(Scene* scene, const char* name)
 //{
 //
-//	uint32 terrain_index = INVALID_ID;
+//	uint32 terrain_index = Constants::max_u32;
 //	for (uint32 i = 0; i < scene->terrains.count; i++)
 //	{
 //		if (scene->terrains[i].name.equal_i(name))
@@ -685,7 +685,7 @@ bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 //		}
 //	}
 //
-//	if (terrain_index == INVALID_ID)
+//	if (terrain_index == Constants::max_u32)
 //		return false;
 //
 //	if (!terrain_destroy(&scene->terrains[terrain_index]))
@@ -702,7 +702,7 @@ bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 {
 
-	if (scene->skybox.state >= ResourceState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::Initialized)
 	{
 		if (!skybox_destroy(&scene->skybox))
 		{
@@ -717,7 +717,7 @@ bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 		return false;
 	}
 
-	if (scene->state == ResourceState::LOADED)
+	if (scene->state == ResourceState::Loaded)
 	{
 		if (!skybox_load(&scene->skybox))
 		{
@@ -792,12 +792,12 @@ PointLight* scene_get_point_light(Scene* scene, uint32 index)
 bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view, const Math::Frustum* camera_frustum, FrameData* frame_data)
 {
 
-	if (scene->state != ResourceState::LOADED)
+	if (scene->state != ResourceState::Loaded)
 		return false;
 
 	uint32 skybox_shader_id = ShaderSystem::get_skybox_shader_id();
 
-	if (scene->skybox.state >= ResourceState::INITIALIZED)
+	if (scene->skybox.state >= ResourceState::Initialized)
 		frame_data->drawn_geometry_count += RenderViewSystem::skybox_draw(skybox_view, &scene->skybox, skybox_shader_id, frame_data);
 
 	LightingInfo lighting =

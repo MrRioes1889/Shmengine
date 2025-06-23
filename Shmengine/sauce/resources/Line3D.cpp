@@ -9,10 +9,10 @@ static void update_vertices(Line3D* out_line);
 
 bool32 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Line3D* out_line)
 {
-	if (out_line->state >= ResourceState::INITIALIZED)
+	if (out_line->state >= ResourceState::Initialized)
 		return false;
 
-	out_line->state = ResourceState::INITIALIZING;
+	out_line->state = ResourceState::Initializing;
 
 	out_line->xform = Math::transform_create();
 	out_line->point0 = point0;
@@ -35,32 +35,32 @@ bool32 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Li
 
 	out_line->geometry.id = Constants::max_u32;
 
-	out_line->state = ResourceState::INITIALIZED;
+	out_line->state = ResourceState::Initialized;
 
 	return true;
 }
 
 bool32 line3D_destroy(Line3D* line)
 {
-	if (line->state != ResourceState::UNLOADED && !line3D_unload(line))
+	if (line->state != ResourceState::Unloaded && !line3D_unload(line))
 		return false;
 
 	line->geometry.vertices.free_data();
 	line->geometry.indices.free_data();
 
-	line->state = ResourceState::DESTROYED;
+	line->state = ResourceState::Destroyed;
 	return true;
 }
 
 bool32 line3D_load(Line3D* line)
 {
 
-	if (line->state != ResourceState::INITIALIZED && line->state != ResourceState::UNLOADED)
+	if (line->state != ResourceState::Initialized && line->state != ResourceState::Unloaded)
 		return false;
 
-	bool32 is_reload = line->state == ResourceState::UNLOADED;
+	bool32 is_reload = line->state == ResourceState::Unloaded;
 
-	line->state = ResourceState::LOADING;
+	line->state = ResourceState::Loading;
 	line->unique_id = identifier_acquire_new_id(line);
 
 	if (!Renderer::geometry_load(&line->geometry))
@@ -69,7 +69,7 @@ bool32 line3D_load(Line3D* line)
 		return false;
 	}
 
-	line->state = ResourceState::LOADED;
+	line->state = ResourceState::Loaded;
 
 	return true;
 
@@ -78,18 +78,18 @@ bool32 line3D_load(Line3D* line)
 bool32 line3D_unload(Line3D* line)
 {
 
-	if (line->state <= ResourceState::INITIALIZED)
+	if (line->state <= ResourceState::Initialized)
 		return true;
-	else if (line->state != ResourceState::LOADED)
+	else if (line->state != ResourceState::Loaded)
 		return false;
 
-	line->state = ResourceState::UNLOADING;
+	line->state = ResourceState::Unloading;
 
 	Renderer::geometry_unload(&line->geometry);
 
 	identifier_release_id(line->unique_id);
 	line->unique_id = Constants::max_u32;
-	line->state = ResourceState::UNLOADED;
+	line->state = ResourceState::Unloaded;
 
 	return true;
 
@@ -101,7 +101,7 @@ bool32 line3D_update(Line3D* line)
 		return true;
 
 	update_vertices(line);
-	if (line->state == ResourceState::LOADED)
+	if (line->state == ResourceState::Loaded)
 		return Renderer::geometry_reload(&line->geometry, line->geometry.vertices.size(), 0);
 
 	return true;

@@ -15,7 +15,7 @@
 
 bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 {
-    if (out_terrain->state >= ResourceState::INITIALIZED)
+    if (out_terrain->state >= ResourceState::Initialized)
         return false;
 
     if (!config->tile_count_x ||
@@ -24,11 +24,11 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
         !config->tile_scale_z)
     {
         SHMERROR("Failed to init terrain. Tile counts and scales have to be greater than 0.");
-        out_terrain->state = ResourceState::UNINITIALIZED;
+        out_terrain->state = ResourceState::Uninitialized;
         return false;
     }
 
-    out_terrain->state = ResourceState::INITIALIZING;
+    out_terrain->state = ResourceState::Initializing;
   
     out_terrain->name = config->name;
     out_terrain->xform = Math::transform_create();
@@ -176,7 +176,7 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
     out_terrain->geometry.id = Constants::max_u32;
 
-    out_terrain->state = ResourceState::INITIALIZED;
+    out_terrain->state = ResourceState::Initialized;
 
     return true;
 }
@@ -184,13 +184,13 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrain)
 {
     
-    out_terrain->state = ResourceState::INITIALIZING;
+    out_terrain->state = ResourceState::Initializing;
 
     TerrainResourceData resource = {};
     if (!ResourceSystem::terrain_loader_load(resource_name, 0, &resource))
     {
         SHMERRORV("Failed to load terrain from resource '%s'", resource_name);
-        out_terrain->state = ResourceState::UNINITIALIZED;
+        out_terrain->state = ResourceState::Uninitialized;
         return false;
     }
 
@@ -222,7 +222,7 @@ bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrai
 
 bool32 terrain_destroy(Terrain* terrain)
 {
-    if (terrain->state != ResourceState::UNLOADED && !terrain_unload(terrain))
+    if (terrain->state != ResourceState::Unloaded && !terrain_unload(terrain))
         return false;
 
     terrain->geometry.vertices.free_data();
@@ -233,19 +233,19 @@ bool32 terrain_destroy(Terrain* terrain)
 
     terrain->name.free_data();
 
-    terrain->state = ResourceState::DESTROYED;
+    terrain->state = ResourceState::Destroyed;
     return true;
 }
 
 bool32 terrain_load(Terrain* terrain)
 {
 
-    if (terrain->state != ResourceState::INITIALIZED && terrain->state != ResourceState::UNLOADED)
+    if (terrain->state != ResourceState::Initialized && terrain->state != ResourceState::Unloaded)
         return false;
 
-    bool32 is_reload = terrain->state == ResourceState::UNLOADED;
+    bool32 is_reload = terrain->state == ResourceState::Unloaded;
 
-    terrain->state = ResourceState::LOADING;
+    terrain->state = ResourceState::Loading;
 	terrain->unique_id = identifier_acquire_new_id(terrain);
 
     if (!Renderer::geometry_load(&terrain->geometry))
@@ -282,7 +282,7 @@ bool32 terrain_load(Terrain* terrain)
 	if (!Renderer::shader_acquire_instance_resources(terrain_shader, max_map_count, &terrain->shader_instance_id))
 		SHMERRORV("Failed to acquire renderer resources for terrain '%s'.", terrain->name.c_str());
 
-    terrain->state = ResourceState::LOADED;
+    terrain->state = ResourceState::Loaded;
 
     return true;
 
@@ -291,12 +291,12 @@ bool32 terrain_load(Terrain* terrain)
 bool32 terrain_unload(Terrain* terrain)
 {
 
-    if (terrain->state <= ResourceState::INITIALIZED)
+    if (terrain->state <= ResourceState::Initialized)
         return true;
-    else if (terrain->state != ResourceState::LOADED)
+    else if (terrain->state != ResourceState::Loaded)
         return false;
 
-    terrain->state = ResourceState::UNLOADING;
+    terrain->state = ResourceState::Unloading;
 
 	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
 	Renderer::shader_release_instance_resources(terrain_shader, terrain->shader_instance_id);
@@ -312,7 +312,7 @@ bool32 terrain_unload(Terrain* terrain)
 
 	identifier_release_id(terrain->unique_id);
 	terrain->unique_id = Constants::max_u32;
-    terrain->state = ResourceState::UNLOADED;
+    terrain->state = ResourceState::Unloaded;
 
     return true;
 

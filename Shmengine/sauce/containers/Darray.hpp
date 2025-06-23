@@ -262,6 +262,8 @@ template<typename T>
 inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 {
 	SHMASSERT_MSG(!(flags & DarrayFlags::NON_RESIZABLE) && !(flags & DarrayFlags::EXTERNAL_MEMORY), "Darray push exceeded size, but array has been flagged as non-resizable!");
+	SHMASSERT_MSG(capacity && data, "Cannot resize uninitialized array!");
+
 	uint32 old_size = capacity;
 	while (capacity < requested_size)
 		capacity *= DARRAY_RESIZE_FACTOR;

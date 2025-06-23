@@ -30,6 +30,10 @@ namespace SystemEventCode
 	enum
 	{
 		APPLICATION_QUIT = 1,
+		/*
+		EventData Layout:
+		ui32[0]: KeyCode
+		*/
 		KEY_PRESSED = 2,
 		KEY_RELEASED = 3,
 		BUTTON_PRESSED = 4,

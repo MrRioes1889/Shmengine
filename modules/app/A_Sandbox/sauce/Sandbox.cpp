@@ -2,7 +2,7 @@
 #include "ApplicationState.hpp"
 #include "Defines.hpp"
 #include "Keybinds.hpp"
-#include "DebugConsole.hpp"
+#include "ui/DebugConsole.hpp"
 
 #include "views/RenderViewSkybox.hpp"
 #include "views/RenderViewWorld.hpp"
@@ -39,140 +39,26 @@ static bool32 init_render_views(Application* app_inst);
 static void register_events();
 static void unregister_events();
 
-static bool32 application_on_mousebutton_released(uint16 code, void* sender, void* listener_inst, EventData data)
+bool32 application_load_config(ApplicationConfig* out_config)
 {
+	out_config->app_frame_data_size = sizeof(ApplicationFrameData);
+	out_config->state_size = sizeof(ApplicationState);
 
-	if (app_state->main_scene.state != ResourceState::LOADED)
-		return false;
+	out_config->start_pos_x = 100;
+	out_config->start_pos_y = 100;
+	out_config->start_width = 1600;
+	out_config->start_height = 900;
+	out_config->name = "Shmengine Sandbox";   
+	out_config->renderer_module_name = "M_VulkanRenderer";
 
-	if (data.ui8[0] == MouseButton::LMB)
-	{
-		int16 x = data.i16[1];
-		int16 y = data.i16[2];
-
-		Math::Mat4 view = app_state->world_camera->get_view();
-		Math::Vec3f origin = app_state->world_camera->get_position();
-		Math::Mat4 projection = Math::mat_perspective(Math::deg_to_rad(45.0f), (float32)app_state->width / app_state->height, 0.1f, 4000.0f);
-
-		Math::Ray3D ray = Math::ray3D_create_from_screen({ (float32)x, (float32)y }, { (float32)app_state->width, (float32)app_state->height }, origin, view, projection);
-		Math::Ray3DHitInfo hit_info = scene_raycast(&app_state->main_scene, ray);
-
-		if (hit_info.type == Math::Ray3DHitType::NONE)
-		{
-			SHMDEBUG("Raycast: No object hit.");
-			return false;
-		}
-
-		SHMDEBUGV("Raycast: Hit object %u at %f/%f/%f.", hit_info.unique_id, hit_info.position.x, hit_info.position.y, hit_info.position.z);
-
-		Line3D* new_line = &app_state->test_raycast_lines[app_state->test_raycast_lines.emplace()];
-		if (!line3D_init(origin, hit_info.position, { 1.0f, 1.0f, 0.0f, 1.0f }, new_line) || !line3D_load(new_line))
-			SHMERROR("Failed to init or load new test line!");
-	}
-	
-	
-	return false;
-}
-
-static bool32 application_on_event(uint16 code, void* sender, void* listener_inst, EventData data)
-{
-	switch (code)
-	{
-	case SystemEventCode::OBJECT_HOVER_ID_CHANGED:
-	{
-		app_state->hovered_object_id = data.ui32[0];
-		return true;
-	}
-	}
+	out_config->limit_framerate = true;
 
 	return true;
 }
 
-static bool32 application_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
+bool32 application_init(Application* app_inst)
 {
-
-	if (code == SystemEventCode::DEBUG0 && app_state->main_scene.state == ResourceState::LOADED)
-	{
-		const char* names[3] = {
-		"cobblestone",
-		"paving",
-		"paving2"
-		};
-
-		static int32 choice = 2;
-		const char* old_name = names[choice];
-		choice++;
-		choice %= 3;
-		
-		Mesh* m = scene_get_mesh(&app_state->main_scene, "test_cube1");
-		if (!m || !m->geometries.count)
-			return false;
-
-		MeshGeometry* g = &m->geometries[0];
-		g->material = MaterialSystem::acquire(names[choice]);
-		if (!g->material)
-		{
-			SHMWARNV("event_on_debug_event - Failed to acquire material '%s'! Using default.", names[choice]);
-			g->material = MaterialSystem::get_default_material();
-		}
-
-		MaterialSystem::release(old_name);
-	}
-	else if (code == SystemEventCode::DEBUG1)
-	{
-		if (app_state->main_scene.state == ResourceState::INITIALIZED || app_state->main_scene.state == ResourceState::UNLOADED)
-		{
-			SHMDEBUG("Loading main scene...");
-
-			if (!scene_load(&app_state->main_scene))
-				SHMERROR("Failed to load main_scene!");
-		}
-	}
-	else if (code == SystemEventCode::DEBUG2)
-	{
-		if (app_state->main_scene.state == ResourceState::LOADED)
-		{
-			SHMDEBUG("Unloading main scene...");
-			scene_unload(&app_state->main_scene);
-			for (uint32 i = 0; i < app_state->test_raycast_lines.count; i++)
-				line3D_destroy(&app_state->test_raycast_lines[i]);
-			app_state->test_raycast_lines.clear();
-		}
-	}
-
-	return true;
-}
-
-bool32 application_boot(Application* app_inst)
-{
-
-	app_inst->config.app_frame_data_size = sizeof(ApplicationFrameData);
-	app_inst->config.state_size = sizeof(ApplicationState);
-
-	FontSystem::SystemConfig* font_sys_config = &app_inst->config.fontsystem_config;
-	font_sys_config->auto_release = false;
-	font_sys_config->max_bitmap_font_config_count = 15;
-	font_sys_config->max_truetype_font_config_count = 15;
-
-	font_sys_config->default_bitmap_font_count = 2;
-	app_inst->config.bitmap_font_configs.init(font_sys_config->default_bitmap_font_count, 0);
-	font_sys_config->bitmap_font_configs = app_inst->config.bitmap_font_configs.data;
-
-	font_sys_config->bitmap_font_configs[0].name = "Noto Serif 21px";
-	font_sys_config->bitmap_font_configs[0].resource_name = "NotoSerif_21";
-	font_sys_config->bitmap_font_configs[0].size = 21;
-
-	font_sys_config->bitmap_font_configs[1].name = "Roboto Mono 21px";
-	font_sys_config->bitmap_font_configs[1].resource_name = "RobotoMono_21";
-	font_sys_config->bitmap_font_configs[1].size = 21;
-
-	font_sys_config->default_truetype_font_count = 1;
-	app_inst->config.truetype_font_configs.init(font_sys_config->default_truetype_font_count, 0);
-	font_sys_config->truetype_font_configs = app_inst->config.truetype_font_configs.data;
-
-	font_sys_config->truetype_font_configs[0].name = "Martian Mono";
-	font_sys_config->truetype_font_configs[0].resource_name = "MartianMono";
-	font_sys_config->truetype_font_configs[0].default_size = 21;
+	app_state = (ApplicationState*)app_inst->state;
 
 	if (!init_render_views(app_inst))
 	{
@@ -180,23 +66,35 @@ bool32 application_boot(Application* app_inst)
 		return false;
 	}
 
-	return true;
-
-}
-
-bool32 application_init(Application* app_inst)
-{
-	app_state = (ApplicationState*)app_inst->state;
-
 	register_events();
 	add_keymaps();
-
-	DebugConsole::init(&app_state->debug_console);
-	DebugConsole::load(&app_state->debug_console);
 
 	app_state->world_camera = CameraSystem::get_default_camera();
 	app_state->world_camera->set_position({ 10.5f, 5.0f, 9.5f });
 	app_state->allocation_count = 0;
+
+	FontSystem::BitmapFontConfig bitmap_font_configs[2] = {};
+	bitmap_font_configs[0].name = "Noto Serif 21px";
+	bitmap_font_configs[0].resource_name = "NotoSerif_21";
+	bitmap_font_configs[0].size = 21;
+
+	bitmap_font_configs[1].name = "Roboto Mono 21px";
+	bitmap_font_configs[1].resource_name = "RobotoMono_21";
+	bitmap_font_configs[1].size = 21;
+
+	FontSystem::TruetypeFontConfig truetype_font_configs[1] = {};
+	truetype_font_configs[0].name = "Martian Mono";
+	truetype_font_configs[0].resource_name = "MartianMono";
+	truetype_font_configs[0].default_size = 21;
+
+	if (!FontSystem::load_bitmap_font(bitmap_font_configs[0]) || !FontSystem::load_bitmap_font(bitmap_font_configs[1]) || !FontSystem::load_truetype_font(truetype_font_configs[0]))
+	{
+		SHMERROR("Failed to load default fonts.");
+		return false;
+	}
+
+	app_state->debug_console.init();
+	app_state->debug_console.load();
 
 	UITextConfig ui_text_config = {};
 	ui_text_config.type = UITextType::TRUETYPE;
@@ -230,7 +128,7 @@ bool32 application_init(Application* app_inst)
 	ui_config.data_config = &ui_g_config;
 		
 	ui_config.material_name = "test_ui_material";
-	CString::copy("test_ui_mesh", ui_config.data_config->name, max_mesh_name_length);
+	CString::copy("test_ui_mesh", ui_config.data_config->name, Constants::max_mesh_name_length);
 
 	ui_config.data_config->vertex_size = sizeof(Renderer::Vertex2D);
 	ui_config.data_config->vertex_count = 4;
@@ -277,7 +175,7 @@ bool32 application_init(Application* app_inst)
 	ui_mesh->geometries.init(1, 0);
 	ui_mesh->geometries.emplace();
 	ui_mesh->geometries[0].g_data = GeometrySystem::acquire_from_config(ui_config.data_config, true);
-	CString::copy(ui_config.material_name, ui_mesh->geometries[0].material_name, max_material_name_length);
+	CString::copy(ui_config.material_name, ui_mesh->geometries[0].material_name, Constants::max_material_name_length);
 	ui_mesh->geometries[0].material = MaterialSystem::acquire(ui_mesh->geometries[0].material_name);
 	ui_mesh->transform = Math::transform_create();
 	ui_mesh->generation = 0;
@@ -297,7 +195,7 @@ void application_shutdown()
 	for (uint32 i = 0; i < app_state->test_raycast_lines.count; i++)
 		line3D_destroy(&app_state->test_raycast_lines[i]);
 
-	DebugConsole::destroy(&app_state->debug_console);
+	app_state->debug_console.destroy();
 
 	app_state->ui_meshes.free_data();
 
@@ -329,7 +227,7 @@ bool32 application_update(FrameData* frame_data)
 		}	
 	}
 
-	if (app_state->main_scene.state == ResourceState::LOADED)
+	if (app_state->main_scene.state == ResourceState::Loaded)
 	{
 		Mesh* cube1 = scene_get_mesh(&app_state->main_scene, "cube_1");
 		Mesh* cube2 = scene_get_mesh(&app_state->main_scene, "cube_2");
@@ -386,7 +284,7 @@ bool32 application_update(FrameData* frame_data)
 
 	gizmo3D_update(&app_state->editor_gizmo);
 
-	DebugConsole::update(&app_state->debug_console);
+	app_state->debug_console.update();
 
 	return true;
 }
@@ -411,7 +309,7 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 	uint32 ui_view_i = packet->views.emplace(RenderViewSystem::get("ui"));
 	uint32 pick_view_i = packet->views.emplace(RenderViewSystem::get("pick"));
 
-	if (app_state->main_scene.state == ResourceState::LOADED)
+	if (app_state->main_scene.state == ResourceState::Loaded)
 		scene_draw(&app_state->main_scene, packet->views[skybox_view_i], packet->views[world_view_i], &app_state->camera_frustum, frame_data);
 
 	RenderViewSystem::lines3D_draw(packet->views[world_view_i], app_state->test_raycast_lines.data, app_state->test_raycast_lines.count, color3D_shader_id, frame_data);
@@ -422,12 +320,12 @@ bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
 
 	RenderViewSystem::ui_text_draw(packet->views[ui_view_i], &app_state->debug_info_text, ui_shader_id, frame_data);
 
-	if (DebugConsole::is_visible(&app_state->debug_console))
+	if (app_state->debug_console.is_visible())
 	{
-		UIText* console_text = DebugConsole::get_text(&app_state->debug_console);
+		UIText* console_text = app_state->debug_console.get_text();
 		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], console_text, ui_shader_id, frame_data);
 
-		UIText* entry_text = DebugConsole::get_entry_text(&app_state->debug_console);
+		UIText* entry_text = app_state->debug_console.get_entry_text();
 		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], entry_text, ui_shader_id, frame_data);
 	}
 
@@ -452,15 +350,15 @@ void application_on_module_reload(void* application_state)
 	app_state = (ApplicationState*)application_state;
 
 	register_events();
-	DebugConsole::on_module_reload(&app_state->debug_console);
+	app_state->debug_console.on_module_reload();
 	add_keymaps();
 }
 
 void application_on_module_unload()
 {
 	unregister_events();
-	DebugConsole::on_module_unload(&app_state->debug_console);
-	remove_keymaps();
+	app_state->debug_console.on_module_unload();
+	Input::clear_keymaps();
 }
 
 static bool32 init_render_views(Application* app_inst)
@@ -486,7 +384,7 @@ static bool32 init_render_views(Application* app_inst)
 
 		Renderer::RenderPassConfig* skybox_pass_config = &skybox_pass_configs[0];
 		skybox_pass_config->name = "Builtin.Skybox";
-		skybox_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
+		skybox_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
 		skybox_pass_config->offset = { 0, 0 };
 		skybox_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
 		skybox_pass_config->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER;
@@ -528,7 +426,7 @@ static bool32 init_render_views(Application* app_inst)
 		Renderer::RenderPassConfig* world_pass_config = &world_pass_configs[0];
 
 		world_pass_config->name = "Builtin.World";
-		world_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
+		world_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
 		world_pass_config->offset = { 0, 0 };
 		world_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
 		world_pass_config->clear_flags = Renderer::RenderpassClearFlags::DEPTH_BUFFER | Renderer::RenderpassClearFlags::STENCIL_BUFFER;
@@ -576,7 +474,7 @@ static bool32 init_render_views(Application* app_inst)
 		Renderer::RenderPassConfig* world_editor_pass_config = &world_editor_pass_configs[0];
 
 		world_editor_pass_config->name = "Builtin.WorldEditor";
-		world_editor_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
+		world_editor_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
 		world_editor_pass_config->offset = { 0, 0 };
 		world_editor_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
 		world_editor_pass_config->clear_flags = Renderer::RenderpassClearFlags::NONE;
@@ -623,7 +521,7 @@ static bool32 init_render_views(Application* app_inst)
 
 		Renderer::RenderPassConfig* ui_pass_config = &ui_pass_configs[0];
 		ui_pass_config->name = "Builtin.UI";
-		ui_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
+		ui_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
 		ui_pass_config->offset = { 0, 0 };
 		ui_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
 		ui_pass_config->clear_flags = Renderer::RenderpassClearFlags::NONE;
@@ -666,7 +564,7 @@ static bool32 init_render_views(Application* app_inst)
 		Renderer::RenderPassConfig* ui_pick_pass_config = &pick_pass_configs[1];
 
 		world_pick_pass_config->name = "Builtin.WorldPick";
-		world_pick_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
+		world_pick_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
 		world_pick_pass_config->offset = { 0, 0 };
 		world_pick_pass_config->clear_color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		world_pick_pass_config->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER | Renderer::RenderpassClearFlags::DEPTH_BUFFER;
@@ -692,7 +590,7 @@ static bool32 init_render_views(Application* app_inst)
 		world_pick_pass_config->render_target_count = 1;
 
 		ui_pick_pass_config->name = "Builtin.UIPick";
-		ui_pick_pass_config->dim = { app_inst->config.start_width, app_inst->config.start_height };
+		ui_pick_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
 		ui_pick_pass_config->offset = { 0, 0 };
 		ui_pick_pass_config->clear_color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		ui_pick_pass_config->clear_flags = Renderer::RenderpassClearFlags::NONE;
@@ -712,6 +610,110 @@ static bool32 init_render_views(Application* app_inst)
 		ui_pick_pass_config->render_target_count = 1;
 
 		RenderViewSystem::register_view(pick_view, pick_pass_count, pick_pass_configs);
+	}
+
+	return true;
+}
+
+static bool32 application_on_mousebutton_released(uint16 code, void* sender, void* listener_inst, EventData data)
+{
+
+	if (app_state->main_scene.state != ResourceState::Loaded)
+		return false;
+
+	if (data.ui8[0] == MouseButton::LMB)
+	{
+		int16 x = data.i16[1];
+		int16 y = data.i16[2];
+
+		Math::Mat4 view = app_state->world_camera->get_view();
+		Math::Vec3f origin = app_state->world_camera->get_position();
+		Math::Mat4 projection = Math::mat_perspective(Math::deg_to_rad(45.0f), (float32)app_state->width / app_state->height, 0.1f, 4000.0f);
+
+		Math::Ray3D ray = Math::ray3D_create_from_screen({ (float32)x, (float32)y }, { (float32)app_state->width, (float32)app_state->height }, origin, view, projection);
+		Math::Ray3DHitInfo hit_info = scene_raycast(&app_state->main_scene, ray);
+
+		if (hit_info.type == Math::Ray3DHitType::NONE)
+		{
+			SHMDEBUG("Raycast: No object hit.");
+			return false;
+		}
+
+		SHMDEBUGV("Raycast: Hit object %u at %f/%f/%f.", hit_info.unique_id, hit_info.position.x, hit_info.position.y, hit_info.position.z);
+
+		Line3D* new_line = &app_state->test_raycast_lines[app_state->test_raycast_lines.emplace()];
+		if (!line3D_init(origin, hit_info.position, { 1.0f, 1.0f, 0.0f, 1.0f }, new_line) || !line3D_load(new_line))
+			SHMERROR("Failed to init or load new test line!");
+	}
+	
+	
+	return false;
+}
+
+static bool32 application_on_event(uint16 code, void* sender, void* listener_inst, EventData data)
+{
+	switch (code)
+	{
+	case SystemEventCode::OBJECT_HOVER_ID_CHANGED:
+	{
+		app_state->hovered_object_id = data.ui32[0];
+		return true;
+	}
+	}
+
+	return true;
+}
+
+static bool32 application_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
+{
+
+	if (code == SystemEventCode::DEBUG0 && app_state->main_scene.state == ResourceState::Loaded)
+	{
+		const char* names[3] = {
+		"cobblestone",
+		"paving",
+		"paving2"
+		};
+
+		static int32 choice = 2;
+		const char* old_name = names[choice];
+		choice++;
+		choice %= 3;
+		
+		Mesh* m = scene_get_mesh(&app_state->main_scene, "test_cube1");
+		if (!m || !m->geometries.count)
+			return false;
+
+		MeshGeometry* g = &m->geometries[0];
+		g->material = MaterialSystem::acquire(names[choice]);
+		if (!g->material)
+		{
+			SHMWARNV("event_on_debug_event - Failed to acquire material '%s'! Using default.", names[choice]);
+			g->material = MaterialSystem::get_default_material();
+		}
+
+		MaterialSystem::release(old_name);
+	}
+	else if (code == SystemEventCode::DEBUG1)
+	{
+		if (app_state->main_scene.state == ResourceState::Initialized || app_state->main_scene.state == ResourceState::Unloaded)
+		{
+			SHMDEBUG("Loading main scene...");
+
+			if (!scene_load(&app_state->main_scene))
+				SHMERROR("Failed to load main_scene!");
+		}
+	}
+	else if (code == SystemEventCode::DEBUG2)
+	{
+		if (app_state->main_scene.state == ResourceState::Loaded)
+		{
+			SHMDEBUG("Unloading main scene...");
+			scene_unload(&app_state->main_scene);
+			for (uint32 i = 0; i < app_state->test_raycast_lines.count; i++)
+				line3D_destroy(&app_state->test_raycast_lines[i]);
+			app_state->test_raycast_lines.clear();
+		}
 	}
 
 	return true;

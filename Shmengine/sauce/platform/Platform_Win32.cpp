@@ -66,14 +66,6 @@ namespace Platform
             return FALSE;
         }  
 
-		// Setup mouse for low-level offset input messages
-        RAWINPUTDEVICE Rid[1];
-        Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-        Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
-        Rid[0].dwFlags = RIDEV_INPUTSINK;
-        Rid[0].hwndTarget = NULL;
-        RegisterRawInputDevices(Rid, 1, sizeof(Rid[0]));
-
         // Clock setup
         LARGE_INTEGER frequency;
         QueryPerformanceFrequency(&frequency);
@@ -145,19 +137,19 @@ namespace Platform
         window_width += border_rect.right - border_rect.left;
         window_height += border_rect.bottom - border_rect.top;
 
-        HWND handle = CreateWindowExA(
+        HWND window_handle = CreateWindowExA(
             window_ex_style, "default_window_class", window->title,
             window_style, window_x, window_y, window_width, window_height,
             0, 0, plat_state->h_instance, 0);
 
-        if (handle == 0) 
+        if (window_handle == 0) 
         {
             MessageBoxA(NULL, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
             return FALSE;
         }
 
         window->handle.h_instance = plat_state->h_instance;
-        window->handle.h_wnd = handle; 
+        window->handle.h_wnd = window_handle; 
         window->id = window_id;
 
         // Show the window
@@ -168,6 +160,14 @@ namespace Platform
         // If initially minimized, use SW_MINIMIZE : SW_SHOWMINNOACTIVE;
         // If initially maximized, use SW_SHOWMAXIMIZED : SW_MAXIMIZE
         ShowWindow((HWND)window->handle.h_wnd, show_window_command_flags);
+
+		// Setup mouse for low-level offset input messages
+        RAWINPUTDEVICE Rid[1];
+        Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+        Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+        Rid[0].dwFlags = RIDEV_INPUTSINK;
+        Rid[0].hwndTarget = window_handle;
+        RegisterRawInputDevices(Rid, 1, sizeof(Rid[0]));
 
         return true;
     }
@@ -447,7 +447,7 @@ namespace Platform
             return false;
 
         CString::copy(name, out_lib->name, sizeof(out_lib->name));
-        CString::copy(name, out_lib->filename, Constants::MAX_FILEPATH_LENGTH);
+        CString::copy(name, out_lib->filename, Constants::max_filepath_length);
         out_lib->handle = lib;
 
         SHMINFOV("Loaded dynamic library '%s'", name);

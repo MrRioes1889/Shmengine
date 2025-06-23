@@ -7,7 +7,7 @@
 #include <utility/MathTypes.hpp>
 #include <systems/CameraSystem.hpp>
 
-#include "DebugConsole.hpp"
+#include "ui/DebugConsole.hpp"
 
 #include "resources/Scene.hpp"
 
@@ -38,9 +38,7 @@ struct ApplicationState
 
     Darray<Line3D> test_raycast_lines;
 
-    Input::Keymap console_keymap;
-
-    DebugConsole::ConsoleState debug_console;
+    DebugConsole debug_console;
 
 };
 

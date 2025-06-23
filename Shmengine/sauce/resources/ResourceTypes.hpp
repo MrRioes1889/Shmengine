@@ -4,12 +4,12 @@
 
 enum class ResourceState : uint8
 {
-	UNINITIALIZED,
-	DESTROYED,
-	INITIALIZING,
-	INITIALIZED,
-	LOADING,
-	LOADED,
-	UNLOADING,
-	UNLOADED
+	Uninitialized,
+	Destroyed,
+	Initializing,
+	Initialized,
+	Loading,
+	Loaded,
+	Unloading,
+	Unloaded
 };

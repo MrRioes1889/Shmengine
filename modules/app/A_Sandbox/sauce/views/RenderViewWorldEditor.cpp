@@ -74,14 +74,14 @@ bool32 render_view_world_editor_on_register(RenderView* self)
 	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::RENDERER);
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
-	internal_data->color3D_shader_u_locations.view = INVALID_ID16;
-	internal_data->color3D_shader_u_locations.projection = INVALID_ID16;
-	internal_data->color3D_shader_u_locations.model = INVALID_ID16;
+	internal_data->color3D_shader_u_locations.view = Constants::max_u16;
+	internal_data->color3D_shader_u_locations.projection = Constants::max_u16;
+	internal_data->color3D_shader_u_locations.model = Constants::max_u16;
 
-	internal_data->coordinate_grid_shader_u_locations.view = INVALID_ID16;
-	internal_data->coordinate_grid_shader_u_locations.projection = INVALID_ID16;
-	internal_data->coordinate_grid_shader_u_locations.near = INVALID_ID16;
-	internal_data->coordinate_grid_shader_u_locations.far = INVALID_ID16;
+	internal_data->coordinate_grid_shader_u_locations.view = Constants::max_u16;
+	internal_data->coordinate_grid_shader_u_locations.projection = Constants::max_u16;
+	internal_data->coordinate_grid_shader_u_locations.near = Constants::max_u16;
+	internal_data->coordinate_grid_shader_u_locations.far = Constants::max_u16;
 
 	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_coordinate_grid, &self->renderpasses[0]))
 	{
@@ -109,7 +109,7 @@ bool32 render_view_world_editor_on_register(RenderView* self)
 	internal_data->camera = CameraSystem::get_default_camera();
 
 	GeometryData* grid_geometry = &internal_data->coordinate_grid.geometry;
-	grid_geometry->id = INVALID_ID;
+	grid_geometry->id = Constants::max_u32;
 	grid_geometry->vertex_size = sizeof(VertexCoordinateGrid);
 	grid_geometry->vertex_count = 6;
 	grid_geometry->vertices.init(grid_geometry->vertex_size * grid_geometry->vertex_count, 0);
@@ -212,7 +212,7 @@ bool32 render_view_world_editor_on_render(RenderView* self, FrameData* frame_dat
 	{
 		RenderViewInstanceData* instance_data = &self->instances[instance_i];
 
-		if (instance_data->shader_instance_id == INVALID_ID)
+		if (instance_data->shader_instance_id == Constants::max_u32)
 			continue;
 
 		bool32 instance_set = true;
@@ -224,7 +224,7 @@ bool32 render_view_world_editor_on_render(RenderView* self, FrameData* frame_dat
 
 	Renderer::RenderPass* renderpass = &self->renderpasses[0];
 
-	uint32 shader_id = INVALID_ID;
+	uint32 shader_id = Constants::max_u32;
 
 	if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 	{
@@ -243,10 +243,10 @@ bool32 render_view_world_editor_on_render(RenderView* self, FrameData* frame_dat
 			ShaderSystem::bind_globals();
 		}
 
-		if (render_data->shader_instance_id != INVALID_ID)
+		if (render_data->shader_instance_id != Constants::max_u32)
 			ShaderSystem::bind_instance(render_data->shader_instance_id);
 
-		if (render_data->object_index != INVALID_ID)
+		if (render_data->object_index != Constants::max_u32)
 		{
 			Math::Mat4* model = &self->objects[render_data->object_index].model;
 			if (shader_id == internal_data->color3D_shader->id)

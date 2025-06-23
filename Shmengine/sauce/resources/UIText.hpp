@@ -33,6 +33,7 @@ struct UIText
 {
 	UITextType type;
 	ResourceState state;
+	bool8 is_dirty;
 	UniqueId unique_id;
 	uint32 shader_instance_id;
 	FontAtlas* font_atlas;
@@ -47,5 +48,5 @@ SHMAPI bool32 ui_text_load(UIText* text);
 SHMAPI bool32 ui_text_unload(UIText* text);
 
 SHMAPI void ui_text_set_position(UIText* ui_text, Math::Vec3f position);
-SHMAPI void ui_text_set_text(UIText* ui_text, const char* text);
+SHMAPI void ui_text_set_text(UIText* ui_text, const char* text, int32 length = -1);
 SHMAPI void ui_text_update(UIText* ui_text);

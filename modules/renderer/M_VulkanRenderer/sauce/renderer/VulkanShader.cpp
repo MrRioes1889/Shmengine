@@ -577,7 +577,7 @@ namespace Renderer::Vulkan
 
 				// TODO: change up descriptor state to handle this properly.
 				// Sync frame generation if not using a default texture.
-				// if (t->generation != INVALID_ID) {
+				// if (t->generation != Constants::max_u32) {
 				//     *descriptor_generation = t->generation;
 				//     *descriptor_id = t->id;
 				// }		

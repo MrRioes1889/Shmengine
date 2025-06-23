@@ -3,6 +3,7 @@
 #include <defines.hpp>
 
 struct Application;
+struct ApplicationConfig;
 struct FrameData;
 namespace Renderer
 {
@@ -25,7 +26,7 @@ namespace SandboxRenderViews
 extern "C"
 {
 
-    SHMAPI bool32 application_boot(Application* app_inst);
+    SHMAPI bool32 application_load_config(ApplicationConfig* out_config);
 
     SHMAPI bool32 application_init(Application* app_inst);
 

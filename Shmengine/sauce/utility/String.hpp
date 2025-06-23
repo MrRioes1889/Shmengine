@@ -25,6 +25,7 @@ struct SHMAPI String
 	String& operator=(const char* s);
 	void copy_n(const char* s, uint32 length);
 
+	void reserve(uint32 reserve_size);
 	void free_data();
 
 	SHMINLINE char& operator[](uint32 index) { return arr.data[index]; }
@@ -60,6 +61,8 @@ struct SHMAPI String
 	SHMINLINE int32 index_of(char c) { return CString::index_of(arr.data, c); }
 	SHMINLINE int32 index_of_last(char c) { return CString::index_of_last(arr.data, c); }
 	SHMINLINE bool32 is_empty() { return !arr.data || !arr.count; }
+	SHMINLINE char first() { return arr[0]; }
+	SHMINLINE char last() { return arr[arr.count-1]; }
 
 	SHMINLINE const char* c_str() const { return arr.data; }
 	//SHMINLINE operator const char* () { return arr.data; }
