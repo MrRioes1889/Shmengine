@@ -34,13 +34,12 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
         return false;
     }
 
-    out_ui_text->text = config->text_content;
     out_ui_text->text_ref = config->text_content;
     out_ui_text->transform = Math::transform_create();
 
     out_ui_text->shader_instance_id = Constants::max_u32;
 
-    uint32 text_length = out_ui_text->text.len();
+    uint32 text_length = out_ui_text->text_ref.len();
     if (text_length < 1)
         text_length = 1;
 
@@ -68,8 +67,6 @@ bool32 ui_text_destroy(UIText* ui_text)
 {
     if (ui_text->state != ResourceState::Unloaded && !ui_text_unload(ui_text))
         return false;
-
-    ui_text->text.free_data();
 
     ui_text->geometry.vertices.free_data();
     ui_text->geometry.indices.free_data();
@@ -130,21 +127,13 @@ void ui_text_set_position(UIText* ui_text, Math::Vec3f position)
     ui_text->is_dirty = true;
 }
 
-void ui_text_set_text(UIText* ui_text, const char* text, uint32 offset, int32 length)
+void ui_text_set_text(UIText* ui_text, const char* text, uint32 offset, uint32 length)
 {   
     ui_text->text_ref.set_text(text, offset, length);
-    if (ui_text->text == text)
-        return;  
-
-    if (length >= 0)
-        ui_text->text.copy_n(text, length);
-    else
-        ui_text->text = text;
-
     ui_text->is_dirty = true;
 }
 
-void ui_text_set_text(UIText* ui_text, const String* text, uint32 offset, int32 length)
+void ui_text_set_text(UIText* ui_text, const String* text, uint32 offset, uint32 length)
 {   
     ui_text->text_ref.set_text(text, offset, length);
 	ui_text->is_dirty = true;
@@ -155,7 +144,7 @@ void ui_text_update(UIText* ui_text)
     if (!ui_text->is_dirty)
         return;
 
-    if (!FontSystem::verify_atlas(ui_text->font_atlas, ui_text->text.c_str()))
+    if (!FontSystem::verify_atlas(ui_text->font_atlas, ui_text->text_ref.c_str()))
     {
         SHMERROR("Font atlas verification failed");
         return;
@@ -179,8 +168,6 @@ static void regenerate_geometry(UIText* ui_text)
 
     uint32 char_length = ui_text->text_ref.len();
     uint32 utf8_length = FontSystem::utf8_string_length(ui_text->text_ref.c_str(), ui_text->text_ref.len(), true);
-    const char* test = ui_text->text_ref.c_str();
-    uint32 utf8_length_alt = FontSystem::utf8_string_length(ui_text->text.c_str(), ui_text->text.len(), true);
 
     if (utf8_length < 1)
         return;

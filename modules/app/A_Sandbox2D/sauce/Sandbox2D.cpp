@@ -49,7 +49,7 @@ bool32 application_load_config(ApplicationConfig* out_config)
 	out_config->name = "Shmengine Sandbox2D";   
 	out_config->renderer_module_name = "M_VulkanRenderer";
 
-	out_config->limit_framerate = true;
+	out_config->limit_framerate = false;
 	
 	return true;
 }

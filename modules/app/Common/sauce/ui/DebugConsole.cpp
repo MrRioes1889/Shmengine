@@ -373,7 +373,7 @@ static void on_key_hold(KeyCode::Value key, Input::KeymapBindingType type, Input
 
 	if (key_code == KeyCode::Backspace)
 	{
-		if (console->entry_control.text.len() <= sizeof(console->entry_text_prefix))
+		if (console->entry_text.len() <= sizeof(console->entry_text_prefix))
 			return;
 
 		console->entry_text.pop();
