@@ -94,7 +94,7 @@ namespace FontSystem
 
 	bool32 verify_atlas(FontAtlas* font, const char* text);
 
-	uint32 utf8_string_length(const char* str, bool32 ignore_control_character);
+	uint32 utf8_string_length(const char* str, uint32 char_length, bool32 ignore_control_characters);
 	bool32 utf8_bytes_to_codepoint(const char* bytes, uint32 offset, int32* out_codepoint, uint8* out_advance);
 
 }

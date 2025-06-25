@@ -223,38 +223,95 @@ namespace CString
 void mid(String& out_s, const char* source, uint32 start, int32 length)
 {
 	out_s = source;
-	out_s.arr.count = CString::mid(out_s.arr.data, out_s.arr.count, start, length);
+	out_s.mid(start, length);
 }
 
 void left_of_last(String& out_s, const char* source, char c)
 {
 	out_s = source;
-	out_s.arr.count = CString::left_of_last(out_s.arr.data, out_s.arr.count, c);
+	out_s.left_of_last(c);
 }
 
 void right_of_last(String& out_s, const char* source, char c)
 {
 	out_s = source;
-	out_s.arr.count = CString::right_of_last(out_s.arr.data, out_s.arr.count, c);
+	out_s.right_of_last(c);
 }
 
 void trim(String& out_s, const char* other)
 {
 	out_s = other;
-	out_s.arr.count = CString::trim(out_s.arr.data);
+	out_s.trim();
 }
 
-int32 print_s(String& out_s, const char* format, ...)
+int32 String::print_s(const char* format, ...)
 {
+	if (!arr.data)
+		return -1;
+
 	va_list arg_ptr;
 	va_start(arg_ptr, format);
 
-	int32 res = CString::print_s(out_s.arr.data, out_s.arr.capacity, format, arg_ptr);
+	int32 res = CString::print_s(arr.data, arr.capacity, format, arg_ptr);
 	if (res >= 0)
-		out_s.arr.count = (uint32)res;
+		arr.count = (uint32)res;
 
 	va_end(arg_ptr);
 
 	return res;
 }
 
+
+StringRef::StringRef() 
+	: str(0), full_length(0), ref_offset(0), ref_length(0) 
+{}
+
+StringRef::StringRef(const char* s) 
+	: str(s), full_length(CString::length(str)), ref_offset(0), ref_length(full_length) 
+{}
+
+StringRef::StringRef(const char* s, uint32 offset) 
+	: str(s), full_length(CString::length(str)), ref_offset(SHMIN(offset, full_length)), ref_length(full_length - ref_offset) 
+{}
+
+StringRef::StringRef(const char* s, uint32 offset, uint32 length) 
+	: str(s), full_length(CString::length(str)), ref_offset(SHMIN(offset, full_length)), ref_length(SHMIN(length, full_length - ref_offset)) 
+{}
+
+StringRef::StringRef(const String* s) 
+	: str(s->c_str()), full_length(s->len()), ref_offset(0), ref_length(full_length) 
+{}
+
+StringRef::StringRef(const String* s, uint32 offset) 
+	: str(s->c_str()), full_length(s->len()), ref_offset(SHMIN(offset, full_length)), ref_length(full_length - ref_offset) 
+{}
+
+StringRef::StringRef(const String* s, uint32 offset, uint32 length) 
+	: str(s->c_str()), full_length(s->len()), ref_offset(SHMIN(offset, full_length)), ref_length(SHMIN(length, full_length - ref_offset)) 
+{}
+
+void StringRef::operator=(const char* s)
+{
+	set_text(s);
+}
+
+void StringRef::operator=(const String* s)
+{
+	set_text(s);
+}
+
+void StringRef::set_text(const char* s, uint32 offset, uint32 length)
+{
+	str = s;
+	full_length = CString::length(str);
+	ref_offset = SHMIN(offset, full_length);
+	ref_length = SHMIN(length, full_length - ref_offset);
+}
+
+void StringRef::set_text(const String* s, uint32 offset, uint32 length)
+{
+	str = s->c_str();
+	full_length = s->len();
+	ref_offset = SHMIN(offset, full_length);
+	ref_length = SHMIN(length, full_length - ref_offset);
+}

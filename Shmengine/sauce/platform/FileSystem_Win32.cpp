@@ -184,11 +184,10 @@ namespace FileSystem
 	{
 		if (!file->handle)
 			return false;
+	
+		out_buffer.reserve(size);
 
-		if (out_buffer.arr.capacity < size)
-			out_buffer.arr.resize(size);
-
-		if (!ReadFile(file->handle, out_buffer.arr.data, size, (LPDWORD)out_bytes_read, 0))
+		if (!ReadFile(file->handle, out_buffer.c_str_vulnerable(), size, (LPDWORD)out_bytes_read, 0))
 		{
 			SHMERROR("Failed to read file.");
 			return false;

@@ -45,9 +45,7 @@ namespace CString
 	{
 		uint32 ret = 0;
 		while (buffer[ret] && buffer[ret] != c)
-		{
 			ret++;
-		}
 
 		if (!buffer[ret])
 			return -1;

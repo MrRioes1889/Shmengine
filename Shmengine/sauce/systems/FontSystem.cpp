@@ -527,12 +527,13 @@ namespace FontSystem
 
 	}
 
-	uint32 utf8_string_length(const char* str , bool32 ignore_control_characters)
+	uint32 utf8_string_length(const char* str, uint32 char_length, bool32 ignore_control_characters)
 	{
 		uint32 length = 0;
-		for (uint32 i = 0; str[i]; i++)
+		uint32 char_i = 0;
+		for (char_i = 0; str[char_i] && char_i < char_length; char_i++)
 		{
-			uint32 c = (uint32)str[i];
+			uint32 c = (uint32)str[char_i];
 			if (c == 0) 
 			{
 				break;
@@ -545,26 +546,31 @@ namespace FontSystem
 			else if ((c & 0xE0) == 0xC0) 
 			{
 				// Double-byte character, increment once more.
-				i += 1;
+				char_i += 1;
 			}
 			else if ((c & 0xF0) == 0xE0) 
 			{
 				// Triple-byte character, increment twice more.
-				i += 2;
+				char_i += 2;
 			}
 			else if ((c & 0xF8) == 0xF0) 
 			{
 				// 4-byte character, increment thrice more.
-				i += 3;
+				char_i += 3;
 			}
 			else 
 			{
-				// NOTE: Not supporting 5 and 6-byte characters; return as invalid UTF-8.
-				SHMERROR("utf8_string_length - Not supporting 5 and 6-byte characters; Invalid UTF-8.");
+				SHMERROR("Not supporting 5 and 6-byte characters; Invalid UTF-8.");
 				return 0;
 			}
 
 			length++;
+		}
+
+		if (char_i > char_length)
+		{
+			SHMERROR("Char buffer does not fit expected UTF-8 format; Invalid UTF-8.");
+			return 0;
 		}
 
 		return length;

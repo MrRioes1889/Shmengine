@@ -35,6 +35,7 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
     }
 
     out_ui_text->text = config->text_content;
+    out_ui_text->text_ref = config->text_content;
     out_ui_text->transform = Math::transform_create();
 
     out_ui_text->shader_instance_id = Constants::max_u32;
@@ -129,8 +130,9 @@ void ui_text_set_position(UIText* ui_text, Math::Vec3f position)
     ui_text->is_dirty = true;
 }
 
-void ui_text_set_text(UIText* ui_text, const char* text, int32 length)
+void ui_text_set_text(UIText* ui_text, const char* text, uint32 offset, int32 length)
 {   
+    ui_text->text_ref.set_text(text, offset, length);
     if (ui_text->text == text)
         return;  
 
@@ -140,6 +142,12 @@ void ui_text_set_text(UIText* ui_text, const char* text, int32 length)
         ui_text->text = text;
 
     ui_text->is_dirty = true;
+}
+
+void ui_text_set_text(UIText* ui_text, const String* text, uint32 offset, int32 length)
+{   
+    ui_text->text_ref.set_text(text, offset, length);
+	ui_text->is_dirty = true;
 }
 
 void ui_text_update(UIText* ui_text)
@@ -169,8 +177,10 @@ static void regenerate_geometry(UIText* ui_text)
 
     OPTICK_EVENT();
 
-    uint32 char_length = ui_text->text.len();
-    uint32 utf8_length = FontSystem::utf8_string_length(ui_text->text.c_str(), true);
+    uint32 char_length = ui_text->text_ref.len();
+    uint32 utf8_length = FontSystem::utf8_string_length(ui_text->text_ref.c_str(), ui_text->text_ref.len(), true);
+    const char* test = ui_text->text_ref.c_str();
+    uint32 utf8_length_alt = FontSystem::utf8_string_length(ui_text->text.c_str(), ui_text->text.len(), true);
 
     if (utf8_length < 1)
         return;
@@ -193,7 +203,7 @@ static void regenerate_geometry(UIText* ui_text)
 
     // Take the length in chars and get the correct codepoint from it.
     for (uint32 c = 0, uc = 0; c < char_length; ++c) {
-        int32 codepoint = ui_text->text[c];
+        int32 codepoint = ui_text->text_ref[c];
 
         // Continue to next line for newline.
         if (codepoint == '\n') {
@@ -209,7 +219,7 @@ static void regenerate_geometry(UIText* ui_text)
 
         // NOTE: UTF-8 codepoint handling.
         uint8 advance = 0;
-        if (!FontSystem::utf8_bytes_to_codepoint(ui_text->text.c_str(), c, &codepoint, &advance)) {
+        if (!FontSystem::utf8_bytes_to_codepoint(ui_text->text_ref.c_str(), c, &codepoint, &advance)) {
             SHMWARN("Invalid UTF-8 found in string, using unknown codepoint of -1");
             codepoint = -1;
         }
@@ -270,7 +280,7 @@ static void regenerate_geometry(UIText* ui_text)
                 int32 next_codepoint = 0;
                 uint8 advance_next = 0;
 
-                if (!FontSystem::utf8_bytes_to_codepoint(ui_text->text.c_str(), offset, &next_codepoint, &advance_next)) {
+                if (!FontSystem::utf8_bytes_to_codepoint(ui_text->text_ref.c_str(), offset, &next_codepoint, &advance_next)) {
                     SHMWARN("Invalid UTF-8 found in string, using unknown codepoint of -1");
                     codepoint = -1;
                 }

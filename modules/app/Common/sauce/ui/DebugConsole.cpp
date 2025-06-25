@@ -121,7 +121,7 @@ static void update_displayed_console_text(DebugConsole* console)
 	for (uint32 i = 0; i < console->lines_display_limit && i < console->lines_count; i++)
 		text_length += console->line_lenghts[console->lines_display_offset + i];
 
-	ui_text_set_text(&console->text_control, &console->console_text[(uint32)console->text_display_offset], text_length);
+	ui_text_set_text(&console->text_control, console->console_text.c_str(), (uint32)console->text_display_offset, text_length);
 }
 
 void DebugConsole::scroll_down()
