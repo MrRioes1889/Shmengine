@@ -128,9 +128,8 @@ template<typename T>
 SHMINLINE bool32 Hashtable<T>::floodfill(const T& value)
 {
 	for (uint32 i = 0; i < element_count; i++)
-	{
 		buffer[i] = value;
-	}
+
 	return true;
 }
 

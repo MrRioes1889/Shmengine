@@ -139,7 +139,7 @@ namespace Renderer
 		system_state->module.on_config_changed();
 	}
 
-	bool32 draw_frame(RenderPacket* data, FrameData* frame_data)
+	bool32 draw_frame(FrameData* frame_data)
 	{
 		OPTICK_EVENT();
 		Module& backend = system_state->module;
@@ -166,8 +166,6 @@ namespace Renderer
 		}
 
 		system_state->frame_number++;
-		if (!data->views.capacity)
-			return true;
 
 		if (!backend.begin_frame(frame_data))
 		{
@@ -178,20 +176,15 @@ namespace Renderer
 
 		uint32 render_target_index = system_state->module.get_window_attachment_index();
 
-		for (uint32 i = 0; i < data->views.capacity; i++)
-		{
-			if (!RenderViewSystem::on_render(data->views[i], frame_data, system_state->module.frame_number, render_target_index))
-			{
-				SHMERRORV("Error rendering view index: %u", i);
-				return false;
-			}
-		}
+		RenderViewSystem::on_render(frame_data, system_state->module.frame_number, render_target_index);
 
 		if (!backend.end_frame(frame_data))
 		{
 			SHMERROR("draw_frame - Failed to end frame;");
 			return false;
 		}
+
+		RenderViewSystem::on_end_frame();
 
 		return true;
 	}

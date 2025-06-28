@@ -789,7 +789,7 @@ PointLight* scene_get_point_light(Scene* scene, uint32 index)
 	return &scene->p_lights[index];
 }
 
-bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view, const Math::Frustum* camera_frustum, FrameData* frame_data)
+bool32 scene_draw(Scene* scene, Id16 skybox_view_id, Id16 world_view_id, const Math::Frustum* camera_frustum, FrameData* frame_data)
 {
 
 	if (scene->state != ResourceState::Loaded)
@@ -798,7 +798,7 @@ bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view,
 	uint32 skybox_shader_id = ShaderSystem::get_skybox_shader_id();
 
 	if (scene->skybox.state >= ResourceState::Initialized)
-		frame_data->drawn_geometry_count += RenderViewSystem::skybox_draw(skybox_view, &scene->skybox, skybox_shader_id, frame_data);
+		frame_data->drawn_geometry_count += RenderViewSystem::skybox_draw(skybox_view_id, &scene->skybox, skybox_shader_id, frame_data);
 
 	LightingInfo lighting =
 	{
@@ -808,13 +808,13 @@ bool32 scene_draw(Scene* scene, RenderView* skybox_view, RenderView* world_view,
 	};
 
 	uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
-	frame_data->drawn_geometry_count += RenderViewSystem::terrains_draw(world_view, scene->terrains.data, scene->terrains.count, terrain_shader_id, lighting, frame_data);
+	frame_data->drawn_geometry_count += RenderViewSystem::terrains_draw(world_view_id, scene->terrains.data, scene->terrains.count, terrain_shader_id, lighting, frame_data);
 
 	uint32 material_shader_id = ShaderSystem::get_material_phong_shader_id();
-	frame_data->drawn_geometry_count += RenderViewSystem::meshes_draw(world_view, scene->meshes.data, scene->meshes.count, material_shader_id, lighting, frame_data, camera_frustum);
+	frame_data->drawn_geometry_count += RenderViewSystem::meshes_draw(world_view_id, scene->meshes.data, scene->meshes.count, material_shader_id, lighting, frame_data, camera_frustum);
 
 	uint32 color3D_shader_id = ShaderSystem::get_color3D_shader_id();
-	frame_data->drawn_geometry_count += RenderViewSystem::boxes3D_draw(world_view, scene->p_light_boxes.data, scene->p_light_boxes.count, color3D_shader_id, frame_data);
+	frame_data->drawn_geometry_count += RenderViewSystem::boxes3D_draw(world_view_id, scene->p_light_boxes.data, scene->p_light_boxes.count, color3D_shader_id, frame_data);
 
 	return true;
 }

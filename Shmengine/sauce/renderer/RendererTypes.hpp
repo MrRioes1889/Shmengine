@@ -280,11 +280,6 @@ namespace Renderer
 		Math::Vec4f color;
 	};
 
-	struct RenderPacket
-	{
-		Darray<RenderView*> views;
-	};
-
 	struct ModuleConfig
 	{
 		const char* application_name;

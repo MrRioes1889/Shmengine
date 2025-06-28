@@ -491,7 +491,7 @@ namespace ShaderSystem
 		}
 		else
 		{
-			entry.set_index.invalidate();
+			entry.set_index = Constants::max_u8;
 			Range r = get_aligned_range(shader->push_constant_size, size, 4);
 
 			entry.offset = (uint32)r.offset;

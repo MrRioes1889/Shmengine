@@ -25,13 +25,12 @@ namespace RenderViewSystem
 	{
 		SystemConfig config;
 
-		Sarray<RenderView*> registered_views;
-		Hashtable<uint32> lookup_table;
-
+		uint32 views_count;
+		Sarray<RenderView> views;
+		Hashtable<Id16> lookup_table;
 	};
 
 	static SystemState* system_state = 0;
-	static void unregister(RenderView* view);
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
@@ -41,89 +40,112 @@ namespace RenderViewSystem
 
 		system_state->config = *sys_config;
 
-		uint64 view_array_size = sizeof(RenderView*) * sys_config->max_view_count;
+		uint64 view_array_size = sizeof(RenderView) * sys_config->max_view_count;
 		void* view_array_data = allocator_callback(allocator, view_array_size);
-		system_state->registered_views.init(sys_config->max_view_count, 0, AllocationTag::ARRAY, view_array_data);
+		system_state->views.init(sys_config->max_view_count, 0, AllocationTag::ARRAY, view_array_data);
 
-		uint64 hashtable_data_size = sizeof(uint32) * sys_config->max_view_count;
+		uint64 hashtable_data_size = sizeof(Id16) * sys_config->max_view_count;
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
 		system_state->lookup_table.init(sys_config->max_view_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
 
-		system_state->lookup_table.floodfill(Constants::max_u32);
+		system_state->lookup_table.floodfill({});
 
-		for (uint32 i = 0; i < sys_config->max_view_count; ++i)
-			system_state->registered_views[i] = 0;
+		for (uint32 i = 0; i < system_state->views.capacity; i++)
+			system_state->views[i].id.invalidate();
+
+		system_state->views_count = 0;
 
 		return true;
 	}
 
 	void system_shutdown(void* state)
 	{
-		system_state->lookup_table.floodfill(Constants::max_u32);
-		for (uint32 i = 0; i < system_state->config.max_view_count; i++)
+		system_state->lookup_table.floodfill({});
+		for (uint16 i = 0; i < system_state->views.capacity; i++)
 		{
-			if (system_state->registered_views[i])
-			{
-				unregister(system_state->registered_views[i]);
-				system_state->registered_views[i] = 0;
-			}			
+			if (system_state->views[i].id.is_valid())
+				destroy_view(i);
 		}
 
 		system_state = 0;
 	}
 
-	bool32 register_view(RenderView* view, uint32 renderpass_count, Renderer::RenderPassConfig* renderpass_configs)
+	Id16 create_view(const RenderViewConfig* config)
 	{
 
-		uint32 ref_id = system_state->lookup_table.get_value(view->name);
-		if (ref_id != Constants::max_u32) {
-			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", view->name);
+		Id16 ref_id = system_state->lookup_table.get_value(config->name);
+		if (ref_id.is_valid()) 
+		{
+			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", config->name);
 			return false;
 		}
 
-		for (uint32 i = 0; i < system_state->config.max_view_count; ++i) {
-			if (!system_state->registered_views[i]) {
+		for (uint16 i = 0; i < (uint16)system_state->views.capacity; i++) {
+			if (!system_state->views[i].id.is_valid()) {
 				ref_id = i;
 				break;
 			}
 		}
 
-		if (ref_id == Constants::max_u32) {
+		if (!ref_id.is_valid()) {
 			SHMERROR("RenderViewSystem::create - No available space for a new view. Change system config to account for more.");
 			return false;
 		}
 
-		view->renderpasses.init(renderpass_count, 0, AllocationTag::RENDERER);
-		for (uint32 pass_i = 0; pass_i < renderpass_count; pass_i++)
+		RenderView* view = &system_state->views[ref_id];
+		view->id = ref_id;
+
+		view->name = config->name;
+		view->custom_shader_name = config->custom_shader_name;
+		view->width = config->width;
+		view->height = config->height;
+		view->enabled = true;
+
+		view->on_build_packet = config->on_build_packet;
+		view->on_end_frame = config->on_end_frame;
+		view->on_create = config->on_create;
+		view->on_render = config->on_render;
+		view->on_resize = config->on_resize;
+		view->on_destroy = config->on_destroy;
+		view->on_regenerate_attachment_target = config->on_regenerate_attachment_target;
+
+		view->renderpasses.init(config->renderpass_count, 0, AllocationTag::RENDERER);
+		for (uint32 pass_i = 0; pass_i < view->renderpasses.capacity; pass_i++)
 		{
-			if (!Renderer::renderpass_create(&renderpass_configs[pass_i], &view->renderpasses[pass_i]))
+			if (!Renderer::renderpass_create(&config->renderpass_configs[pass_i], &view->renderpasses[pass_i]))
 			{
-				SHMERROR("Failed to create pick renderpass!");
+				destroy_view(view->id);
+				SHMERROR("Failed to create renderpass!");
 				return false;
 			}
 		}
 
-		if (!view->on_register(view))
-		{
-			SHMERROR("Failed to perform view's on_register function.");
-			return false;
-		}
 		view->geometries.init(1, 0, AllocationTag::RENDERER);
 		view->instances.init(1, 0, AllocationTag::RENDERER);
 		view->objects.init(1, 0, AllocationTag::RENDERER);
 
-		system_state->lookup_table.set_value(view->name, ref_id);
-		system_state->registered_views[ref_id] = view;
+		if (!view->on_create(view))
+		{
+			destroy_view(view->id);
+			SHMERROR("Failed to perform view's on_register function.");
+			return false;
+		}
 
-		regenerate_render_targets(view);
+		system_state->lookup_table.set_value(view->name, ref_id);
+		system_state->views_count++;
+		//regenerate_render_targets(ref_id);
 
 		return true;
 
 	}
 
-	static void unregister(RenderView* view)
+	void destroy_view(Id16 view_id)
 	{
-		view->on_unregister(view);
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return;
+		
+		view->on_destroy(view);
 
 		for (uint32 pass_i = 0; pass_i < view->renderpasses.capacity; pass_i++)
 			Renderer::renderpass_destroy(&view->renderpasses[pass_i]);
@@ -131,51 +153,84 @@ namespace RenderViewSystem
 		view->objects.free_data();
 		view->instances.free_data();
 		view->geometries.free_data();
-		
 		view->internal_data.free_data();
 		view->renderpasses.free_data();
+
+		view->id.invalidate();
+		system_state->lookup_table.set_value(view->name, view->id);
+		system_state->views_count--;
 	}
 
 	RenderView* get(const char* name)
 	{
-		uint32 id = system_state->lookup_table.get_value(name);
-		if (id == Constants::max_u32)
+		Id16 view_id = system_state->lookup_table.get_value(name);
+		if (!view_id.is_valid() || !system_state->views[view_id].id.is_valid())
 			return 0;
 
-		return system_state->registered_views[id];
+		return &system_state->views[view_id];
 	}
 
-	bool32 build_packet(RenderView* view, FrameData* frame_data, const RenderViewPacketData* packet_data)
+	Id16 get_id(const char* name)
+	{
+		return system_state->lookup_table.get_value(name);
+	}
+
+	bool32 build_packet(Id16 view_id, FrameData* frame_data, const RenderViewPacketData* packet_data)
 	{
 		OPTICK_EVENT();
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return false;
+
 		return view->on_build_packet(view, frame_data, packet_data);
 	}
 
 	void on_window_resize(uint32 width, uint32 height)
 	{
-		for (uint32 i = 0; i < system_state->config.max_view_count; ++i) {
-			if (system_state->registered_views[i]) {
-				system_state->registered_views[i]->on_resize(system_state->registered_views[i], width, height);
-			}
+		for (uint32 i = 0; i < system_state->views.capacity; ++i) 
+		{
+			if (!system_state->views[i].id.is_valid())
+				break;
+
+			system_state->views[i].on_resize(&system_state->views[i], width, height);
 		}
 	}
 
-	bool32 on_render(RenderView* view, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
+	bool32 on_render(FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 	{
 		OPTICK_EVENT();
-		return view->on_render(view, frame_data, frame_number, render_target_index);
+		for (uint32 i = 0; i < system_state->views.capacity; ++i) 
+		{
+			if (!system_state->views[i].id.is_valid())
+				break;
+
+			system_state->views[i].on_render(&system_state->views[i], frame_data, frame_number, render_target_index);
+		}
+
+		return true;
 	}
 
-	void on_end_frame(RenderView* view)
+	void on_end_frame()
 	{
-		view->geometries.clear();
-		view->instances.clear();
-		view->objects.clear();
-		view->on_end_frame(view);
+		for (uint32 i = 0; i < system_state->views.capacity; ++i) 
+		{
+			RenderView* view = &system_state->views[i];
+			if (!view->id.is_valid())
+				break;
+
+			view->geometries.clear();
+			view->instances.clear();
+			view->objects.clear();
+			view->on_end_frame(view);
+		}
 	}
 
-	void regenerate_render_targets(RenderView* view)
+	void regenerate_render_targets(Id16 view_id)
 	{
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return;
+
 		for (uint32 p = 0; p < view->renderpasses.capacity; p++)
 		{
 			Renderer::RenderPass* pass = &view->renderpasses[p];
@@ -207,13 +262,13 @@ namespace RenderViewSystem
 					}
 					else if (attachment->source == Renderer::RenderTargetAttachmentSource::VIEW) 
 					{
-						if (!view->regenerate_attachment_target) 
+						if (!view->on_regenerate_attachment_target) 
 						{
 							SHMFATAL("View configured as source for an attachment whose view does not support this operation.");
 							continue;
 						}
 	
-						if (!view->regenerate_attachment_target(view, p, attachment)) 
+						if (!view->on_regenerate_attachment_target(view, p, attachment)) 
 						{
 							SHMERROR("View failed to regenerate attachment target for attachment type.");
 						}
@@ -246,13 +301,17 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = material->shader_instance_id;
 	}
 
-	uint32 mesh_draw(RenderView* view, Mesh* mesh, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
+	uint32 mesh_draw(Id16 view_id, Mesh* mesh, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
 	{
-		return meshes_draw(view, mesh, 1, shader_id, lighting, frame_data, frustum);
+		return meshes_draw(view_id, mesh, 1, shader_id, lighting, frame_data, frustum);
 	}
 
-	uint32 meshes_draw(RenderView* view, Mesh* meshes, uint32 mesh_count, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
+	uint32 meshes_draw(Id16 view_id, Mesh* meshes, uint32 mesh_count, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum)
 	{
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return false;
+
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
@@ -301,7 +360,7 @@ namespace RenderViewSystem
 			}
 		}
 
-		RenderViewSystem::build_packet(view, frame_data, &packet_data);
+		RenderViewSystem::build_packet(view_id, frame_data, &packet_data);
 
 		return packet_data.geometries_pushed_count;
 	}
@@ -317,8 +376,12 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = skybox->shader_instance_id;
 	}
 
-	bool32 skybox_draw(RenderView* view, Skybox* skybox, uint32 shader_id, FrameData* frame_data)
+	bool32 skybox_draw(Id16 view_id, Skybox* skybox, uint32 shader_id, FrameData* frame_data)
 	{
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return false;
+
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
@@ -336,7 +399,7 @@ namespace RenderViewSystem
 		skybox_get_instance_render_data(skybox, frame_data, shader_id, inst_render_data);
 		packet_data.instances_pushed_count++;
 
-		return RenderViewSystem::build_packet(view, frame_data, &packet_data);
+		return RenderViewSystem::build_packet(view_id, frame_data, &packet_data);
 	}
 
 	static void terrain_get_instance_render_data(Terrain* terrain, FrameData* frame_data, uint32 shader_id, RenderViewInstanceData* out_instance_data)
@@ -354,13 +417,17 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = terrain->shader_instance_id;
 	}
 
-	uint32 terrain_draw(RenderView* view, Terrain* terrain, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
+	uint32 terrain_draw(Id16 view_id, Terrain* terrain, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
 	{
-		return terrains_draw(view, terrain, 1, shader_id, lighting, frame_data);
+		return terrains_draw(view_id, terrain, 1, shader_id, lighting, frame_data);
 	}
 
-	uint32 terrains_draw(RenderView* view, Terrain* terrains, uint32 terrains_count, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
+	uint32 terrains_draw(Id16 view_id, Terrain* terrains, uint32 terrains_count, uint32 shader_id, LightingInfo lighting, FrameData* frame_data)
 	{
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return false;
+
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
@@ -389,7 +456,7 @@ namespace RenderViewSystem
 			packet_data.instances_pushed_count++;
 		}
 
-		RenderViewSystem::build_packet(view, frame_data, &packet_data);
+		RenderViewSystem::build_packet(view_id, frame_data, &packet_data);
 
 		return packet_data.geometries_pushed_count;
 	}
@@ -405,8 +472,12 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = text->shader_instance_id;
 	}
 
-	bool32 ui_text_draw(RenderView* view, UIText* text, uint32 shader_id, FrameData* frame_data)
+	bool32 ui_text_draw(Id16 view_id, UIText* text, uint32 shader_id, FrameData* frame_data)
 	{
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return false;
+
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
@@ -430,16 +501,20 @@ namespace RenderViewSystem
 		ui_text_get_instance_render_data(text, frame_data, shader_id, inst_render_data);
 		packet_data.instances_pushed_count++;
 
-		return RenderViewSystem::build_packet(view, frame_data, &packet_data);
+		return RenderViewSystem::build_packet(view_id, frame_data, &packet_data);
 	}
 
-	uint32 box3D_draw(RenderView* view, Box3D* box, uint32 shader_id, FrameData* frame_data)
+	uint32 box3D_draw(Id16 view_id, Box3D* box, uint32 shader_id, FrameData* frame_data)
 	{
-		return boxes3D_draw(view, box, 1, shader_id, frame_data);
+		return boxes3D_draw(view_id, box, 1, shader_id, frame_data);
 	}
 
-	uint32 boxes3D_draw(RenderView* view, Box3D* boxes, uint32 boxes_count, uint32 shader_id, FrameData* frame_data)
+	uint32 boxes3D_draw(Id16 view_id, Box3D* boxes, uint32 boxes_count, uint32 shader_id, FrameData* frame_data)
 	{
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return false;
+
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
@@ -464,18 +539,22 @@ namespace RenderViewSystem
 			packet_data.geometries_pushed_count++;
 		}
 
-		RenderViewSystem::build_packet(view, frame_data, &packet_data);
+		RenderViewSystem::build_packet(view_id, frame_data, &packet_data);
 
 		return packet_data.geometries_pushed_count;
 	}
 
-	uint32 line3D_draw(RenderView* view, Line3D* line, uint32 shader_id, FrameData* frame_data)
+	uint32 line3D_draw(Id16 view_id, Line3D* line, uint32 shader_id, FrameData* frame_data)
 	{
-		return lines3D_draw(view, line, 1, shader_id, frame_data);
+		return lines3D_draw(view_id, line, 1, shader_id, frame_data);
 	}
 
-	uint32 lines3D_draw(RenderView* view, Line3D* lines, uint32 lines_count, uint32 shader_id, FrameData* frame_data)
+	uint32 lines3D_draw(Id16 view_id, Line3D* lines, uint32 lines_count, uint32 shader_id, FrameData* frame_data)
 	{
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return false;
+
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
@@ -500,13 +579,17 @@ namespace RenderViewSystem
 			packet_data.geometries_pushed_count++;
 		}
 
-		RenderViewSystem::build_packet(view, frame_data, &packet_data);
+		RenderViewSystem::build_packet(view_id, frame_data, &packet_data);
 
 		return packet_data.geometries_pushed_count;
 	}
 
-	uint32 gizmo3D_draw(RenderView* view, Gizmo3D* gizmo, uint32 shader_id, FrameData* frame_data, Camera* camera)
+	uint32 gizmo3D_draw(Id16 view_id, Gizmo3D* gizmo, uint32 shader_id, FrameData* frame_data, Camera* camera)
 	{
+		RenderView* view = &system_state->views[view_id];
+		if (!view->id.is_valid())
+			return false;
+
 		RenderViewPacketData packet_data = {};
 		packet_data.geometries_pushed_count = 0;
 		packet_data.instances_pushed_count = 0;
@@ -536,6 +619,6 @@ namespace RenderViewSystem
 		geo_render_data->has_transparency = 0;
 		packet_data.geometries_pushed_count++;
 
-		return RenderViewSystem::build_packet(view, frame_data, &packet_data);
+		return RenderViewSystem::build_packet(view_id, frame_data, &packet_data);
 	}
 }

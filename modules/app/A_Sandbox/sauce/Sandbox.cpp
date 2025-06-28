@@ -289,44 +289,39 @@ bool32 application_update(FrameData* frame_data)
 	return true;
 }
 
-bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
+bool32 application_render(FrameData* frame_data)
 {
-
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
 	frame_data->drawn_geometry_count = 0;
 
-	const uint32 view_count = 5;
-	RenderView** render_views = (RenderView**)frame_data->frame_allocator.allocate(view_count * sizeof(RenderView*));
-	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_views);
-
 	uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
 	uint32 color3D_shader_id = ShaderSystem::get_color3D_shader_id();
 
-	uint32 skybox_view_i = packet->views.emplace(RenderViewSystem::get("skybox"));
-	uint32 world_view_i = packet->views.emplace(RenderViewSystem::get("world"));
-	uint32 world_editor_view_i = packet->views.emplace(RenderViewSystem::get("world_editor"));
-	uint32 ui_view_i = packet->views.emplace(RenderViewSystem::get("ui"));
-	uint32 pick_view_i = packet->views.emplace(RenderViewSystem::get("pick"));
+	Id16 skybox_view_id = RenderViewSystem::get_id("skybox");
+	Id16 world_view_id = RenderViewSystem::get_id("world");
+	Id16 world_editor_view_id = RenderViewSystem::get_id("world_editor");
+	Id16 ui_view_id = RenderViewSystem::get_id("ui");
+	Id16 pick_view_id = RenderViewSystem::get_id("pick");
 
 	if (app_state->main_scene.state == ResourceState::Loaded)
-		scene_draw(&app_state->main_scene, packet->views[skybox_view_i], packet->views[world_view_i], &app_state->camera_frustum, frame_data);
+		scene_draw(&app_state->main_scene, skybox_view_id, world_view_id, &app_state->camera_frustum, frame_data);
 
-	RenderViewSystem::lines3D_draw(packet->views[world_view_i], app_state->test_raycast_lines.data, app_state->test_raycast_lines.count, color3D_shader_id, frame_data);
+	RenderViewSystem::lines3D_draw(world_view_id, app_state->test_raycast_lines.data, app_state->test_raycast_lines.count, color3D_shader_id, frame_data);
 
-	RenderViewSystem::gizmo3D_draw(packet->views[world_editor_view_i], &app_state->editor_gizmo, color3D_shader_id, frame_data, app_state->world_camera);
+	RenderViewSystem::gizmo3D_draw(world_editor_view_id, &app_state->editor_gizmo, color3D_shader_id, frame_data, app_state->world_camera);
 
-	RenderViewSystem::meshes_draw(packet->views[ui_view_i], app_state->ui_meshes.data, app_state->ui_meshes.count, ui_shader_id, {}, frame_data, 0);
+	RenderViewSystem::meshes_draw(ui_view_id, app_state->ui_meshes.data, app_state->ui_meshes.count, ui_shader_id, {}, frame_data, 0);
 
-	RenderViewSystem::ui_text_draw(packet->views[ui_view_i], &app_state->debug_info_text, ui_shader_id, frame_data);
+	RenderViewSystem::ui_text_draw(ui_view_id, &app_state->debug_info_text, ui_shader_id, frame_data);
 
 	if (app_state->debug_console.is_visible())
 	{
 		UIText* console_text = app_state->debug_console.get_text();
-		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], console_text, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(ui_view_id, console_text, ui_shader_id, frame_data);
 
 		UIText* entry_text = app_state->debug_console.get_entry_text();
-		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], entry_text, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(ui_view_id, entry_text, ui_shader_id, frame_data);
 	}
 
 	return true;
@@ -363,21 +358,19 @@ void application_on_module_unload()
 
 static bool32 init_render_views(Application* app_inst)
 {
-	app_inst->render_views.init(SandboxRenderViews::VIEW_COUNT, 0);
-
 	{
-		RenderView* skybox_view = &app_inst->render_views[SandboxRenderViews::SKYBOX];
-		skybox_view->width = 0;
-		skybox_view->height = 0;
-		skybox_view->name = "skybox";
+		RenderViewConfig skybox_view_config = {};
+		skybox_view_config.width = 0;
+		skybox_view_config.height = 0;
+		skybox_view_config.name = "skybox";
 
-		skybox_view->on_build_packet = render_view_skybox_on_build_packet;
-		skybox_view->on_end_frame = render_view_skybox_on_end_frame;
-		skybox_view->on_render = render_view_skybox_on_render;
-		skybox_view->on_register = render_view_skybox_on_register;
-		skybox_view->on_unregister = render_view_skybox_on_unregister;
-		skybox_view->on_resize = render_view_skybox_on_resize;
-		skybox_view->regenerate_attachment_target = 0;
+		skybox_view_config.on_build_packet = render_view_skybox_on_build_packet;
+		skybox_view_config.on_end_frame = render_view_skybox_on_end_frame;
+		skybox_view_config.on_render = render_view_skybox_on_render;
+		skybox_view_config.on_create = render_view_skybox_on_create;
+		skybox_view_config.on_destroy = render_view_skybox_on_destroy;
+		skybox_view_config.on_resize = render_view_skybox_on_resize;
+		skybox_view_config.on_regenerate_attachment_target = 0;
 
 		const uint32 skybox_pass_count = 1;
 		Renderer::RenderPassConfig skybox_pass_configs[skybox_pass_count];
@@ -403,22 +396,25 @@ static bool32 init_render_views(Application* app_inst)
 		skybox_pass_config->target_config.attachment_configs = skybox_att_configs;
 		skybox_pass_config->render_target_count = Renderer::get_window_attachment_count();
 
-		RenderViewSystem::register_view(skybox_view, skybox_pass_count, skybox_pass_configs);
+		skybox_view_config.renderpass_count = skybox_pass_count;
+		skybox_view_config.renderpass_configs = skybox_pass_configs;
+
+		RenderViewSystem::create_view(&skybox_view_config);
 	}
 
 	{
-		RenderView* world_view = &app_inst->render_views[SandboxRenderViews::WORLD];
-		world_view->width = 0;
-		world_view->height = 0;
-		world_view->name = "world";
+		RenderViewConfig world_view_config = {};
+		world_view_config.width = 0;
+		world_view_config.height = 0;
+		world_view_config.name = "world";
 
-		world_view->on_build_packet = render_view_world_on_build_packet;
-		world_view->on_end_frame = render_view_world_on_end_frame;
-		world_view->on_render = render_view_world_on_render;
-		world_view->on_register = render_view_world_on_register;
-		world_view->on_unregister = render_view_world_on_unregister;
-		world_view->on_resize = render_view_world_on_resize;
-		world_view->regenerate_attachment_target = 0;
+		world_view_config.on_build_packet = render_view_world_on_build_packet;
+		world_view_config.on_end_frame = render_view_world_on_end_frame;
+		world_view_config.on_render = render_view_world_on_render;
+		world_view_config.on_create = render_view_world_on_create;
+		world_view_config.on_destroy = render_view_world_on_destroy;
+		world_view_config.on_resize = render_view_world_on_resize;
+		world_view_config.on_regenerate_attachment_target = 0;
 
 		const uint32 world_pass_count = 1;
 		Renderer::RenderPassConfig world_pass_configs[world_pass_count];
@@ -451,22 +447,25 @@ static bool32 init_render_views(Application* app_inst)
 		world_pass_config->target_config.attachment_configs = world_att_configs;
 		world_pass_config->render_target_count = Renderer::get_window_attachment_count();
 
-		RenderViewSystem::register_view(world_view, world_pass_count, world_pass_configs);
+		world_view_config.renderpass_count = world_pass_count;
+		world_view_config.renderpass_configs = world_pass_configs;
+
+		RenderViewSystem::create_view(&world_view_config);
 	}
 
 	{
-		RenderView* world_editor_view = &app_inst->render_views[SandboxRenderViews::WORLD_EDITOR];
-		world_editor_view->width = 0;
-		world_editor_view->height = 0;
-		world_editor_view->name = "world_editor";
+		RenderViewConfig world_editor_view_config = {};
+		world_editor_view_config.width = 0;
+		world_editor_view_config.height = 0;
+		world_editor_view_config.name = "world_editor";
 
-		world_editor_view->on_build_packet = render_view_world_editor_on_build_packet;
-		world_editor_view->on_end_frame = render_view_world_editor_on_end_frame;
-		world_editor_view->on_render = render_view_world_editor_on_render;
-		world_editor_view->on_register = render_view_world_editor_on_register;
-		world_editor_view->on_unregister = render_view_world_editor_on_unregister;
-		world_editor_view->on_resize = render_view_world_editor_on_resize;
-		world_editor_view->regenerate_attachment_target = 0;
+		world_editor_view_config.on_build_packet = render_view_world_editor_on_build_packet;
+		world_editor_view_config.on_end_frame = render_view_world_editor_on_end_frame;
+		world_editor_view_config.on_render = render_view_world_editor_on_render;
+		world_editor_view_config.on_create = render_view_world_editor_on_create;
+		world_editor_view_config.on_destroy = render_view_world_editor_on_destroy;
+		world_editor_view_config.on_resize = render_view_world_editor_on_resize;
+		world_editor_view_config.on_regenerate_attachment_target = 0;
 
 		const uint32 world_editor_pass_count = 1;
 		Renderer::RenderPassConfig world_editor_pass_configs[world_editor_pass_count];
@@ -499,22 +498,25 @@ static bool32 init_render_views(Application* app_inst)
 		world_editor_pass_config->target_config.attachment_configs = world_editor_att_configs;
 		world_editor_pass_config->render_target_count = Renderer::get_window_attachment_count();
 
-		RenderViewSystem::register_view(world_editor_view, world_editor_pass_count, world_editor_pass_configs);
+		world_editor_view_config.renderpass_count = world_editor_pass_count;
+		world_editor_view_config.renderpass_configs = world_editor_pass_configs;
+
+		RenderViewSystem::create_view(&world_editor_view_config);
 	}
 
 	{
-		RenderView* ui_view = &app_inst->render_views[SandboxRenderViews::UI];
-		ui_view->width = 0;
-		ui_view->height = 0;
-		ui_view->name = "ui";
+		RenderViewConfig ui_view_config = {};
+		ui_view_config.width = 0;
+		ui_view_config.height = 0;
+		ui_view_config.name = "ui";
 
-		ui_view->on_build_packet = render_view_ui_on_build_packet;
-		ui_view->on_end_frame = render_view_ui_on_end_frame;
-		ui_view->on_render = render_view_ui_on_render;
-		ui_view->on_register = render_view_ui_on_register;
-		ui_view->on_unregister = render_view_ui_on_unregister;
-		ui_view->on_resize = render_view_ui_on_resize;
-		ui_view->regenerate_attachment_target = 0;
+		ui_view_config.on_build_packet = render_view_ui_on_build_packet;
+		ui_view_config.on_end_frame = render_view_ui_on_end_frame;
+		ui_view_config.on_render = render_view_ui_on_render;
+		ui_view_config.on_create = render_view_ui_on_create;
+		ui_view_config.on_destroy = render_view_ui_on_destroy;
+		ui_view_config.on_resize = render_view_ui_on_resize;
+		ui_view_config.on_regenerate_attachment_target = 0;
 
 		const uint32 ui_pass_count = 1;
 		Renderer::RenderPassConfig ui_pass_configs[ui_pass_count];
@@ -540,22 +542,25 @@ static bool32 init_render_views(Application* app_inst)
 		ui_pass_config->target_config.attachment_configs = ui_att_configs;
 		ui_pass_config->render_target_count = Renderer::get_window_attachment_count();
 
-		RenderViewSystem::register_view(ui_view, ui_pass_count, ui_pass_configs);
+		ui_view_config.renderpass_count = ui_pass_count;
+		ui_view_config.renderpass_configs = ui_pass_configs;
+
+		RenderViewSystem::create_view(&ui_view_config);
 	}
 
 	{
-		RenderView* pick_view = &app_inst->render_views[SandboxRenderViews::PICK];
-		pick_view->width = 0;
-		pick_view->height = 0;
-		pick_view->name = "pick";
+		RenderViewConfig pick_view_config = {};
+		pick_view_config.width = 0;
+		pick_view_config.height = 0;
+		pick_view_config.name = "pick";
 
-		pick_view->on_build_packet = render_view_pick_on_build_packet;
-		pick_view->on_end_frame = render_view_pick_on_end_frame;
-		pick_view->on_render = render_view_pick_on_render;
-		pick_view->on_register = render_view_pick_on_register;
-		pick_view->on_unregister = render_view_pick_on_unregister;
-		pick_view->on_resize = render_view_pick_on_resize;
-		pick_view->regenerate_attachment_target = render_view_pick_regenerate_attachment_target;
+		pick_view_config.on_build_packet = render_view_pick_on_build_packet;
+		pick_view_config.on_end_frame = render_view_pick_on_end_frame;
+		pick_view_config.on_render = render_view_pick_on_render;
+		pick_view_config.on_create = render_view_pick_on_create;
+		pick_view_config.on_destroy = render_view_pick_on_destroy;
+		pick_view_config.on_resize = render_view_pick_on_resize;
+		pick_view_config.on_regenerate_attachment_target = render_view_pick_regenerate_attachment_target;
 
 		const uint32 pick_pass_count = 2;
 		Renderer::RenderPassConfig pick_pass_configs[pick_pass_count];
@@ -609,7 +614,10 @@ static bool32 init_render_views(Application* app_inst)
 		ui_pick_pass_config->target_config.attachment_configs = ui_pick_att_configs;
 		ui_pick_pass_config->render_target_count = 1;
 
-		RenderViewSystem::register_view(pick_view, pick_pass_count, pick_pass_configs);
+		pick_view_config.renderpass_count = pick_pass_count;
+		pick_view_config.renderpass_configs = pick_pass_configs;
+
+		RenderViewSystem::create_view(&pick_view_config);
 	}
 
 	return true;

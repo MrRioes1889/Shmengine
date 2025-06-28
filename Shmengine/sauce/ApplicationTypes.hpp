@@ -40,7 +40,7 @@ struct Application
 	typedef bool32(*FP_init)(Application* app_inst);
 	typedef void(*FP_shutdown)();
 	typedef bool32(*FP_update)(FrameData* frame_data);
-	typedef bool32(*FP_render)(Renderer::RenderPacket* packet, FrameData* frame_data);
+	typedef bool32(*FP_render)(FrameData* frame_data);
 	typedef void(*FP_on_resize)(uint32 width, uint32 height);
 	typedef void(*FP_on_module_reload)(void* app_state);
 	typedef void(*FP_on_module_unload)();
@@ -53,8 +53,6 @@ struct Application
 	FP_on_resize on_resize;
 	FP_on_module_reload on_module_reload;
 	FP_on_module_unload on_module_unload;
-
-	Sarray<RenderView> render_views;
 
 	void* state;
 

@@ -78,7 +78,7 @@ static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData
 	}
 	case SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
 	{
-		RenderViewSystem::regenerate_render_targets(self);
+		RenderViewSystem::regenerate_render_targets(self->id);
 		return false;
 	}
 	}
@@ -86,7 +86,7 @@ static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData
 	return false;
 }
 
-bool32 render_view_world_on_register(RenderView* self)
+bool32 render_view_world_on_create(RenderView* self)
 {
 
 	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::RENDERER);
@@ -201,7 +201,7 @@ bool32 render_view_world_on_register(RenderView* self)
 
 }
 
-void render_view_world_on_unregister(RenderView* self)
+void render_view_world_on_destroy(RenderView* self)
 {
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 

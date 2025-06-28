@@ -40,7 +40,7 @@ static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData
 	{
 	case SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
 	{
-		RenderViewSystem::regenerate_render_targets(self);
+		RenderViewSystem::regenerate_render_targets(self->id);
 		return false;
 	}
 	}
@@ -48,7 +48,7 @@ static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData
 	return false;
 }
 
-bool32 render_view_skybox_on_register(RenderView* self)
+bool32 render_view_skybox_on_create(RenderView* self)
 {
 
 	self->internal_data.init(sizeof(RenderViewSkyboxInternalData), 0, AllocationTag::RENDERER);
@@ -83,7 +83,7 @@ bool32 render_view_skybox_on_register(RenderView* self)
 
 }
 
-void render_view_skybox_on_unregister(RenderView* self)
+void render_view_skybox_on_destroy(RenderView* self)
 {
 	Event::event_unregister((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
 }

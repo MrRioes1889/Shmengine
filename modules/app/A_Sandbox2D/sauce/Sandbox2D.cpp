@@ -156,28 +156,22 @@ bool32 application_update(FrameData* frame_data)
 	return true;
 }
 
-bool32 application_render(Renderer::RenderPacket* packet, FrameData* frame_data)
+bool32 application_render(FrameData* frame_data)
 {
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
-	const uint32 view_count = 1;
-	RenderView** render_views = (RenderView**)frame_data->frame_allocator.allocate(view_count * sizeof(RenderView*));
-	packet->views.init(view_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::ARRAY, render_views);
-
+	Id16 ui_view_id = RenderViewSystem::get_id("ui");
 	uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
 
-	//uint32 canvas_view_i = packet->views.emplace(RenderViewSystem::get("canvas"));
-	uint32 ui_view_i = packet->views.emplace(RenderViewSystem::get("ui"));
-
-	RenderViewSystem::ui_text_draw(packet->views[ui_view_i], &app_state->debug_info_text, ui_shader_id, frame_data);
+	RenderViewSystem::ui_text_draw(ui_view_id, &app_state->debug_info_text, ui_shader_id, frame_data);
 
 	if (app_state->debug_console.is_visible())
 	{
 		UIText* console_text = app_state->debug_console.get_text();
-		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], console_text, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(ui_view_id, console_text, ui_shader_id, frame_data);
 
 		UIText* entry_text = app_state->debug_console.get_entry_text();
-		RenderViewSystem::ui_text_draw(packet->views[ui_view_i], entry_text, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(ui_view_id, entry_text, ui_shader_id, frame_data);
 	}
 
 	return true;
@@ -213,62 +207,20 @@ void application_on_module_unload()
 
 static bool32 init_render_views(Application* app_inst)
 {
-	app_inst->render_views.init(Sandbox2DRenderViews::VIEW_COUNT, 0);
 
 	{
-		RenderView* canvas_view = &app_inst->render_views[Sandbox2DRenderViews::CANVAS];
-		canvas_view->width = 0;
-		canvas_view->height = 0;
-		canvas_view->name = "canvas";
+		RenderViewConfig ui_view_config = {};
+		ui_view_config.width = 0;
+		ui_view_config.height = 0;
+		ui_view_config.name = "ui";
 
-		canvas_view->on_build_packet = render_view_canvas_on_build_packet;
-		canvas_view->on_end_frame = render_view_canvas_on_end_frame;
-		canvas_view->on_render = render_view_canvas_on_render;
-		canvas_view->on_register = render_view_canvas_on_register;
-		canvas_view->on_unregister = render_view_canvas_on_unregister;
-		canvas_view->on_resize = render_view_canvas_on_resize;
-		canvas_view->regenerate_attachment_target = 0;
-
-		const uint32 canvas_pass_count = 1;
-		Renderer::RenderPassConfig canvas_pass_configs[canvas_pass_count];
-
-		Renderer::RenderPassConfig* canvas_pass_config = &canvas_pass_configs[0];
-		canvas_pass_config->name = "Builtin.Canvas";
-		canvas_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
-		canvas_pass_config->offset = { 0, 0 };
-		canvas_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-		canvas_pass_config->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER;
-		canvas_pass_config->depth = 1.0f;
-		canvas_pass_config->stencil = 0;
-
-		const uint32 canvas_target_att_count = 1;
-		Renderer::RenderTargetAttachmentConfig canvas_att_configs[canvas_target_att_count];
-		canvas_att_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
-		canvas_att_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-		canvas_att_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
-		canvas_att_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		canvas_att_configs[0].present_after = false;
-
-		canvas_pass_config->target_config.attachment_count = canvas_target_att_count;
-		canvas_pass_config->target_config.attachment_configs = canvas_att_configs;
-		canvas_pass_config->render_target_count = Renderer::get_window_attachment_count();
-
-		RenderViewSystem::register_view(canvas_view, canvas_pass_count, canvas_pass_configs);
-	}
-
-	{
-		RenderView* ui_view = &app_inst->render_views[Sandbox2DRenderViews::UI];
-		ui_view->width = 0;
-		ui_view->height = 0;
-		ui_view->name = "ui";
-
-		ui_view->on_build_packet = render_view_ui_on_build_packet;
-		ui_view->on_end_frame = render_view_ui_on_end_frame;
-		ui_view->on_render = render_view_ui_on_render;
-		ui_view->on_register = render_view_ui_on_register;
-		ui_view->on_unregister = render_view_ui_on_unregister;
-		ui_view->on_resize = render_view_ui_on_resize;
-		ui_view->regenerate_attachment_target = 0;
+		ui_view_config.on_build_packet = render_view_ui_on_build_packet;
+		ui_view_config.on_end_frame = render_view_ui_on_end_frame;
+		ui_view_config.on_render = render_view_ui_on_render;
+		ui_view_config.on_create = render_view_ui_on_create;
+		ui_view_config.on_destroy = render_view_ui_on_destroy;
+		ui_view_config.on_resize = render_view_ui_on_resize;
+		ui_view_config.on_regenerate_attachment_target = 0;
 
 		const uint32 ui_pass_count = 1;
 		Renderer::RenderPassConfig ui_pass_configs[ui_pass_count];
@@ -294,7 +246,10 @@ static bool32 init_render_views(Application* app_inst)
 		ui_pass_config->target_config.attachment_configs = ui_att_configs;
 		ui_pass_config->render_target_count = Renderer::get_window_attachment_count();
 
-		RenderViewSystem::register_view(ui_view, ui_pass_count, ui_pass_configs);
+		ui_view_config.renderpass_count = ui_pass_count;
+		ui_view_config.renderpass_configs = ui_pass_configs;
+
+		RenderViewSystem::create_view(&ui_view_config);
 	}
 
 	return true;

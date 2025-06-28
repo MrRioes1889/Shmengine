@@ -5,62 +5,58 @@
 
 struct Id8
 {
-	static constexpr uint8 valid_bit_mask = 0x80;
+	static constexpr uint8 invalid_value = 0xFF;
 	uint8 id;
 
-	Id8() : id(0) {}
-	Id8(uint8 value) { SHMASSERT_MSG(value < valid_bit_mask, "Value exceeds id range (2^7-1)"); id = value | valid_bit_mask; }
+	Id8() : id(invalid_value) {}
+	Id8(uint8 value) { id = value; }
 	
-	operator uint8() { return id & ~valid_bit_mask; }
+	SHMINLINE operator uint8() { return id; }
 
-	bool8 is_valid() { return (id & valid_bit_mask) != 0; }
-	void validate() { id = id | valid_bit_mask; }
-	void invalidate() { id = id & ~valid_bit_mask; }
+	SHMINLINE bool8 is_valid() { return id != invalid_value; }
+	SHMINLINE void invalidate() { id = invalid_value; }
 };
 
 struct Id16
 {
-	static constexpr uint16 valid_bit_mask = 0x8000;
+	static constexpr uint16 invalid_value = 0xFFFF;
 	uint16 id;
 
-	Id16() : id(0) {}
-	Id16(uint16 value) { SHMASSERT_MSG(value < valid_bit_mask, "Value exceeds id range (2^15-1)"); id = value | valid_bit_mask; }
+	Id16() : id(invalid_value) {}
+	Id16(uint16 value) { id = value; }
 	
-	operator uint16() { return id & ~valid_bit_mask; }
+	SHMINLINE operator uint16() { return id; }
 
-	bool8 is_valid() { return (id & valid_bit_mask) != 0; }
-	void validate() { id = id | valid_bit_mask; }
-	void invalidate() { id = id & ~valid_bit_mask; }
+	SHMINLINE bool8 is_valid() { return id != invalid_value; }
+	SHMINLINE void invalidate() { id = invalid_value; }
 };
 
 struct Id32
 {
-	static constexpr uint32 valid_bit_mask = 0x80000000;
+	static constexpr uint32 invalid_value = 0xFFFFFFFF;
 	uint32 id;
 
-	Id32() : id(0) {}
-	Id32(uint32 value) { SHMASSERT_MSG(value < valid_bit_mask, "Value exceeds id range (2^31-1)"); id = value | valid_bit_mask; }
-	
-	operator uint32() { return id & ~valid_bit_mask; }
+	Id32() : id(invalid_value) {}
+	Id32(uint32 value) { id = value; }
 
-	bool8 is_valid() { return (id & valid_bit_mask) != 0; }
-	void validate() { id = id | valid_bit_mask; }
-	void invalidate() { id = id & ~valid_bit_mask; }
+	SHMINLINE operator uint32() { return id; }
+
+	SHMINLINE bool8 is_valid() { return id != invalid_value; }
+	SHMINLINE void invalidate() { id = invalid_value; }
 };
 
 struct Id64
 {
-	static constexpr uint64 valid_bit_mask = 0x8000000000000000;
+	static constexpr uint64 invalid_value = 0xFFFFFFFFFFFFFFFF;
 	uint64 id;
 
-	Id64() : id(0) {}
-	Id64(uint64 value) { SHMASSERT_MSG(value < valid_bit_mask, "Value exceeds id range (2^63-1)"); id = value | valid_bit_mask; }
-	
-	operator uint64() { return id & ~valid_bit_mask; }
+	Id64() : id(invalid_value) {}
+	Id64(uint64 value) { id = value; }
 
-	bool8 is_valid() { return (id & valid_bit_mask) != 0; }
-	void validate() { id = id | valid_bit_mask; }
-	void invalidate() { id = id & ~valid_bit_mask; }
+	SHMINLINE operator uint64() { return id; }
+
+	SHMINLINE bool8 is_valid() { return id != invalid_value; }
+	SHMINLINE void invalidate() { id = invalid_value; }
 };
 
 SHMAPI UniqueId identifier_acquire_new_id(void* owner);

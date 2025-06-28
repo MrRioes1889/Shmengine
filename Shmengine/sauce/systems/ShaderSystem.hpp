@@ -115,7 +115,7 @@ struct ShaderUniform
 	uint16 location;
 	uint16 index;
 	uint16 size;
-	Id8 set_index;
+	uint8 set_index;
 
 	ShaderScope scope;
 	ShaderUniformType type;

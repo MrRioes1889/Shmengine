@@ -6,8 +6,8 @@
 
 struct FrameData;
 
-bool32 render_view_pick_on_register(RenderView* self);
-void render_view_pick_on_unregister(RenderView* self);
+bool32 render_view_pick_on_create(RenderView* self);
+void render_view_pick_on_destroy(RenderView* self);
 void render_view_pick_on_resize(RenderView* self, uint32 width, uint32 height);
 bool32 render_view_pick_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data);
 void render_view_pick_on_end_frame(RenderView* self);

@@ -111,8 +111,6 @@ namespace Engine
 		float64 target_frame_seconds = 1.0f / 120.0f;
 		app_inst->stage = ApplicationStage::RUNNING;
 
-		Renderer::RenderPacket render_packet = {};
-
 		float64 last_frametime = 0.0;
 		metrics_update_frame();
 
@@ -160,20 +158,14 @@ namespace Engine
 
 				metrics_update_logic();
 
-				render_packet = {};
-				if (!engine_state->app_inst->render(&render_packet, &engine_state->frame_data))
+				if (!engine_state->app_inst->render(&engine_state->frame_data))
 				{
 					SHMFATAL("Failed to render application.");
 					engine_state->is_running = false;
 					break;
 				}
 
-				Renderer::draw_frame(&render_packet, &engine_state->frame_data);
-
-				for (uint32 i = 0; i < render_packet.views.capacity; i++)
-				{
-					RenderViewSystem::on_end_frame(render_packet.views[i]);
-				}
+				Renderer::draw_frame(&engine_state->frame_data);
 
 				metrics_update_render();
 
@@ -213,7 +205,6 @@ namespace Engine
 
 		app_inst->on_module_unload();
 		Platform::unload_dynamic_library(&app_inst->application_lib);
-		app_inst->render_views.free_data();
 
 		SubsystemManager::shutdown_basic();
 
