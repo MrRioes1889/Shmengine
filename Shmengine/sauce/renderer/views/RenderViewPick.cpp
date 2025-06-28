@@ -50,29 +50,6 @@ struct RenderViewPickInternalData {
 	UniqueId hovered_object_id;
 };
 
-static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
-{
-
-	RenderView* self = (RenderView*)listener_inst;
-	if (!self)
-		return false;
-
-	RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
-	if (!internal_data)
-		return false;
-
-	switch (code)
-	{
-	case SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
-	{
-		RenderViewSystem::regenerate_render_targets(self->id);
-		return false;
-	}
-	}
-
-	return false;
-}
-
 bool32 render_view_pick_on_create(RenderView* self)
 {
 
@@ -130,8 +107,6 @@ bool32 render_view_pick_on_create(RenderView* self)
 
 	internal_data->camera = CameraSystem::get_default_camera();
 
-	Event::event_register((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
-
 	return true;
 
 }
@@ -142,8 +117,6 @@ void render_view_pick_on_destroy(RenderView* self)
 
 	Renderer::texture_destroy(&data->color_target_attachment_texture);
 	Renderer::texture_destroy(&data->depth_target_attachment_texture);
-
-	Event::event_unregister((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);		
 }
 
 void render_view_pick_on_resize(RenderView* self, uint32 width, uint32 height)

@@ -4,6 +4,10 @@
 
 struct Application;
 struct FrameData;
+namespace Platform
+{
+	struct Window;
+}
 
 namespace Engine
 {
@@ -13,6 +17,7 @@ namespace Engine
 
 	SHMAPI float64 get_frame_delta_time();
 	SHMAPI const char* get_application_name();
+	SHMAPI const Platform::Window* get_main_window();
 
 }
 

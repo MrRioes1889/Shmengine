@@ -377,6 +377,11 @@ namespace Engine
 		return engine_state->app_inst->name;
 	}
 
+	const Platform::Window* get_main_window()
+	{
+		return engine_state->app_inst->main_window;
+	}
+
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
 		switch (code)

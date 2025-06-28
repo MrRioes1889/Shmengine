@@ -26,25 +26,6 @@ struct RenderViewUIInternalData {
 	Math::Mat4 view_matrix;
 };
 
-static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
-{
-
-	RenderView* self = (RenderView*)listener_inst;
-	if (!self)
-		return false;
-
-	switch (code) 
-	{
-	case SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
-	{
-		RenderViewSystem::regenerate_render_targets(self->id);
-		return false;
-	}
-	}
-
-	return false;
-}
-
 bool32 render_view_ui_on_create(RenderView* self)
 {
 		
@@ -77,15 +58,12 @@ bool32 render_view_ui_on_create(RenderView* self)
 	internal_data->projection_matrix = Math::mat_orthographic(0.0f, 1280.0f, 720.0f, 0.0f, internal_data->near_clip, internal_data->far_clip);
 	internal_data->view_matrix = MAT4_IDENTITY;
 
-	Event::event_register((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
-
 	return true;
 
 }
 
 void render_view_ui_on_destroy(RenderView* self)
 {
-	Event::event_unregister((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
 }
 
 void render_view_ui_on_resize(RenderView* self, uint32 width, uint32 height)

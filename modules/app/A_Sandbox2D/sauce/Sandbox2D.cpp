@@ -3,9 +3,6 @@
 #include "Keybinds.hpp"
 #include "ui/DebugConsole.hpp"
 
-#include "views/RenderViewCanvas.hpp"
-#include "views/RenderViewUI.hpp"
-
 #include <containers/Darray.hpp>
 #include <core/Logging.hpp>
 #include <core/Input.hpp>
@@ -29,8 +26,6 @@
 // end
 
 ApplicationState* app_state = 0;
-
-static bool32 init_render_views(Application* app_inst);
 
 static void register_events();
 static void unregister_events();
@@ -57,12 +52,6 @@ bool32 application_load_config(ApplicationConfig* out_config)
 bool32 application_init(Application* app_inst)
 {
 	app_state = (ApplicationState*)app_inst->state;
-
-	if (!init_render_views(app_inst))
-	{
-		SHMFATAL("Failed to initialize render views!");
-		return false;
-	}
 
 	register_events();
 	add_keymaps();
@@ -160,7 +149,7 @@ bool32 application_render(FrameData* frame_data)
 {
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
-	Id16 ui_view_id = RenderViewSystem::get_id("ui");
+	Id16 ui_view_id = RenderViewSystem::get_id("Builtin.UI");
 	uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
 
 	RenderViewSystem::ui_text_draw(ui_view_id, &app_state->debug_info_text, ui_shader_id, frame_data);
@@ -203,56 +192,6 @@ void application_on_module_unload()
 	unregister_events();
 	app_state->debug_console.on_module_unload();
 	Input::clear_keymaps();
-}
-
-static bool32 init_render_views(Application* app_inst)
-{
-
-	{
-		RenderViewConfig ui_view_config = {};
-		ui_view_config.width = 0;
-		ui_view_config.height = 0;
-		ui_view_config.name = "ui";
-
-		ui_view_config.on_build_packet = render_view_ui_on_build_packet;
-		ui_view_config.on_end_frame = render_view_ui_on_end_frame;
-		ui_view_config.on_render = render_view_ui_on_render;
-		ui_view_config.on_create = render_view_ui_on_create;
-		ui_view_config.on_destroy = render_view_ui_on_destroy;
-		ui_view_config.on_resize = render_view_ui_on_resize;
-		ui_view_config.on_regenerate_attachment_target = 0;
-
-		const uint32 ui_pass_count = 1;
-		Renderer::RenderPassConfig ui_pass_configs[ui_pass_count];
-
-		Renderer::RenderPassConfig* ui_pass_config = &ui_pass_configs[0];
-		ui_pass_config->name = "Builtin.UI";
-		ui_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
-		ui_pass_config->offset = { 0, 0 };
-		ui_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-		ui_pass_config->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER;
-		ui_pass_config->depth = 1.0f;
-		ui_pass_config->stencil = 0;
-
-		const uint32 ui_target_att_count = 1;
-		Renderer::RenderTargetAttachmentConfig ui_att_configs[ui_target_att_count];
-		ui_att_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
-		ui_att_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-		ui_att_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
-		ui_att_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		ui_att_configs[0].present_after = true;
-
-		ui_pass_config->target_config.attachment_count = ui_target_att_count;
-		ui_pass_config->target_config.attachment_configs = ui_att_configs;
-		ui_pass_config->render_target_count = Renderer::get_window_attachment_count();
-
-		ui_view_config.renderpass_count = ui_pass_count;
-		ui_view_config.renderpass_configs = ui_pass_configs;
-
-		RenderViewSystem::create_view(&ui_view_config);
-	}
-
-	return true;
 }
 
 static bool32 on_debug_event(uint16 code, void* sender, void* listener_inst, EventData e_data)

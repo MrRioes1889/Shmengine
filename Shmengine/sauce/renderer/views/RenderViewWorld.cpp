@@ -76,11 +76,6 @@ static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData
 		}
 		return true;
 	}
-	case SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
-	{
-		RenderViewSystem::regenerate_render_targets(self->id);
-		return false;
-	}
 	}
 
 	return false;
@@ -195,7 +190,6 @@ bool32 render_view_world_on_create(RenderView* self)
 	internal_data->ambient_color = { 0.25f, 0.25f, 0.25f, 1.0f };
 
 	Event::event_register((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
-	Event::event_register((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
 
 	return true;
 
@@ -206,7 +200,6 @@ void render_view_world_on_destroy(RenderView* self)
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
 	Event::event_unregister((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
-	Event::event_unregister((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
 }
 
 void render_view_world_on_resize(RenderView* self, uint32 width, uint32 height)

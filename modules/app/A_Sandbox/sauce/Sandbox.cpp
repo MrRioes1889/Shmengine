@@ -4,12 +4,6 @@
 #include "Keybinds.hpp"
 #include "ui/DebugConsole.hpp"
 
-#include "views/RenderViewSkybox.hpp"
-#include "views/RenderViewWorld.hpp"
-#include "views/RenderViewWorldEditor.hpp"
-#include "views/RenderViewUI.hpp"
-#include "views/RenderViewPick.hpp"
-
 #include <containers/Darray.hpp>
 #include <core/Logging.hpp>
 #include <core/Input.hpp>
@@ -34,8 +28,6 @@
 
 ApplicationState* app_state = 0;
 
-static bool32 init_render_views(Application* app_inst);
-
 static void register_events();
 static void unregister_events();
 
@@ -59,12 +51,6 @@ bool32 application_load_config(ApplicationConfig* out_config)
 bool32 application_init(Application* app_inst)
 {
 	app_state = (ApplicationState*)app_inst->state;
-
-	if (!init_render_views(app_inst))
-	{
-		SHMFATAL("Failed to initialize render views!");
-		return false;
-	}
 
 	register_events();
 	add_keymaps();
@@ -298,11 +284,11 @@ bool32 application_render(FrameData* frame_data)
 	uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
 	uint32 color3D_shader_id = ShaderSystem::get_color3D_shader_id();
 
-	Id16 skybox_view_id = RenderViewSystem::get_id("skybox");
-	Id16 world_view_id = RenderViewSystem::get_id("world");
-	Id16 world_editor_view_id = RenderViewSystem::get_id("world_editor");
-	Id16 ui_view_id = RenderViewSystem::get_id("ui");
-	Id16 pick_view_id = RenderViewSystem::get_id("pick");
+	Id16 skybox_view_id = RenderViewSystem::get_id("Builtin.Skybox");
+	Id16 world_view_id = RenderViewSystem::get_id("Builtin.World");
+	Id16 world_editor_view_id = RenderViewSystem::get_id("Builtin.WorldEditor");
+	Id16 ui_view_id = RenderViewSystem::get_id("Builtin.UI");
+	Id16 pick_view_id = RenderViewSystem::get_id("Builtin.Pick");
 
 	if (app_state->main_scene.state == ResourceState::Loaded)
 		scene_draw(&app_state->main_scene, skybox_view_id, world_view_id, &app_state->camera_frustum, frame_data);
@@ -354,273 +340,6 @@ void application_on_module_unload()
 	unregister_events();
 	app_state->debug_console.on_module_unload();
 	Input::clear_keymaps();
-}
-
-static bool32 init_render_views(Application* app_inst)
-{
-	{
-		RenderViewConfig skybox_view_config = {};
-		skybox_view_config.width = 0;
-		skybox_view_config.height = 0;
-		skybox_view_config.name = "skybox";
-
-		skybox_view_config.on_build_packet = render_view_skybox_on_build_packet;
-		skybox_view_config.on_end_frame = render_view_skybox_on_end_frame;
-		skybox_view_config.on_render = render_view_skybox_on_render;
-		skybox_view_config.on_create = render_view_skybox_on_create;
-		skybox_view_config.on_destroy = render_view_skybox_on_destroy;
-		skybox_view_config.on_resize = render_view_skybox_on_resize;
-		skybox_view_config.on_regenerate_attachment_target = 0;
-
-		const uint32 skybox_pass_count = 1;
-		Renderer::RenderPassConfig skybox_pass_configs[skybox_pass_count];
-
-		Renderer::RenderPassConfig* skybox_pass_config = &skybox_pass_configs[0];
-		skybox_pass_config->name = "Builtin.Skybox";
-		skybox_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
-		skybox_pass_config->offset = { 0, 0 };
-		skybox_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-		skybox_pass_config->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER;
-		skybox_pass_config->depth = 1.0f;
-		skybox_pass_config->stencil = 0;
-
-		const uint32 skybox_target_att_count = 1;
-		Renderer::RenderTargetAttachmentConfig skybox_att_configs[skybox_target_att_count];
-		skybox_att_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
-		skybox_att_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-		skybox_att_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
-		skybox_att_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		skybox_att_configs[0].present_after = false;
-
-		skybox_pass_config->target_config.attachment_count = skybox_target_att_count;
-		skybox_pass_config->target_config.attachment_configs = skybox_att_configs;
-		skybox_pass_config->render_target_count = Renderer::get_window_attachment_count();
-
-		skybox_view_config.renderpass_count = skybox_pass_count;
-		skybox_view_config.renderpass_configs = skybox_pass_configs;
-
-		RenderViewSystem::create_view(&skybox_view_config);
-	}
-
-	{
-		RenderViewConfig world_view_config = {};
-		world_view_config.width = 0;
-		world_view_config.height = 0;
-		world_view_config.name = "world";
-
-		world_view_config.on_build_packet = render_view_world_on_build_packet;
-		world_view_config.on_end_frame = render_view_world_on_end_frame;
-		world_view_config.on_render = render_view_world_on_render;
-		world_view_config.on_create = render_view_world_on_create;
-		world_view_config.on_destroy = render_view_world_on_destroy;
-		world_view_config.on_resize = render_view_world_on_resize;
-		world_view_config.on_regenerate_attachment_target = 0;
-
-		const uint32 world_pass_count = 1;
-		Renderer::RenderPassConfig world_pass_configs[world_pass_count];
-
-		Renderer::RenderPassConfig* world_pass_config = &world_pass_configs[0];
-
-		world_pass_config->name = "Builtin.World";
-		world_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
-		world_pass_config->offset = { 0, 0 };
-		world_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-		world_pass_config->clear_flags = Renderer::RenderpassClearFlags::DEPTH_BUFFER | Renderer::RenderpassClearFlags::STENCIL_BUFFER;
-		world_pass_config->depth = 1.0f;
-		world_pass_config->stencil = 0;
-
-		const uint32 world_target_att_count = 2;
-		Renderer::RenderTargetAttachmentConfig world_att_configs[world_target_att_count];
-		world_att_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
-		world_att_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-		world_att_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
-		world_att_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		world_att_configs[0].present_after = false;
-
-		world_att_configs[1].type = Renderer::RenderTargetAttachmentType::DEPTH;
-		world_att_configs[1].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-		world_att_configs[1].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
-		world_att_configs[1].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		world_att_configs[1].present_after = false;
-
-		world_pass_config->target_config.attachment_count = world_target_att_count;
-		world_pass_config->target_config.attachment_configs = world_att_configs;
-		world_pass_config->render_target_count = Renderer::get_window_attachment_count();
-
-		world_view_config.renderpass_count = world_pass_count;
-		world_view_config.renderpass_configs = world_pass_configs;
-
-		RenderViewSystem::create_view(&world_view_config);
-	}
-
-	{
-		RenderViewConfig world_editor_view_config = {};
-		world_editor_view_config.width = 0;
-		world_editor_view_config.height = 0;
-		world_editor_view_config.name = "world_editor";
-
-		world_editor_view_config.on_build_packet = render_view_world_editor_on_build_packet;
-		world_editor_view_config.on_end_frame = render_view_world_editor_on_end_frame;
-		world_editor_view_config.on_render = render_view_world_editor_on_render;
-		world_editor_view_config.on_create = render_view_world_editor_on_create;
-		world_editor_view_config.on_destroy = render_view_world_editor_on_destroy;
-		world_editor_view_config.on_resize = render_view_world_editor_on_resize;
-		world_editor_view_config.on_regenerate_attachment_target = 0;
-
-		const uint32 world_editor_pass_count = 1;
-		Renderer::RenderPassConfig world_editor_pass_configs[world_editor_pass_count];
-
-		Renderer::RenderPassConfig* world_editor_pass_config = &world_editor_pass_configs[0];
-
-		world_editor_pass_config->name = "Builtin.WorldEditor";
-		world_editor_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
-		world_editor_pass_config->offset = { 0, 0 };
-		world_editor_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-		world_editor_pass_config->clear_flags = Renderer::RenderpassClearFlags::NONE;
-		world_editor_pass_config->depth = 1.0f;
-		world_editor_pass_config->stencil = 0;
-
-		const uint32 world_editor_target_att_count = 2;
-		Renderer::RenderTargetAttachmentConfig world_editor_att_configs[world_editor_target_att_count];
-		world_editor_att_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
-		world_editor_att_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-		world_editor_att_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
-		world_editor_att_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		world_editor_att_configs[0].present_after = false;
-
-		world_editor_att_configs[1].type = Renderer::RenderTargetAttachmentType::DEPTH;
-		world_editor_att_configs[1].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-		world_editor_att_configs[1].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
-		world_editor_att_configs[1].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		world_editor_att_configs[1].present_after = false;
-
-		world_editor_pass_config->target_config.attachment_count = world_editor_target_att_count;
-		world_editor_pass_config->target_config.attachment_configs = world_editor_att_configs;
-		world_editor_pass_config->render_target_count = Renderer::get_window_attachment_count();
-
-		world_editor_view_config.renderpass_count = world_editor_pass_count;
-		world_editor_view_config.renderpass_configs = world_editor_pass_configs;
-
-		RenderViewSystem::create_view(&world_editor_view_config);
-	}
-
-	{
-		RenderViewConfig ui_view_config = {};
-		ui_view_config.width = 0;
-		ui_view_config.height = 0;
-		ui_view_config.name = "ui";
-
-		ui_view_config.on_build_packet = render_view_ui_on_build_packet;
-		ui_view_config.on_end_frame = render_view_ui_on_end_frame;
-		ui_view_config.on_render = render_view_ui_on_render;
-		ui_view_config.on_create = render_view_ui_on_create;
-		ui_view_config.on_destroy = render_view_ui_on_destroy;
-		ui_view_config.on_resize = render_view_ui_on_resize;
-		ui_view_config.on_regenerate_attachment_target = 0;
-
-		const uint32 ui_pass_count = 1;
-		Renderer::RenderPassConfig ui_pass_configs[ui_pass_count];
-
-		Renderer::RenderPassConfig* ui_pass_config = &ui_pass_configs[0];
-		ui_pass_config->name = "Builtin.UI";
-		ui_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
-		ui_pass_config->offset = { 0, 0 };
-		ui_pass_config->clear_color = { 0.0f, 0.0f, 0.2f, 1.0f };
-		ui_pass_config->clear_flags = Renderer::RenderpassClearFlags::NONE;
-		ui_pass_config->depth = 1.0f;
-		ui_pass_config->stencil = 0;
-
-		const uint32 ui_target_att_count = 1;
-		Renderer::RenderTargetAttachmentConfig ui_att_configs[ui_target_att_count];
-		ui_att_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
-		ui_att_configs[0].source = Renderer::RenderTargetAttachmentSource::DEFAULT;
-		ui_att_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
-		ui_att_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		ui_att_configs[0].present_after = true;
-
-		ui_pass_config->target_config.attachment_count = ui_target_att_count;
-		ui_pass_config->target_config.attachment_configs = ui_att_configs;
-		ui_pass_config->render_target_count = Renderer::get_window_attachment_count();
-
-		ui_view_config.renderpass_count = ui_pass_count;
-		ui_view_config.renderpass_configs = ui_pass_configs;
-
-		RenderViewSystem::create_view(&ui_view_config);
-	}
-
-	{
-		RenderViewConfig pick_view_config = {};
-		pick_view_config.width = 0;
-		pick_view_config.height = 0;
-		pick_view_config.name = "pick";
-
-		pick_view_config.on_build_packet = render_view_pick_on_build_packet;
-		pick_view_config.on_end_frame = render_view_pick_on_end_frame;
-		pick_view_config.on_render = render_view_pick_on_render;
-		pick_view_config.on_create = render_view_pick_on_create;
-		pick_view_config.on_destroy = render_view_pick_on_destroy;
-		pick_view_config.on_resize = render_view_pick_on_resize;
-		pick_view_config.on_regenerate_attachment_target = render_view_pick_regenerate_attachment_target;
-
-		const uint32 pick_pass_count = 2;
-		Renderer::RenderPassConfig pick_pass_configs[pick_pass_count];
-
-		Renderer::RenderPassConfig* world_pick_pass_config = &pick_pass_configs[0];
-		Renderer::RenderPassConfig* ui_pick_pass_config = &pick_pass_configs[1];
-
-		world_pick_pass_config->name = "Builtin.WorldPick";
-		world_pick_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
-		world_pick_pass_config->offset = { 0, 0 };
-		world_pick_pass_config->clear_color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		world_pick_pass_config->clear_flags = Renderer::RenderpassClearFlags::COLOR_BUFFER | Renderer::RenderpassClearFlags::DEPTH_BUFFER;
-		world_pick_pass_config->depth = 1.0f;
-		world_pick_pass_config->stencil = 0;
-
-		const uint32 world_pick_target_att_count = 2;
-		Renderer::RenderTargetAttachmentConfig world_pick_att_configs[world_pick_target_att_count];
-		world_pick_att_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
-		world_pick_att_configs[0].source = Renderer::RenderTargetAttachmentSource::VIEW;
-		world_pick_att_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
-		world_pick_att_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		world_pick_att_configs[0].present_after = false;
-
-		world_pick_att_configs[1].type = Renderer::RenderTargetAttachmentType::DEPTH;
-		world_pick_att_configs[1].source = Renderer::RenderTargetAttachmentSource::VIEW;
-		world_pick_att_configs[1].load_op = Renderer::RenderTargetAttachmentLoadOp::DONT_CARE;
-		world_pick_att_configs[1].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		world_pick_att_configs[1].present_after = false;
-
-		world_pick_pass_config->target_config.attachment_count = world_pick_target_att_count;
-		world_pick_pass_config->target_config.attachment_configs = world_pick_att_configs;
-		world_pick_pass_config->render_target_count = 1;
-
-		ui_pick_pass_config->name = "Builtin.UIPick";
-		ui_pick_pass_config->dim = { app_inst->main_window->client_width, app_inst->main_window->client_height };
-		ui_pick_pass_config->offset = { 0, 0 };
-		ui_pick_pass_config->clear_color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		ui_pick_pass_config->clear_flags = Renderer::RenderpassClearFlags::NONE;
-		ui_pick_pass_config->depth = 1.0f;
-		ui_pick_pass_config->stencil = 0;
-
-		const uint32 ui_pick_target_att_count = 1;
-		Renderer::RenderTargetAttachmentConfig ui_pick_att_configs[ui_pick_target_att_count];
-		ui_pick_att_configs[0].type = Renderer::RenderTargetAttachmentType::COLOR;
-		ui_pick_att_configs[0].source = Renderer::RenderTargetAttachmentSource::VIEW;
-		ui_pick_att_configs[0].load_op = Renderer::RenderTargetAttachmentLoadOp::LOAD;
-		ui_pick_att_configs[0].store_op = Renderer::RenderTargetAttachmentStoreOp::STORE;
-		ui_pick_att_configs[0].present_after = false;
-
-		ui_pick_pass_config->target_config.attachment_count = ui_pick_target_att_count;
-		ui_pick_pass_config->target_config.attachment_configs = ui_pick_att_configs;
-		ui_pick_pass_config->render_target_count = 1;
-
-		pick_view_config.renderpass_count = pick_pass_count;
-		pick_view_config.renderpass_configs = pick_pass_configs;
-
-		RenderViewSystem::create_view(&pick_view_config);
-	}
-
-	return true;
 }
 
 static bool32 application_on_mousebutton_released(uint16 code, void* sender, void* listener_inst, EventData data)

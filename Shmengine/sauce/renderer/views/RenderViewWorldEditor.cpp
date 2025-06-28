@@ -45,29 +45,6 @@ struct RenderViewWorldInternalData {
 	Camera* camera;
 };
 
-static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
-{
-
-	RenderView* self = (RenderView*)listener_inst;
-	if (!self)
-		return false;
-
-	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
-	if (!internal_data)
-		return false;
-
-	switch (code)
-	{
-	case SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
-	{
-		RenderViewSystem::regenerate_render_targets(self->id);
-		return false;
-	}
-	}
-
-	return false;
-}
-
 bool32 render_view_world_editor_on_create(RenderView* self)
 {
 
@@ -119,9 +96,6 @@ bool32 render_view_world_editor_on_create(RenderView* self)
 
 	Renderer::geometry_load(grid_geometry);
 
-	Event::event_register((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
-	Event::event_register((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
-
 	return true;
 
 }
@@ -131,9 +105,6 @@ void render_view_world_editor_on_destroy(RenderView* self)
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
 	Renderer::geometry_unload(&internal_data->coordinate_grid.geometry);
-
-	Event::event_unregister((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
-	Event::event_unregister((uint16)SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, self, on_event);
 }
 
 void render_view_world_editor_on_resize(RenderView* self, uint32 width, uint32 height)
