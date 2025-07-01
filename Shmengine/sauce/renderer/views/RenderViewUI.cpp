@@ -163,7 +163,7 @@ bool32 render_view_ui_on_render(RenderView* self, FrameData* frame_data, uint32 
 		return false;
 	}
 
-	uint32 shader_id = Constants::max_u32;
+	ShaderId shader_id = ShaderId::invalid_value;
 
 	for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
 	{

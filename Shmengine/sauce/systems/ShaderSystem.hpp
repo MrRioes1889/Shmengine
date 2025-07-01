@@ -13,59 +13,60 @@
 
 namespace ShaderStage
 {
-	enum Value
+	enum : uint8
 	{
-		VERTEX = 1,
-		GEOMETRY = 1 << 1,
-		FRAGMENT = 1 << 2,
-		COMPUTE = 1 << 3,
+		Vertex = 1,
+		Geometry = 1 << 1,
+		Fragment = 1 << 2,
+		Compute = 1 << 3,
 	};
+	typedef uint8 Value;
 }
 
-enum class ShaderAttributeType
+enum class ShaderAttributeType : uint8
 {
-	FLOAT32,
-	FLOAT32_2,
-	FLOAT32_3,
-	FLOAT32_4,
-	MAT4,
-	INT8,
-	UINT8,
-	INT16,
-	UINT16,
-	INT32,
-	UINT32,
+	Float32,
+	Float32_2,
+	Float32_3,
+	Float32_4,
+	Mat4,
+	Int8,
+	UInt8,
+	Int16,
+	UInt16,
+	Int32,
+	UInt32,
 };
 
-enum class ShaderUniformType
+enum class ShaderUniformType : uint8
 {
-	FLOAT32,
-	FLOAT32_2,
-	FLOAT32_3,
-	FLOAT32_4,
-	INT8,
-	UINT8,
-	INT16,
-	UINT16,
-	INT32,
-	UINT32,
-	MAT4,
-	SAMPLER,
-	CUSTOM = 255
+	Float32,
+	Float32_2,
+	Float32_3,
+	Float32_4,
+	Int8,
+	UInt8,
+	Int16,
+	UInt16,
+	Int32,
+	UInt32,
+	Mat4,
+	Sampler,
+	Custom = 255
 };
 
-enum class ShaderScope
+enum class ShaderScope : uint8
 {
-	GLOBAL,
-	INSTANCE,
-	LOCAL
+	Global,
+	Instance,
+	Local
 };
 
-enum class ShaderState
+enum class ShaderState : uint8
 {
-	NOT_CREATED,
-	UNINITIALIZED,
-	INITIALIZED
+	Uninitialized,
+	Initializing,
+	Initialized
 };
 
 struct ShaderAttributeConfig
@@ -109,11 +110,13 @@ struct ShaderConfig
 	bool8 depth_write;
 };
 
+typedef Id16 ShaderUniformId;
+
 struct ShaderUniform
 {
 	uint32 offset;
 	uint16 location;
-	uint16 index;
+	ShaderUniformId index;
 	uint16 size;
 	uint8 set_index;
 
@@ -130,15 +133,13 @@ struct ShaderAttribute
 
 namespace ShaderFlags
 {
-	enum
+	enum : uint8
 	{
-		DEPTH_TEST = 1 << 0,
-		DEPTH_WRITE = 1 << 1
+		DepthTest = 1 << 0,
+		DepthWrite = 1 << 1
 	};
-	typedef uint32 Value;
+	typedef uint8 Value;
 }
-
-struct Shader;
 
 struct ShaderInstance
 {
@@ -148,11 +149,15 @@ struct ShaderInstance
 	Sarray<TextureMap*> instance_texture_maps;
 };
 
+typedef Id16 ShaderId;
+
 struct Shader
 {
-	uint32 id;
+	ShaderId id;
 	ShaderFlags::Value shader_flags;
+	ShaderState state;
 	Renderer::RenderTopologyTypeFlags::Value topologies;
+	ShaderScope bound_scope;
 
 	uint8 global_uniform_count;
 	uint8 global_uniform_sampler_count;
@@ -175,15 +180,11 @@ struct Shader
 
 	Darray<TextureMap*> global_texture_maps;
 
-	ShaderScope bound_scope;
-
+	uint32 instance_texture_count;
 	uint32 bound_instance_id;
 	uint64 bound_ubo_offset;
 
-	ShaderState state;
-	uint32 instance_texture_count;
-
-	Hashtable<uint16> uniform_lookup;
+	Hashtable<ShaderUniformId> uniform_lookup;
 	Darray<ShaderUniform> uniforms;
 	Darray<ShaderAttribute> attributes;
 
@@ -199,73 +200,72 @@ struct Shader
 	Renderer::RenderBuffer uniform_buffer;
 
 	void* internal_data;
-
 };
 
 struct SkyboxShaderUniformLocations
 {
-	uint16 projection;
-	uint16 view;
-	uint16 cube_map;
+	ShaderUniformId projection;
+	ShaderUniformId view;
+	ShaderUniformId cube_map;
 };
 
 struct UIShaderUniformLocations
 {
-	uint16 projection;
-	uint16 view;
-	uint16 diffuse_texture;
-	uint16 model;
+	ShaderUniformId projection;
+	ShaderUniformId view;
+	ShaderUniformId diffuse_texture;
+	ShaderUniformId model;
 
-	uint16 properties;
+	ShaderUniformId properties;
 };
 
 struct MaterialPhongShaderUniformLocations
 {
-	uint16 projection;
-	uint16 view;
-	uint16 model;
-	uint16 ambient_color;
-	uint16 camera_position;
-	uint16 diffuse_texture;
-	uint16 specular_texture;
-	uint16 normal_texture;
-	uint16 render_mode;
-	uint16 dir_light;
-	uint16 p_lights;
-	uint16 p_lights_count;
+	ShaderUniformId projection;
+	ShaderUniformId view;
+	ShaderUniformId model;
+	ShaderUniformId ambient_color;
+	ShaderUniformId camera_position;
+	ShaderUniformId diffuse_texture;
+	ShaderUniformId specular_texture;
+	ShaderUniformId normal_texture;
+	ShaderUniformId render_mode;
+	ShaderUniformId dir_light;
+	ShaderUniformId p_lights;
+	ShaderUniformId p_lights_count;
 
-	uint16 properties;
+	ShaderUniformId properties;
 };
 
 struct TerrainShaderUniformLocations
 {
-	uint16 projection;
-	uint16 view;
-	uint16 model;
-	uint16 ambient_color;
-	uint16 camera_position;
-	uint16 render_mode;
-	uint16 dir_light;
-	uint16 p_lights;
-	uint16 p_lights_count;
+	ShaderUniformId projection;
+	ShaderUniformId view;
+	ShaderUniformId model;
+	ShaderUniformId ambient_color;
+	ShaderUniformId camera_position;
+	ShaderUniformId render_mode;
+	ShaderUniformId dir_light;
+	ShaderUniformId p_lights;
+	ShaderUniformId p_lights_count;
 
-	uint16 properties;
-	uint16 samplers[Constants::max_terrain_materials_count * 3];
+	ShaderUniformId properties;
+	ShaderUniformId samplers[Constants::max_terrain_materials_count * 3];
 };
 
 struct Color3DShaderUniformLocations
 {
-	uint16 projection;
-	uint16 view;
-	uint16 model;
+	ShaderUniformId projection;
+	ShaderUniformId view;
+	ShaderUniformId model;
 };
 
 struct CoordinateGridShaderUniformLocations
 {
-	uint16 projection;
-	uint16 view;
-	uint16 near;
-	uint16 far;
+	ShaderUniformId projection;
+	ShaderUniformId view;
+	ShaderUniformId near;
+	ShaderUniformId far;
 };
 
 namespace ShaderSystem
@@ -285,28 +285,31 @@ namespace ShaderSystem
 	SHMAPI bool32 create_shader(const Renderer::RenderPass* renderpass,const ShaderConfig* config);
 	SHMAPI bool32 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass);
 
-	SHMAPI uint32 get_id(const char* shader_name);
+	SHMAPI void destroy_shader(ShaderId shader_id);
+	SHMAPI void destroy_shader(const char* shader_name);
 
-	SHMAPI Shader* get_shader(uint32 shader_id);
+	SHMAPI ShaderId get_shader_id(const char* shader_name);
+
+	SHMAPI Shader* get_shader(ShaderId shader_id);
 	SHMAPI Shader* get_shader(const char* shader_name);
 
-	SHMAPI void bind_shader(uint32 shader_id);
+	SHMAPI void bind_shader(ShaderId shader_id);
 
-	SHMAPI bool32 use_shader(uint32 shader_id);
+	SHMAPI bool32 use_shader(ShaderId shader_id);
 	SHMAPI bool32 use_shader(const char* shader_name);
 
-	SHMAPI uint16 get_uniform_index(Shader* shader, const char* uniform_name);
+	SHMAPI ShaderUniformId get_uniform_index(Shader* shader, const char* uniform_name);
 
 	SHMAPI bool32 set_uniform(const char* uniform_name, const void* value);
-	SHMAPI bool32 set_uniform(uint16 index, const void* value);
+	SHMAPI bool32 set_uniform(ShaderUniformId index, const void* value);
 
 	SHMAPI bool32 bind_globals();
 	SHMAPI bool32 bind_instance(uint32 instance_id);
 
-	SHMAPI uint32 get_material_phong_shader_id();
-	SHMAPI uint32 get_terrain_shader_id();
-	SHMAPI uint32 get_ui_shader_id();
-	SHMAPI uint32 get_skybox_shader_id();
-	SHMAPI uint32 get_color3D_shader_id();
+	SHMAPI ShaderId get_material_phong_shader_id();
+	SHMAPI ShaderId get_terrain_shader_id();
+	SHMAPI ShaderId get_ui_shader_id();
+	SHMAPI ShaderId get_skybox_shader_id();
+	SHMAPI ShaderId get_color3D_shader_id();
 
 }

@@ -136,7 +136,7 @@ bool32 application_update(FrameData* frame_data)
 
 	char ui_text_buffer[512];
 	CString::safe_print_s<int32, int32, float64, float64, float64>
-		(ui_text_buffer, 512, "Mouse Position: [%i, %i]\n\nLast frametime: %lf4 ms\nLogic: %lf4 / Render: %lf4",
+		(ui_text_buffer, 512, "Mouse Position: [%i, %i]\n\nLast frametime: %lf4 ms\nLogic: %lf4 ms / Render: %lf4 ms",
 			mouse_pos.x, mouse_pos.y, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
 
 	ui_text_set_text(&app_state->debug_info_text, ui_text_buffer);
@@ -149,18 +149,15 @@ bool32 application_render(FrameData* frame_data)
 {
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
-	Id16 ui_view_id = RenderViewSystem::get_id("Builtin.UI");
-	uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
-
-	RenderViewSystem::ui_text_draw(ui_view_id, &app_state->debug_info_text, ui_shader_id, frame_data);
+	RenderViewSystem::ui_text_draw(&app_state->debug_info_text, frame_data);
 
 	if (app_state->debug_console.is_visible())
 	{
 		UIText* console_text = app_state->debug_console.get_text();
-		RenderViewSystem::ui_text_draw(ui_view_id, console_text, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(console_text, frame_data);
 
 		UIText* entry_text = app_state->debug_console.get_entry_text();
-		RenderViewSystem::ui_text_draw(ui_view_id, entry_text, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(entry_text, frame_data);
 	}
 
 	return true;

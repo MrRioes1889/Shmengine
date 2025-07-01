@@ -181,28 +181,28 @@ namespace Renderer
 		bool32 sync_window_to_size;
 	};
 
-	enum class RenderCullMode
+	enum class RenderCullMode : uint8
 	{
-		NONE = 0,
-		FRONT = 1,
-		BACK = 2,
-		BOTH = 3
+		None = 0,
+		Front = 1,
+		Back = 2,
+		Both = 3
 	};
 
 	namespace RenderTopologyTypeFlags
 	{
-		enum
+		enum : uint8
 		{
-			NONE = 0,
-			TRIANGLE_LIST = 1 << 0,
-			TRIANGLE_STRIP = 1 << 1,
-			TRIANGLE_FAN = 1 << 2,
-			LINE_LIST = 1 << 3,
-			LINE_STRIP = 1 << 4,
-			POINT_LIST = 1 << 5,
-			ALL_TYPES_MASK = (1 << 6) - 1
+			None = 0,
+			TriangleList = 1 << 0,
+			TriangleStrip = 1 << 1,
+			TriangleFan = 1 << 2,
+			LineList = 1 << 3,
+			LineStrip = 1 << 4,
+			PointList = 1 << 5,
+			AllTypesMask = (1 << 6) - 1
 		};
-		typedef uint32 Value;
+		typedef uint8 Value;
 	}
 
 	struct RenderPassConfig

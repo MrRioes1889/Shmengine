@@ -23,10 +23,10 @@ struct RenderViewPickInternalData {
 	Renderer::RenderPass* pass_3D;
 	Renderer::RenderPass* pass_2D;
 
-	uint16 id_color_location;
-	uint16 model_location;
-	uint16 projection_location;
-	uint16 view_location;
+	ShaderUniformId id_color_location;
+	ShaderUniformId model_location;
+	ShaderUniformId projection_location;
+	ShaderUniformId view_location;
 
 	Math::Mat4 projection_3D;
 	float32 near_clip_3D;
@@ -56,8 +56,8 @@ bool32 render_view_pick_on_create(RenderView* self)
 	self->internal_data.init(sizeof(RenderViewPickInternalData), 0, AllocationTag::RENDERER);
 	RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 
-	internal_data->world_view = RenderViewSystem::get("world");
-	internal_data->ui_view = RenderViewSystem::get("ui");
+	internal_data->world_view = RenderViewSystem::get("Builtin.World");
+	internal_data->ui_view = RenderViewSystem::get("Builtin.UI");
 
 	internal_data->hovered_object_id = 0;
 

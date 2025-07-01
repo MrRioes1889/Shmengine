@@ -23,6 +23,8 @@ struct RingQueue
 	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::RING_QUEUE, void* memory = 0);
 	SHMINLINE void free_data();
 
+	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * sizeof(T); }
+
 	SHMINLINE void clear();
 
 	SHMINLINE void enqueue(const T& value);

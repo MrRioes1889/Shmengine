@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 #include "utility/MathTypes.hpp"
+#include "systems/ShaderSystem.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "core/Subsystems.hpp"
 #include "core/Identifier.hpp"
@@ -34,7 +35,7 @@ struct RenderViewInstanceData
 {
 	uint32 shader_instance_id;
 	uint32 texture_maps_count;
-	uint32 shader_id;
+	ShaderId shader_id;
 
 	void* instance_properties;
 	TextureMap** texture_maps;
@@ -42,7 +43,7 @@ struct RenderViewInstanceData
 
 struct RenderViewGeometryData
 {
-	uint32 shader_id;
+	ShaderId shader_id;
 	uint32 shader_instance_id;
 	uint32 object_index;
 	bool8 has_transparency;
@@ -77,10 +78,12 @@ struct RenderViewConfig
 	FP_regenerate_attachment_target on_regenerate_attachment_target;
 };
 
+typedef Id16 RenderViewId;
+
 struct RenderView
 {
 	const char* name;
-	Id16 id;
+	RenderViewId id;
 	uint16 width;
 	uint16 height;
 	bool8 enabled;
@@ -116,30 +119,30 @@ namespace RenderViewSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI Id16 create_view(const RenderViewConfig* config);
-	SHMAPI void destroy_view(Id16 view_id);
+	SHMAPI RenderViewId create_view(const RenderViewConfig* config);
+	SHMAPI void destroy_view(RenderViewId view_id);
 
 	SHMAPI RenderView* get(const char* name);
-	SHMAPI Id16 get_id(const char* name);
+	SHMAPI RenderViewId get_id(const char* name);
 
-	SHMAPI bool32 build_packet(Id16 view_id, FrameData* frame_data, const RenderViewPacketData* packet_data);
+	SHMAPI bool32 build_packet(RenderViewId view_id, FrameData* frame_data, const RenderViewPacketData* packet_data);
 
 	void on_window_resize(uint32 width, uint32 height);
 	bool32 on_render(FrameData* frame_data, uint32 frame_number, uint64 render_target_index);
 	void on_end_frame();
 
-	SHMAPI void regenerate_render_targets(Id16 view_id);
+	SHMAPI void regenerate_render_targets(RenderViewId view_id);
 
-	SHMAPI uint32 mesh_draw(Id16 view_id, Mesh* mesh, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
-	SHMAPI uint32 meshes_draw(Id16 view_id, Mesh* meshes, uint32 mesh_count, uint32 shader_id, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum);
-	SHMAPI bool32 skybox_draw(Id16 view_id, Skybox* skybox, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 terrain_draw(Id16 view_id, Terrain* terrain, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
-	SHMAPI uint32 terrains_draw(Id16 view_id, Terrain* terrains, uint32 terrains_coun, uint32 shader_id, LightingInfo lighting, FrameData* frame_data);
-	SHMAPI bool32 ui_text_draw(Id16 view_id, UIText* text, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 box3D_draw(Id16 view_id, Box3D* box, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 boxes3D_draw(Id16 view_id, Box3D* boxes, uint32 boxes_count, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 line3D_draw(Id16 view_id, Line3D* line, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 lines3D_draw(Id16 view_id, Line3D* lines, uint32 lines_count, uint32 shader_id, FrameData* frame_data);
-	SHMAPI uint32 gizmo3D_draw(Id16 view_id, Gizmo3D* gizmo, uint32 shader_id, FrameData* frame_data, Camera* camera);
+	SHMAPI uint32 mesh_draw(Mesh* mesh, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI uint32 meshes_draw(Mesh* meshes, uint32 mesh_count, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI bool32 skybox_draw(Skybox* skybox, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI uint32 terrain_draw(Terrain* terrain, LightingInfo lighting, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI uint32 terrains_draw(Terrain* terrains, uint32 terrains_coun, LightingInfo lighting, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI bool32 ui_text_draw(UIText* text, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI uint32 box3D_draw(Box3D* box, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI uint32 boxes3D_draw(Box3D* boxes, uint32 boxes_count, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI uint32 line3D_draw(Line3D* line, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI uint32 lines3D_draw(Line3D* lines, uint32 lines_count, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI uint32 gizmo3D_draw(Gizmo3D* gizmo, FrameData* frame_data, Camera* camera, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
 
 }

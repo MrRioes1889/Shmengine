@@ -316,7 +316,7 @@ namespace MaterialSystem
         // name
         CString::copy(config->name, m->name, Constants::max_material_name_length);
 
-        m->shader_id = ShaderSystem::get_id(config->shader_name);
+        m->shader_id = ShaderSystem::get_shader_id(config->shader_name);
         m->type = config->type;
 
         if (m->type == MaterialType::PHONG)
@@ -473,10 +473,10 @@ namespace MaterialSystem
         }
 
         // Release renderer resources.
-        if (m->shader_id != Constants::max_u32 && m->shader_instance_id != Constants::max_u32)
+        if (m->shader_id.is_valid() && m->shader_instance_id != Constants::max_u32)
         {
             Renderer::shader_release_instance_resources(ShaderSystem::get_shader(m->shader_id), m->shader_instance_id);
-            m->shader_id = Constants::max_u32;
+            m->shader_id.invalidate();
         }
 
         if (m->properties)

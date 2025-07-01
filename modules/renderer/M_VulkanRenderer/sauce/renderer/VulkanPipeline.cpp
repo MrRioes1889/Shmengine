@@ -29,22 +29,22 @@ namespace Renderer::Vulkan
         rasterizer_create_info.lineWidth = 1.0f;
         switch (config->cull_mode)
         {
-        case RenderCullMode::NONE:
+        case RenderCullMode::None:
         {
             rasterizer_create_info.cullMode = VK_CULL_MODE_NONE;
             break;
         }
-        case RenderCullMode::FRONT:
+        case RenderCullMode::Front:
         {
             rasterizer_create_info.cullMode = VK_CULL_MODE_FRONT_BIT;
             break;
         }
-        case RenderCullMode::BACK:
+        case RenderCullMode::Back:
         {
             rasterizer_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
             break;
         }
-        case RenderCullMode::BOTH:
+        case RenderCullMode::Both:
         {
             rasterizer_create_info.cullMode = VK_CULL_MODE_FRONT_AND_BACK;
             break;
@@ -117,24 +117,24 @@ namespace Renderer::Vulkan
 
         // Input assembly
         VkPipelineInputAssemblyStateCreateInfo input_assembly = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-        for (RenderTopologyTypeFlags::Value type = 1; type < RenderTopologyTypeFlags::ALL_TYPES_MASK; type = type << 1) 
+        for (RenderTopologyTypeFlags::Value type = 1; type < RenderTopologyTypeFlags::AllTypesMask; type = type << 1) 
         {
             if (out_pipeline->topologies & type) 
             {
 
                 switch (type) 
                 {
-                case RenderTopologyTypeFlags::POINT_LIST:
+                case RenderTopologyTypeFlags::PointList:
                     input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; break;
-                case RenderTopologyTypeFlags::LINE_LIST:
+                case RenderTopologyTypeFlags::LineList:
                     input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST; break;
-                case RenderTopologyTypeFlags::LINE_STRIP:
+                case RenderTopologyTypeFlags::LineStrip:
                     input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; break;
-                case RenderTopologyTypeFlags::TRIANGLE_LIST:
+                case RenderTopologyTypeFlags::TriangleList:
                     input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; break;
-                case RenderTopologyTypeFlags::TRIANGLE_STRIP:
+                case RenderTopologyTypeFlags::TriangleStrip:
                     input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP; break;
-                case RenderTopologyTypeFlags::TRIANGLE_FAN:
+                case RenderTopologyTypeFlags::TriangleFan:
                     input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN; break;
                 default:
                     SHMWARNV("primitive topology '%u' not supported. Skipping.", type); break;
@@ -198,7 +198,7 @@ namespace Renderer::Vulkan
         pipeline_create_info.pViewportState = &vp_state_create_info;
         pipeline_create_info.pRasterizationState = &rasterizer_create_info;
         pipeline_create_info.pMultisampleState = &multisampling_create_info;
-        pipeline_create_info.pDepthStencilState = (config->shader_flags & ShaderFlags::DEPTH_TEST) ? &depth_stencil : 0;
+        pipeline_create_info.pDepthStencilState = (config->shader_flags & ShaderFlags::DepthTest) ? &depth_stencil : 0;
         pipeline_create_info.pColorBlendState = &color_blend_state_create_info;
         pipeline_create_info.pDynamicState = &dynamic_state_create_info;
         pipeline_create_info.pTessellationState = 0;

@@ -37,8 +37,8 @@ namespace ResourceSystem
             return false;
         }
 
-        out_resource->cull_mode = RenderCullMode::BACK;
-        out_resource->topologies = RenderTopologyTypeFlags::TRIANGLE_LIST;
+        out_resource->cull_mode = RenderCullMode::Back;
+        out_resource->topologies = RenderTopologyTypeFlags::TriangleList;
         out_resource->attributes.init(1, 0);
         out_resource->uniforms.init(1, 0);
         out_resource->stages.init(1, 0);
@@ -109,13 +109,13 @@ namespace ResourceSystem
                 {
                     stage_names[i].trim();
                     if (stage_names[i].equal_i("frag") || stage_names[i].equal_i("fragment"))
-                        out_resource->stages[i].stage = ShaderStage::FRAGMENT;
+                        out_resource->stages[i].stage = ShaderStage::Fragment;
                     else if (stage_names[i].equal_i("vert") || stage_names[i].equal_i("vertex"))
-                        out_resource->stages[i].stage = ShaderStage::VERTEX;
+                        out_resource->stages[i].stage = ShaderStage::Vertex;
                     else if (stage_names[i].equal_i("geom") || stage_names[i].equal_i("geometry"))
-                        out_resource->stages[i].stage = ShaderStage::GEOMETRY;
+                        out_resource->stages[i].stage = ShaderStage::Geometry;
                     else if (stage_names[i].equal_i("comp") || stage_names[i].equal_i("compute"))
-                        out_resource->stages[i].stage = ShaderStage::COMPUTE;
+                        out_resource->stages[i].stage = ShaderStage::Compute;
                     else
                         SHMERRORV("shader_loader_load - Invalid file layout. Unrecognized stage '%s'", stage_names[i].c_str());
                 }
@@ -145,23 +145,23 @@ namespace ResourceSystem
                 Darray<String> topologies;
                 value.split(topologies, ',');
 
-                out_resource->topologies = RenderTopologyTypeFlags::NONE;
+                out_resource->topologies = RenderTopologyTypeFlags::None;
 
                 for (uint32 i = 0; i < topologies.count; i++)
                 {
                     topologies[i].trim();
                     if (topologies[i].equal_i("triangle_list"))
-                        out_resource->topologies |= RenderTopologyTypeFlags::TRIANGLE_LIST;
+                        out_resource->topologies |= RenderTopologyTypeFlags::TriangleList;
                     else if (topologies[i].equal_i("triangle_strip"))
-                        out_resource->topologies |= RenderTopologyTypeFlags::TRIANGLE_STRIP;
+                        out_resource->topologies |= RenderTopologyTypeFlags::TriangleStrip;
                     else if (topologies[i].equal_i("triangle_fan"))
-                        out_resource->topologies |= RenderTopologyTypeFlags::TRIANGLE_FAN;
+                        out_resource->topologies |= RenderTopologyTypeFlags::TriangleFan;
                     else if (topologies[i].equal_i("line_list"))
-                        out_resource->topologies |= RenderTopologyTypeFlags::LINE_LIST;
+                        out_resource->topologies |= RenderTopologyTypeFlags::LineList;
                     else if (topologies[i].equal_i("line_strip"))
-                        out_resource->topologies |= RenderTopologyTypeFlags::LINE_STRIP;
+                        out_resource->topologies |= RenderTopologyTypeFlags::LineStrip;
                     else if (topologies[i].equal_i("point_list"))
-                        out_resource->topologies |= RenderTopologyTypeFlags::POINT_LIST;
+                        out_resource->topologies |= RenderTopologyTypeFlags::PointList;
                     else
                         SHMERRORV("Invalid file layout. Unrecognized topology '%s'", topologies[i].c_str());
                 }
@@ -173,11 +173,11 @@ namespace ResourceSystem
             else if (var_name.equal_i("cull_mode")) 
             {
                 if (value.equal_i("front"))
-                    out_resource->cull_mode = RenderCullMode::FRONT;
+                    out_resource->cull_mode = RenderCullMode::Front;
                 else if (value.equal_i("back"))
-                    out_resource->cull_mode = RenderCullMode::BACK;
+                    out_resource->cull_mode = RenderCullMode::Back;
                 else if (value.equal_i("both"))
-                    out_resource->cull_mode = RenderCullMode::BOTH;
+                    out_resource->cull_mode = RenderCullMode::Both;
             }
             else if (var_name.equal_i("attributes") || var_name.equal_i("attribute")) 
             {
@@ -193,52 +193,52 @@ namespace ResourceSystem
                     // Parse field type
                     if (tmp[0].equal_i("float32")) 
                     {
-                        attribute.type = ShaderAttributeType::FLOAT32;
+                        attribute.type = ShaderAttributeType::Float32;
                         attribute.size = 4;
                     }
                     else if (tmp[0].equal_i("vec2")) 
                     {
-                        attribute.type = ShaderAttributeType::FLOAT32_2;
+                        attribute.type = ShaderAttributeType::Float32_2;
                         attribute.size = 8;
                     }
                     else if (tmp[0].equal_i("vec3")) 
                     {
-                        attribute.type = ShaderAttributeType::FLOAT32_3;
+                        attribute.type = ShaderAttributeType::Float32_3;
                         attribute.size = 12;
                     }
                     else if (tmp[0].equal_i("vec4")) 
                     {
-                        attribute.type = ShaderAttributeType::FLOAT32_4;
+                        attribute.type = ShaderAttributeType::Float32_4;
                         attribute.size = 16;
                     }
                     else if (tmp[0].equal_i("uint8")) 
                     {
-                        attribute.type = ShaderAttributeType::UINT8;
+                        attribute.type = ShaderAttributeType::UInt8;
                         attribute.size = 1;
                     }
                     else if (tmp[0].equal_i("uint16")) 
                     {
-                        attribute.type = ShaderAttributeType::UINT16;
+                        attribute.type = ShaderAttributeType::UInt16;
                         attribute.size = 2;
                     }
                     else if (tmp[0].equal_i("uint32")) 
                     {
-                        attribute.type = ShaderAttributeType::UINT32;
+                        attribute.type = ShaderAttributeType::UInt32;
                         attribute.size = 4;
                     }
                     else if (tmp[0].equal_i("int8")) 
                     {
-                        attribute.type = ShaderAttributeType::INT8;
+                        attribute.type = ShaderAttributeType::Int8;
                         attribute.size = 1;
                     }
                     else if (tmp[0].equal_i("int16")) 
                     {
-                        attribute.type = ShaderAttributeType::INT16;
+                        attribute.type = ShaderAttributeType::Int16;
                         attribute.size = 2;
                     }
                     else if (tmp[0].equal_i("int32")) 
                     {
-                        attribute.type = ShaderAttributeType::INT32;
+                        attribute.type = ShaderAttributeType::Int32;
                         attribute.size = 4;
                     }
                     else 
@@ -277,62 +277,62 @@ namespace ResourceSystem
                     // Parse field type
                     if (tmp[0].equal_i("float32")) 
                     {
-                        uniform.type = ShaderUniformType::FLOAT32;
+                        uniform.type = ShaderUniformType::Float32;
                         uniform.size = 4;
                     }
                     else if (tmp[0].equal_i("vec2")) 
                     {
-                        uniform.type = ShaderUniformType::FLOAT32_2;
+                        uniform.type = ShaderUniformType::Float32_2;
                         uniform.size = 8;
                     }
                     else if (tmp[0].equal_i("vec3")) 
                     {
-                        uniform.type = ShaderUniformType::FLOAT32_3;
+                        uniform.type = ShaderUniformType::Float32_3;
                         uniform.size = 12;
                     }
                     else if (tmp[0].equal_i("vec4")) 
                     {
-                        uniform.type = ShaderUniformType::FLOAT32_4;
+                        uniform.type = ShaderUniformType::Float32_4;
                         uniform.size = 16;
                     }
                     else if (tmp[0].equal_i("uint8")) 
                     {
-                        uniform.type = ShaderUniformType::UINT8;
+                        uniform.type = ShaderUniformType::UInt8;
                         uniform.size = 1;
                     }
                     else if (tmp[0].equal_i("uint16")) 
                     {
-                        uniform.type = ShaderUniformType::UINT16;
+                        uniform.type = ShaderUniformType::UInt16;
                         uniform.size = 2;
                     }
                     else if (tmp[0].equal_i("uint32")) 
                     {
-                        uniform.type = ShaderUniformType::UINT32;
+                        uniform.type = ShaderUniformType::UInt32;
                         uniform.size = 4;
                     }
                     else if (tmp[0].equal_i("int8")) 
                     {
-                        uniform.type = ShaderUniformType::INT8;
+                        uniform.type = ShaderUniformType::Int8;
                         uniform.size = 1;
                     }
                     else if (tmp[0].equal_i("int16")) 
                     {
-                        uniform.type = ShaderUniformType::INT16;
+                        uniform.type = ShaderUniformType::Int16;
                         uniform.size = 2;
                     }
                     else if (tmp[0].equal_i("int32")) 
                     {
-                        uniform.type = ShaderUniformType::INT32;
+                        uniform.type = ShaderUniformType::Int32;
                         uniform.size = 4;
                     }
                     else if (tmp[0].equal_i("mat4")) 
                     {
-                        uniform.type = ShaderUniformType::MAT4;
+                        uniform.type = ShaderUniformType::Mat4;
                         uniform.size = 64;
                     }
                     else if (tmp[0].equal_i("samp")) 
                     {
-                        uniform.type = ShaderUniformType::SAMPLER;
+                        uniform.type = ShaderUniformType::Sampler;
                         uniform.size = 1;
                     }
                     else if (tmp[0].nequal_i("struct", 6)) 
@@ -348,7 +348,7 @@ namespace ResourceSystem
                             SHMERRORV("Failed to parse uniform struct size: '%s'", tmp[0].c_str());
                             return false;
                         }
-                        uniform.type = ShaderUniformType::CUSTOM;
+                        uniform.type = ShaderUniformType::Custom;
                         uniform.size = size;
                     }
                     else 
@@ -362,24 +362,24 @@ namespace ResourceSystem
 
                         if (tmp[1].equal_i("0") || tmp[1].equal_i("global"))
                         {
-                            uniform.scope = ShaderScope::GLOBAL;
+                            uniform.scope = ShaderScope::Global;
                         }
                         else if (tmp[1].equal_i("1") || tmp[1].equal_i("instance"))
                         {
-                            uniform.scope = ShaderScope::INSTANCE;
+                            uniform.scope = ShaderScope::Instance;
                         }
                         else if (tmp[1].equal_i("2") || tmp[1].equal_i("local"))
                         {
-                            uniform.scope = ShaderScope::LOCAL;
+                            uniform.scope = ShaderScope::Local;
                         }
                         else
                         {
                             SHMERROR("shader_loader_load - Invalid file layout: Uniform scope must be 0 for global, 1 for instance or 2 for local.");
                             SHMERROR("Defaulting to global.");
-                            uniform.scope = ShaderScope::GLOBAL;
+                            uniform.scope = ShaderScope::Global;
                         }
 
-                        if (uniform.type == ShaderUniformType::SAMPLER)
+                        if (uniform.type == ShaderUniformType::Sampler)
                             uniform.size = 0;
 
                         CString::copy(tmp[2].c_str(), uniform.name, Constants::max_shader_uniform_name_length);

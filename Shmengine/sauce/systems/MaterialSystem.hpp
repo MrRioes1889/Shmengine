@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "systems/ShaderSystem.hpp"
 #include "systems/TextureSystem.hpp"
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
@@ -188,7 +189,7 @@ struct Material
 	uint32 id;
 	MaterialType type;
 	uint32 generation;	
-	uint32 shader_id;
+	ShaderId shader_id;
 	uint32 shader_instance_id;
 	char name[Constants::max_material_name_length];
 	

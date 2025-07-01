@@ -281,33 +281,29 @@ bool32 application_render(FrameData* frame_data)
 
 	frame_data->drawn_geometry_count = 0;
 
-	uint32 ui_shader_id = ShaderSystem::get_ui_shader_id();
-	uint32 color3D_shader_id = ShaderSystem::get_color3D_shader_id();
+	ShaderId ui_shader_id = ShaderSystem::get_ui_shader_id();
+	ShaderId color3D_shader_id = ShaderSystem::get_color3D_shader_id();
 
-	Id16 skybox_view_id = RenderViewSystem::get_id("Builtin.Skybox");
-	Id16 world_view_id = RenderViewSystem::get_id("Builtin.World");
-	Id16 world_editor_view_id = RenderViewSystem::get_id("Builtin.WorldEditor");
-	Id16 ui_view_id = RenderViewSystem::get_id("Builtin.UI");
-	Id16 pick_view_id = RenderViewSystem::get_id("Builtin.Pick");
+	RenderViewId ui_view_id = RenderViewSystem::get_id("Builtin.UI");
 
 	if (app_state->main_scene.state == ResourceState::Loaded)
-		scene_draw(&app_state->main_scene, skybox_view_id, world_view_id, &app_state->camera_frustum, frame_data);
+		scene_draw(&app_state->main_scene, &app_state->camera_frustum, frame_data);
 
-	RenderViewSystem::lines3D_draw(world_view_id, app_state->test_raycast_lines.data, app_state->test_raycast_lines.count, color3D_shader_id, frame_data);
+	RenderViewSystem::lines3D_draw(app_state->test_raycast_lines.data, app_state->test_raycast_lines.count, frame_data);
 
-	RenderViewSystem::gizmo3D_draw(world_editor_view_id, &app_state->editor_gizmo, color3D_shader_id, frame_data, app_state->world_camera);
+	RenderViewSystem::gizmo3D_draw(&app_state->editor_gizmo, frame_data, app_state->world_camera);
 
-	RenderViewSystem::meshes_draw(ui_view_id, app_state->ui_meshes.data, app_state->ui_meshes.count, ui_shader_id, {}, frame_data, 0);
+	RenderViewSystem::meshes_draw(app_state->ui_meshes.data, app_state->ui_meshes.count, {}, frame_data, 0, ui_view_id, ui_shader_id);
 
-	RenderViewSystem::ui_text_draw(ui_view_id, &app_state->debug_info_text, ui_shader_id, frame_data);
+	RenderViewSystem::ui_text_draw(&app_state->debug_info_text, frame_data);
 
 	if (app_state->debug_console.is_visible())
 	{
 		UIText* console_text = app_state->debug_console.get_text();
-		RenderViewSystem::ui_text_draw(ui_view_id, console_text, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(console_text, frame_data);
 
 		UIText* entry_text = app_state->debug_console.get_entry_text();
-		RenderViewSystem::ui_text_draw(ui_view_id, entry_text, ui_shader_id, frame_data);
+		RenderViewSystem::ui_text_draw(entry_text, frame_data);
 	}
 
 	return true;

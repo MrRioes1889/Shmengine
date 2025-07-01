@@ -34,17 +34,17 @@ namespace Renderer::Vulkan
 		VkShaderStageFlags vk_stages[RendererConfig::shader_max_stages];
 		for (uint8 i = 0; i < config->stages_count; ++i) {
 			switch (config->stages[i].stage) {
-			case ShaderStage::FRAGMENT:
+			case ShaderStage::Fragment:
 				vk_stages[i] = VK_SHADER_STAGE_FRAGMENT_BIT;
 				break;
-			case ShaderStage::VERTEX:
+			case ShaderStage::Vertex:
 				vk_stages[i] = VK_SHADER_STAGE_VERTEX_BIT;
 				break;
-			case ShaderStage::GEOMETRY:
+			case ShaderStage::Geometry:
 				SHMWARN("shader_create: VK_SHADER_STAGE_GEOMETRY_BIT is set but not yet supported.");
 				vk_stages[i] = VK_SHADER_STAGE_GEOMETRY_BIT;
 				break;
-			case ShaderStage::COMPUTE:
+			case ShaderStage::Compute:
 				SHMWARN("shader_create: SHADER_STAGE_COMPUTE is set but not yet supported.");
 				vk_stages[i] = VK_SHADER_STAGE_COMPUTE_BIT;
 				break;
@@ -69,10 +69,10 @@ namespace Renderer::Vulkan
 
 			VkShaderStageFlagBits stage_flag;
 			switch (config->stages[i].stage) {
-			case ShaderStage::VERTEX:
+			case ShaderStage::Vertex:
 				stage_flag = VK_SHADER_STAGE_VERTEX_BIT;
 				break;
-			case ShaderStage::FRAGMENT:
+			case ShaderStage::Fragment:
 				stage_flag = VK_SHADER_STAGE_FRAGMENT_BIT;
 				break;
 			default:
@@ -232,16 +232,16 @@ namespace Renderer::Vulkan
 		static VkFormat types[11] = {};
 		if (!types[0])
 		{
-			types[(uint32)ShaderAttributeType::FLOAT32] = VK_FORMAT_R32_SFLOAT;
-			types[(uint32)ShaderAttributeType::FLOAT32_2] = VK_FORMAT_R32G32_SFLOAT;
-			types[(uint32)ShaderAttributeType::FLOAT32_3] = VK_FORMAT_R32G32B32_SFLOAT;
-			types[(uint32)ShaderAttributeType::FLOAT32_4] = VK_FORMAT_R32G32B32A32_SFLOAT;
-			types[(uint32)ShaderAttributeType::INT8] = VK_FORMAT_R8_SINT;
-			types[(uint32)ShaderAttributeType::UINT8] = VK_FORMAT_R8_UINT;
-			types[(uint32)ShaderAttributeType::INT16] = VK_FORMAT_R16_SINT;
-			types[(uint32)ShaderAttributeType::UINT16] = VK_FORMAT_R16_UINT;
-			types[(uint32)ShaderAttributeType::INT32] = VK_FORMAT_R32_SINT;
-			types[(uint32)ShaderAttributeType::UINT32] = VK_FORMAT_R32_UINT;
+			types[(uint32)ShaderAttributeType::Float32] = VK_FORMAT_R32_SFLOAT;
+			types[(uint32)ShaderAttributeType::Float32_2] = VK_FORMAT_R32G32_SFLOAT;
+			types[(uint32)ShaderAttributeType::Float32_3] = VK_FORMAT_R32G32B32_SFLOAT;
+			types[(uint32)ShaderAttributeType::Float32_4] = VK_FORMAT_R32G32B32A32_SFLOAT;
+			types[(uint32)ShaderAttributeType::Int8] = VK_FORMAT_R8_SINT;
+			types[(uint32)ShaderAttributeType::UInt8] = VK_FORMAT_R8_UINT;
+			types[(uint32)ShaderAttributeType::Int16] = VK_FORMAT_R16_SINT;
+			types[(uint32)ShaderAttributeType::UInt16] = VK_FORMAT_R16_UINT;
+			types[(uint32)ShaderAttributeType::Int32] = VK_FORMAT_R32_SINT;
+			types[(uint32)ShaderAttributeType::UInt32] = VK_FORMAT_R32_UINT;
 		}
 
 		// Process attributes
@@ -318,20 +318,20 @@ namespace Renderer::Vulkan
 
 		RenderTopologyTypeFlags::Value pipeline_topologies[(uint32)VulkanTopologyCLass::TOPOLOGY_CLASS_COUNT];
 
-		pipeline_topologies[(uint32)VulkanTopologyCLass::POINT] = RenderTopologyTypeFlags::POINT_LIST;
-		pipeline_topologies[(uint32)VulkanTopologyCLass::LINE] = RenderTopologyTypeFlags::LINE_LIST;
-		pipeline_topologies[(uint32)VulkanTopologyCLass::LINE] |= RenderTopologyTypeFlags::LINE_STRIP;
-		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] = RenderTopologyTypeFlags::TRIANGLE_LIST;
-		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] |= RenderTopologyTypeFlags::TRIANGLE_STRIP;
-		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] |= RenderTopologyTypeFlags::TRIANGLE_FAN;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::POINT] = RenderTopologyTypeFlags::PointList;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::LINE] = RenderTopologyTypeFlags::LineList;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::LINE] |= RenderTopologyTypeFlags::LineStrip;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] = RenderTopologyTypeFlags::TriangleList;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] |= RenderTopologyTypeFlags::TriangleStrip;
+		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] |= RenderTopologyTypeFlags::TriangleFan;
 
-		if (shader->topologies & RenderTopologyTypeFlags::POINT_LIST)
+		if (shader->topologies & RenderTopologyTypeFlags::PointList)
 			v_shader->pipelines[(uint32)VulkanTopologyCLass::POINT] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
 
-		if (shader->topologies & RenderTopologyTypeFlags::LINE_LIST || shader->topologies & RenderTopologyTypeFlags::LINE_STRIP)
+		if (shader->topologies & RenderTopologyTypeFlags::LineList || shader->topologies & RenderTopologyTypeFlags::LineStrip)
 			v_shader->pipelines[(uint32)VulkanTopologyCLass::LINE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
 
-		if (shader->topologies & RenderTopologyTypeFlags::TRIANGLE_LIST || shader->topologies & RenderTopologyTypeFlags::TRIANGLE_STRIP || shader->topologies & RenderTopologyTypeFlags::TRIANGLE_FAN)
+		if (shader->topologies & RenderTopologyTypeFlags::TriangleList || shader->topologies & RenderTopologyTypeFlags::TriangleStrip || shader->topologies & RenderTopologyTypeFlags::TriangleFan)
 			v_shader->pipelines[(uint32)VulkanTopologyCLass::TRIANGLE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
 
 		v_shader->bound_pipeline_id = Constants::max_u32;
@@ -368,23 +368,23 @@ namespace Renderer::Vulkan
 			{
 				v_shader->bound_pipeline_id = i;
 
-				for (RenderTopologyTypeFlags::Value type = 1; type < RenderTopologyTypeFlags::ALL_TYPES_MASK; type = type << 1) 
+				for (RenderTopologyTypeFlags::Value type = 1; type < RenderTopologyTypeFlags::AllTypesMask; type = type << 1) 
 				{
 					if (v_shader->pipelines[i]->topologies & type) 
 					{
 
 						switch (type) {
-						case RenderTopologyTypeFlags::POINT_LIST:
+						case RenderTopologyTypeFlags::PointList:
 							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; break;
-						case RenderTopologyTypeFlags::LINE_LIST:
+						case RenderTopologyTypeFlags::LineList:
 							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST; break;
-						case RenderTopologyTypeFlags::LINE_STRIP:
+						case RenderTopologyTypeFlags::LineStrip:
 							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; break;
-						case RenderTopologyTypeFlags::TRIANGLE_LIST:
+						case RenderTopologyTypeFlags::TriangleList:
 							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; break;
-						case RenderTopologyTypeFlags::TRIANGLE_STRIP:
+						case RenderTopologyTypeFlags::TriangleStrip:
 							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP; break;
-						case RenderTopologyTypeFlags::TRIANGLE_FAN:
+						case RenderTopologyTypeFlags::TriangleFan:
 							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN; break;
 						default:
 							SHMWARNV("primitive topology '%u' not supported. Skipping.", type); break;
@@ -675,7 +675,7 @@ namespace Renderer::Vulkan
 	{
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		
-		if (uniform->scope == ShaderScope::LOCAL)
+		if (uniform->scope == ShaderScope::Local)
 		{
 			VkCommandBuffer command_buffer = context->graphics_command_buffers[context->bound_framebuffer_index].handle;
 			vkCmdPushConstants(command_buffer, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform->offset, uniform->size, value);

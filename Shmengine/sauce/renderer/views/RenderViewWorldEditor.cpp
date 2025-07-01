@@ -195,7 +195,7 @@ bool32 render_view_world_editor_on_render(RenderView* self, FrameData* frame_dat
 
 	Renderer::RenderPass* renderpass = &self->renderpasses[0];
 
-	uint32 shader_id = Constants::max_u32;
+	ShaderId shader_id = ShaderId::invalid_value;
 
 	if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 	{

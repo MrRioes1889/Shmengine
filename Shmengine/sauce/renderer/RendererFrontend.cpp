@@ -501,9 +501,9 @@ namespace Renderer
 		shader->topologies = config->topologies;
 		shader->shader_flags = 0;
 		if (config->depth_test)
-			shader->shader_flags |= ShaderFlags::DEPTH_TEST;
+			shader->shader_flags |= ShaderFlags::DepthTest;
 		if (config->depth_write)
-			shader->shader_flags |= ShaderFlags::DEPTH_WRITE;
+			shader->shader_flags |= ShaderFlags::DepthWrite;
 
 		for (uint32 i = 0; i < RendererConfig::shader_max_instances; ++i)
 			shader->instances[i].offset = Constants::max_u64;
@@ -518,23 +518,23 @@ namespace Renderer
 		{
 			switch (config->uniforms[i].scope)
 			{
-			case ShaderScope::GLOBAL:
+			case ShaderScope::Global:
 			{
-				if (config->uniforms[i].type == ShaderUniformType::SAMPLER)
+				if (config->uniforms[i].type == ShaderUniformType::Sampler)
 					shader->global_uniform_sampler_count++;
 				else
 					shader->global_uniform_count++;
 				break;
 			}
-			case ShaderScope::INSTANCE:
+			case ShaderScope::Instance:
 			{
-				if (config->uniforms[i].type == ShaderUniformType::SAMPLER)
+				if (config->uniforms[i].type == ShaderUniformType::Sampler)
 					shader->instance_uniform_sampler_count++;
 				else
 					shader->instance_uniform_count++;
 				break;
 			}
-			case ShaderScope::LOCAL:
+			case ShaderScope::Local:
 			{
 				shader->local_uniform_count++;
 				break;
@@ -549,6 +549,7 @@ namespace Renderer
 	{
 		renderbuffer_destroy(&s->uniform_buffer);
 		system_state->module.shader_destroy(s);
+		s->~Shader();
 	}
 
 	bool32 shader_init(Shader* s) 
@@ -686,9 +687,9 @@ namespace Renderer
 	bool32 shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value) 
 	{
 
-		if (uniform->type == ShaderUniformType::SAMPLER)
+		if (uniform->type == ShaderUniformType::Sampler)
 		{
-			if (uniform->scope == ShaderScope::GLOBAL)
+			if (uniform->scope == ShaderScope::Global)
 				s->global_texture_maps[uniform->location] = (TextureMap*)value;
 			else
 				s->instances[s->bound_instance_id].instance_texture_maps[uniform->location] = (TextureMap*)value;

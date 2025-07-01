@@ -120,7 +120,7 @@ Terrain* scene_get_terrain(Scene* scene, const char* name);
 DirectionalLight* scene_get_dir_light(Scene* scene, uint32 index);
 PointLight* scene_get_point_light(Scene* scene, uint32 index);
 
-bool32 scene_draw(Scene* scene, Id16 skybox_view_id, Id16 world_view_id, const Math::Frustum* camera_frustum, FrameData* frame_data);
+bool32 scene_draw(Scene* scene, const Math::Frustum* camera_frustum, FrameData* frame_data);
 
 Math::Ray3DHitInfo scene_raycast(Scene* scene, Math::Ray3D ray);
 

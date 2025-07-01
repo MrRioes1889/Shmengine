@@ -12,6 +12,8 @@ struct Id8
 	Id8(uint8 value) { id = value; }
 	
 	SHMINLINE operator uint8() { return id; }
+	SHMINLINE Id8 operator++(int) { Id8 old = *this; id++; return old; }
+	SHMINLINE Id8 operator--(int) { Id8 old = *this; id++; return old; }
 
 	SHMINLINE bool8 is_valid() { return id != invalid_value; }
 	SHMINLINE void invalidate() { id = invalid_value; }
@@ -26,6 +28,8 @@ struct Id16
 	Id16(uint16 value) { id = value; }
 	
 	SHMINLINE operator uint16() { return id; }
+	SHMINLINE Id16 operator++(int) { Id16 old = *this; id++; return old; }
+	SHMINLINE Id16 operator--(int) { Id16 old = *this; id--; return old; }
 
 	SHMINLINE bool8 is_valid() { return id != invalid_value; }
 	SHMINLINE void invalidate() { id = invalid_value; }
@@ -40,6 +44,8 @@ struct Id32
 	Id32(uint32 value) { id = value; }
 
 	SHMINLINE operator uint32() { return id; }
+	SHMINLINE Id32 operator++(int) { Id32 old = *this; id++; return old; }
+	SHMINLINE Id32 operator--(int) { Id32 old = *this; id--; return old; }
 
 	SHMINLINE bool8 is_valid() { return id != invalid_value; }
 	SHMINLINE void invalidate() { id = invalid_value; }
@@ -54,6 +60,8 @@ struct Id64
 	Id64(uint64 value) { id = value; }
 
 	SHMINLINE operator uint64() { return id; }
+	SHMINLINE Id64 operator++(int) { Id64 old = *this; id++; return old; }
+	SHMINLINE Id64 operator--(int) { Id64 old = *this; id--; return old; }
 
 	SHMINLINE bool8 is_valid() { return id != invalid_value; }
 	SHMINLINE void invalidate() { id = invalid_value; }

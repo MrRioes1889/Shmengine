@@ -789,16 +789,14 @@ PointLight* scene_get_point_light(Scene* scene, uint32 index)
 	return &scene->p_lights[index];
 }
 
-bool32 scene_draw(Scene* scene, Id16 skybox_view_id, Id16 world_view_id, const Math::Frustum* camera_frustum, FrameData* frame_data)
+bool32 scene_draw(Scene* scene, const Math::Frustum* camera_frustum, FrameData* frame_data)
 {
 
 	if (scene->state != ResourceState::Loaded)
 		return false;
 
-	uint32 skybox_shader_id = ShaderSystem::get_skybox_shader_id();
-
 	if (scene->skybox.state >= ResourceState::Initialized)
-		frame_data->drawn_geometry_count += RenderViewSystem::skybox_draw(skybox_view_id, &scene->skybox, skybox_shader_id, frame_data);
+		frame_data->drawn_geometry_count += RenderViewSystem::skybox_draw(&scene->skybox, frame_data);
 
 	LightingInfo lighting =
 	{
@@ -807,14 +805,9 @@ bool32 scene_draw(Scene* scene, Id16 skybox_view_id, Id16 world_view_id, const M
 		.p_lights = scene->p_lights.data
 	};
 
-	uint32 terrain_shader_id = ShaderSystem::get_terrain_shader_id();
-	frame_data->drawn_geometry_count += RenderViewSystem::terrains_draw(world_view_id, scene->terrains.data, scene->terrains.count, terrain_shader_id, lighting, frame_data);
-
-	uint32 material_shader_id = ShaderSystem::get_material_phong_shader_id();
-	frame_data->drawn_geometry_count += RenderViewSystem::meshes_draw(world_view_id, scene->meshes.data, scene->meshes.count, material_shader_id, lighting, frame_data, camera_frustum);
-
-	uint32 color3D_shader_id = ShaderSystem::get_color3D_shader_id();
-	frame_data->drawn_geometry_count += RenderViewSystem::boxes3D_draw(world_view_id, scene->p_light_boxes.data, scene->p_light_boxes.count, color3D_shader_id, frame_data);
+	frame_data->drawn_geometry_count += RenderViewSystem::terrains_draw(scene->terrains.data, scene->terrains.count, lighting, frame_data);
+	frame_data->drawn_geometry_count += RenderViewSystem::meshes_draw(scene->meshes.data, scene->meshes.count, lighting, frame_data, camera_frustum);
+	frame_data->drawn_geometry_count += RenderViewSystem::boxes3D_draw(scene->p_light_boxes.data, scene->p_light_boxes.count, frame_data);
 
 	return true;
 }

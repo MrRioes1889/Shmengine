@@ -29,6 +29,8 @@ struct Hashtable
 	SHMINLINE void free_data();
 	SHMINLINE ~Hashtable();
 
+	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * sizeof(T); }
+
 	SHMINLINE bool32 set_value(const char* name, const T& value);
 	SHMINLINE T get_value(const char* name);
 	SHMINLINE T& get_ref(const char* name);
