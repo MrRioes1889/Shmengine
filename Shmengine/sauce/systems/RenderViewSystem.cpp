@@ -36,7 +36,7 @@ namespace RenderViewSystem
 
 		uint32 views_count;
 		Sarray<RenderView> views;
-		HashtableOA<RenderViewId> lookup_table;
+		HashtableRH<RenderViewId> lookup_table;
 
 		RenderViewId default_skybox_view_id;
 		RenderViewId default_world_view_id;
@@ -63,9 +63,7 @@ namespace RenderViewSystem
 
 		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_view_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup_table.init(sys_config->max_view_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
-
-		system_state->lookup_table.floodfill({});
+		system_state->lookup_table.init(sys_config->max_view_count, HashtableRHFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
 		for (uint32 i = 0; i < system_state->views.capacity; i++)
 			system_state->views[i].id.invalidate();
@@ -80,7 +78,6 @@ namespace RenderViewSystem
 
 	void system_shutdown(void* state)
 	{
-		system_state->lookup_table.floodfill({});
 		for (uint16 i = 0; i < system_state->views.capacity; i++)
 		{
 			if (system_state->views[i].id.is_valid())
@@ -88,18 +85,20 @@ namespace RenderViewSystem
 		}
 
 		Event::event_unregister(SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, 0, on_event);
+		system_state->lookup_table.free_data();
+		system_state->views.free_data();
 		system_state = 0;
 	}
 
 	RenderViewId create_view(const RenderViewConfig* config)
 	{
-		RenderViewId ref_id = system_state->lookup_table.get_value(config->name);
-		if (ref_id.is_valid()) 
+		if (system_state->lookup_table.get(config->name)) 
 		{
 			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", config->name);
-			return ref_id.invalid_value;
+			return RenderViewId::invalid_value;
 		}
 
+		RenderViewId ref_id = RenderViewId::invalid_value;
 		for (uint16 i = 0; i < (uint16)system_state->views.capacity; i++) {
 			if (!system_state->views[i].id.is_valid()) {
 				ref_id = i;
@@ -164,6 +163,7 @@ namespace RenderViewSystem
 		if (!view->id.is_valid())
 			return;
 		
+		system_state->lookup_table.remove_entry(view->name);
 		view->on_destroy(view);
 
 		for (uint32 pass_i = 0; pass_i < view->renderpasses.capacity; pass_i++)
@@ -176,22 +176,25 @@ namespace RenderViewSystem
 		view->renderpasses.free_data();
 
 		view->id.invalidate();
-		system_state->lookup_table.set_value(view->name, view->id);
 		system_state->views_count--;
 	}
 
 	RenderView* get(const char* name)
 	{
-		RenderViewId view_id = system_state->lookup_table.get_value(name);
-		if (!view_id.is_valid() || !system_state->views[view_id].id.is_valid())
+		RenderViewId* view_id = system_state->lookup_table.get(name);
+		if (!view_id || !system_state->views[*view_id].id.is_valid())
 			return 0;
 
-		return &system_state->views[view_id];
+		return &system_state->views[*view_id];
 	}
 
 	RenderViewId get_id(const char* name)
 	{
-		return system_state->lookup_table.get_value(name);
+		RenderViewId* view_id = system_state->lookup_table.get(name);
+		if (!view_id || !system_state->views[*view_id].id.is_valid())
+			return RenderViewId::invalid_value;
+
+		return *view_id;
 	}
 
 	bool32 build_packet(RenderViewId view_id, FrameData* frame_data, const RenderViewPacketData* packet_data)

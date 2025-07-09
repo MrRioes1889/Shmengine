@@ -221,7 +221,7 @@ struct HashtableCH
 		remove(node_index, prev_entry);		
 	}
 
-	ObjectT* get_ptr(const char* key)
+	ObjectT* get(const char* key)
 	{
 		uint32 hash = hash_key(key, hashed_capacity);
 		KeyNode* prev_node = 0;
@@ -399,7 +399,7 @@ struct HashtableRH
 		remove(node_index);		
 	}
 
-	ObjectT* get_ptr(const char* key)
+	ObjectT* get(const char* key)
 	{
 		NodeIndex hash = hash_key(key, key_arr.capacity);
 		hash_cache = hash;
