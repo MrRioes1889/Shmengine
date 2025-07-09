@@ -36,7 +36,7 @@ namespace RenderViewSystem
 
 		uint32 views_count;
 		Sarray<RenderView> views;
-		Hashtable<RenderViewId> lookup_table;
+		HashtableOA<RenderViewId> lookup_table;
 
 		RenderViewId default_skybox_view_id;
 		RenderViewId default_world_view_id;
@@ -63,7 +63,7 @@ namespace RenderViewSystem
 
 		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_view_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup_table.init(sys_config->max_view_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->lookup_table.init(sys_config->max_view_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
 		system_state->lookup_table.floodfill({});
 

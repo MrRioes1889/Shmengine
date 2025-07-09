@@ -10,12 +10,13 @@
 
 namespace DarrayFlags
 {
-	enum Value
+	enum : uint8
 	{
-		NON_RESIZABLE = 1 << 0,
-		IS_STRING = 1 << 1,
-		EXTERNAL_MEMORY = 1 << 2
+		NonResizable = 1 << 0,
+		IsString = 1 << 1,
+		ExternalMemory = 1 << 2
 	};
+	typedef uint8 Value;
 }
 
 template <typename T>
@@ -23,7 +24,7 @@ struct Darray
 {
 
 	SHMINLINE Darray() : count(0), data(0), flags(0), allocation_tag((uint16)AllocationTag::DARRAY) {};
-	SHMINLINE Darray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::DARRAY, void* memory = 0);
+	SHMINLINE Darray(uint32 reserve_count, DarrayFlags::Value creation_flags, AllocationTag tag = AllocationTag::DARRAY, void* memory = 0);
 	SHMINLINE ~Darray();
 
 	SHMINLINE Darray(const Darray& other);
@@ -32,7 +33,7 @@ struct Darray
 	SHMINLINE Darray& operator=(Darray&& other);
 
 	// NOTE: Call for already instantiated arrays
-	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::DARRAY, void* memory = 0);
+	SHMINLINE void init(uint32 reserve_count, DarrayFlags::Value creation_flags, AllocationTag tag = AllocationTag::DARRAY, void* memory = 0);
 	SHMINLINE void free_data();
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * sizeof(T); }
@@ -132,12 +133,12 @@ struct Darray
 	uint32 capacity = 0; // Max Capacity of contained objects
 	uint32 count = 0; // Count of contained objects
 
-	uint16 flags;
+	DarrayFlags::Value flags;
 	uint16 allocation_tag;
 };
 
 template<typename T>
-SHMINLINE Darray<T>::Darray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag, void* memory)
+SHMINLINE Darray<T>::Darray(uint32 reserve_count, DarrayFlags::Value creation_flags, AllocationTag tag, void* memory)
 {
 	data = 0;
 	init(reserve_count, creation_flags, tag, memory);
@@ -198,7 +199,7 @@ SHMINLINE Darray<T>& Darray<T>::operator=(Darray&& other)
 }
 
 template<typename T>
-SHMINLINE void Darray<T>::init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag, void* memory)
+SHMINLINE void Darray<T>::init(uint32 reserve_count, DarrayFlags::Value creation_flags, AllocationTag tag, void* memory)
 {
 	SHMASSERT_MSG(!data, "Cannot initialize Darray with existing data!");
 
@@ -210,13 +211,16 @@ SHMINLINE void Darray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 	count = 0;
 	flags = (uint16)creation_flags;
 	if (memory)
-		flags |= DarrayFlags::EXTERNAL_MEMORY;
-	if (flags & DarrayFlags::EXTERNAL_MEMORY)
-		flags |= DarrayFlags::NON_RESIZABLE;
+		flags |= DarrayFlags::ExternalMemory;
+	else
+		flags &= ~DarrayFlags::ExternalMemory;
+
+	if (flags & DarrayFlags::ExternalMemory)
+		flags |= DarrayFlags::NonResizable;
 
 	if (memory)
 		data = (T*)memory;
-	else if (flags & DarrayFlags::IS_STRING)
+	else if (flags & DarrayFlags::IsString)
 		data = (T*)Memory::allocate_string(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
 	else
 		data = (T*)Memory::allocate(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
@@ -226,12 +230,12 @@ template<typename T>
 SHMINLINE void Darray<T>::free_data()
 {
 
-	if (data && !(flags & DarrayFlags::EXTERNAL_MEMORY))
+	if (data && !(flags & DarrayFlags::ExternalMemory))
 	{
 		for (uint32 i = 0; i < count; i++)
 			data[i].~T();
 
-		if (flags & DarrayFlags::IS_STRING)
+		if (flags & DarrayFlags::IsString)
 			Memory::free_memory_string(data);
 		else
 			Memory::free_memory(data);
@@ -263,7 +267,7 @@ inline SHMINLINE void Darray<T>::resize()
 template<typename T>
 inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 {
-	SHMASSERT_MSG(!(flags & DarrayFlags::NON_RESIZABLE) && !(flags & DarrayFlags::EXTERNAL_MEMORY), "Darray push exceeded size, but array has been flagged as non-resizable!");
+	SHMASSERT_MSG(!(flags & DarrayFlags::NonResizable) && !(flags & DarrayFlags::ExternalMemory), "Darray push exceeded size, but array has been flagged as non-resizable!");
 	SHMASSERT_MSG(capacity && data, "Cannot resize uninitialized array!");
 
 	uint32 old_size = capacity;
@@ -271,7 +275,7 @@ inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 		capacity *= DARRAY_RESIZE_FACTOR;
 	uint64 allocation_size = capacity * sizeof(T);
 
-	if (flags & DarrayFlags::IS_STRING)
+	if (flags & DarrayFlags::IsString)
 		data = (T*)Memory::reallocate_string(allocation_size, data);
 	else
 		data = (T*)Memory::reallocate(allocation_size, data);

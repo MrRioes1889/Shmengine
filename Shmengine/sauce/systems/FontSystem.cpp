@@ -40,10 +40,10 @@ namespace FontSystem
 		SystemConfig config;
 
 		BitmapFontLookup* registered_bitmap_fonts;
-		Hashtable<uint16> registered_bitmap_font_table;
+		HashtableOA<uint16> registered_bitmap_font_table;
 
 		TruetypeFontLookup* registered_truetype_fonts;
-		Hashtable<uint16> registered_truetype_font_table;
+		HashtableOA<uint16> registered_truetype_font_table;
 
 	};
 
@@ -69,7 +69,7 @@ namespace FontSystem
 
 		uint64 bitmap_hashtable_data_size = sizeof(uint16) * sys_config->max_bitmap_font_config_count;
 		void* bitmap_hashtable_data = allocator_callback(allocator, bitmap_hashtable_data_size);
-		system_state->registered_bitmap_font_table.init(sys_config->max_bitmap_font_config_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, bitmap_hashtable_data);
+		system_state->registered_bitmap_font_table.init(sys_config->max_bitmap_font_config_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, bitmap_hashtable_data);
 
 		system_state->registered_bitmap_font_table.floodfill(Constants::max_u16);
 
@@ -84,7 +84,7 @@ namespace FontSystem
 
 		uint64 truetype_hashtable_data_size = sizeof(uint16) * sys_config->max_truetype_font_config_count;
 		void* truetype_hashtable_data = allocator_callback(allocator, truetype_hashtable_data_size);
-		system_state->registered_truetype_font_table.init(sys_config->max_truetype_font_config_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, truetype_hashtable_data);
+		system_state->registered_truetype_font_table.init(sys_config->max_truetype_font_config_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, truetype_hashtable_data);
 
 		system_state->registered_truetype_font_table.floodfill(Constants::max_u16);
 

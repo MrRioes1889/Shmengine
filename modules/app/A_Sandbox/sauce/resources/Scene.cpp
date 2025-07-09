@@ -33,11 +33,11 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 
 	out_scene->transform = config->transform;
 
-	out_scene->dir_lights.init(1, DarrayFlags::NON_RESIZABLE);
-	out_scene->p_lights.init(config->max_p_lights_count, DarrayFlags::NON_RESIZABLE);
-	out_scene->p_light_boxes.init(config->max_p_lights_count, DarrayFlags::NON_RESIZABLE);
-	out_scene->meshes.init(config->max_meshes_count, DarrayFlags::NON_RESIZABLE);
-	out_scene->terrains.init(config->max_terrains_count, DarrayFlags::NON_RESIZABLE);
+	out_scene->dir_lights.init(1, DarrayFlags::NonResizable);
+	out_scene->p_lights.init(config->max_p_lights_count, DarrayFlags::NonResizable);
+	out_scene->p_light_boxes.init(config->max_p_lights_count, DarrayFlags::NonResizable);
+	out_scene->meshes.init(config->max_meshes_count, DarrayFlags::NonResizable);
+	out_scene->terrains.init(config->max_terrains_count, DarrayFlags::NonResizable);
 
 	if (config->skybox_configs_count)
 	{

@@ -22,7 +22,7 @@ namespace CameraSystem
 		Camera default_camera;
 
 		CameraLookup* registered_cameras;
-		Hashtable<uint16> registered_camera_table;
+		HashtableOA<uint16> registered_camera_table;
 
 	};
 
@@ -40,7 +40,7 @@ namespace CameraSystem
 
 		uint64 hashtable_data_size = sizeof(uint16) * system_state->config.max_camera_count;
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->registered_camera_table.init(system_state->config.max_camera_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->registered_camera_table.init(system_state->config.max_camera_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
 		system_state->registered_camera_table.floodfill(Constants::max_u16);
 

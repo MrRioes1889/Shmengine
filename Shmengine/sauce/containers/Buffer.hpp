@@ -8,8 +8,8 @@ namespace BufferFlags
 {
 	enum
 	{
-		EXTERNAL_MEMORY = 1 << 0,
-		PLATFORM_ALLOCATION = 1 << 1
+		ExternalMemory = 1 << 0,
+		PlatformAllocation = 1 << 1
 	};
 	typedef uint16 Value;
 }

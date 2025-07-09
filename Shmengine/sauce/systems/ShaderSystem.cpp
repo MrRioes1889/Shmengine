@@ -14,7 +14,7 @@ namespace ShaderSystem
 	struct SystemState
 	{
 		SystemConfig config;
-		Hashtable<ShaderId> lookup;
+		HashtableOA<ShaderId> lookup;
 		Sarray<Shader> shaders;
 		TextureMap default_texture_map;
 
@@ -54,13 +54,13 @@ namespace ShaderSystem
 
 		uint64 hashtable_data_size = system_state->lookup.get_external_size_requirement(sys_config->max_shader_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup.init(sys_config->max_shader_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->lookup.init(sys_config->max_shader_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
 		system_state->lookup.floodfill({});
 
 		uint64 shader_array_size = sizeof(Shader) * sys_config->max_shader_count;
 		void* shader_array = allocator_callback(allocator, shader_array_size);
-		system_state->shaders.init(sys_config->max_shader_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, shader_array);
+		system_state->shaders.init(sys_config->max_shader_count, SarrayFlags::ExternalMemory, AllocationTag::UNKNOWN, shader_array);
 
 		for (uint32 i = 0; i < system_state->shaders.capacity; i++)
 			system_state->shaders[i].id.invalidate();

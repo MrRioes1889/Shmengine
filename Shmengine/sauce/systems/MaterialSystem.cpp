@@ -31,7 +31,7 @@ namespace MaterialSystem
 		Material default_ui_material;
 
 		Material* registered_materials;
-		Hashtable<MaterialReference> registered_material_table;
+		HashtableOA<MaterialReference> registered_material_table;
 	};
 
 	static SystemState* system_state = 0;
@@ -51,12 +51,12 @@ namespace MaterialSystem
 
         system_state->config = *sys_config;
 
-        uint64 texture_array_size = sizeof(Material) * sys_config->max_material_count;
-        system_state->registered_materials = (Material*)allocator_callback(allocator, texture_array_size);
+        uint64 material_array_size = sizeof(Material) * sys_config->max_material_count;
+        system_state->registered_materials = (Material*)allocator_callback(allocator, material_array_size);
 
         uint64 hashtable_data_size = sizeof(MaterialReference) * sys_config->max_material_count;
         void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-        system_state->registered_material_table.init(sys_config->max_material_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+        system_state->registered_material_table.init(sys_config->max_material_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
         // Fill the hashtable with invalid references to use as a default.
         MaterialReference invalid_ref;
@@ -259,9 +259,9 @@ namespace MaterialSystem
 
     void dump_system_stats()
     {
-        for (uint32 i = 0; i < system_state->registered_material_table.element_count; i++) 
+        for (uint32 i = 0; i < system_state->config.max_material_count; i++) 
         {
-            MaterialReference* r = &system_state->registered_material_table.buffer[i];
+            const MaterialReference* r = &system_state->registered_material_table[i];
             if (r->reference_count > 0 || r->handle != Constants::max_u32) {
                 if (r->handle != Constants::max_u32) 
                 {
@@ -524,7 +524,7 @@ namespace MaterialSystem
         Texture* default_textures[3] = { TextureSystem::get_default_diffuse_texture(), TextureSystem::get_default_specular_texture(), TextureSystem::get_default_normal_texture() };
         const uint32 maps_count = 3;
         static TextureMap default_maps[maps_count] = {};
-        mat->maps.init(maps_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::MATERIAL_INSTANCE, default_maps);
+        mat->maps.init(maps_count, SarrayFlags::ExternalMemory, AllocationTag::MATERIAL_INSTANCE, default_maps);
         for (uint32 i = 0; i < mat->maps.capacity; i++)
         {
             mat->maps[i].filter_minify = mat->maps[i].filter_magnify = TextureFilter::LINEAR;
@@ -561,7 +561,7 @@ namespace MaterialSystem
 
         const uint32 maps_count = 1;
         static TextureMap default_maps[maps_count] = {};
-        mat->maps.init(maps_count, SarrayFlags::EXTERNAL_MEMORY, AllocationTag::MATERIAL_INSTANCE, default_maps);
+        mat->maps.init(maps_count, SarrayFlags::ExternalMemory, AllocationTag::MATERIAL_INSTANCE, default_maps);
         for (uint32 i = 0; i < mat->maps.capacity; i++)
         {
             mat->maps[i].filter_minify = mat->maps[i].filter_magnify = TextureFilter::LINEAR;

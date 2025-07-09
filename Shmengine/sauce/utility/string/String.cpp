@@ -13,7 +13,7 @@ String::String(uint32 reserve_size)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
+	arr.init(reserve_size, DarrayFlags::IsString, AllocationTag::STRING);
 }
 
 String::String(const char* s, uint32 length)
@@ -26,7 +26,7 @@ String::String(const char* s, uint32 length)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
+	arr.init(reserve_size, DarrayFlags::IsString, AllocationTag::STRING);
 	CString::copy(s, arr.data, arr.capacity, length);
 	arr.count = length;
 }
@@ -38,7 +38,7 @@ String::String(const char* s)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
+	arr.init(reserve_size, DarrayFlags::IsString, AllocationTag::STRING);
 	CString::copy(s, arr.data, arr.capacity);
 	arr.count = s_length;
 }
@@ -54,7 +54,7 @@ String::String(const String& other)
 	if (reserve_size < String::min_reserve_size)
 		reserve_size = String::min_reserve_size;
 
-	arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
+	arr.init(reserve_size, DarrayFlags::IsString, AllocationTag::STRING);
 	CString::copy(other.c_str(), arr.data, arr.capacity);
 	arr.count = other.len();
 }
@@ -113,7 +113,7 @@ void String::reserve(uint32 reserve_size)
 {
 	if (!arr.data)
 	{
-		arr.init(reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
+		arr.init(reserve_size, DarrayFlags::IsString, AllocationTag::STRING);
 		return;
 	}
 
@@ -142,7 +142,7 @@ void String::free_data()
 void String::append(char appendage)
 {
 	if (!arr.data)
-		arr.init(String::min_reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
+		arr.init(String::min_reserve_size, DarrayFlags::IsString, AllocationTag::STRING);
 
 	uint32 total_length = 1 + arr.count;
 	if (total_length + 1 > arr.capacity)
@@ -154,7 +154,7 @@ void String::append(char appendage)
 void String::append(const char* appendage, int32 length)
 {
 	if (!arr.data)
-		arr.init(String::min_reserve_size, DarrayFlags::IS_STRING, AllocationTag::STRING);
+		arr.init(String::min_reserve_size, DarrayFlags::IsString, AllocationTag::STRING);
 
 	uint32 append_length = length < 0 ? CString::length(appendage) : (uint32)length;
 	uint32 total_length = append_length + arr.count;

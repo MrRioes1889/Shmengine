@@ -30,16 +30,16 @@ namespace Constants
 {
 
 	inline constexpr uint32 max_filename_length = 255;
-	inline constexpr uint32 max_mesh_name_length = 127;
-	inline constexpr uint32 max_geometry_name_length = 127;
-	inline constexpr uint32 max_material_name_length = 127;
-	inline constexpr uint32 max_shader_name_length = 127;
+	inline constexpr uint32 max_mesh_name_length = 63;
+	inline constexpr uint32 max_geometry_name_length = 63;
+	inline constexpr uint32 max_material_name_length = 63;
+	inline constexpr uint32 max_shader_name_length = 63;
 	inline constexpr uint32 max_shader_stage_name_length = 63;
 	inline constexpr uint32 max_shader_attribute_name_length = 63;
 	inline constexpr uint32 max_shader_uniform_name_length = 63;
-	inline constexpr uint32 max_texture_name_length = 127;
-	inline constexpr uint32 max_terrain_name_length = 127;
-	inline constexpr uint32 max_buffer_name_length = 127;
+	inline constexpr uint32 max_texture_name_length = 63;
+	inline constexpr uint32 max_terrain_name_length = 63;
+	inline constexpr uint32 max_buffer_name_length = 63;
 
 	inline constexpr uint32 max_terrain_materials_count = 4;
 

@@ -27,7 +27,7 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
     out_mesh->extents = {};
     out_mesh->center = {};
     out_mesh->transform = Math::transform_create();
-    out_mesh->geometries.init(config->g_configs_count, DarrayFlags::NON_RESIZABLE);
+    out_mesh->geometries.init(config->g_configs_count, DarrayFlags::NonResizable);
     out_mesh->geometries.set_count(config->g_configs_count);
     for (uint32 i = 0; i < config->g_configs_count; i++)
     {

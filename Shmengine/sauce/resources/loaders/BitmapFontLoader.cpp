@@ -239,7 +239,7 @@ namespace ResourceSystem
                     return false;
                 }
 
-                out_data->atlas.kernings.init(kerning_count, DarrayFlags::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
+                out_data->atlas.kernings.init(kerning_count, DarrayFlags::NonResizable, AllocationTag::BITMAP_FONT);
             }
             else if (line_identifier == "char")
             {
@@ -410,7 +410,7 @@ namespace ResourceSystem
             out_data->atlas.glyphs.init(file_header->glyphs_count, 0, AllocationTag::BITMAP_FONT);
 
         if (file_header->kernings_count)
-            out_data->atlas.kernings.init(file_header->kernings_count, DarrayFlags::NON_RESIZABLE, AllocationTag::BITMAP_FONT);
+            out_data->atlas.kernings.init(file_header->kernings_count, DarrayFlags::NonResizable, AllocationTag::BITMAP_FONT);
 
         uint64 glyphs_size = file_header->glyphs_count * sizeof(FontGlyph);
         check_buffer_size(glyphs_size);

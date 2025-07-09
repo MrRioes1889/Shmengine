@@ -9,7 +9,7 @@ Buffer::Buffer(uint32 reserve_size, uint32 creation_flags, AllocationTag tag, vo
 
 Buffer::~Buffer()
 {
-	if (data && !(flags & BufferFlags::EXTERNAL_MEMORY))
+	if (data && !(flags & BufferFlags::ExternalMemory))
 		Memory::free_memory(data);
 }
 
@@ -32,9 +32,9 @@ void Buffer::init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag,
 
 void Buffer::free_data()
 {
-	if (data && !(flags & BufferFlags::EXTERNAL_MEMORY))
+	if (data && !(flags & BufferFlags::ExternalMemory))
 	{
-		if (flags & BufferFlags::PLATFORM_ALLOCATION)
+		if (flags & BufferFlags::PlatformAllocation)
 			Memory::free_memory_platform(data);
 		else
 			Memory::free_memory(data);
@@ -47,7 +47,7 @@ void Buffer::free_data()
 
 void Buffer::resize(uint64 new_size, void* memory)
 {
-	if (data && !(flags & BufferFlags::EXTERNAL_MEMORY))
+	if (data && !(flags & BufferFlags::ExternalMemory))
 		data = Memory::reallocate(new_size, data);
 	else
 		data = memory;

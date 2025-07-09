@@ -278,12 +278,12 @@ namespace Platform
 
     void* zero_memory(void* block, uint64 size)
     {
-        return memset(block, 0, size);
+        return SecureZeroMemory(block, size);
     }
 
     void* copy_memory(const void* source, void* dest, uint64 size)
     {
-        return memcpy(dest, source, size);
+        return CopyMemory(dest, source, size);
     }
 
     void* set_memory(void* dest, int32 value, uint64 size)

@@ -50,7 +50,7 @@ namespace Memory
 
         BufferFlags::Value flags = 0;
         if (!target_allocator)
-            flags = BufferFlags::PLATFORM_ALLOCATION;
+            flags = BufferFlags::PlatformAllocation;
 
         void* data = _allocate(target_allocator, size + nodes_size, tag, alignment);
         buffer->init(size + nodes_size, flags, tag, data);

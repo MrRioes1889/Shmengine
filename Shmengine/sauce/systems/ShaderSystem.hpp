@@ -184,7 +184,7 @@ struct Shader
 	uint32 bound_instance_id;
 	uint64 bound_ubo_offset;
 
-	Hashtable<ShaderUniformId> uniform_lookup;
+	HashtableOA<ShaderUniformId> uniform_lookup;
 	Darray<ShaderUniform> uniforms;
 	Darray<ShaderAttribute> attributes;
 

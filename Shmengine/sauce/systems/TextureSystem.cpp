@@ -40,7 +40,7 @@ namespace TextureSystem
 		Texture default_normal;
 
 		Texture* registered_textures;
-		Hashtable<TextureReference> registered_texture_table = {};
+		HashtableOA<TextureReference> registered_texture_table = {};
 
 		uint32 textures_loading_count;
 	};	
@@ -71,7 +71,7 @@ namespace TextureSystem
 
 		uint64 hashtable_data_size = sizeof(TextureReference) * sys_config->max_texture_count;
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->registered_texture_table.init(sys_config->max_texture_count, HashtableFlag::EXTERNAL_MEMORY, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->registered_texture_table.init(sys_config->max_texture_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
 		TextureReference invalid_ref;
 		invalid_ref.auto_release = false;

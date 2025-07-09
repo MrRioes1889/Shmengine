@@ -44,7 +44,7 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     out_terrain->tile_scale_z = config->tile_scale_z;
     out_terrain->scale_y = config->scale_y;
 
-    out_terrain->materials.init(config->materials_count, DarrayFlags::NON_RESIZABLE);
+    out_terrain->materials.init(config->materials_count, DarrayFlags::NonResizable);
     out_terrain->materials.set_count(config->materials_count);
     for (uint32 i = 0; i < config->materials_count; i++)
         CString::copy(config->material_names[i], out_terrain->materials[i].name, Constants::max_material_name_length);

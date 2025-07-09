@@ -11,8 +11,8 @@ namespace StackFlags
 {
 	enum Value
 	{
-		NON_RESIZABLE = 1 << 0,
-		EXTERNAL_MEMORY = 1 << 1
+		NonResizable = 1 << 0,
+		ExternalMemory = 1 << 1
 	};
 }
 
@@ -147,7 +147,7 @@ SHMINLINE Stack<T>& Stack<T>::operator=(Stack&& other)
 template<typename T>
 SHMINLINE void Stack<T>::init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag, void* memory)
 {
-	SHMASSERT_MSG(!data || ((flags & StackFlags::EXTERNAL_MEMORY) != 0), "Cannot initialize Stack with existing data!");
+	SHMASSERT_MSG(!data || ((flags & StackFlags::ExternalMemory) != 0), "Cannot initialize Stack with existing data!");
 
 	if (!reserve_count)
 		return;
@@ -156,8 +156,8 @@ SHMINLINE void Stack<T>::init(uint32 reserve_count, uint32 creation_flags, Alloc
 	capacity = reserve_count;
 	count = 0;
 	flags = (uint16)creation_flags;
-	if (creation_flags & StackFlags::EXTERNAL_MEMORY)
-		flags |= StackFlags::NON_RESIZABLE;
+	if (creation_flags & StackFlags::ExternalMemory)
+		flags |= StackFlags::NonResizable;
 
 	if (memory)
 		data = (T*)memory;
@@ -169,7 +169,7 @@ template<typename T>
 SHMINLINE void Stack<T>::free_data()
 {
 
-	if (data && !(flags & StackFlags::EXTERNAL_MEMORY))
+	if (data && !(flags & StackFlags::ExternalMemory))
 	{
 		for (uint32 i = 0; i < count; i++)
 			data[i].~T();
@@ -204,7 +204,7 @@ inline SHMINLINE void Stack<T>::resize()
 template<typename T>
 inline SHMINLINE void Stack<T>::resize(uint32 requested_size)
 {
-	SHMASSERT_MSG(!(flags & StackFlags::NON_RESIZABLE) && !(flags & StackFlags::EXTERNAL_MEMORY), "Stack push exceeded size, but array has been flagged as non-resizable!");
+	SHMASSERT_MSG(!(flags & StackFlags::NonResizable) && !(flags & StackFlags::ExternalMemory), "Stack push exceeded size, but array has been flagged as non-resizable!");
 	uint32 old_size = capacity;
 	while (capacity < requested_size)
 		capacity *= STACK_RESIZE_FACTOR;

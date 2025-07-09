@@ -8,10 +8,11 @@
 
 namespace SarrayFlags
 {
-	enum Value
+	enum : uint8
 	{
-		EXTERNAL_MEMORY = 1 << 0
+		ExternalMemory = 1 << 0
 	};
+	typedef uint8 Value;
 }
 
 template<typename T>
@@ -19,7 +20,7 @@ struct Sarray
 {
 
 	Sarray() : capacity(0), data(0), allocation_tag((uint16)AllocationTag::ARRAY), flags(0) {};
-	SHMINLINE Sarray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::ARRAY, void* memory = 0);
+	SHMINLINE Sarray(uint32 reserve_count, SarrayFlags::Value creation_flags, AllocationTag tag = AllocationTag::ARRAY, void* memory = 0);
 	SHMINLINE ~Sarray();
 
 	SHMINLINE Sarray(const Sarray& other);
@@ -28,7 +29,7 @@ struct Sarray
 	SHMINLINE Sarray& operator=(Sarray&& other);
 
 	// NOTE: Call for already instantiated arrays
-	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::ARRAY, void* memory = 0);
+	SHMINLINE void init(uint32 reserve_count, SarrayFlags::Value creation_flags, AllocationTag tag = AllocationTag::ARRAY, void* memory = 0);
 	SHMINLINE void free_data();
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * sizeof(T); }
@@ -104,12 +105,12 @@ struct Sarray
 	T* data = 0;
 	uint32 capacity = 0;
 	uint16 allocation_tag;
-	uint16 flags;
+	SarrayFlags::Value flags;
 
 };
 
 template<typename T>
-SHMINLINE Sarray<T>::Sarray(uint32 reserve_count, uint32 creation_flags, AllocationTag tag, void* memory)
+SHMINLINE Sarray<T>::Sarray(uint32 reserve_count, SarrayFlags::Value creation_flags, AllocationTag tag, void* memory)
 {
 	data = 0;
 	init(reserve_count, creation_flags, tag, memory);
@@ -165,9 +166,9 @@ SHMINLINE Sarray<T>& Sarray<T>::operator=(Sarray&& other)
 }
 
 template<typename T>
-SHMINLINE void Sarray<T>::init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag, void* memory)
+SHMINLINE void Sarray<T>::init(uint32 reserve_count, SarrayFlags::Value creation_flags, AllocationTag tag, void* memory)
 {
-	SHMASSERT_MSG(!data || ((flags & SarrayFlags::EXTERNAL_MEMORY) != 0), "Cannot init non empty sarray!");
+	SHMASSERT_MSG(!data || ((flags & SarrayFlags::ExternalMemory) != 0), "Cannot init non empty sarray!");
 
 	if (!reserve_count)
 		return;
@@ -177,7 +178,9 @@ SHMINLINE void Sarray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 	flags = (uint16)creation_flags;
 
 	if (memory)
-		flags |= SarrayFlags::EXTERNAL_MEMORY;
+		flags |= SarrayFlags::ExternalMemory;
+	else
+		flags &= ~SarrayFlags::ExternalMemory;
 
 	if (!memory)
 		data = (T*)Memory::allocate(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
@@ -189,7 +192,7 @@ SHMINLINE void Sarray<T>::init(uint32 reserve_count, uint32 creation_flags, Allo
 template<typename T>
 SHMINLINE void Sarray<T>::free_data()
 {
-	if (data && !(flags & SarrayFlags::EXTERNAL_MEMORY))
+	if (data && !(flags & SarrayFlags::ExternalMemory))
 	{
 		for (uint32 i = 0; i < capacity; i++)
 			data[i].~T();
@@ -205,10 +208,13 @@ SHMINLINE void Sarray<T>::free_data()
 template<typename T>
 SHMINLINE void Sarray<T>::resize(uint32 new_count, void* memory)
 {
-	if (data && !(flags & SarrayFlags::EXTERNAL_MEMORY))
+	if (data && !(flags & SarrayFlags::ExternalMemory))
 		data = (T*)Memory::reallocate(new_count * sizeof(T), data);
 	else
 		data = (T*)memory;
+
+	if (new_count > capacity)
+		Memory::zero_memory((data + capacity), (new_count - capacity) * sizeof(T));
 
 	capacity = new_count;
 }
