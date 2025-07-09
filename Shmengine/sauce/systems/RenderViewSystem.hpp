@@ -82,11 +82,12 @@ typedef Id16 RenderViewId;
 
 struct RenderView
 {
-	const char* name;
 	RenderViewId id;
 	uint16 width;
 	uint16 height;
 	bool8 enabled;
+
+	String name;
 
 	Sarray<Renderer::RenderPass> renderpasses;
 
@@ -119,7 +120,7 @@ namespace RenderViewSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI RenderViewId create_view(const RenderViewConfig* config);
+	SHMAPI bool32 create_view(const RenderViewConfig* config);
 	SHMAPI void destroy_view(RenderViewId view_id);
 
 	SHMAPI RenderView* get(const char* name);

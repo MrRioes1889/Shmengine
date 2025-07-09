@@ -36,7 +36,7 @@ namespace RenderViewSystem
 
 		uint32 views_count;
 		Sarray<RenderView> views;
-		HashtableRH<RenderViewId> lookup_table;
+		HashtableRH<RenderViewId> view_lookup;
 
 		RenderViewId default_skybox_view_id;
 		RenderViewId default_world_view_id;
@@ -61,12 +61,18 @@ namespace RenderViewSystem
 		void* view_array_data = allocator_callback(allocator, view_array_size);
 		system_state->views.init(sys_config->max_view_count, 0, AllocationTag::ARRAY, view_array_data);
 
-		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_view_count);
+		uint64 hashtable_data_size = system_state->view_lookup.get_external_size_requirement(sys_config->max_view_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup_table.init(sys_config->max_view_count, HashtableRHFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->view_lookup.init(sys_config->max_view_count, HashtableRHFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
 		for (uint32 i = 0; i < system_state->views.capacity; i++)
 			system_state->views[i].id.invalidate();
+
+		system_state->default_pick_view_id.invalidate();
+		system_state->default_skybox_view_id.invalidate();
+		system_state->default_ui_view_id.invalidate();
+		system_state->default_world_editor_view_id.invalidate();
+		system_state->default_world_view_id.invalidate();
 
 		system_state->views_count = 0;
 		Event::event_register(SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, 0, on_event);
@@ -85,17 +91,17 @@ namespace RenderViewSystem
 		}
 
 		Event::event_unregister(SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, 0, on_event);
-		system_state->lookup_table.free_data();
+		system_state->view_lookup.free_data();
 		system_state->views.free_data();
 		system_state = 0;
 	}
 
-	RenderViewId create_view(const RenderViewConfig* config)
+	bool32 create_view(const RenderViewConfig* config)
 	{
-		if (system_state->lookup_table.get(config->name)) 
+		if (system_state->view_lookup.get(config->name)) 
 		{
 			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", config->name);
-			return RenderViewId::invalid_value;
+			return false;
 		}
 
 		RenderViewId ref_id = RenderViewId::invalid_value;
@@ -108,7 +114,7 @@ namespace RenderViewSystem
 
 		if (!ref_id.is_valid()) {
 			SHMERROR("RenderViewSystem::create - No available space for a new view. Change system config to account for more.");
-			return ref_id.invalid_value;
+			return false;
 		}
 
 		RenderView* view = &system_state->views[ref_id];
@@ -135,7 +141,7 @@ namespace RenderViewSystem
 			{
 				destroy_view(view->id);
 				SHMERROR("Failed to create renderpass!");
-				return ref_id.invalid_value;
+				return false;
 			}
 		}
 
@@ -147,14 +153,14 @@ namespace RenderViewSystem
 		{
 			destroy_view(view->id);
 			SHMERROR("Failed to perform view's on_register function.");
-			return ref_id.invalid_value;
+			return false;
 		}
 
-		system_state->lookup_table.set_value(view->name, ref_id);
+		system_state->view_lookup.set_value(view->name.c_str(), ref_id);
 		system_state->views_count++;
 		//regenerate_render_targets(ref_id);
 
-		return ref_id;
+		return true;
 	}
 
 	void destroy_view(RenderViewId view_id)
@@ -163,7 +169,7 @@ namespace RenderViewSystem
 		if (!view->id.is_valid())
 			return;
 		
-		system_state->lookup_table.remove_entry(view->name);
+		system_state->view_lookup.remove_entry(view->name.c_str());
 		view->on_destroy(view);
 
 		for (uint32 pass_i = 0; pass_i < view->renderpasses.capacity; pass_i++)
@@ -174,6 +180,7 @@ namespace RenderViewSystem
 		view->geometries.free_data();
 		view->internal_data.free_data();
 		view->renderpasses.free_data();
+		view->name.free_data();
 
 		view->id.invalidate();
 		system_state->views_count--;
@@ -181,7 +188,7 @@ namespace RenderViewSystem
 
 	RenderView* get(const char* name)
 	{
-		RenderViewId* view_id = system_state->lookup_table.get(name);
+		RenderViewId* view_id = system_state->view_lookup.get(name);
 		if (!view_id || !system_state->views[*view_id].id.is_valid())
 			return 0;
 
@@ -190,7 +197,7 @@ namespace RenderViewSystem
 
 	RenderViewId get_id(const char* name)
 	{
-		RenderViewId* view_id = system_state->lookup_table.get(name);
+		RenderViewId* view_id = system_state->view_lookup.get(name);
 		if (!view_id || !system_state->views[*view_id].id.is_valid())
 			return RenderViewId::invalid_value;
 
@@ -724,7 +731,8 @@ namespace RenderViewSystem
 			skybox_view_config.renderpass_count = skybox_pass_count;
 			skybox_view_config.renderpass_configs = skybox_pass_configs;
 
-			system_state->default_skybox_view_id = RenderViewSystem::create_view(&skybox_view_config);
+			if (create_view(&skybox_view_config))
+				system_state->default_skybox_view_id = get_id(skybox_view_config.name);
 		}
 
 		{
@@ -775,7 +783,8 @@ namespace RenderViewSystem
 			world_view_config.renderpass_count = world_pass_count;
 			world_view_config.renderpass_configs = world_pass_configs;
 
-			system_state->default_world_view_id = RenderViewSystem::create_view(&world_view_config);
+			if (create_view(&world_view_config))
+				system_state->default_world_view_id = get_id(world_view_config.name);
 		}
 
 		{
@@ -826,7 +835,8 @@ namespace RenderViewSystem
 			world_editor_view_config.renderpass_count = world_editor_pass_count;
 			world_editor_view_config.renderpass_configs = world_editor_pass_configs;
 
-			system_state->default_world_editor_view_id = RenderViewSystem::create_view(&world_editor_view_config);
+			if (create_view(&world_editor_view_config))
+				system_state->default_world_editor_view_id = get_id(world_editor_view_config.name);
 		}
 
 		{
@@ -870,7 +880,8 @@ namespace RenderViewSystem
 			ui_view_config.renderpass_count = ui_pass_count;
 			ui_view_config.renderpass_configs = ui_pass_configs;
 
-			system_state->default_ui_view_id = RenderViewSystem::create_view(&ui_view_config);
+			if (create_view(&ui_view_config))
+				system_state->default_ui_view_id = get_id(ui_view_config.name);
 		}
 
 		{
@@ -942,7 +953,8 @@ namespace RenderViewSystem
 			pick_view_config.renderpass_count = pick_pass_count;
 			pick_view_config.renderpass_configs = pick_pass_configs;
 
-			system_state->default_pick_view_id = RenderViewSystem::create_view(&pick_view_config);
+			if (create_view(&pick_view_config))
+				system_state->default_pick_view_id = get_id(pick_view_config.name);
 		}
 
 		return true;

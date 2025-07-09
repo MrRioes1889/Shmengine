@@ -14,7 +14,7 @@ namespace ShaderSystem
 	struct SystemState
 	{
 		SystemConfig config;
-		HashtableOA<ShaderId> lookup;
+		HashtableRH<ShaderId> shader_lookup;
 		Sarray<Shader> shaders;
 		TextureMap default_texture_map;
 
@@ -52,11 +52,9 @@ namespace ShaderSystem
 		system_state->skybox_shader_id.invalidate();
 		system_state->color3D_shader_id.invalidate();
 
-		uint64 hashtable_data_size = system_state->lookup.get_external_size_requirement(sys_config->max_shader_count);
+		uint64 hashtable_data_size = system_state->shader_lookup.get_external_size_requirement(sys_config->max_shader_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup.init(sys_config->max_shader_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
-
-		system_state->lookup.floodfill({});
+		system_state->shader_lookup.init(sys_config->max_shader_count, HashtableRHFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
 		uint64 shader_array_size = sizeof(Shader) * sys_config->max_shader_count;
 		void* shader_array = allocator_callback(allocator, shader_array_size);
@@ -81,7 +79,7 @@ namespace ShaderSystem
 		}
 
 		Renderer::texture_map_release_resources(&system_state->default_texture_map);
-		system_state->lookup.free_data();
+		system_state->shader_lookup.free_data();
 		system_state->shaders.free_data();
 
 		system_state = 0;
@@ -91,25 +89,31 @@ namespace ShaderSystem
 	{
 		using namespace Renderer;
 
-		ShaderId id = {};
+		if (system_state->shader_lookup.get(config->name)) 
+		{
+			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", config->name);
+			return false;
+		}
+
+		ShaderId ref_id = {};
 		for (Id16 i = 0; i < system_state->shaders.capacity; i++)
 		{
 			if (!system_state->shaders[i].id.is_valid())
 			{
-				id = i;
+				ref_id = i;
 				break;
 			}
 		}
 
-		if (!id.is_valid())
+		if (!ref_id.is_valid())
 		{
 			SHMERROR("shader_create - Unable to find free slot for new shader");
 			return false;
 		}
 
-		Shader* shader = &system_state->shaders[id];
+		Shader* shader = &system_state->shaders[ref_id];
 		Memory::zero_memory(shader, sizeof(Shader));
-		shader->id = id;
+		shader->id = ref_id;
 		shader->state = ShaderState::Uninitialized;
 
 		if (!Renderer::shader_create(shader, config, renderpass))
@@ -139,7 +143,7 @@ namespace ShaderSystem
 		}
 
 		shader->state = ShaderState::Initialized;
-		system_state->lookup.set_value(shader->name.c_str(), shader->id);
+		system_state->shader_lookup.set_value(shader->name.c_str(), shader->id);
 
 		if (!system_state->material_shader_id.is_valid() && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_material_phong))
 			system_state->material_shader_id = shader->id;
@@ -179,7 +183,11 @@ namespace ShaderSystem
 
 	ShaderId get_shader_id(const char* shader_name)
 	{
-		return system_state->lookup.get_value(shader_name);
+		ShaderId* shader_id = system_state->shader_lookup.get(shader_name);
+		if (!shader_id || !system_state->shaders[*shader_id].id.is_valid())
+			return ShaderId::invalid_value;
+
+		return *shader_id;
 	}
 
 	Shader* get_shader(ShaderId shader_id)
@@ -192,25 +200,27 @@ namespace ShaderSystem
 
 	Shader* get_shader(const char* shader_name)
 	{
-		ShaderId shader_id = get_shader_id(shader_name);
-		return get_shader(shader_id);
+		ShaderId* shader_id = system_state->shader_lookup.get(shader_name);
+		if (!shader_id || !system_state->shaders[*shader_id].id.is_valid())
+			return 0;
+
+		return &system_state->shaders[*shader_id];
 	}
 
 	void destroy_shader(ShaderId shader_id)
 	{
-		if (!shader_id.is_valid())
-			return;
-
 		Shader* shader = &system_state->shaders[shader_id];
-		system_state->lookup.set_value(shader->name.c_str(), {});
 		if (!shader->id.is_valid())
 			return;
+
+		system_state->shader_lookup.set_value(shader->name.c_str(), {});
 
 		Renderer::shader_destroy(shader);
 		if (system_state->bound_shader_id == shader->id)
 			system_state->bound_shader_id.invalidate();
 		shader->id.invalidate();
-		shader->state = ShaderState::Initialized;
+		shader->name.free_data();
+		shader->state = ShaderState::Uninitialized;
 	}
 
 	void destroy_shader(const char* shader_name)

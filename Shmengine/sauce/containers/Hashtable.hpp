@@ -34,7 +34,6 @@ namespace HashtableOAFlag
 	typedef uint8 Value;
 }
 
-// TODO: Implement proper Hashtable with Robin Hood hashing / Open Addressing scheme
 template <typename ObjectT>
 struct HashtableOA
 {
@@ -148,7 +147,7 @@ struct HashtableCH
 	HashtableCH(HashtableCH&& other) = delete;
 	HashtableCH() : flags(0), key_arr({}), object_arr({}), hashed_capacity(0) {}
 
-	SHMINLINE uint64 get_external_size_requirement(uint32 hashed_count, uint32 collision_buffer_count) { return (hashed_count + collision_buffer_count) * sizeof(ObjectT); }
+	SHMINLINE uint64 get_external_size_requirement(uint32 hashed_count, uint32 collision_buffer_count) { return (hashed_count + collision_buffer_count) * (sizeof(ObjectT) + sizeof(KeyNode)); }
 
 	SHMINLINE HashtableCH(uint32 count, uint32 collision_buffer_count, HashtableCHFlag::Value creation_flags, AllocationTag tag = AllocationTag::DICT, void* memory = 0)
 	{
@@ -327,7 +326,7 @@ struct HashtableRH
 	HashtableRH(HashtableRH&& other) = delete;
 	HashtableRH() : flags(0), key_arr({}), object_arr({}), key_count(0) {}
 
-	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * 2 * sizeof(ObjectT); }
+	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * (sizeof(KeyNode) + sizeof(ObjectT)); }
 
 	SHMINLINE HashtableRH(uint32 count, HashtableRHFlag::Value creation_flags, AllocationTag tag = AllocationTag::DICT, void* memory = 0)
 	{

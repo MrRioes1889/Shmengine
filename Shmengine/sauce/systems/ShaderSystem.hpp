@@ -159,6 +159,8 @@ struct Shader
 	Renderer::RenderTopologyTypeFlags::Value topologies;
 	ShaderScope bound_scope;
 
+	String name;
+
 	uint8 global_uniform_count;
 	uint8 global_uniform_sampler_count;
 	uint8 instance_uniform_count;
@@ -176,7 +178,6 @@ struct Shader
 	uint32 push_constant_size;
 	uint32 push_constant_stride;
 
-	String name;
 
 	Darray<TextureMap*> global_texture_maps;
 
