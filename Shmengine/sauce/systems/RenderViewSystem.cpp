@@ -43,6 +43,8 @@ namespace RenderViewSystem
 		RenderViewId default_world_editor_view_id;
 		RenderViewId default_ui_view_id;
 		RenderViewId default_pick_view_id;
+
+		Camera default_world_camera;
 	};
 
 	static bool32 create_default_render_views();
@@ -73,6 +75,8 @@ namespace RenderViewSystem
 		system_state->default_ui_view_id.invalidate();
 		system_state->default_world_editor_view_id.invalidate();
 		system_state->default_world_view_id.invalidate();
+
+		system_state->default_world_camera = Camera();
 
 		system_state->views_count = 0;
 		Event::event_register(SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, 0, on_event);
@@ -202,6 +206,11 @@ namespace RenderViewSystem
 			return RenderViewId::invalid_value;
 
 		return *view_id;
+	}
+
+	Camera* get_bound_world_camera()
+	{
+		return &system_state->default_world_camera;
 	}
 
 	bool32 build_packet(RenderViewId view_id, FrameData* frame_data, const RenderViewPacketData* packet_data)

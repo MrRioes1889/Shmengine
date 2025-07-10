@@ -37,7 +37,7 @@ namespace Engine
 	};
 
 	static bool32 initialized = false;
-	static EngineState* engine_state = 0;
+	static EngineState engine_state = {};
 
 	static bool32 boot_application(ApplicationConfig* app_config);
 	static bool32 load_application_library(const char* module_name, const char* lib_filename, bool32 reload);
@@ -54,9 +54,11 @@ namespace Engine
 
 	bool32 init(Application* app_inst)
 	{
-
 		if (initialized)
 			return false;
+
+		engine_state.app_inst = app_inst;
+		engine_state.is_running = true;
 
 		app_inst->stage = ApplicationStage::UNINITIALIZED;
 
@@ -66,14 +68,6 @@ namespace Engine
 			return false;
 		}
 
-		engine_state = (EngineState*)Memory::allocate(sizeof(EngineState), AllocationTag::ENGINE);
-
-		engine_state->app_inst = app_inst;
-		engine_state->is_running = true;
-
-		Event::event_register(SystemEventCode::APPLICATION_QUIT, app_inst, on_event);
-		Event::event_register(SystemEventCode::WINDOW_RESIZED, app_inst, on_resized);
-
 		app_inst->stage = ApplicationStage::BOOTING;
 		ApplicationConfig app_config = {};
 		if (!boot_application(&app_config))
@@ -82,6 +76,9 @@ namespace Engine
 			return false;
 		}
 		app_inst->stage = ApplicationStage::BOOT_COMPLETE;
+
+		Event::event_register(SystemEventCode::APPLICATION_QUIT, app_inst, on_event);
+		Event::event_register(SystemEventCode::WINDOW_RESIZED, app_inst, on_resized);
 
 		if (!SubsystemManager::init_advanced(&app_config))
 		{
@@ -114,22 +111,22 @@ namespace Engine
 		float64 last_frametime = 0.0;
 		metrics_update_frame();
 
-		while (engine_state->is_running)
+		while (engine_state.is_running)
 		{		
 			metrics_update_frame();
 			last_frametime = metrics_last_frametime();
-			engine_state->frame_data.delta_time = last_frametime;
-			engine_state->frame_data.total_time += last_frametime;
+			engine_state.frame_data.delta_time = last_frametime;
+			engine_state.frame_data.total_time += last_frametime;
 
 			OPTICK_FRAME("MainThread");
 
-			engine_state->frame_data.frame_allocator.free_all_data();
+			engine_state.frame_data.frame_allocator.free_all_data();
 
-			SubsystemManager::update(&engine_state->frame_data);
+			SubsystemManager::update(&engine_state.frame_data);
 
 			if (!Platform::pump_messages())
 			{
-				engine_state->is_running = false;
+				engine_state.is_running = false;
 			}
 
 			static float64 timer = 0;
@@ -138,7 +135,7 @@ namespace Engine
 			if (timer > 1.0)
 			{
 				char window_title[128] = {};
-				CString::safe_print_s<float64>(window_title, 128, "Sandbox - Last frametime: %lf4 ms", engine_state->frame_data.delta_time * 1000.0);
+				CString::safe_print_s<float64>(window_title, 128, "Sandbox - Last frametime: %lf4 ms", engine_state.frame_data.delta_time * 1000.0);
 				Platform::set_window_text(app_inst->main_window->handle, window_title);
 				Platform::update_file_watches();
 				timer = 0.0;
@@ -149,29 +146,29 @@ namespace Engine
 			if (!app_inst->is_suspended)
 			{
 
-				if (!engine_state->app_inst->update(&engine_state->frame_data))
+				if (!engine_state.app_inst->update(&engine_state.frame_data))
 				{
 					SHMFATAL("Failed to update application.");
-					engine_state->is_running = false;
+					engine_state.is_running = false;
 					break;
 				}
 
 				metrics_update_logic();
 
-				if (!engine_state->app_inst->render(&engine_state->frame_data))
+				if (!engine_state.app_inst->render(&engine_state.frame_data))
 				{
 					SHMFATAL("Failed to render application.");
-					engine_state->is_running = false;
+					engine_state.is_running = false;
 					break;
 				}
 
-				Renderer::draw_frame(&engine_state->frame_data);
+				Renderer::draw_frame(&engine_state.frame_data);
 
 				metrics_update_render();
 
 			}
 
-			Input::frame_end(&engine_state->frame_data);
+			Input::frame_end(&engine_state.frame_data);
 
 			float64 frame_elapsed_time = Platform::get_absolute_time() - metrics_frame_start_time();
 			static float64 remaining_s = target_frame_seconds - frame_elapsed_time;
@@ -198,8 +195,8 @@ namespace Engine
 		OPTICK_SHUTDOWN();
 
 		app_inst->stage = ApplicationStage::SHUTTING_DOWN;
-		engine_state->is_running = false;
-		engine_state->app_inst->shutdown();	
+		engine_state.is_running = false;
+		engine_state.app_inst->shutdown();	
 
 		SubsystemManager::shutdown_advanced();
 
@@ -243,7 +240,7 @@ namespace Engine
 			return false;
 		}
 
-		Application* app_inst = engine_state->app_inst;
+		Application* app_inst = engine_state.app_inst;
 		if (!app_inst->load_config(app_config))
 		{
 			SHMERRORV("Failed to load application config '%s'.", application_module_name);
@@ -270,10 +267,10 @@ namespace Engine
 
 		uint64 frame_allocator_size = mebibytes(32);
 		void* f_data = Memory::allocate(frame_allocator_size, AllocationTag::ENGINE);
-		engine_state->frame_data.frame_allocator.init(frame_allocator_size, f_data);
+		engine_state.frame_data.frame_allocator.init(frame_allocator_size, f_data);
 
 		if (app_config->app_frame_data_size)
-			engine_state->frame_data.app_data = Memory::allocate(app_config->app_frame_data_size, AllocationTag::APPLICATION);
+			engine_state.frame_data.app_data = Memory::allocate(app_config->app_frame_data_size, AllocationTag::APPLICATION);
 
 		app_inst->is_suspended = false;
 		app_inst->name = app_config->name;
@@ -293,7 +290,7 @@ namespace Engine
 
 	static bool32 load_application_library(const char* module_name, const char* lib_filename, bool32 reload) 
 	{
-		Application* app = engine_state->app_inst;
+		Application* app = engine_state.app_inst;
 		if (!Platform::load_dynamic_library(application_module_name, lib_filename, &app->application_lib))
 			return false;
 
@@ -369,17 +366,17 @@ namespace Engine
 
 	float64 get_frame_delta_time()
 	{
-		return engine_state->frame_data.delta_time;
+		return engine_state.frame_data.delta_time;
 	}
 
 	const char* get_application_name()
 	{
-		return engine_state->app_inst->name;
+		return engine_state.app_inst->name;
 	}
 
 	const Platform::Window* get_main_window()
 	{
-		return engine_state->app_inst->main_window;
+		return engine_state.app_inst->main_window;
 	}
 
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
@@ -389,7 +386,7 @@ namespace Engine
 		case SystemEventCode::APPLICATION_QUIT:
 		{
 			SHMINFO("Application Quit event received. Shutting down.");
-			engine_state->is_running = false;
+			engine_state.is_running = false;
 			return true;
 		}
 		}
@@ -421,7 +418,7 @@ namespace Engine
 					SHMDEBUG("Window restores. Continuing application.");
 					app_inst->is_suspended = false;
 				}
-				engine_state->app_inst->on_resize(width, height);
+				engine_state.app_inst->on_resize(width, height);
 				Renderer::on_resized(width, height);
 			}
 		}

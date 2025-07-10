@@ -10,9 +10,9 @@
 #include <systems/GeometrySystem.hpp>
 #include <systems/ShaderSystem.hpp>
 #include <systems/MaterialSystem.hpp>
-#include <systems/CameraSystem.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <renderer/RendererFrontend.hpp>
+#include <renderer/Camera.hpp>
 #include <utility/Sort.hpp>
 
 #include <optick.h>
@@ -35,8 +35,6 @@ struct RenderViewWorldInternalData {
 	Math::Vec4f ambient_color;
 
 	LightingInfo lighting;
-
-	Camera* camera;
 };
 
 static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
@@ -186,7 +184,6 @@ bool32 render_view_world_on_create(RenderView* self)
 	internal_data->fov = Math::deg_to_rad(45.0f);
 
 	internal_data->projection_matrix = Math::mat_perspective(internal_data->fov, 1280.0f / 720.0f, internal_data->near_clip, internal_data->far_clip);
-	internal_data->camera = CameraSystem::get_default_camera();
 	internal_data->ambient_color = { 0.25f, 0.25f, 0.25f, 1.0f };
 
 	Event::event_register((uint16)SystemEventCode::SET_RENDER_MODE, self, on_event);
@@ -221,16 +218,16 @@ void render_view_world_on_resize(RenderView* self, uint32 width, uint32 height)
 	}
 }
 
-static bool32 set_globals_material_phong(RenderViewWorldInternalData* internal_data)
+static bool32 set_globals_material_phong(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 	MaterialPhongShaderUniformLocations u_locations = internal_data->material_phong_u_locations;
 	ShaderSystem::bind_shader(internal_data->material_phong_shader->id);
 	ShaderSystem::bind_globals();
 
-	Math::Vec3f camera_position = internal_data->camera->get_position();
+	Math::Vec3f camera_position = camera->get_position();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &camera->get_view()));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.ambient_color, &internal_data->ambient_color));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.camera_position, &camera_position));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.render_mode, &internal_data->render_mode));
@@ -275,17 +272,17 @@ static bool32 set_locals_material_phong(RenderViewWorldInternalData* internal_da
 	return true;
 }
 
-static bool32 set_globals_terrain(RenderViewWorldInternalData* internal_data)
+static bool32 set_globals_terrain(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 
 	TerrainShaderUniformLocations u_locations = internal_data->terrain_u_locations;
 	ShaderSystem::bind_shader(internal_data->terrain_shader->id);
 	ShaderSystem::bind_globals();
 
-	Math::Vec3f camera_position = internal_data->camera->get_position();
+	Math::Vec3f camera_position = camera->get_position();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &camera->get_view()));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.ambient_color, &internal_data->ambient_color));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.camera_position, &camera_position));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.render_mode, &internal_data->render_mode));
@@ -327,13 +324,13 @@ static bool32 set_locals_terrain(RenderViewWorldInternalData* internal_data, Mat
 	return true;
 }
 
-static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data)
+static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->color3D_shader->id);
 	ShaderSystem::bind_globals();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.view, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.view, &camera->get_view()));
 
 	return Renderer::shader_apply_globals(internal_data->color3D_shader);
 }
@@ -384,6 +381,7 @@ bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint
 	OPTICK_EVENT();	
 
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
+	Camera* world_camera = RenderViewSystem::get_bound_world_camera();
 
 	{
 		void* sorted_geometries_block = frame_data->frame_allocator.allocate(sizeof(RenderViewGeometryData) * self->geometries.count);
@@ -403,7 +401,7 @@ bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint
 			else
 			{
 				Math::Vec3f center = Math::vec_transform(g_data->geometry_data->center, self->objects[g_data->object_index].model);
-				float32 distance = Math::vec_distance(center, internal_data->camera->get_position());
+				float32 distance = Math::vec_distance(center, world_camera->get_position());
 
 				GeometryDistance* g_dist = &transparent_geometries[transparent_geometries.emplace()];
 				g_dist->dist = Math::abs(distance);
@@ -417,12 +415,12 @@ bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint
 
 		self->geometries.copy_memory(sorted_geometries.data, sorted_geometries.count, 0);
 	}
-
-	if (!set_globals_material_phong(internal_data))
+	
+	if (!set_globals_material_phong(internal_data, world_camera))
 		SHMERROR("Failed to apply globals to material phong shader.");
-	if (!set_globals_terrain(internal_data))
+	if (!set_globals_terrain(internal_data, world_camera))
 		SHMERROR("Failed to apply globals to terrain shader.");
-	if (!set_globals_color3D(internal_data))
+	if (!set_globals_color3D(internal_data, world_camera))
 		SHMERROR("Failed to apply globals to color3D shader.");
 
 	for (uint32 instance_i = 0; instance_i < self->instances.count; instance_i++)

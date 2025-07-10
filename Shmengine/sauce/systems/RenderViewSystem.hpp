@@ -126,6 +126,8 @@ namespace RenderViewSystem
 	SHMAPI RenderView* get(const char* name);
 	SHMAPI RenderViewId get_id(const char* name);
 
+	SHMAPI Camera* get_bound_world_camera();
+
 	SHMAPI bool32 build_packet(RenderViewId view_id, FrameData* frame_data, const RenderViewPacketData* packet_data);
 
 	void on_window_resize(uint32 width, uint32 height);

@@ -10,9 +10,9 @@
 #include <resources/Mesh.hpp>
 #include <systems/ShaderSystem.hpp>
 #include <systems/MaterialSystem.hpp>
-#include <systems/CameraSystem.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <renderer/RendererFrontend.hpp>
+#include <renderer/Camera.hpp>
 #include <resources/UIText.hpp>
 
 struct RenderViewPickInternalData {
@@ -45,8 +45,6 @@ struct RenderViewPickInternalData {
 	RenderView* world_view;
 	RenderView* ui_view;
 
-	Camera* camera;
-	
 	UniqueId hovered_object_id;
 };
 
@@ -105,8 +103,6 @@ bool32 render_view_pick_on_create(RenderView* self)
 	internal_data->projection_2D = Math::mat_orthographic(0.0f, 1280.0f, 720.0f, 0.0f, internal_data->near_clip_2D, internal_data->far_clip_2D);
 	internal_data->view_2D = MAT4_IDENTITY;
 
-	internal_data->camera = CameraSystem::get_default_camera();
-
 	return true;
 
 }
@@ -141,24 +137,24 @@ void render_view_pick_on_resize(RenderView* self, uint32 width, uint32 height)
 	}
 }
 
-static bool32 set_globals_material_phong_pick(RenderViewPickInternalData* internal_data)
+static bool32 set_globals_material_phong_pick(RenderViewPickInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->material_phong_pick_shader->id);
 	ShaderSystem::bind_globals();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->projection_location, &internal_data->projection_3D));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->view_location, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->view_location, &camera->get_view()));
 
 	return Renderer::shader_apply_globals(internal_data->material_phong_pick_shader);
 }
 
-static bool32 set_globals_terrain_pick(RenderViewPickInternalData* internal_data)
+static bool32 set_globals_terrain_pick(RenderViewPickInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->terrain_pick_shader->id);
 	ShaderSystem::bind_globals();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->projection_location, &internal_data->projection_3D));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->view_location, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->view_location, &camera->get_view()));
 
 	return Renderer::shader_apply_globals(internal_data->terrain_pick_shader);
 }
@@ -189,6 +185,7 @@ bool32 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint3
 {
 
 	RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
+	Camera* world_camera = RenderViewSystem::get_bound_world_camera();
 
 	uint32 depth_pass_id = 0;
 	uint32 ui_pass_id = 1;
@@ -198,9 +195,9 @@ bool32 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint3
 	if (render_target_index == 0)
 	{
 
-		if (!set_globals_material_phong_pick(internal_data))
+		if (!set_globals_material_phong_pick(internal_data, world_camera))
 			SHMERROR("Failed to apply globals to material phong pick shader.");
-		if (!set_globals_terrain_pick(internal_data))
+		if (!set_globals_terrain_pick(internal_data, world_camera))
 			SHMERROR("Failed to apply globals to terrain pick shader.");
 		if (!set_globals_ui_pick(internal_data))
 			SHMERROR("Failed to apply globals to ui pick shader.");

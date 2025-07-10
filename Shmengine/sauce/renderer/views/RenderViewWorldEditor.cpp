@@ -10,9 +10,9 @@
 #include <systems/GeometrySystem.hpp>
 #include <systems/ShaderSystem.hpp>
 #include <systems/MaterialSystem.hpp>
-#include <systems/CameraSystem.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <renderer/RendererFrontend.hpp>
+#include <renderer/Camera.hpp>
 #include <utility/Sort.hpp>
 
 #include <optick.h>
@@ -41,8 +41,6 @@ struct RenderViewWorldInternalData {
 	Math::Mat4 projection_matrix;
 
 	CoordinateGrid coordinate_grid;
-
-	Camera* camera;
 };
 
 bool32 render_view_world_editor_on_create(RenderView* self)
@@ -83,7 +81,6 @@ bool32 render_view_world_editor_on_create(RenderView* self)
 	internal_data->fov = Math::deg_to_rad(45.0f);
 
 	internal_data->projection_matrix = Math::mat_perspective(internal_data->fov, 1280.0f / 720.0f, internal_data->near_clip, internal_data->far_clip);
-	internal_data->camera = CameraSystem::get_default_camera();
 
 	GeometryData* grid_geometry = &internal_data->coordinate_grid.geometry;
 	grid_geometry->id = Constants::max_u32;
@@ -126,13 +123,13 @@ void render_view_world_editor_on_resize(RenderView* self, uint32 width, uint32 h
 	}
 }
 
-static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data)
+static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->color3D_shader->id);
 	ShaderSystem::bind_globals();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.view, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.view, &camera->get_view()));
 
 	return Renderer::shader_apply_globals(internal_data->color3D_shader);
 }
@@ -143,13 +140,13 @@ static bool32 set_locals_color3D(RenderViewWorldInternalData* internal_data, Mat
 	return true;
 }
 
-static bool32 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_data)
+static bool32 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->coordinate_grid_shader->id);
 	ShaderSystem::bind_globals();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.view, &internal_data->camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.view, &camera->get_view()));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.near, &internal_data->near_clip));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.far, &internal_data->far_clip));
 
@@ -173,10 +170,11 @@ bool32 render_view_world_editor_on_render(RenderView* self, FrameData* frame_dat
 	OPTICK_EVENT();
 
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
+	Camera* world_camera = RenderViewSystem::get_bound_world_camera();
 
-	if (!set_globals_color3D(internal_data))
+	if (!set_globals_color3D(internal_data, world_camera))
 		SHMERROR("Failed to apply globals to color3D shader.");
-	if (!set_globals_coordinate_grid(internal_data))
+	if (!set_globals_coordinate_grid(internal_data, world_camera))
 		SHMERROR("Failed to apply globals to coordinate grid shader.");
 
 	for (uint32 instance_i = 0; instance_i < self->instances.count; instance_i++)

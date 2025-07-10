@@ -55,7 +55,7 @@ bool32 application_init(Application* app_inst)
 	register_events();
 	add_keymaps();
 
-	app_state->world_camera = CameraSystem::get_default_camera();
+	app_state->world_camera = RenderViewSystem::get_bound_world_camera();
 	app_state->world_camera->set_position({ 10.5f, 5.0f, 9.5f });
 	app_state->allocation_count = 0;
 

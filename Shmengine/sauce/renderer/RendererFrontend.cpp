@@ -13,7 +13,6 @@
 #include "systems/GeometrySystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/ShaderSystem.hpp"
-#include "systems/CameraSystem.hpp"
 #include "systems/RenderViewSystem.hpp"
 
 #include "optick.h"

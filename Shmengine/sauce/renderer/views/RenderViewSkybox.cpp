@@ -10,13 +10,14 @@
 #include <systems/RenderViewSystem.hpp>
 #include <systems/ShaderSystem.hpp>
 #include <systems/MaterialSystem.hpp>
-#include <systems/CameraSystem.hpp>
 #include <renderer/RendererFrontend.hpp>
+#include <renderer/Camera.hpp>
 #include <utility/Sort.hpp>
 
 #include <optick.h>
 
-struct RenderViewSkyboxInternalData {
+struct RenderViewSkyboxInternalData 
+{
 	Shader* skybox_shader;
 	SkyboxShaderUniformLocations skybox_shader_u_locations;
 
@@ -25,8 +26,6 @@ struct RenderViewSkyboxInternalData {
 	float32 fov;
 
 	Math::Mat4 projection_matrix;
-
-	Camera* camera;
 };
 
 bool32 render_view_skybox_on_create(RenderView* self)
@@ -56,7 +55,6 @@ bool32 render_view_skybox_on_create(RenderView* self)
 	internal_data->fov = Math::deg_to_rad(45.0f);
 
 	internal_data->projection_matrix = Math::mat_perspective(internal_data->fov, 1280.0f / 720.0f, internal_data->near_clip, internal_data->far_clip);
-	internal_data->camera = CameraSystem::get_default_camera();
 
 	return true;
 
@@ -126,11 +124,17 @@ bool32 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uin
 	OPTICK_EVENT();
 
 	RenderViewSkyboxInternalData* internal_data = (RenderViewSkyboxInternalData*)self->internal_data.data;
+	Camera* camera = RenderViewSystem::get_bound_world_camera();
+	if (!camera)
+	{
+		SHMERROR("Cannot render skybox without bound world camera!");
+		return false;
+	}
 
 	Math::Mat4 view_matrix = {};
 	if (self->geometries.count)
 	{
-		view_matrix = internal_data->camera->get_view();
+		view_matrix = camera->get_view();
 		view_matrix.data[12] = 0.0f;
 		view_matrix.data[13] = 0.0f;
 		view_matrix.data[14] = 0.0f;

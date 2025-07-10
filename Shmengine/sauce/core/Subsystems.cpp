@@ -10,7 +10,6 @@
 #include "FrameData.hpp"
 #include "platform/Platform.hpp"
 #include "renderer/RendererFrontend.hpp"
-#include "systems/CameraSystem.hpp"
 #include "systems/FontSystem.hpp"
 #include "systems/GeometrySystem.hpp"
 #include "systems/JobSystem.hpp"
@@ -50,7 +49,6 @@ namespace SubsystemManager
 			RENDERER,
 			SHADER_SYSTEM,
 			JOB_SYSTEM,
-			CAMERA_SYSTEM,
 			RENDERVIEW_SYSTEM,
 			TEXTURE_SYSTEM,
 			FONT_SYSTEM,	
@@ -259,15 +257,6 @@ namespace SubsystemManager
 		job_system_config.type_masks = job_thread_types;
 
 		if (!register_system(SubsystemType::JOB_SYSTEM, JobSystem::system_init, JobSystem::system_shutdown, JobSystem::update, &job_system_config))
-		{
-			SHMFATAL("Failed to register console subsystem!");
-			return false;
-		}
-
-		CameraSystem::SystemConfig camera_sys_config;
-		camera_sys_config.max_camera_count = 61;
-
-		if (!register_system(SubsystemType::CAMERA_SYSTEM, CameraSystem::system_init, CameraSystem::system_shutdown, 0, &camera_sys_config))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;

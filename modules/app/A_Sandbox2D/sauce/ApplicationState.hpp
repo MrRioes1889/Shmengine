@@ -5,7 +5,6 @@
 
 #include <core/Keymap.hpp>
 #include <utility/MathTypes.hpp>
-#include <systems/CameraSystem.hpp>
 
 #include "ui/DebugConsole.hpp"
 
