@@ -18,6 +18,7 @@ namespace Engine
 	SHMAPI float64 get_frame_delta_time();
 	SHMAPI const char* get_application_name();
 	SHMAPI const Platform::Window* get_main_window();
+	SHMAPI const char* get_assets_base_path();
 
 }
 

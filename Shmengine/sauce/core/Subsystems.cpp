@@ -15,7 +15,6 @@
 #include "systems/JobSystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/RenderViewSystem.hpp"
-#include "systems/ResourceSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "systems/TextureSystem.hpp"
 
@@ -45,7 +44,6 @@ namespace SubsystemManager
 			EVENT,
 			PLATFORM,
 
-			RESOURCE_SYSTEM,
 			RENDERER,
 			SHADER_SYSTEM,
 			JOB_SYSTEM,
@@ -195,16 +193,6 @@ namespace SubsystemManager
 
 	static bool32 register_known_systems_post_boot(const ApplicationConfig* app_config)
 	{
-
-		ResourceSystem::SystemConfig resource_sys_config;
-		CString::copy(Platform::get_root_dir(), resource_sys_config.asset_base_path, Constants::max_filepath_length);
-		CString::append(resource_sys_config.asset_base_path, Constants::max_filepath_length, "../../../assets/");
-
-		if (!register_system(SubsystemType::RESOURCE_SYSTEM, ResourceSystem::system_init, ResourceSystem::system_shutdown, 0, &resource_sys_config))
-		{
-			SHMFATAL("Failed to register console subsystem!");
-			return false;
-		}
 
 		Renderer::SystemConfig renderer_sys_config;
 		renderer_sys_config.application_name = app_config->name;

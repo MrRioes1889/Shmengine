@@ -1,7 +1,7 @@
 #include "MaterialLoader.hpp"
 
+#include "core/Engine.hpp"
 #include "systems/MaterialSystem.hpp"
-#include "systems/ResourceSystem.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
@@ -236,7 +236,7 @@ namespace ResourceSystem
 		char full_filepath[Constants::max_filepath_length];
 
 		CString::safe_print_s<const char*, const char*, const char*, const char*>
-			(full_filepath, Constants::max_filepath_length, format, get_base_path(), loader_type_path, name, ".shmt");
+			(full_filepath, Constants::max_filepath_length, format, Engine::get_assets_base_path(), loader_type_path, name, ".shmt");
 
 		FileSystem::FileHandle f;
 		if (!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f))
@@ -592,7 +592,7 @@ namespace ResourceSystem
         char full_filepath[Constants::max_filepath_length];
 
         CString::safe_print_s<const char*, const char*, const char*, const char*>
-            (full_filepath, Constants::max_filepath_length, format, get_base_path(), loader_type_path, resource->name, ".shmt");
+            (full_filepath, Constants::max_filepath_length, format, Engine::get_assets_base_path(), loader_type_path, resource->name, ".shmt");
 
         FileSystem::FileHandle f;
 

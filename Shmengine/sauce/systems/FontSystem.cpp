@@ -1,6 +1,5 @@
 #include "FontSystem.hpp"
 
-#include "systems/ResourceSystem.hpp"
 #include "systems/TextureSystem.hpp"
 #include "resources/UIText.hpp"
 #include "renderer/RendererFrontend.hpp"

@@ -1,6 +1,6 @@
 #include "TruetypeFontLoader.hpp"
 
-#include "systems/ResourceSystem.hpp"
+#include "core/Engine.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
@@ -22,7 +22,7 @@ struct ShmttfFileHeader
 {
     uint16 version;  
     uint64 binary_size;
-    char face[256];
+    char face[Constants::max_filepath_length];
 };
 
 namespace ResourceSystem
@@ -41,7 +41,7 @@ namespace ResourceSystem
         String full_filepath_wo_extension(Constants::max_filepath_length);
 
         full_filepath_wo_extension.safe_print_s<const char*, const char*, const char*>
-            (format, get_base_path(), loader_type_path, name);
+            (format, Engine::get_assets_base_path(), loader_type_path, name);
 
         const uint32 supported_file_type_count = 2;
         SupportedTruetypeFontFileType supported_file_types[supported_file_type_count] = {};

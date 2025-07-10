@@ -8,7 +8,6 @@
 #include "memory/LinearAllocator.hpp"
 #include "memory/Freelist.hpp"
 #include "utility/math/Transform.hpp"
-#include "systems/ResourceSystem.hpp"
 #include "systems/TextureSystem.hpp"
 #include "systems/GeometrySystem.hpp"
 #include "systems/MaterialSystem.hpp"

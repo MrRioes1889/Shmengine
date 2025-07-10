@@ -31,8 +31,8 @@ namespace Engine
 		bool32 is_running;
 		//Clock clock;
 
+		char assets_base_path[Constants::max_filepath_length];
 		Memory::LinearAllocator systems_allocator;
-
 		FrameData frame_data;
 	};
 
@@ -58,6 +58,9 @@ namespace Engine
 			return false;
 
 		engine_state.app_inst = app_inst;
+		CString::copy(Platform::get_root_dir(), engine_state.assets_base_path, Constants::max_filepath_length);
+		CString::append(engine_state.assets_base_path, Constants::max_filepath_length, "../../../assets/");
+
 		engine_state.is_running = true;
 
 		app_inst->stage = ApplicationStage::UNINITIALIZED;
@@ -377,6 +380,11 @@ namespace Engine
 	const Platform::Window* get_main_window()
 	{
 		return engine_state.app_inst->main_window;
+	}
+
+	const char* get_assets_base_path()
+	{
+		return engine_state.assets_base_path;
 	}
 
 	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)

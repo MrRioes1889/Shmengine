@@ -1,6 +1,5 @@
 #pragma once
 
-#include "systems/ResourceSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 
 struct ShaderResourceData

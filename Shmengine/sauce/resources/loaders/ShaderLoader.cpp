@@ -1,5 +1,6 @@
 #include "ShaderLoader.hpp"
 
+#include "core/Engine.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
@@ -19,7 +20,7 @@ namespace ResourceSystem
         char full_filepath[Constants::max_filepath_length];
 
         CString::safe_print_s<const char*, const char*, const char*, const char*>
-            (full_filepath, Constants::max_filepath_length, format, get_base_path(), loader_type_path, name, ".shadercfg");
+            (full_filepath, Constants::max_filepath_length, format, Engine::get_assets_base_path(), loader_type_path, name, ".shadercfg");
 
         FileSystem::FileHandle f;
         if (!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f))
