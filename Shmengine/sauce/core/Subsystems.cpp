@@ -226,23 +226,23 @@ namespace SubsystemManager
 		}
 		thread_count = clamp(thread_count, 1, max_thread_count);
 
-		uint32 job_thread_types[max_thread_count];
+		JobSystem::JobTypeFlags::Value job_thread_types[max_thread_count];
 		for (uint32 i = 0; i < max_thread_count; i++)
-			job_thread_types[i] = JobSystem::JobType::GENERAL;
+			job_thread_types[i] = JobSystem::JobTypeFlags::General;
 
 		if (thread_count == 1 || !Renderer::is_multithreaded())
 		{
-			job_thread_types[0] |= (JobSystem::JobType::GPU_RESOURCE | JobSystem::JobType::RESOURCE_LOAD);
+			job_thread_types[0] |= (JobSystem::JobTypeFlags::GPUResource | JobSystem::JobTypeFlags::ResourceLoad);
 		}
 		else
 		{
-			job_thread_types[0] |= JobSystem::JobType::GPU_RESOURCE;
-			job_thread_types[1] |= JobSystem::JobType::RESOURCE_LOAD;
+			job_thread_types[0] |= JobSystem::JobTypeFlags::GPUResource;
+			job_thread_types[1] |= JobSystem::JobTypeFlags::ResourceLoad;
 		}
 
 		JobSystem::SystemConfig job_system_config;
 		job_system_config.job_thread_count = thread_count;
-		job_system_config.type_masks = job_thread_types;
+		job_system_config.type_flags = job_thread_types;
 
 		if (!register_system(SubsystemType::JOB_SYSTEM, JobSystem::system_init, JobSystem::system_shutdown, JobSystem::update, &job_system_config))
 		{

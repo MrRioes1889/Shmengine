@@ -16,7 +16,7 @@ namespace JobSystem
 	struct JobThread
 	{
 		uint32 index;
-		uint32 type_mask;
+		JobTypeFlags::Value type_flags;
 		Threading::Thread thread;
 		JobInfo info;
 		Threading::Mutex info_mutex; 
@@ -33,10 +33,9 @@ namespace JobSystem
 
 	struct SystemState
 	{
-		SystemConfig config;
-		bool32 is_running;
+		bool8 is_running;
 
-		JobThread job_threads[16];
+		Sarray<JobThread> job_threads;
 
 		RingQueue<JobInfo> low_prio_queue;
 		RingQueue<JobInfo> normal_prio_queue;
@@ -63,8 +62,11 @@ namespace JobSystem
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		system_state->config = *sys_config;
 		system_state->is_running = true;
+
+		uint64 thread_array_size = system_state->job_threads.get_external_size_requirement(sys_config->job_thread_count);
+		void* thread_array_data = allocator_callback(allocator, thread_array_size);
+		system_state->job_threads.init(sys_config->job_thread_count, 0, AllocationTag::ARRAY, thread_array_data);
 
 		system_state->pending_results_count = 0;
 
@@ -76,12 +78,12 @@ namespace JobSystem
 			system_state->pending_results[i].id = Constants::max_u32;
 
 		SHMDEBUGV("Main thread id is: %u", Threading::get_thread_id());
-		SHMDEBUGV("Spawning %u job threads.", system_state->config.job_thread_count);
+		SHMDEBUGV("Spawning %u job threads.", system_state->job_threads.capacity);
 
-		for (uint32 i = 0; i < system_state->config.job_thread_count; i++)
+		for (uint32 i = 0; i < system_state->job_threads.capacity; i++)
 		{
 			system_state->job_threads[i].index = i;
-			system_state->job_threads[i].type_mask = sys_config->type_masks[i];
+			system_state->job_threads[i].type_flags = sys_config->type_flags[i];
 			if (!Threading::thread_create(job_thread_run, &system_state->job_threads[i].index, false, &system_state->job_threads[i].thread))
 			{
 				SHMFATAL("Failed creating requested count of job threads!");
@@ -111,7 +113,7 @@ namespace JobSystem
 		system_state->normal_prio_queue.free_data();
 		system_state->high_prio_queue.free_data();
 
-		for (uint32 i = 0; i < system_state->config.job_thread_count; i++)
+		for (uint32 i = 0; i < system_state->job_threads.capacity; i++)
 		{
 			Threading::thread_destroy(&system_state->job_threads[i].thread);
 		}
@@ -166,18 +168,18 @@ namespace JobSystem
 	{
 
 #if MT_ENABLED
-		uint32 thread_count = system_state->config.job_thread_count;
+		uint32 thread_count = system_state->job_threads.capacity;
 		RingQueue<JobInfo>* queue = &system_state->normal_prio_queue;
 		Threading::Mutex* queue_mutex = &system_state->normal_prio_queue_mutex;
 
-		if (info.priority == JobPriority::HIGH)
+		if (info.priority == JobPriority::High)
 		{
 			queue = &system_state->high_prio_queue;
 			queue_mutex = &system_state->high_prio_queue_mutex;
 
 			for (uint32 i = 0; i < thread_count; ++i) {
 				JobThread* thread = &system_state->job_threads[i];
-				if (system_state->job_threads[i].type_mask & info.type) {
+				if (system_state->job_threads[i].type_flags & info.type_flags) {
 					bool32 found = false;
 
 					Threading::mutex_lock(&thread->info_mutex);
@@ -195,7 +197,7 @@ namespace JobSystem
 			}
 		}
 
-		if (info.priority == JobPriority::LOW) {
+		if (info.priority == JobPriority::Low) {
 			queue = &system_state->low_prio_queue;
 			queue_mutex = &system_state->low_prio_queue_mutex;
 		}
@@ -226,14 +228,14 @@ namespace JobSystem
 
 	}
 
-	JobInfo job_create(FP_job_start entry_point, FP_job_on_complete on_success, FP_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobType::Value type, JobPriority priority)
+	JobInfo job_create(FP_job_start entry_point, FP_job_on_complete on_success, FP_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobTypeFlags::Value type_flags, JobPriority priority)
 	{
 
 		JobInfo info = {};
 		info.entry_point = entry_point;
 		info.on_success = on_success;
 		info.on_failure = on_failure;
-		info.type = type;
+		info.type_flags = type_flags;
 		info.priority = priority;
 
 		info.params_size = params_size;
@@ -347,7 +349,7 @@ namespace JobSystem
 	static void process_queue(RingQueue<JobInfo>& queue, Threading::Mutex* queue_mutex)
 	{
 
-		uint32 thread_count = system_state->config.job_thread_count;
+		uint32 thread_count = system_state->job_threads.capacity;
 
 		while (queue.count > 0)
 		{
@@ -357,7 +359,7 @@ namespace JobSystem
 			for (uint32 i = 0; i < thread_count; i++)
 			{
 				JobThread* thread = &system_state->job_threads[i];
-				if (!(thread->type_mask & info->type))
+				if (!(thread->type_flags & info->type_flags))
 					continue;
 
 				Threading::mutex_lock(&thread->info_mutex);

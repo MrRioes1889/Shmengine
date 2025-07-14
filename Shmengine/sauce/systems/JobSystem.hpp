@@ -11,26 +11,27 @@ namespace JobSystem
 	typedef bool32 (*FP_job_start)(void*, void*);
 	typedef void (*FP_job_on_complete)(void*);
 
-	namespace JobType
+	namespace JobTypeFlags
 	{
-		enum Value
+		enum : uint8
 		{
-			GENERAL = 1 << 1,
-			RESOURCE_LOAD = 1 << 2,
-			GPU_RESOURCE = 1 << 3,
+			General = 1 << 1,
+			ResourceLoad = 1 << 2,
+			GPUResource = 1 << 3,
 		};
+		typedef uint8 Value;
 	}
 
-	enum class JobPriority
+	enum class JobPriority : uint8
 	{
-		LOW,
-		NORMAL,
-		HIGH
+		Low,
+		Normal,
+		High
 	};
 
 	struct JobInfo
 	{
-		JobType::Value type;
+		JobTypeFlags::Value type_flags;
 		JobPriority priority;
 
 		FP_job_start entry_point;
@@ -49,7 +50,7 @@ namespace JobSystem
 	{
 		static const uint32 max_job_results_count = 512;
 		uint32 job_thread_count;
-		uint32* type_masks;
+		JobTypeFlags::Value* type_flags;
 	};
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
@@ -59,6 +60,6 @@ namespace JobSystem
 
 	SHMAPI void submit(JobInfo info);
 
-	SHMAPI JobInfo job_create(FP_job_start entry_point, FP_job_on_complete on_success, FP_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobType::Value type = JobType::GENERAL, JobPriority priority = JobPriority::NORMAL);
+	SHMAPI JobInfo job_create(FP_job_start entry_point, FP_job_on_complete on_success, FP_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobTypeFlags::Value type = JobTypeFlags::General, JobPriority priority = JobPriority::Normal);
 
 }
