@@ -20,7 +20,7 @@
 
 typedef uint64(*FP_get_module_state_size)();
 
-static const char* application_module_name = "A_Sandbox2D";
+static const char* application_module_name = "A_Sandbox";
 
 namespace Engine
 {

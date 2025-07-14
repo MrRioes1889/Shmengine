@@ -256,7 +256,7 @@ bool32 terrain_load(Terrain* terrain)
 
 	uint32 material_count = terrain->materials.count;
 	for (uint32 i = 0; i < material_count; i++)
-		terrain->materials[i].mat = MaterialSystem::acquire(terrain->materials[i].name);
+		terrain->materials[i].mat = MaterialSystem::acquire(terrain->materials[i].name, true);
 
 	terrain->material_properties.materials_count = material_count;
 

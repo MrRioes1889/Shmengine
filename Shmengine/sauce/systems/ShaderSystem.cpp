@@ -13,8 +13,11 @@ namespace ShaderSystem
 
 	struct SystemState
 	{
-		SystemConfig config;
-		HashtableRH<ShaderId> shader_lookup;
+		uint16 max_uniform_count;
+		uint16 max_global_textures;
+		uint16 max_instance_textures;
+
+		HashtableRH<ShaderId> lookup_table;
 		Sarray<Shader> shaders;
 		TextureMap default_texture_map;
 
@@ -43,7 +46,10 @@ namespace ShaderSystem
 
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		system_state->config = *sys_config;
+		system_state->max_global_textures = sys_config->max_global_textures;
+		system_state->max_instance_textures = sys_config->max_instance_textures;
+		system_state->max_uniform_count = sys_config->max_uniform_count;
+
 		system_state->bound_shader_id.invalidate();
 
 		system_state->material_shader_id.invalidate();
@@ -52,9 +58,9 @@ namespace ShaderSystem
 		system_state->skybox_shader_id.invalidate();
 		system_state->color3D_shader_id.invalidate();
 
-		uint64 hashtable_data_size = system_state->shader_lookup.get_external_size_requirement(sys_config->max_shader_count);
+		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_shader_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->shader_lookup.init(sys_config->max_shader_count, HashtableRHFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->lookup_table.init(sys_config->max_shader_count, HashtableRHFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
 		uint64 shader_array_size = sizeof(Shader) * sys_config->max_shader_count;
 		void* shader_array = allocator_callback(allocator, shader_array_size);
@@ -79,7 +85,7 @@ namespace ShaderSystem
 		}
 
 		Renderer::texture_map_release_resources(&system_state->default_texture_map);
-		system_state->shader_lookup.free_data();
+		system_state->lookup_table.free_data();
 		system_state->shaders.free_data();
 
 		system_state = 0;
@@ -89,7 +95,7 @@ namespace ShaderSystem
 	{
 		using namespace Renderer;
 
-		if (system_state->shader_lookup.get(config->name)) 
+		if (system_state->lookup_table.get(config->name)) 
 		{
 			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", config->name);
 			return false;
@@ -143,7 +149,7 @@ namespace ShaderSystem
 		}
 
 		shader->state = ShaderState::Initialized;
-		system_state->shader_lookup.set_value(shader->name.c_str(), shader->id);
+		system_state->lookup_table.set_value(shader->name.c_str(), shader->id);
 
 		if (!system_state->material_shader_id.is_valid() && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_material_phong))
 			system_state->material_shader_id = shader->id;
@@ -183,7 +189,7 @@ namespace ShaderSystem
 
 	ShaderId get_shader_id(const char* shader_name)
 	{
-		ShaderId* shader_id = system_state->shader_lookup.get(shader_name);
+		ShaderId* shader_id = system_state->lookup_table.get(shader_name);
 		if (!shader_id || !system_state->shaders[*shader_id].id.is_valid())
 			return ShaderId::invalid_value;
 
@@ -192,7 +198,7 @@ namespace ShaderSystem
 
 	Shader* get_shader(ShaderId shader_id)
 	{
-		if (shader_id >= system_state->config.max_shader_count || !system_state->shaders[shader_id].id.is_valid())
+		if (shader_id >= system_state->shaders.capacity || !system_state->shaders[shader_id].id.is_valid())
 			return 0;
 
 		return &system_state->shaders[shader_id];
@@ -200,7 +206,7 @@ namespace ShaderSystem
 
 	Shader* get_shader(const char* shader_name)
 	{
-		ShaderId* shader_id = system_state->shader_lookup.get(shader_name);
+		ShaderId* shader_id = system_state->lookup_table.get(shader_name);
 		if (!shader_id || !system_state->shaders[*shader_id].id.is_valid())
 			return 0;
 
@@ -213,7 +219,7 @@ namespace ShaderSystem
 		if (!shader->id.is_valid())
 			return;
 
-		system_state->shader_lookup.set_value(shader->name.c_str(), {});
+		system_state->lookup_table.remove_entry(shader->name.c_str());
 
 		Renderer::shader_destroy(shader);
 		if (system_state->bound_shader_id == shader->id)
@@ -405,9 +411,9 @@ namespace ShaderSystem
 		uint32 location = 0;
 		if (config->scope == ShaderScope::Global)
 		{
-			if (shader->global_texture_maps.count + 1 > system_state->config.max_global_textures)
+			if (shader->global_texture_maps.count >= system_state->max_global_textures)
 			{
-				SHMERRORV("Shader global texture count %i exceeds max of %i", shader->global_texture_maps.count + 1, system_state->config.max_global_textures);
+				SHMERRORV("Shader global texture count %i exceeds max of %i", shader->global_texture_maps.count + 1, system_state->max_global_textures);
 				return false;
 			}
 			location = shader->global_texture_maps.count;
@@ -419,9 +425,9 @@ namespace ShaderSystem
 		}
 		else
 		{
-			if (shader->instance_texture_count + 1 > system_state->config.max_instance_textures)
+			if (shader->instance_texture_count >= system_state->max_instance_textures)
 			{
-				SHMERRORV("Shader instance texture count %i exceeds max of %i", shader->instance_texture_count, system_state->config.max_instance_textures);
+				SHMERRORV("Shader instance texture count %i exceeds max of %i", shader->instance_texture_count, system_state->max_instance_textures);
 				return false;
 			}
 			location = shader->instance_texture_count;
@@ -444,9 +450,9 @@ namespace ShaderSystem
 	{
 		using namespace Renderer;
 
-		if (shader->uniforms.count + 1 > system_state->config.max_uniform_count)
+		if (shader->uniforms.count >= system_state->max_uniform_count)
 		{
-			SHMERRORV("A shader can only accept a combined maximum of %d uniforms and samplers at global, instance and local scopes.", system_state->config.max_uniform_count);
+			SHMERRORV("A shader can only accept a combined maximum of %d uniforms and samplers at global, instance and local scopes.", system_state->max_uniform_count);
 			return false;
 		}
 

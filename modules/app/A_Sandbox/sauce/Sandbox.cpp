@@ -162,7 +162,7 @@ bool32 application_init(Application* app_inst)
 	ui_mesh->geometries.emplace();
 	ui_mesh->geometries[0].g_data = GeometrySystem::acquire_from_config(ui_config.data_config, true);
 	CString::copy(ui_config.material_name, ui_mesh->geometries[0].material_name, Constants::max_material_name_length);
-	ui_mesh->geometries[0].material = MaterialSystem::acquire(ui_mesh->geometries[0].material_name);
+	ui_mesh->geometries[0].material = MaterialSystem::acquire(ui_mesh->geometries[0].material_name, true);
 	ui_mesh->transform = Math::transform_create();
 	ui_mesh->generation = 0;
 
@@ -408,7 +408,7 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 			return false;
 
 		MeshGeometry* g = &m->geometries[0];
-		g->material = MaterialSystem::acquire(names[choice]);
+		g->material = MaterialSystem::acquire(names[choice], true);
 		if (!g->material)
 		{
 			SHMWARNV("event_on_debug_event - Failed to acquire material '%s'! Using default.", names[choice]);

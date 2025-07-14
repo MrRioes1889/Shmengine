@@ -4,7 +4,7 @@
 
 struct ImageConfig
 {
-	uint32 channel_count;
+	uint8 channel_count;
 	uint32 width;
 	uint32 height;
 	uint8* pixels;

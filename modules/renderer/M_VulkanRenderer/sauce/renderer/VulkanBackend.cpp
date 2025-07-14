@@ -316,8 +316,6 @@ namespace Renderer::Vulkan
 		context->framebuffer_width = width;
 		context->framebuffer_height = height;
 		context->framebuffer_size_generation++;
-
-		//SHMINFOV("Vulkan renderer backend->resize: w/h/gen: %u/%u/%u", width, height, context->framebuffer_size_generation);
 	}
 
 	bool32 vk_begin_frame(const FrameData* frame_data)
@@ -481,7 +479,7 @@ namespace Renderer::Vulkan
 		VkImageUsageFlags usage = 0;
 		VkImageAspectFlags aspect = 0;
 
-		if (texture->flags & TextureFlags::IS_DEPTH)
+		if (texture->flags & TextureFlags::IsDepth)
 		{
 			usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 			aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -504,7 +502,7 @@ namespace Renderer::Vulkan
 			aspect,
 			image);
 
-		texture->generation++;
+		texture->flags |= TextureFlags::IsLoaded;
 	}
 
 	static VkFormat channel_count_to_format(uint32 channel_count, VkFormat default_format) {
@@ -525,10 +523,10 @@ namespace Renderer::Vulkan
 	void vk_texture_create(const void* pixels, Texture* texture)
 	{
 		
-		uint32 image_size = texture->width * texture->height * texture->channel_count * (texture->type == TextureType::TYPE_CUBE ? 6 : 1);
+		uint32 image_size = texture->width * texture->height * texture->channel_count * (texture->type == TextureType::Cube ? 6 : 1);
 		VkFormat image_format;
 
-		if (texture->flags & TextureFlags::IS_DEPTH)
+		if (texture->flags & TextureFlags::IsDepth)
 			image_format = context->device.depth_format;
 		else
 			image_format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -541,7 +539,7 @@ namespace Renderer::Vulkan
 	void vk_texture_create_writable(Texture* texture)
 	{
 		VkFormat image_format;
-		if (texture->flags & TextureFlags::IS_DEPTH)
+		if (texture->flags & TextureFlags::IsDepth)
 			image_format = context->device.depth_format;
 		else
 			image_format = channel_count_to_format(texture->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
@@ -561,7 +559,7 @@ namespace Renderer::Vulkan
 			VkFormat image_format;
 			texture->width = width;
 			texture->height = height;
-			if (texture->flags & TextureFlags::IS_DEPTH)
+			if (texture->flags & TextureFlags::IsDepth)
 				image_format = context->device.depth_format;
 			else
 				image_format = channel_count_to_format(texture->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
@@ -574,11 +572,7 @@ namespace Renderer::Vulkan
 	bool32 vk_texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
 	{
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
-		bool32 res = vk_image_write_data((VulkanImage*)t->internal_data.data, image_format, t->type, offset, size, pixels);
-		if (res)
-			t->generation++;
-
-		return res;
+		return vk_image_write_data((VulkanImage*)t->internal_data.data, image_format, t->type, offset, size, pixels);
 	}
 
 	bool32 vk_texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory)

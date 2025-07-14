@@ -29,8 +29,8 @@ namespace Renderer::Vulkan
 		switch (type)
 		{
 		default:
-		case TextureType::TYPE_CUBE:
-		case TextureType::TYPE_2D:
+		case TextureType::Cube:
+		case TextureType::Plane:
 		{
 			image_create_info.imageType = VK_IMAGE_TYPE_2D;
 			break;
@@ -40,14 +40,14 @@ namespace Renderer::Vulkan
 		image_create_info.extent.height = out_image->height;
 		image_create_info.extent.depth = 1;	// TODO: make configurable
 		image_create_info.mipLevels = 4;	// TODO: make configurable
-		image_create_info.arrayLayers = type == TextureType::TYPE_CUBE ? 6 : 1;	// TODO: make configurable
+		image_create_info.arrayLayers = type == TextureType::Cube ? 6 : 1;	// TODO: make configurable
 		image_create_info.format = format;
 		image_create_info.tiling = tiling;
 		image_create_info.initialLayout = out_image->layout;
 		image_create_info.usage = usage;
 		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;				// TODO: make configurable
 		image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;		// TODO: make configurable
-		if (type == TextureType::TYPE_CUBE)
+		if (type == TextureType::Cube)
 			image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
 		VK_CHECK(vkCreateImage(context->device.logical_device, &image_create_info, context->allocator_callbacks, &out_image->handle));
@@ -84,13 +84,13 @@ namespace Renderer::Vulkan
 		view_create_info.image = image->handle;
 		switch (type)
 		{
-		case TextureType::TYPE_CUBE:
+		case TextureType::Cube:
 		{
 			view_create_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
 			break;
 		}
 		default:
-		case TextureType::TYPE_2D:
+		case TextureType::Plane:
 		{
 			view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			break;
@@ -103,7 +103,7 @@ namespace Renderer::Vulkan
 		view_create_info.subresourceRange.baseMipLevel = 0;
 		view_create_info.subresourceRange.levelCount = 1;
 		view_create_info.subresourceRange.baseArrayLayer = 0;
-		view_create_info.subresourceRange.layerCount = type == TextureType::TYPE_CUBE ? 6 : 1;
+		view_create_info.subresourceRange.layerCount = type == TextureType::Cube ? 6 : 1;
 
 		VK_CHECK(vkCreateImageView(context->device.logical_device, &view_create_info, context->allocator_callbacks, &image->view));
 
@@ -122,7 +122,7 @@ namespace Renderer::Vulkan
 		barrier.subresourceRange.baseMipLevel = 0;
 		barrier.subresourceRange.levelCount = 1;
 		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = type == TextureType::TYPE_CUBE ? 6 : 1;
+		barrier.subresourceRange.layerCount = type == TextureType::Cube ? 6 : 1;
 
 		VkPipelineStageFlags source_stage;
 		VkPipelineStageFlags dest_stage;
@@ -219,7 +219,7 @@ namespace Renderer::Vulkan
 		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		region.imageSubresource.mipLevel = 0;
 		region.imageSubresource.baseArrayLayer = 0;
-		region.imageSubresource.layerCount = type == TextureType::TYPE_CUBE ? 6 : 1;
+		region.imageSubresource.layerCount = type == TextureType::Cube ? 6 : 1;
 
 		region.imageExtent.width = image->width;
 		region.imageExtent.height = image->height;
@@ -260,7 +260,7 @@ namespace Renderer::Vulkan
 		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		region.imageSubresource.mipLevel = 0;
 		region.imageSubresource.baseArrayLayer = 0;
-		region.imageSubresource.layerCount = type == TextureType::TYPE_CUBE ? 6 : 1;
+		region.imageSubresource.layerCount = type == TextureType::Cube ? 6 : 1;
 
 		region.imageExtent.width = image->width;
 		region.imageExtent.height = image->height;
@@ -279,7 +279,7 @@ namespace Renderer::Vulkan
 		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		region.imageSubresource.mipLevel = 0;
 		region.imageSubresource.baseArrayLayer = 0;
-		region.imageSubresource.layerCount = type == TextureType::TYPE_CUBE ? 6 : 1;
+		region.imageSubresource.layerCount = type == TextureType::Cube ? 6 : 1;
 
 		region.imageOffset.x = x;
 		region.imageOffset.y = y;

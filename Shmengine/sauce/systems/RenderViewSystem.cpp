@@ -32,11 +32,9 @@ namespace RenderViewSystem
 
 	struct SystemState
 	{
-		SystemConfig config;
-
 		uint32 views_count;
 		Sarray<RenderView> views;
-		HashtableRH<RenderViewId> view_lookup;
+		HashtableRH<RenderViewId> lookup_table;
 
 		RenderViewId default_skybox_view_id;
 		RenderViewId default_world_view_id;
@@ -57,15 +55,13 @@ namespace RenderViewSystem
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		system_state->config = *sys_config;
-
 		uint64 view_array_size = system_state->views.get_external_size_requirement(sys_config->max_view_count);
 		void* view_array_data = allocator_callback(allocator, view_array_size);
 		system_state->views.init(sys_config->max_view_count, 0, AllocationTag::ARRAY, view_array_data);
 
-		uint64 hashtable_data_size = system_state->view_lookup.get_external_size_requirement(sys_config->max_view_count);
+		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_view_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->view_lookup.init(sys_config->max_view_count, HashtableRHFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->lookup_table.init(sys_config->max_view_count, HashtableRHFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
 
 		for (uint32 i = 0; i < system_state->views.capacity; i++)
 			system_state->views[i].id.invalidate();
@@ -95,14 +91,14 @@ namespace RenderViewSystem
 		}
 
 		Event::event_unregister(SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, 0, on_event);
-		system_state->view_lookup.free_data();
+		system_state->lookup_table.free_data();
 		system_state->views.free_data();
 		system_state = 0;
 	}
 
 	bool32 create_view(const RenderViewConfig* config)
 	{
-		if (system_state->view_lookup.get(config->name)) 
+		if (system_state->lookup_table.get(config->name)) 
 		{
 			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", config->name);
 			return false;
@@ -160,7 +156,7 @@ namespace RenderViewSystem
 			return false;
 		}
 
-		system_state->view_lookup.set_value(view->name.c_str(), ref_id);
+		system_state->lookup_table.set_value(view->name.c_str(), ref_id);
 		system_state->views_count++;
 		//regenerate_render_targets(ref_id);
 
@@ -170,10 +166,7 @@ namespace RenderViewSystem
 	void destroy_view(RenderViewId view_id)
 	{
 		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
-			return;
-		
-		system_state->view_lookup.remove_entry(view->name.c_str());
+		system_state->lookup_table.remove_entry(view->name.c_str());
 		view->on_destroy(view);
 
 		for (uint32 pass_i = 0; pass_i < view->renderpasses.capacity; pass_i++)
@@ -192,7 +185,7 @@ namespace RenderViewSystem
 
 	RenderView* get(const char* name)
 	{
-		RenderViewId* view_id = system_state->view_lookup.get(name);
+		RenderViewId* view_id = system_state->lookup_table.get(name);
 		if (!view_id || !system_state->views[*view_id].id.is_valid())
 			return 0;
 
@@ -201,7 +194,7 @@ namespace RenderViewSystem
 
 	RenderViewId get_id(const char* name)
 	{
-		RenderViewId* view_id = system_state->view_lookup.get(name);
+		RenderViewId* view_id = system_state->lookup_table.get(name);
 		if (!view_id || !system_state->views[*view_id].id.is_valid())
 			return RenderViewId::invalid_value;
 
@@ -393,7 +386,7 @@ namespace RenderViewSystem
 					geo_render_data->shader_instance_id = g->material->shader_instance_id;
 					geo_render_data->shader_id = shader_id;
 					geo_render_data->geometry_data = g->g_data;
-					geo_render_data->has_transparency = (g->material->maps[0].texture->flags & TextureFlags::HAS_TRANSPARENCY);
+					geo_render_data->has_transparency = (g->material->maps[0].texture->flags & TextureFlags::HasTransparency);
 					packet_data.geometries_pushed_count++;
 
 					RenderViewInstanceData* inst_render_data = &view->instances[view->instances.emplace()];

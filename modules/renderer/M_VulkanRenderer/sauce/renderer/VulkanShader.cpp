@@ -567,7 +567,7 @@ namespace Renderer::Vulkan
 				TextureMap* map = s->instances[s->bound_instance_id].instance_texture_maps[i];
 				Texture* t = map->texture;
 
-				if (t->generation == Constants::max_u32)
+				if (!(t->flags & TextureFlags::IsLoaded))
 					t = TextureSystem::get_default_texture();
 
 				VulkanImage* image = (VulkanImage*)t->internal_data.data;

@@ -18,30 +18,31 @@ namespace MaterialSystem
 
 	struct MaterialReference
 	{
-		uint32 reference_count;
-		uint32 handle;
-		bool32 auto_release;
+		MaterialId id;
+		uint16 reference_count;
+		bool8 auto_release;
 	};
 
 	struct SystemState
 	{
-		SystemConfig config;
-
 		Material default_material;
 		Material default_ui_material;
 
-		Material* registered_materials;
-		HashtableOA<MaterialReference> registered_material_table;
+		Sarray<Material> materials;
+		HashtableRH<MaterialReference> lookup_table;
 	};
 
 	static SystemState* system_state = 0;
 
-	static bool32 load_material(const MaterialConfig* config, Material* m);
+	static bool8 load_material_from_resource(const char* name, Material* m);
+	static bool8 load_material(const MaterialConfig* config, Material* m);
 	static void destroy_material(Material* m);
 
 	static bool32 create_default_material();
 	static bool32 create_default_ui_material();
 
+	static bool8 add_reference(const char* name, bool8 auto_release, MaterialId* out_material_id, bool8* out_load);
+	static MaterialId remove_reference(const char* name);
     static bool32 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture);
 
     bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config) {
@@ -49,29 +50,22 @@ namespace MaterialSystem
         SystemConfig* sys_config = (SystemConfig*)config;
         system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-        system_state->config = *sys_config;
+        uint64 material_array_size = system_state->materials.get_external_size_requirement(sys_config->max_material_count);
+        void* material_array_data = allocator_callback(allocator, material_array_size);
+        system_state->materials.init(sys_config->max_material_count, 0, AllocationTag::ARRAY, material_array_data);
 
-        uint64 material_array_size = sizeof(Material) * sys_config->max_material_count;
-        system_state->registered_materials = (Material*)allocator_callback(allocator, material_array_size);
-
-        uint64 hashtable_data_size = sizeof(MaterialReference) * sys_config->max_material_count;
+        uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_material_count);
         void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-        system_state->registered_material_table.init(sys_config->max_material_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
-
-        // Fill the hashtable with invalid references to use as a default.
-        MaterialReference invalid_ref;
-        invalid_ref.auto_release = false;
-        invalid_ref.handle = Constants::max_u32;  // Primary reason for needing default values.
-        invalid_ref.reference_count = 0;
-        system_state->registered_material_table.floodfill(invalid_ref);
+        system_state->lookup_table.init(sys_config->max_material_count, HashtableRHFlag::ExternalMemory, AllocationTag::DICT, hashtable_data);
 
         // Invalidate all materials in the array.
-        uint32 count = system_state->config.max_material_count;
-        for (uint32 i = 0; i < count; ++i) {
-            system_state->registered_materials[i].id = Constants::max_u32;
-            system_state->registered_materials[i].generation = Constants::max_u32;
-            system_state->registered_materials[i].shader_instance_id = Constants::max_u32;
+        for (uint32 i = 0; i < system_state->materials.capacity; ++i) {
+            system_state->materials[i].id.invalidate();
+            system_state->materials[i].shader_instance_id = Constants::max_u32;
         }
+
+        create_default_material();
+        create_default_ui_material();
 
         return true;
 
@@ -84,201 +78,104 @@ namespace MaterialSystem
             return;
 
         // Invalidate all materials in the array.
-        uint32 count = system_state->config.max_material_count;
-        for (uint32 i = 0; i < count; ++i) 
+        for (uint32 i = 0; i < system_state->materials.capacity; ++i) 
         {
-            if (system_state->registered_materials[i].id != Constants::max_u32) 
-                destroy_material(&system_state->registered_materials[i]);
+            if (system_state->materials[i].id.is_valid()) 
+                destroy_material(&system_state->materials[i]);
         }
 
-        // Destroy the default material.
-        if (system_state->default_ui_material.id)
-         destroy_material(&system_state->default_ui_material);
-        if (system_state->default_material.id)
-            destroy_material(&system_state->default_material);
+        // Destroy the default materials.
+		destroy_material(&system_state->default_ui_material);
+		destroy_material(&system_state->default_material);
 
         system_state = 0;
 
     }
 
-    Material* acquire(const char* name) {
-        // Load the given material configuration from disk.
-        MaterialResourceData resource;
-
-        if (!ResourceSystem::material_loader_load(name, 0, &resource))
-        {
-            SHMERRORV("load_mt_file - Failed to load material resources for material '%s'", name);
-            return 0;
-        }
-
-        MaterialConfig config = {};
-
-        config.name = resource.name;
-        config.shader_name = resource.shader_name;
-        config.type = resource.type;
-        config.auto_release = resource.auto_release;
-        config.properties_count = resource.properties.count;
-        config.properties = resource.properties.data;
-
-        Sarray<TextureMapConfig> map_configs(resource.maps.count, 0);
-        for (uint32 i = 0; i < map_configs.capacity; i++)
-        {
-            map_configs[i].name = resource.maps[i].name;
-            map_configs[i].texture_name = resource.maps[i].texture_name;
-            map_configs[i].filter_min = resource.maps[i].filter_min;
-            map_configs[i].filter_mag = resource.maps[i].filter_mag;
-            map_configs[i].repeat_u = resource.maps[i].repeat_u;
-            map_configs[i].repeat_v = resource.maps[i].repeat_v;
-            map_configs[i].repeat_w = resource.maps[i].repeat_w;
-        }
-
-        config.maps_count = map_configs.capacity;
-        config.maps = map_configs.data;
-
-        // Now acquire from loaded config.
-        Material* mat = acquire_from_config(&config);
-
-        map_configs.free_data();
-        ResourceSystem::material_loader_unload(&resource);
-        return mat;
-    }
-
-    static Material* acquire_reference(const char* name, bool32 auto_release, bool32* found)
+    static Material* acquire_(const MaterialConfig* config, const char* name, bool8 auto_release)
     {
-
-        MaterialReference& ref = system_state->registered_material_table.get_ref(name);
-
-        // This can only be changed the first time a material is loaded.
-        if (ref.reference_count == 0)
-            ref.auto_release = auto_release;
-
-        ref.reference_count++;
-        if (ref.handle == Constants::max_u32) 
-        {
-            // This means no material exists here. Find a free index first.
-            uint32 count = system_state->config.max_material_count;
-            Material* m = 0;
-            for (uint32 i = 0; i < count; ++i) 
-            {
-                if (system_state->registered_materials[i].id == Constants::max_u32) 
-                {
-                    // A free slot has been found. Use its index as the handle.
-                    ref.handle = i;
-                    m = &system_state->registered_materials[i];
-                    break;
-                }
-            }
-
-            // Make sure an empty slot was actually found.
-            if (!m || ref.handle == Constants::max_u32)
-            {
-                SHMFATAL("material_system_acquire - Material system cannot hold anymore materials. Adjust configuration to allow more.");
-                return 0;
-            }
-            
-
-            // Also use the handle as the material id.
-            m->id = ref.handle;
-        }
-        else 
-        {
-            *found = true;
-        }
-
-        return &system_state->registered_materials[ref.handle];
-
-    }
-
-    Material* acquire_from_config(const MaterialConfig* config) 
-    {
-
-        if (CString::equal_i(config->name, SystemConfig::default_name))
+        if (CString::equal_i(name, SystemConfig::default_name))
             return &system_state->default_material;    
 
-        if (CString::equal_i(config->name, SystemConfig::default_ui_name))
+        if (CString::equal_i(name, SystemConfig::default_ui_name))
             return &system_state->default_material;
 
-        if (CString::equal_i(config->name, SystemConfig::default_terrain_name))
+        if (CString::equal_i(name, SystemConfig::default_terrain_name))
             return &system_state->default_material;
 
-        bool32 exists = false;
-        Material* m = acquire_reference(config->name, config->auto_release, &exists);
+        MaterialId id = MaterialId::invalid_value;
+        bool8 load = false;
+        Material* m = 0;
 
-        if (!exists)
+        if (!add_reference(name, auto_release, &id, &load))
         {
-            if (!load_material(config, m)) 
-            {
-                SHMERRORV("Failed to load material '%s'.", config->name);
-                return 0;
-            }
+            SHMERRORV("Failed to add reference to material system.");
+            return 0;
+        }
+		m = &system_state->materials[id];
 
-            if (m->generation == Constants::max_u32) 
-                m->generation = 0;
+        bool8 loaded = true;
+        if (load)
+        {
+            if (config)
+                loaded = load_material(config, m);
             else
-                m->generation++;
+                loaded = load_material_from_resource(name, m);
         }
 
-        return m;
+		if (!loaded) 
+		{
+			destroy_material(m);
+			SHMERRORV("Failed to load material '%s'.", config->name);
+			return 0;
+		}
 
+        return m;
+    }
+
+    Material* acquire(const char* name, bool8 auto_release) 
+    {
+        return acquire_(0, name, auto_release);
+    }
+
+    Material* acquire(const MaterialConfig* config, bool8 auto_release) 
+    {
+        return acquire_(config, config->name, auto_release);
     }
 
     void release(const char* name) {
         // Ignore release requests for the default material.
-        if (CString::equal_i(name, SystemConfig::default_name) || CString::equal_i(name, SystemConfig::default_ui_name) || CString::equal_i(name, SystemConfig::default_terrain_name)) {
+        if (CString::equal_i(name, SystemConfig::default_name) || 
+            CString::equal_i(name, SystemConfig::default_ui_name) || 
+            CString::equal_i(name, SystemConfig::default_terrain_name))
             return;
-        }
-        MaterialReference ref = system_state->registered_material_table.get_value(name);
 
-        char name_copy[Constants::max_material_name_length];
-        CString::copy(name, name_copy, Constants::max_material_name_length);
-
-        if (ref.reference_count == 0) {
-            SHMWARNV("Tried to release non-existent material: '%s'", name_copy);
-            return;
-        }
-
-        ref.reference_count--;
-        if (ref.reference_count == 0 && ref.auto_release) {
-            Material* m = &system_state->registered_materials[ref.handle];
-
-            // Destroy/reset material.
-            destroy_material(m);
-
-            // Reset the reference.
-            ref.handle = Constants::max_u32;
-            ref.auto_release = false;
-            //SHMTRACEV("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name_copy);
-        }
-        else {
-            //SHMTRACEV("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name_copy, ref.reference_count, ref.auto_release ? "true" : "false");
-        }
-
-        system_state->registered_material_table.set_value(name_copy, ref);
-
+		MaterialId destroy_id = remove_reference(name);
+		if (destroy_id.is_valid())
+		{
+			Material* m = &system_state->materials[destroy_id];
+			destroy_material(m);
+		}
     }
 
     void dump_system_stats()
     {
-        for (uint32 i = 0; i < system_state->config.max_material_count; i++) 
+        for (uint32 i = 0; i < system_state->materials.capacity; i++) 
         {
-            const MaterialReference* r = &system_state->registered_material_table[i];
-            if (r->reference_count > 0 || r->handle != Constants::max_u32) {
-                if (r->handle != Constants::max_u32) 
-                {
-                    SHMTRACEV("Material name: %s", system_state->registered_materials[r->handle].name);
-                    SHMTRACEV("Material ref (handle/refCount): (%u/%u)", r->handle, r->reference_count);
-                }
-                else
-                {
-                    SHMTRACEV("Found handleless material ref (handle/refCount): (%u/%u)", r->handle, r->reference_count);
-                }                         
+            Material* m = &system_state->materials[i];
+            if (!m->id.is_valid())
+                continue;
+
+            const MaterialReference* r = system_state->lookup_table.get(m->name);
+            if (r) {
+				SHMTRACEV("Material name: %s", m->name);
+				SHMTRACEV("Material ref (handle/refCount): (%u/%u)", r->id, r->reference_count);
             }
         }
     }
 
     static bool32 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture)
     {
-
         map->filter_minify = config->filter_min;
         map->filter_magnify = config->filter_mag;
         map->repeat_u = config->repeat_u;
@@ -306,22 +203,55 @@ namespace MaterialSystem
         }
 
         return true;
-
     }
 
-    static bool32 load_material(const MaterialConfig* config, Material* m)
+    static bool8 load_material_from_resource(const char* name, Material* m)
     {
-        Memory::zero_memory(m, sizeof(Material));
+        MaterialResourceData resource;
+        if (!ResourceSystem::material_loader_load(name, 0, &resource))
+        {
+            SHMERRORV("Failed to load material resources for material '%s'", name);
+            return false;
+        }
 
-        // name
-        CString::copy(config->name, m->name, Constants::max_material_name_length);
+        MaterialConfig config = {};
 
+        config.name = resource.name;
+        config.shader_name = resource.shader_name;
+        config.type = resource.type;
+        config.properties_count = resource.properties.count;
+        config.properties = resource.properties.data;
+
+        Sarray<TextureMapConfig> map_configs(resource.maps.count, 0);
+        for (uint32 i = 0; i < map_configs.capacity; i++)
+        {
+            map_configs[i].name = resource.maps[i].name;
+            map_configs[i].texture_name = resource.maps[i].texture_name;
+            map_configs[i].filter_min = resource.maps[i].filter_min;
+            map_configs[i].filter_mag = resource.maps[i].filter_mag;
+            map_configs[i].repeat_u = resource.maps[i].repeat_u;
+            map_configs[i].repeat_v = resource.maps[i].repeat_v;
+            map_configs[i].repeat_w = resource.maps[i].repeat_w;
+        }
+
+        config.maps_count = map_configs.capacity;
+        config.maps = map_configs.data;
+
+        // Now acquire from loaded config.
+        bool8 success = load_material(&config, m);
+
+        map_configs.free_data();
+        ResourceSystem::material_loader_unload(&resource);
+        return success;
+    }
+
+    static bool8 load_material(const MaterialConfig* config, Material* m)
+    {
         m->shader_id = ShaderSystem::get_shader_id(config->shader_name);
         m->type = config->type;
 
         if (m->type == MaterialType::PHONG)
         {
-
             m->properties_size = sizeof(MaterialPhongProperties);
             m->properties = Memory::allocate(m->properties_size, AllocationTag::MATERIAL_INSTANCE);
             MaterialPhongProperties* properties = (MaterialPhongProperties*)m->properties;
@@ -389,11 +319,9 @@ namespace MaterialSystem
                     return false;
                 }
             }
-
         }
         else if (m->type == MaterialType::UI)
         {
-
             m->properties_size = sizeof(MaterialUIProperties);
             m->properties = Memory::allocate(m->properties_size, AllocationTag::MATERIAL_INSTANCE);
             MaterialUIProperties* properties = (MaterialUIProperties*)m->properties;
@@ -463,7 +391,7 @@ namespace MaterialSystem
 
     static void destroy_material(Material* m)
     {
-        //SHMTRACEV("Destroying material '%s'...", m->name);
+        system_state->lookup_table.remove_entry(m->name);
 
         // Release texture references.
         for (uint32 i = 0; i < m->maps.capacity; i++)
@@ -484,24 +412,17 @@ namespace MaterialSystem
 
         // Zero it out, invalidate IDs.
         Memory::zero_memory(m, sizeof(Material));
-        m->id = Constants::max_u32;
-        m->generation = Constants::max_u32;
+        m->id.invalidate();
         m->shader_instance_id = Constants::max_u32;
     }
 
     Material* get_default_material()
     {
-        if (!system_state->default_material.id)
-            create_default_material();
-
         return &system_state->default_material;
     }
 
     Material* get_default_ui_material()
     {
-        if (!system_state->default_ui_material.id)
-            create_default_ui_material();
-
         return &system_state->default_ui_material;
     }
     
@@ -510,9 +431,8 @@ namespace MaterialSystem
         Material* mat = &system_state->default_material;
 
         Memory::zero_memory(mat, sizeof(Material));
-        mat->id = Constants::max_u32;
+        mat->id.invalidate();
         mat->type = MaterialType::PHONG;
-        mat->generation = Constants::max_u32;
         CString::copy(SystemConfig::default_name, mat->name, Constants::max_material_name_length);
 
         mat->properties_size = sizeof(MaterialPhongProperties);
@@ -549,9 +469,8 @@ namespace MaterialSystem
         Material* mat = &system_state->default_ui_material;
 
         Memory::zero_memory(mat, sizeof(Material));
-        mat->id = Constants::max_u32;
+        mat->id.invalidate();
         mat->type = MaterialType::UI;
-        mat->generation = Constants::max_u32;
         CString::copy(SystemConfig::default_ui_name, mat->name, Constants::max_material_name_length);
 
         mat->properties_size = sizeof(MaterialUIProperties);
@@ -581,4 +500,66 @@ namespace MaterialSystem
         return true;
     }
 
+	static bool8 add_reference(const char* name, bool8 auto_release, MaterialId* out_material_id, bool8* out_load)
+	{
+		*out_material_id = MaterialId::invalid_value;
+		*out_load = false;
+		MaterialReference* ref = system_state->lookup_table.get(name);
+		if (ref)
+		{
+			ref->reference_count++;
+			*out_material_id = ref->id;
+			return true;
+		}
+
+		MaterialId new_id = MaterialId::invalid_value;
+		for (uint16 i = 0; i < system_state->materials.capacity; i++)
+		{
+			if (!system_state->materials[i].id.is_valid())
+			{
+				new_id = i;
+				break;
+			}
+		}
+
+		if (!new_id.is_valid())
+		{
+			SHMFATAL("Could not acquire new texture to texture system since no free slots are left!");
+			return false;
+		}
+
+		Material* m = &system_state->materials[new_id];
+
+		m->id = new_id;
+        CString::copy(name, m->name, Constants::max_material_name_length);
+		MaterialReference new_ref = { .id = new_id, .reference_count = 1, .auto_release = auto_release };
+		ref = system_state->lookup_table.set_value(m->name, new_ref);
+		*out_material_id = ref->id;
+        *out_load = true;
+
+		return true;
+	}
+
+	static MaterialId remove_reference(const char* name)
+	{
+		MaterialReference* ref = system_state->lookup_table.get(name);
+		if (!ref)
+		{
+			SHMWARNV("Tried to release non-existent texture: '%s'", name);
+			return MaterialId::invalid_value;
+		}
+		else if (!ref->reference_count)
+		{
+			SHMWARN("Tried to release a texture where autorelease=false, but references was already 0.");
+			return MaterialId::invalid_value;
+		}
+
+		ref->reference_count--;
+		if (ref->reference_count == 0 && ref->auto_release)
+		{
+			return ref->id;
+		}
+
+		return MaterialId::invalid_value;
+	}
 }

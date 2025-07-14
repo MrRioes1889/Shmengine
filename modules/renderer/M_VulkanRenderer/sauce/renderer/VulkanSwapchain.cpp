@@ -198,7 +198,7 @@ namespace Renderer::Vulkan
 				tex_name[34] = (char)('0' + i);
 
 				vk_image_create(
-					TextureType::TYPE_2D,
+					TextureType::Plane,
 					swapchain_extent.width,
 					swapchain_extent.height,
 					context->device.depth_format,

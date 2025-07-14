@@ -17,7 +17,7 @@ namespace Renderer
 
 namespace TextureFilter
 {
-	enum
+	enum : uint8
 	{
 		NEAREST = 0,
 		LINEAR = 1,
@@ -34,7 +34,7 @@ static const char* texture_filter_names[TextureFilter::FILTER_TYPES_COUNT] =
 
 namespace TextureRepeat
 {
-	enum
+	enum : uint8
 	{
 		REPEAT = 0,
 		MIRRORED_REPEAT = 1,
@@ -77,7 +77,7 @@ struct TextureMap
 	TextureRepeat::Value repeat_w;
 };
 
-enum class MaterialType
+enum class MaterialType : uint8
 {
 	UNKNOWN,
 	PHONG,
@@ -88,7 +88,7 @@ enum class MaterialType
 
 namespace MaterialPropertyType
 {
-	enum
+	enum : uint8
 	{
 		INVALID,
 		UINT8,
@@ -155,7 +155,6 @@ struct MaterialConfig
 	const char* shader_name;
 
 	MaterialType type;
-	bool32 auto_release;
 
 	MaterialProperty* properties;
 	uint32 properties_count;
@@ -183,12 +182,12 @@ struct MaterialTerrainProperties
 	uint32 materials_count;
 };
 
+typedef Id16 MaterialId;
+
 struct Material
 {
-
-	uint32 id;
+	MaterialId id;
 	MaterialType type;
-	uint32 generation;	
 	ShaderId shader_id;
 	uint32 shader_instance_id;
 	char name[Constants::max_material_name_length];
@@ -197,7 +196,6 @@ struct Material
 
 	uint32 properties_size;
 	void* properties;
-
 };
 
 namespace MaterialSystem
@@ -214,8 +212,8 @@ namespace MaterialSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI Material* acquire(const char* name);
-	SHMAPI Material* acquire_from_config(const MaterialConfig* config);
+	SHMAPI Material* acquire(const char* name, bool8 auto_release);
+	SHMAPI Material* acquire(const MaterialConfig* config, bool8 auto_release);
 
 	SHMAPI void release(const char* name);
 

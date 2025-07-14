@@ -178,7 +178,6 @@ struct Shader
 	uint32 push_constant_size;
 	uint32 push_constant_stride;
 
-
 	Darray<TextureMap*> global_texture_maps;
 
 	uint32 instance_texture_count;

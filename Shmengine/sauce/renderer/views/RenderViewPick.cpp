@@ -364,19 +364,19 @@ bool32 render_view_pick_regenerate_attachment_target(const RenderView* self, uin
 	uint32 height = self->renderpasses[pass_index].dim.height;
 	bool8 has_transparency = false;
 
-	attachment->texture->id = Constants::max_u32;
-	attachment->texture->type = TextureType::TYPE_2D;
+	attachment->texture->id.invalidate();
+	attachment->texture->type = TextureType::Plane;
 	CString::copy(texture_name, attachment->texture->name, Constants::max_texture_name_length);
 	attachment->texture->width = width;
 	attachment->texture->height = height;
 	attachment->texture->channel_count = 4;
-	attachment->texture->generation = Constants::max_u32;
-	attachment->texture->flags |= TextureFlags::IS_WRITABLE | TextureFlags::IS_READABLE;
-	attachment->texture->flags |= has_transparency ? TextureFlags::HAS_TRANSPARENCY : 0;
+	attachment->texture->flags |= TextureFlags::IsWritable | TextureFlags::IsReadable;
+	attachment->texture->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
 	if (attachment->type == Renderer::RenderTargetAttachmentType::DEPTH)
-		attachment->texture->flags |= TextureFlags::IS_DEPTH;
+		attachment->texture->flags |= TextureFlags::IsDepth;
 
 	Renderer::texture_create_writable(attachment->texture);
+	attachment->texture->flags |= TextureFlags::IsLoaded;
 
 	return true;
 }

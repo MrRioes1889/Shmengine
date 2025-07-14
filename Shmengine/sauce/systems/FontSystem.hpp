@@ -36,9 +36,11 @@ enum class FontType {
 	TRUETYPE
 };
 
+typedef Id16 FontId;
+
 struct FontAtlas {
 	FontType type;
-	char face[256];
+	char face[Constants::max_filepath_length];
 	uint32 font_size;
 	uint32 line_height;
 	int32 baseline;

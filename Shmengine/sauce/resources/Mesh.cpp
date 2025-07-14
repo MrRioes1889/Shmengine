@@ -187,7 +187,7 @@ static bool32 mesh_load_job_start(void* params, void* result_data) {
         MeshGeometry* g = &mesh->geometries[i];
 
         if (g->material_name[0])
-            g->material = MaterialSystem::acquire(g->material_name);
+            g->material = MaterialSystem::acquire(g->material_name, true);
 
         if (!g->material)
             g->material = MaterialSystem::get_default_material();

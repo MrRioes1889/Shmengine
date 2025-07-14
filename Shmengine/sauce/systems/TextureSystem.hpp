@@ -3,41 +3,43 @@
 #include "Defines.hpp"
 #include "containers/Buffer.hpp"
 
+#include "core/Identifier.hpp"
 #include "core/Subsystems.hpp"
 
 namespace TextureFlags
 {
-	enum Value
+	enum : uint8
 	{
-		HAS_TRANSPARENCY = 1 << 0,
-		IS_WRITABLE = 1 << 1,
-		IS_READABLE = 1 << 2,
-		IS_WRAPPED = 1 << 3,
-		FLIP_Y = 1 << 4,
-		IS_DEPTH = 1 << 5,
+		HasTransparency = 1 << 0,
+		IsWritable = 1 << 1,
+		IsReadable = 1 << 2,
+		IsWrapped = 1 << 3,
+		FlipY = 1 << 4,
+		IsDepth = 1 << 5,
+		IsLoaded = 1 << 6
 	};
+	typedef uint8 Value;
 }
 
-enum class TextureType
+enum class TextureType : uint8
 {
-	TYPE_2D,
-	TYPE_CUBE
+	Plane,
+	Cube
 };
+
+typedef Id16 TextureId;
 
 struct Texture
 {
-
 	Buffer internal_data = {};
 
-	char name[Constants::max_texture_name_length];
-	uint32 id;
+	TextureId id;
 	TextureType type;
+	TextureFlags::Value flags;
+	uint8 channel_count;
+	char name[Constants::max_texture_name_length];
 	uint32 width;
 	uint32 height;
-	uint32 generation;
-	uint32 channel_count;
-	uint32 flags;
-
 };
 
 namespace TextureSystem
@@ -55,13 +57,13 @@ namespace TextureSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI Texture* acquire(const char* name, bool32 auto_release);
-	SHMAPI Texture* acquire_cube(const char* name, bool32 auto_release);
-	SHMAPI Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency);
+	SHMAPI Texture* acquire(const char* name, bool8 auto_release);
+	SHMAPI Texture* acquire_cube(const char* name, bool8 auto_release);
+	SHMAPI Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint8 channel_count, bool8 has_transparency);
 
-	SHMAPI bool32 wrap_internal(const char* name, uint32 width, uint32 height, uint32 channel_count, bool32 has_transparency, bool32 is_writable, bool32 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture);
-	SHMAPI bool32 set_internal(Texture* t, void* internal_data, uint64 internal_data_size);
-	SHMAPI bool32 resize(Texture* t, uint32 width, uint32 height, bool32 regenerate_internal_data);
+	SHMAPI bool8 wrap_internal(const char* name, uint32 width, uint32 height, uint8 channel_count, bool8 has_transparency, bool8 is_writable, bool8 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture);
+	SHMAPI bool8 set_internal(Texture* t, void* internal_data, uint64 internal_data_size);
+	SHMAPI bool8 resize(Texture* t, uint32 width, uint32 height, bool8 regenerate_internal_data);
 	SHMAPI void write_to_texture(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
 
 	SHMAPI void release(const char* name);
