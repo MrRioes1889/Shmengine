@@ -3,7 +3,7 @@
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
-#include "renderer/RendererFrontend.hpp"
+#include "renderer/Geometry.hpp"
 
 static void update_vertices(Line3D* out_line);
 
@@ -21,19 +21,17 @@ bool32 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Li
 
 	out_line->unique_id = Constants::max_u32;
 
-	GeometryData* geometry = &out_line->geometry;
-	geometry->vertex_size = sizeof(Renderer::VertexColor3D);
-	geometry->vertex_count = 2;
+	GeometryConfig geometry_config = {};
+	geometry_config.vertex_size = sizeof(Renderer::VertexColor3D);
+	geometry_config.vertex_count = 2;
 
-	geometry->index_count = 0;
+	geometry_config.index_count = 0;
 
-	out_line->is_dirty = false;
-
-	geometry->vertices.init(geometry->vertex_size * geometry->vertex_count, 0);
+	geometry_config.vertices.init(geometry_config.vertex_size * geometry_config.vertex_count, 0);
+	Renderer::create_geometry(&geometry_config, &out_line->geometry);
 	
 	update_vertices(out_line);
-
-	out_line->geometry.id = Constants::max_u32;
+	out_line->is_dirty = false;
 
 	out_line->state = ResourceState::Initialized;
 
@@ -45,8 +43,7 @@ bool32 line3D_destroy(Line3D* line)
 	if (line->state != ResourceState::Unloaded && !line3D_unload(line))
 		return false;
 
-	line->geometry.vertices.free_data();
-	line->geometry.indices.free_data();
+	Renderer::destroy_geometry(&line->geometry);
 
 	line->state = ResourceState::Destroyed;
 	return true;

@@ -3,7 +3,7 @@
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
-#include "renderer/RendererFrontend.hpp"
+#include "renderer/Geometry.hpp"
 
 static void update_vertices(Box3D* out_box);
 
@@ -19,24 +19,21 @@ bool32 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 
 	out_box->unique_id = Constants::max_u32;
 
-	GeometryData* geometry = &out_box->geometry;
-	geometry->vertex_size = sizeof(Renderer::VertexColor3D);
+	GeometryConfig geometry_config = {};
+	geometry_config.vertex_size = sizeof(Renderer::VertexColor3D);
 	// NOTE: 12 * 2 line vertices per box
-	geometry->vertex_count = 2 * 12; 
+	geometry_config.vertex_count = 2 * 12; 
+	geometry_config.vertices.init(geometry_config.vertex_size * geometry_config.vertex_count, 0);
 
-	geometry->index_count = 0;
+	geometry_config.index_count = 0;
 
-	geometry->center = {};
-	geometry->extents.min = { -size.x * 0.5f, -size.y * 0.5f, -size.z * 0.5f };
-	geometry->extents.max = { size.x * 0.5f, size.y * 0.5f, size.z * 0.5f };
-
-	out_box->is_dirty = false;
-
-	geometry->vertices.init(geometry->vertex_size * geometry->vertex_count, 0);
-
+	geometry_config.center = {};
+	geometry_config.extents.min = { -size.x * 0.5f, -size.y * 0.5f, -size.z * 0.5f };
+	geometry_config.extents.max = { size.x * 0.5f, size.y * 0.5f, size.z * 0.5f };
+	Renderer::create_geometry(&geometry_config, &out_box->geometry);
+	
 	update_vertices(out_box);
-
-	out_box->geometry.id = Constants::max_u32;
+	out_box->is_dirty = false;
 
 	out_box->state = ResourceState::Initialized;
 
@@ -48,8 +45,7 @@ bool32 box3D_destroy(Box3D* box)
 	if (box->state != ResourceState::Unloaded && !box3D_unload(box))
 		return false;
 
-	box->geometry.vertices.free_data();
-	box->geometry.indices.free_data();
+	Renderer::destroy_geometry(&box->geometry);
 
 	box->state = ResourceState::Destroyed;
 	return true;

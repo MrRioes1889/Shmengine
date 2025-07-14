@@ -365,15 +365,15 @@ namespace RenderViewSystem
 			object_data->lighting = lighting;
 			packet_data.objects_pushed_count++;
 
-			for (uint32 j = 0; j < m->geometries.count; j++)
+			for (uint32 j = 0; j < m->geometries.capacity; j++)
 			{
 				MeshGeometry* g = &m->geometries[j];
 
 				bool32 in_frustum = true;
 				if (frustum)
 				{
-					Math::Vec3f extents_max = Math::vec_mul_mat(g->g_data->extents.max, object_data->model);
-					Math::Vec3f center = Math::vec_mul_mat(g->g_data->center, object_data->model);
+					Math::Vec3f extents_max = Math::vec_mul_mat(m->extents.max, object_data->model);
+					Math::Vec3f center = Math::vec_mul_mat(m->center, object_data->model);
 					Math::Vec3f half_extents = { Math::abs(extents_max.x - center.x), Math::abs(extents_max.y - center.y), Math::abs(extents_max.z - center.z) };
 
 					in_frustum = Math::frustum_intersects_aabb(*frustum, center, half_extents);
@@ -385,7 +385,7 @@ namespace RenderViewSystem
 					geo_render_data->object_index = view->objects.count - 1;
 					geo_render_data->shader_instance_id = g->material->shader_instance_id;
 					geo_render_data->shader_id = shader_id;
-					geo_render_data->geometry_data = g->g_data;
+					geo_render_data->geometry_data = GeometrySystem::get_geometry_data(g->g_id);
 					geo_render_data->has_transparency = (g->material->maps[0].texture->flags & TextureFlags::HasTransparency);
 					packet_data.geometries_pushed_count++;
 
@@ -432,7 +432,7 @@ namespace RenderViewSystem
 		render_data->object_index = Constants::max_u32;
 		render_data->shader_id = shader_id;
 		render_data->shader_instance_id = skybox->shader_instance_id;
-		render_data->geometry_data = skybox->geometry;
+		render_data->geometry_data = GeometrySystem::get_geometry_data(skybox->geometry_id);
 		render_data->has_transparency = 0;
 		packet_data.geometries_pushed_count++;
 

@@ -4,6 +4,7 @@
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
 #include "systems/MaterialSystem.hpp"
+#include "systems/GeometrySystem.hpp"
 
 struct GeometryData;
 namespace Renderer 
@@ -24,7 +25,7 @@ struct Skybox
 	UniqueId unique_id;
 	String cubemap_name;
 	TextureMap cubemap;
-	GeometryData* geometry;
+	GeometrySystem::GeometryId geometry_id;
 	uint32 shader_instance_id;
 };
 

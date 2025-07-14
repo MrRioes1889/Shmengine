@@ -4,13 +4,13 @@
 #include "containers/Darray.hpp"
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
-#include "systems/GeometrySystem.hpp"
+#include "renderer/RendererTypes.hpp"
 
 struct MeshGeometryConfig;
 
 struct MeshGeometryResourceData
 {
-	GeometrySystem::GeometryConfig data_config;
+	GeometryConfig data_config;
 	char material_name[Constants::max_geometry_name_length];
 };
 

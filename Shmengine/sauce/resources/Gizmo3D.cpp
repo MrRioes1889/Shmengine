@@ -3,7 +3,7 @@
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
-#include "renderer/RendererFrontend.hpp"
+#include "renderer/Geometry.hpp"
 
 static void update_vertices(Gizmo3D* out_gizmo);
 
@@ -20,23 +20,21 @@ bool32 gizmo3D_init(Gizmo3D* out_gizmo)
 
 	out_gizmo->unique_id = Constants::max_u32;
 
-	GeometryData* geometry = &out_gizmo->geometry;
-	geometry->vertex_size = sizeof(Renderer::VertexColor3D);
+	GeometryConfig geometry_config = {};
+	geometry_config.vertex_size = sizeof(Renderer::VertexColor3D);
 	// NOTE: 12 * 2 line vertices per gizmo
-	geometry->vertex_count = 0;
-	geometry->index_count = 0;
+	geometry_config.vertex_count = 0;
+	geometry_config.index_count = 0;
 
-	geometry->center = {};
-	geometry->extents = {};
-
-	out_gizmo->is_dirty = false;
+	geometry_config.center = {};
+	geometry_config.extents = {};
 
 	const uint32 max_vertex_count = (12 + (rotate_circle_segments * 2 * 3));
-	geometry->vertices.init(geometry->vertex_size * max_vertex_count, 0);
+	geometry_config.vertices.init(geometry_config.vertex_size * max_vertex_count, 0);
+	Renderer::create_geometry(&geometry_config, &out_gizmo->geometry);
 
 	update_vertices(out_gizmo);
-
-	out_gizmo->geometry.id = Constants::max_u32;
+	out_gizmo->is_dirty = false;
 
 	out_gizmo->state = ResourceState::Initialized;
 
@@ -48,8 +46,7 @@ bool32 gizmo3D_destroy(Gizmo3D* gizmo)
 	if (gizmo->state != ResourceState::Unloaded && !gizmo3D_unload(gizmo))
 		return false;
 
-	gizmo->geometry.vertices.free_data();
-	gizmo->geometry.indices.free_data();
+	Renderer::destroy_geometry(&gizmo->geometry);
 
 	gizmo->state = ResourceState::Destroyed;
 	return true;

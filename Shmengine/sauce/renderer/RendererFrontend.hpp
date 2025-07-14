@@ -59,8 +59,8 @@ namespace Renderer
 	SHMAPI bool32 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 	SHMAPI void texture_destroy(Texture* texture);
 
-	SHMAPI bool32 geometry_load(GeometryData* geometry);
-	SHMAPI bool32 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size);
+	SHMAPI bool8 geometry_load(GeometryData* geometry);
+	SHMAPI bool8 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size);
 	SHMAPI void geometry_unload(GeometryData* geometry);
 
 	SHMAPI void geometry_draw(GeometryData* geometry);

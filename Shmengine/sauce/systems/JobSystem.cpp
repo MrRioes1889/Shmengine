@@ -8,7 +8,7 @@
 
 #include "optick.h"
 
-#define MT_ENABLED 1
+#define MT_ENABLED 0
 
 namespace JobSystem
 {

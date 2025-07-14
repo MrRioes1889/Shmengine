@@ -2,15 +2,18 @@
 
 #include "Defines.hpp"
 #include "ResourceTypes.hpp"
+#include "systems/GeometrySystem.hpp"
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
-#include "systems/GeometrySystem.hpp"
 
 struct LightingInfo;
+struct GeometryConfig;
+struct GeometryData;
+struct Material;
 
 struct MeshGeometryConfig
 {
-	GeometrySystem::GeometryConfig* data_config;
+	GeometryConfig* data_config;
 	const char *material_name;
 };
 
@@ -18,7 +21,7 @@ struct MeshGeometry
 {
 	char material_name[Constants::max_material_name_length];
 
-	GeometryData* g_data;
+	GeometrySystem::GeometryId g_id;
 	Material* material;
 };
 
@@ -37,7 +40,7 @@ struct Mesh
 	ResourceState state;
 	UniqueId unique_id;
 	uint8 generation;
-	Darray<MeshGeometry> geometries;
+	Sarray<MeshGeometry> geometries;
 	Math::Extents3D extents;
 	Math::Vec3f center;
 	Math::Transform transform;

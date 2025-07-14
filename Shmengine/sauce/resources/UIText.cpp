@@ -9,6 +9,7 @@
 #include "utility/math/Transform.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "renderer/RendererFrontend.hpp"
+#include "renderer/Geometry.hpp"
 #include "containers/Sarray.hpp"
 
 #include "optick.h"
@@ -20,7 +21,6 @@ static const uint32 quad_index_count = 6;
 
 bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 {
-
     if (out_ui_text->state >= ResourceState::Initialized)
         return false;
 
@@ -43,24 +43,23 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
     if (text_length < 1)
         text_length = 1;
 
-    GeometryData* geometry = &out_ui_text->geometry;
-    geometry->extents = {};
-    geometry->center = {};
+    GeometryConfig geometry_config = {};
+    geometry_config.extents = {};
+    geometry_config.center = {};
 
-    geometry->vertex_size = sizeof(Renderer::Vertex2D);
-    geometry->vertex_count = quad_vertex_count * text_length;
-    geometry->vertices.init(geometry->vertex_size * geometry->vertex_count, 0);
+    geometry_config.vertex_size = sizeof(Renderer::Vertex2D);
+    geometry_config.vertex_count = quad_vertex_count * text_length;
+    geometry_config.vertices.init(geometry_config.vertex_size * geometry_config.vertex_count, 0);
 
-    geometry->index_count = text_length * 6;
-    geometry->indices.init(geometry->index_count, 0);
+    geometry_config.index_count = text_length * 6;
+    geometry_config.indices.init(geometry_config.index_count, 0);
+    Renderer::create_geometry(&geometry_config, &out_ui_text->geometry);
 
     out_ui_text->unique_id = identifier_acquire_new_id(out_ui_text);
-
     out_ui_text->is_dirty = true;
     out_ui_text->state = ResourceState::Initialized;
 
     return true;
-
 }
 
 bool32 ui_text_destroy(UIText* ui_text)
@@ -68,8 +67,7 @@ bool32 ui_text_destroy(UIText* ui_text)
     if (ui_text->state != ResourceState::Unloaded && !ui_text_unload(ui_text))
         return false;
 
-    ui_text->geometry.vertices.free_data();
-    ui_text->geometry.indices.free_data();
+    Renderer::destroy_geometry(&ui_text->geometry);
 
     ui_text->state = ResourceState::Destroyed;
 

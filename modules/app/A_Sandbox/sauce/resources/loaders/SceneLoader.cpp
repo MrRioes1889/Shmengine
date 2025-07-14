@@ -7,8 +7,7 @@
 #include <utility/math/Transform.hpp>
 #include <platform/FileSystem.hpp>
 #include <renderer/RendererTypes.hpp>
-#include <renderer/RendererGeometry.hpp>
-#include <systems/GeometrySystem.hpp>
+#include <renderer/Geometry.hpp>
 #include <resources/Mesh.hpp>
 #include <resources/loaders/MeshLoader.hpp>
 
@@ -199,7 +198,7 @@ namespace ResourceSystem
                             {
                                 cube_mesh->geometries.init(1, 0);
                                 cube_mesh->geometries.emplace();
-                                Renderer::generate_cube_config(cube_dim.x, cube_dim.y, cube_dim.z, cube_tiling.x, cube_tiling.y, cube_mesh->name.c_str(), cube_mesh->geometries[0].data_config);
+                                Renderer::generate_cube_config(cube_dim.x, cube_dim.y, cube_dim.z, cube_tiling.x, cube_tiling.y, cube_mesh->name.c_str(), &cube_mesh->geometries[0].data_config);
                                 CString::copy(cube_material_name.c_str(), cube_mesh->geometries[0].material_name, Constants::max_material_name_length);
                             }
                             else

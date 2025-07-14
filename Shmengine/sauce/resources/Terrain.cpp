@@ -6,7 +6,7 @@
 #include "core/FrameData.hpp"
 #include "memory/LinearAllocator.hpp"
 #include "renderer/RendererTypes.hpp"
-#include "renderer/RendererGeometry.hpp"
+#include "renderer/Geometry.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "resources/loaders/ImageLoader.hpp"
 #include "resources/loaders/TerrainLoader.hpp"
@@ -70,11 +70,11 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		out_terrain->tile_scale_z = 1.0f;
 	}
 
-	GeometryData* geometry = &out_terrain->geometry;
-	geometry->extents = {};
-	geometry->center = {};
+	GeometryConfig geometry_config = {};
+	geometry_config.extents = {};
+	geometry_config.center = {};
 
-	geometry->vertex_size = sizeof(TerrainVertex);
+	geometry_config.vertex_size = sizeof(TerrainVertex);
 
 	if (config->heightmap_name)
 	{
@@ -90,53 +90,50 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
 		out_terrain->tile_count_x = image_config.width - 1;
 		out_terrain->tile_count_z = image_config.height - 1;
-		geometry->vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
-		out_terrain->vertex_infos.init(geometry->vertex_count, 0);
+		geometry_config.vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
+		out_terrain->vertex_infos.init(geometry_config.vertex_count, 0);
 
-		for (uint32 i = 0; i < geometry->vertex_count; i++)
+		for (uint32 i = 0; i < geometry_config.vertex_count; i++)
 		{
 			uint8 r = image_config.pixels[(i * 4) + 0];
 			float32 height = r / 255.0f;
 			out_terrain->vertex_infos[i].height = height;
-			if (height > geometry->extents.max.y)
-				geometry->extents.max.y = height;
+			if (height > geometry_config.extents.max.y)
+				geometry_config.extents.max.y = height;
 		}
 
-		/*geometry->extents.max.y *= out_terrain->scale_y * 0.5f;
-		geometry->extents.min.y = -geometry->extents.max.y;*/
-		geometry->extents.max.y *= out_terrain->scale_y;
-		geometry->extents.min.y = 0.0f;
+		/*geometry_config.extents.max.y *= out_terrain->scale_y * 0.5f;
+		geometry_config.extents.min.y = -geometry_config.extents.max.y;*/
+		geometry_config.extents.max.y *= out_terrain->scale_y;
+		geometry_config.extents.min.y = 0.0f;
 
 		ResourceSystem::image_loader_unload(&image_config);
 	}
 	else
 	{
-		geometry->vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
-		out_terrain->vertex_infos.init(geometry->vertex_count, 0);
+		geometry_config.vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
+		out_terrain->vertex_infos.init(geometry_config.vertex_count, 0);
 	}
 
-	geometry->extents.max.x = out_terrain->tile_count_x * out_terrain->tile_scale_x * 0.5f;
-	geometry->extents.min.x = -geometry->extents.max.x;
-	geometry->extents.max.z = out_terrain->tile_count_z * out_terrain->tile_scale_z * 0.5f;
-	geometry->extents.min.z = -geometry->extents.max.z;
+	geometry_config.extents.max.x = out_terrain->tile_count_x * out_terrain->tile_scale_x * 0.5f;
+	geometry_config.extents.min.x = -geometry_config.extents.max.x;
+	geometry_config.extents.max.z = out_terrain->tile_count_z * out_terrain->tile_scale_z * 0.5f;
+	geometry_config.extents.min.z = -geometry_config.extents.max.z;
 	
-	//geometry->vertex_count = 4 * tile_count_x * tile_count_z;
-	geometry->vertices.init(geometry->vertex_size * geometry->vertex_count, 0);
+	//geometry_config.vertex_count = 4 * tile_count_x * tile_count_z;
+	geometry_config.vertices.init(geometry_config.vertex_size * geometry_config.vertex_count, 0);
 
-	geometry->index_count = out_terrain->tile_count_x * out_terrain->tile_count_z * 6;
-	geometry->indices.init(geometry->index_count, 0);
-
-
-	// TODO: read from heightmap 
+	geometry_config.index_count = out_terrain->tile_count_x * out_terrain->tile_count_z * 6;
+	geometry_config.indices.init(geometry_config.index_count, 0);
 
 	for (uint32 z = 0, i = 0; z < out_terrain->tile_count_z + 1; z++)
 	{
 		for (uint32 x = 0; x < out_terrain->tile_count_x + 1; x++, i++)
 		{
-			TerrainVertex* v = &geometry->vertices.get_as<TerrainVertex>(i);
-			v->position.x = x * out_terrain->tile_scale_x + geometry->extents.min.x;		
-			v->position.y = out_terrain->vertex_infos[i].height * out_terrain->scale_y + geometry->extents.min.y;
-			v->position.z = z * out_terrain->tile_scale_z + geometry->extents.min.z;
+			TerrainVertex* v = &geometry_config.vertices.get_as<TerrainVertex>(i);
+			v->position.x = x * out_terrain->tile_scale_x + geometry_config.extents.min.x;		
+			v->position.y = out_terrain->vertex_infos[i].height * out_terrain->scale_y + geometry_config.extents.min.y;
+			v->position.z = z * out_terrain->tile_scale_z + geometry_config.extents.min.z;
 
 			v->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
 			v->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
@@ -160,21 +157,21 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 			uint32 v2 = ((z + 1) * (out_terrain->tile_count_x + 1)) + x;
 			uint32 v3 = ((z + 1) * (out_terrain->tile_count_x + 1)) + x + 1;
 
-			geometry->indices[i + 0] = v2;
-			geometry->indices[i + 1] = v1;
-			geometry->indices[i + 2] = v0;
-			geometry->indices[i + 3] = v3;
-			geometry->indices[i + 4] = v1;
-			geometry->indices[i + 5] = v2;
+			geometry_config.indices[i + 0] = v2;
+			geometry_config.indices[i + 1] = v1;
+			geometry_config.indices[i + 2] = v0;
+			geometry_config.indices[i + 3] = v3;
+			geometry_config.indices[i + 4] = v1;
+			geometry_config.indices[i + 5] = v2;
 		}
 	}
 
-    Renderer::geometry_generate_terrain_normals(out_terrain->geometry.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
-        out_terrain->geometry.index_count, out_terrain->geometry.indices.data);
-    Renderer::geometry_generate_terrain_tangents(out_terrain->geometry.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
-        out_terrain->geometry.index_count, out_terrain->geometry.indices.data);
+    Renderer::generate_terrain_normals(geometry_config.vertex_count, (TerrainVertex*)geometry_config.vertices.data,
+        geometry_config.index_count, geometry_config.indices.data);
+    Renderer::generate_terrain_tangents(geometry_config.vertex_count, (TerrainVertex*)geometry_config.vertices.data,
+        geometry_config.index_count, geometry_config.indices.data);
 
-    out_terrain->geometry.id = Constants::max_u32;
+	Renderer::create_geometry(&geometry_config, &out_terrain->geometry);
 
     out_terrain->state = ResourceState::Initialized;
 
@@ -183,7 +180,6 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
 bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrain)
 {
-    
     out_terrain->state = ResourceState::Initializing;
 
     TerrainResourceData resource = {};
@@ -217,7 +213,6 @@ bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrai
     ResourceSystem::terrain_loader_unload(&resource);
 
     return true;
-
 }
 
 bool32 terrain_destroy(Terrain* terrain)
@@ -225,8 +220,7 @@ bool32 terrain_destroy(Terrain* terrain)
     if (terrain->state != ResourceState::Unloaded && !terrain_unload(terrain))
         return false;
 
-    terrain->geometry.vertices.free_data();
-    terrain->geometry.indices.free_data();
+	Renderer::destroy_geometry(&terrain->geometry);
     terrain->vertex_infos.free_data();
 
     terrain->materials.free_data();
@@ -239,7 +233,6 @@ bool32 terrain_destroy(Terrain* terrain)
 
 bool32 terrain_load(Terrain* terrain)
 {
-
     if (terrain->state != ResourceState::Initialized && terrain->state != ResourceState::Unloaded)
         return false;
 
@@ -285,12 +278,10 @@ bool32 terrain_load(Terrain* terrain)
     terrain->state = ResourceState::Loaded;
 
     return true;
-
 }
 
 bool32 terrain_unload(Terrain* terrain)
 {
-
     if (terrain->state <= ResourceState::Initialized)
         return true;
     else if (terrain->state != ResourceState::Loaded)
@@ -315,7 +306,6 @@ bool32 terrain_unload(Terrain* terrain)
     terrain->state = ResourceState::Unloaded;
 
     return true;
-
 }
 
 bool32 terrain_update(Terrain* terrain)

@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 
+#include "platform/Platform.hpp"
 #include "containers/Buffer.hpp"
 #include "containers/Hashtable.hpp"
 #include "utility/String.hpp"
@@ -58,17 +59,51 @@ struct LightingInfo
 	PointLight* p_lights;
 };
 
+struct GeometryConfig
+{
+	uint32 vertex_size;
+	uint32 vertex_count;
+	uint32 index_count;
+
+	Sarray<byte> vertices;	
+	Sarray<uint32> indices;
+	char name[Constants::max_geometry_name_length];
+
+	Math::Vec3f center;
+	Math::Extents3D extents;
+};
+
+struct GeometryData
+{
+	bool8 loaded;
+
+	char name[Constants::max_geometry_name_length];
+
+	Math::Vec3f center;
+	Math::Extents3D extents;
+	
+	uint32 vertex_size;
+	uint32 vertex_count;
+	uint32 index_count;
+
+	Sarray<byte> vertices;
+	Sarray<uint32> indices;
+
+	uint64 vertex_buffer_offset;
+	uint64 index_buffer_offset;
+};
+
 namespace Renderer
 {
 
 	namespace RendererConfigFlags
 	{
-		enum
+		typedef uint8 Value;
+		enum : Value
 		{
 			VSYNC = 1 << 0,
 			POWER_SAVING = 1 << 1,
 		};
-		typedef uint32 Value;
 	}
 
 	struct SHMAPI RendererConfig
@@ -98,9 +133,11 @@ namespace Renderer
 		inline static const uint32 shader_max_push_const_ranges = 32;
 	};
 
+
 	namespace ViewMode
 	{
-		enum Value
+		typedef uint8 Value;
+		enum : Value
 		{
 			DEFAULT = 0,
 			LIGHTING = 1,
@@ -110,7 +147,8 @@ namespace Renderer
 
 	namespace RenderpassClearFlags
 	{
-		enum Value
+		typedef uint8 Value;
+		enum : Value
 		{
 			NONE = 0,
 			COLOR_BUFFER = 1 << 0,
@@ -119,7 +157,7 @@ namespace Renderer
 		};
 	}
 
-	enum class RenderTargetAttachmentType
+	enum class RenderTargetAttachmentType : uint8
 	{
 		NONE,
 		COLOR,
@@ -127,21 +165,21 @@ namespace Renderer
 		STENCIL
 	};
 
-	enum class RenderTargetAttachmentSource
+	enum class RenderTargetAttachmentSource : uint8
 	{
 		NONE,
 		DEFAULT,
 		VIEW
 	};
 
-	enum class RenderTargetAttachmentLoadOp
+	enum class RenderTargetAttachmentLoadOp : uint8
 	{
 		NONE,
 		DONT_CARE,
 		LOAD
 	};
 
-	enum class RenderTargetAttachmentStoreOp
+	enum class RenderTargetAttachmentStoreOp : uint8
 	{
 		NONE,
 		DONT_CARE,
@@ -154,7 +192,7 @@ namespace Renderer
 		RenderTargetAttachmentSource source;
 		RenderTargetAttachmentLoadOp load_op;
 		RenderTargetAttachmentStoreOp store_op;
-		bool32 present_after;
+		bool8 present_after;
 	};
 
 	struct RenderTargetConfig
@@ -169,7 +207,7 @@ namespace Renderer
 		RenderTargetAttachmentSource source;
 		RenderTargetAttachmentLoadOp load_op;
 		RenderTargetAttachmentStoreOp store_op;
-		bool32 present_after;
+		bool8 present_after;
 		Texture* texture;
 	};
 
@@ -191,7 +229,8 @@ namespace Renderer
 
 	namespace RenderTopologyTypeFlags
 	{
-		enum : uint8
+		typedef uint8 Value;
+		enum : Value
 		{
 			None = 0,
 			TriangleList = 1 << 0,
@@ -202,7 +241,6 @@ namespace Renderer
 			PointList = 1 << 5,
 			AllTypesMask = (1 << 6) - 1
 		};
-		typedef uint8 Value;
 	}
 
 	struct RenderPassConfig
@@ -237,7 +275,7 @@ namespace Renderer
 		Buffer internal_data;
 	};
 
-	enum class RenderBufferType
+	enum class RenderBufferType : uint8
 	{
 		UNKNOWN,
 		VERTEX,
@@ -362,4 +400,25 @@ namespace Renderer
 		bool8(*is_multithreaded)();
 	};
 
+	struct SystemState
+	{
+		Platform::DynamicLibrary renderer_lib;
+		Renderer::Module module;
+		void* module_context;
+
+		RenderBuffer general_vertex_buffer;
+		RenderBuffer general_index_buffer;
+
+		uint32 framebuffer_width;
+		uint32 framebuffer_height;
+
+		uint32 window_render_target_count;
+
+		bool32 resizing;
+		uint32 frames_since_resize;
+
+		uint8 frame_number;
+
+		RendererConfigFlags::Value flags;
+	};
 }

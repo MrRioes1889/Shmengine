@@ -3,7 +3,7 @@
 #include "VulkanTypes.hpp"
 
 enum class TextureType : uint8;
-namespace Renderer { enum class RenderBufferType; }
+namespace Renderer { enum class RenderBufferType : uint8; }
 
 namespace Renderer::Vulkan
 {	

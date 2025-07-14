@@ -3,7 +3,7 @@
 #include "core/FrameData.hpp"
 #include "memory/LinearAllocator.hpp"
 #include "renderer/RendererFrontend.hpp"
-#include "renderer/RendererGeometry.hpp"
+#include "renderer/Geometry.hpp"
 #include "systems/TextureSystem.hpp"
 #include "systems/GeometrySystem.hpp"
 #include "systems/ShaderSystem.hpp"
@@ -25,9 +25,9 @@ bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 
 	out_skybox->shader_instance_id = Constants::max_u32;
 
-	GeometrySystem::GeometryConfig skybox_cube_config = {};
-	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), skybox_cube_config);
-	out_skybox->geometry = GeometrySystem::acquire_from_config(&skybox_cube_config, true);
+	GeometryConfig skybox_cube_config = {};
+	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), &skybox_cube_config);
+	out_skybox->geometry_id = GeometrySystem::acquire_from_config(&skybox_cube_config, true);
 
 	out_skybox->state = ResourceState::Initialized;
 
@@ -39,10 +39,10 @@ bool32 skybox_destroy(Skybox* skybox)
 	if (skybox->state != ResourceState::Unloaded && !skybox_unload(skybox))
 		return false;
 
-	GeometrySystem::release(skybox->geometry);
+	GeometrySystem::release(skybox->geometry_id);
 	skybox->name.free_data();
 	skybox->cubemap_name.free_data();
-	skybox->geometry = 0;
+	skybox->geometry_id.invalidate();
 	skybox->shader_instance_id = Constants::max_u32;
 	skybox->state = ResourceState::Destroyed;
 	return true;

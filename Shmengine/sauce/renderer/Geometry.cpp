@@ -1,45 +1,83 @@
-#include "RendererGeometry.hpp"
+#include "Geometry.hpp"
 
+#include "RendererFrontend.hpp"
 #include "utility/Math.hpp"
 #include "resources/Terrain.hpp"
 #include "systems/MaterialSystem.hpp"
 
+#include "optick.h"
+
 namespace Renderer
 {
+	extern SystemState* system_state;
 
-	void generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometrySystem::GeometryConfig& out_config)
+	bool8 create_geometry(GeometryConfig* config, GeometryData* g)
 	{
+		g->center = config->center;
+		g->extents = config->extents;
 
-		if (width == 0) {
+		g->vertex_size = config->vertex_size;
+		g->vertex_count = config->vertex_count;
+		g->index_count = config->index_count;
+		g->vertices.steal(config->vertices);
+		g->indices.steal(config->indices);
+		g->loaded = false;
+
+		return true;
+	}
+
+	void destroy_geometry(GeometryData* g)
+	{
+		if (g->loaded)
+			Renderer::geometry_unload(g);
+
+		g->vertices.free_data();
+		g->indices.free_data();
+		g->vertex_size = 0;
+		g->vertex_count = 0;
+		g->index_count = 0;
+
+		CString::empty(g->name);
+	}
+
+	void generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometryConfig* out_config)
+	{
+		if (width == 0) 
+		{
 			SHMWARN("Width must be nonzero. Defaulting to one.");
 			width = 1.0f;
 		}
-		if (height == 0) {
+		if (height == 0) 
+		{
 			SHMWARN("Height must be nonzero. Defaulting to one.");
 			height = 1.0f;
 		}
-		if (x_segment_count == 0) {
+		if (x_segment_count == 0) 
+		{
 			SHMWARN("x_segment_count must be a positive number. Defaulting to one.");
 			x_segment_count = 1;
 		}
-		if (y_segment_count == 0) {
+		if (y_segment_count == 0) 
+		{
 			SHMWARN("y_segment_count must be a positive number. Defaulting to one.");
 			y_segment_count = 1;
 		}
-		if (tile_x == 0) {
+		if (tile_x == 0) 
+		{
 			SHMWARN("tile_x must be nonzero. Defaulting to one.");
 			tile_x = 1.0f;
 		}
-		if (tile_y == 0) {
+		if (tile_y == 0) 
+		{
 			SHMWARN("tile_y must be nonzero. Defaulting to one.");
 			tile_y = 1.0f;
 		}
 
-		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
-		out_config.vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
-		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0);
-		out_config.index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
-		out_config.indices.init(out_config.index_count, 0);
+		out_config->vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
+		out_config->vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
+		out_config->vertices.init(out_config->vertex_size * out_config->vertex_count, 0);
+		out_config->index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
+		out_config->indices.init(out_config->index_count, 0);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 seg_width = width / x_segment_count;
@@ -59,10 +97,10 @@ namespace Renderer
 				float32 max_uvy = ((y + 1) / (float32)y_segment_count) * tile_y;
 
 				uint32 v_offset = ((y * x_segment_count) + x) * 4;
-				Renderer::Vertex3D* v0 = &((Renderer::Vertex3D*)&out_config.vertices[0])[v_offset + 0];
-				Renderer::Vertex3D* v1 = &((Renderer::Vertex3D*)&out_config.vertices[0])[v_offset + 1];
-				Renderer::Vertex3D* v2 = &((Renderer::Vertex3D*)&out_config.vertices[0])[v_offset + 2];
-				Renderer::Vertex3D* v3 = &((Renderer::Vertex3D*)&out_config.vertices[0])[v_offset + 3];
+				Renderer::Vertex3D* v0 = &((Renderer::Vertex3D*)&out_config->vertices[0])[v_offset + 0];
+				Renderer::Vertex3D* v1 = &((Renderer::Vertex3D*)&out_config->vertices[0])[v_offset + 1];
+				Renderer::Vertex3D* v2 = &((Renderer::Vertex3D*)&out_config->vertices[0])[v_offset + 2];
+				Renderer::Vertex3D* v3 = &((Renderer::Vertex3D*)&out_config->vertices[0])[v_offset + 3];
 
 				v0->position.x = min_x;
 				v0->position.y = min_y;
@@ -86,54 +124,57 @@ namespace Renderer
 
 				// Generate indices
 				uint32 i_offset = ((y * x_segment_count) + x) * 6;
-				out_config.indices[i_offset + 0] = v_offset + 0;
-				out_config.indices[i_offset + 1] = v_offset + 1;
-				out_config.indices[i_offset + 2] = v_offset + 2;
-				out_config.indices[i_offset + 3] = v_offset + 0;
-				out_config.indices[i_offset + 4] = v_offset + 3;
-				out_config.indices[i_offset + 5] = v_offset + 1;
+				out_config->indices[i_offset + 0] = v_offset + 0;
+				out_config->indices[i_offset + 1] = v_offset + 1;
+				out_config->indices[i_offset + 2] = v_offset + 2;
+				out_config->indices[i_offset + 3] = v_offset + 0;
+				out_config->indices[i_offset + 4] = v_offset + 3;
+				out_config->indices[i_offset + 5] = v_offset + 1;
 			}
 		}
 
-		if (name && CString::length(name) > 0) {
-			CString::copy(name, out_config.name, Constants::max_geometry_name_length);
-		}
-		else {
-			CString::copy(GeometrySystem::SystemConfig::default_name, out_config.name, Constants::max_geometry_name_length);
-		}
+		if (name && CString::length(name) > 0)
+			CString::copy(name, out_config->name, Constants::max_geometry_name_length);
+		else
+			CString::copy(GeometrySystem::SystemConfig::default_name, out_config->name, Constants::max_geometry_name_length);
 
 	}
 
-	void generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, GeometrySystem::GeometryConfig& out_config)
+	void generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, GeometryConfig* out_config)
 	{
 
-		if (width == 0) {
+		if (width == 0) 
+		{
 			SHMWARN("Width must be nonzero. Defaulting to one.");
 			width = 1.0f;
 		}
-		if (height == 0) {
+		if (height == 0) 
+		{
 			SHMWARN("Height must be nonzero. Defaulting to one.");
 			height = 1.0f;
 		}
-		if (depth == 0) {
+		if (depth == 0) 
+		{
 			SHMWARN("x_segment_count must be a positive number. Defaulting to one.");
 			depth = 1.0f;
 		}
 
-		if (tile_x == 0) {
+		if (tile_x == 0) 
+		{
 			SHMWARN("tile_x must be nonzero. Defaulting to one.");
 			tile_x = 1.0f;
 		}
-		if (tile_y == 0) {
+		if (tile_y == 0) 
+		{
 			SHMWARN("tile_y must be nonzero. Defaulting to one.");
 			tile_y = 1.0f;
 		}
 
-		out_config.vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
-		out_config.vertex_count = 4 * 6;  // 4 verts per segment
-		out_config.vertices.init(out_config.vertex_size * out_config.vertex_count, 0);
-		out_config.index_count = 6 * 6;  // 6 indices per segment
-		out_config.indices.init(out_config.index_count, 0);
+		out_config->vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
+		out_config->vertex_count = 4 * 6;  // 4 verts per segment
+		out_config->vertices.init(out_config->vertex_size * out_config->vertex_count, 0);
+		out_config->index_count = 6 * 6;  // 6 indices per segment
+		out_config->indices.init(out_config->index_count, 0);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 half_width = width * 0.5f;
@@ -151,16 +192,16 @@ namespace Renderer
 		float32 max_uvx = tile_x;
 		float32 max_uvy = tile_y;
 
-		out_config.extents.min.x = min_x;
-		out_config.extents.min.y = min_y;
-		out_config.extents.min.z = min_z;
-		out_config.extents.max.x = max_x;
-		out_config.extents.max.y = max_y;
-		out_config.extents.max.z = max_z;
+		out_config->extents.min.x = min_x;
+		out_config->extents.min.y = min_y;
+		out_config->extents.min.z = min_z;
+		out_config->extents.max.x = max_x;
+		out_config->extents.max.y = max_y;
+		out_config->extents.max.z = max_z;
 
-		out_config.center = VEC3_ZERO;
+		out_config->center = VEC3_ZERO;
 
-		Renderer::Vertex3D* verts = (Renderer::Vertex3D*)out_config.vertices.data;
+		Renderer::Vertex3D* verts = (Renderer::Vertex3D*)out_config->vertices.data;
 
 		// Front
 		verts[(0 * 4) + 0].position = { min_x, min_y, max_z };
@@ -246,29 +287,28 @@ namespace Renderer
 		verts[(5 * 4) + 2].normal = { 0.0f, 1.0f, 0.0f };
 		verts[(5 * 4) + 3].normal = { 0.0f, 1.0f, 0.0f };
 
-		for (uint32 i = 0; i < 6; ++i) {
+		for (uint32 i = 0; i < 6; ++i) 
+		{
 			uint32 v_offset = i * 4;
 			uint32 i_offset = i * 6;
-			out_config.indices[i_offset + 0] = v_offset + 0;
-			out_config.indices[i_offset + 1] = v_offset + 1;
-			out_config.indices[i_offset + 2] = v_offset + 2;
-			out_config.indices[i_offset + 3] = v_offset + 0;
-			out_config.indices[i_offset + 4] = v_offset + 3;
-			out_config.indices[i_offset + 5] = v_offset + 1;
+			out_config->indices[i_offset + 0] = v_offset + 0;
+			out_config->indices[i_offset + 1] = v_offset + 1;
+			out_config->indices[i_offset + 2] = v_offset + 2;
+			out_config->indices[i_offset + 3] = v_offset + 0;
+			out_config->indices[i_offset + 4] = v_offset + 3;
+			out_config->indices[i_offset + 5] = v_offset + 1;
 		}
 
-		geometry_generate_mesh_tangents(out_config.vertex_count, (Vertex3D*)out_config.vertices.data, out_config.index_count, out_config.indices.data );
+		generate_mesh_tangents(out_config->vertex_count, (Vertex3D*)out_config->vertices.data, out_config->index_count, out_config->indices.data );
 
-		if (name && CString::length(name) > 0) {
-			CString::copy(name, out_config.name, Constants::max_geometry_name_length);
-		}
-		else {
-			CString::copy(GeometrySystem::SystemConfig::default_name, out_config.name, Constants::max_geometry_name_length);
-		}
+		if (name && CString::length(name) > 0)
+			CString::copy(name, out_config->name, Constants::max_geometry_name_length);
+		else
+			CString::copy(GeometrySystem::SystemConfig::default_name, out_config->name, Constants::max_geometry_name_length);
 
 	}
 
-	void geometry_generate_mesh_normals(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices)
+	void generate_mesh_normals(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices)
 	{
 		for (uint32 i = 0; i < indices_count; i += 3) 
 		{
@@ -288,7 +328,7 @@ namespace Renderer
 		}
 	}
 
-	void geometry_generate_mesh_tangents(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices)
+	void generate_mesh_tangents(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices)
 	{
 
 		for (uint32 i = 0; i < indices_count; i += 3) {
@@ -326,7 +366,7 @@ namespace Renderer
 
 	}
 
-	void geometry_generate_terrain_normals(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices)
+	void generate_terrain_normals(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices)
 	{
 
 		for (uint32 i = 0; i < indices_count; i += 3)
@@ -346,7 +386,7 @@ namespace Renderer
 
 	}
 
-	void geometry_generate_terrain_tangents(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices)
+	void generate_terrain_tangents(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices)
 	{
 
 		for (uint32 i = 0; i < indices_count; i += 3) {
@@ -404,7 +444,7 @@ namespace Renderer
         }
     }
 
-    void geometry_deduplicate_vertices(GeometrySystem::GeometryConfig& g_config)
+    void geometry_deduplicate_vertices(GeometryConfig& g_config)
     {
 
         Darray<Vertex3D> new_vertices(g_config.vertex_count / 4, 0, (AllocationTag)g_config.vertices.allocation_tag);

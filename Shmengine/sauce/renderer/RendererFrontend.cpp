@@ -23,36 +23,13 @@
 
 namespace Renderer
 {
-	struct SystemState
-	{
-		Platform::DynamicLibrary renderer_lib;
-		Renderer::Module module;
-		void* module_context;
-
-		RenderBuffer general_vertex_buffer;
-		RenderBuffer general_index_buffer;
-
-		uint32 framebuffer_width;
-		uint32 framebuffer_height;
-
-		uint32 window_render_target_count;
-
-		bool32 resizing;
-		uint32 frames_since_resize;
-
-		uint8 frame_number;
-
-		RendererConfigFlags::Value flags;
-		
-	};
 
 	typedef bool32(*FP_create_renderer_module)(Renderer::Module* out_module);
 
-	static SystemState* system_state = 0;
+	SystemState* system_state = 0;
 
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
-
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
@@ -345,7 +322,7 @@ namespace Renderer
 		texture->internal_data.free_data();
 	}
 
-	bool32 geometry_load(GeometryData* geometry)
+	bool8 geometry_load(GeometryData* geometry)
 	{	
 
 		bool32 is_reload = geometry->loaded;
@@ -395,7 +372,7 @@ namespace Renderer
 
 	}
 
-	bool32 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size)
+	bool8 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size)
 	{
 		
 		bool32 is_reload = geometry->loaded;
@@ -452,7 +429,6 @@ namespace Renderer
 
 	void geometry_unload(GeometryData* geometry)
 	{
-
 		system_state->module.device_sleep_till_idle();
 
 		renderbuffer_free(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset);
@@ -460,7 +436,6 @@ namespace Renderer
 			renderbuffer_free(&system_state->general_index_buffer, geometry->index_buffer_offset);
 
 		geometry->loaded = false;
-
 	}
 
 	void geometry_draw(GeometryData* geometry)

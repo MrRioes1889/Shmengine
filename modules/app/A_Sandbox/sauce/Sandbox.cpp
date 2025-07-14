@@ -17,7 +17,7 @@
 #include <utility/Sort.hpp>
 
 // TODO: temp
-#include <renderer/RendererGeometry.hpp>
+#include <renderer/Geometry.hpp>
 #include <utility/math/Transform.hpp>
 #include <systems/MaterialSystem.hpp>
 #include <systems/GeometrySystem.hpp>
@@ -110,7 +110,7 @@ bool32 application_init(Application* app_inst)
 
 	// Load up some test UI geometry.
 	MeshGeometryConfig ui_config = {};
-	GeometrySystem::GeometryConfig ui_g_config = {};
+	GeometryConfig ui_g_config = {};
 	ui_config.data_config = &ui_g_config;
 		
 	ui_config.material_name = "test_ui_material";
@@ -157,6 +157,7 @@ bool32 application_init(Application* app_inst)
 	// Get UI geometry from config.
 	app_state->ui_meshes.init(1, 0);
 	Mesh* ui_mesh = &app_state->ui_meshes[app_state->ui_meshes.emplace()];
+	/*mesh_init()
 	ui_mesh->unique_id = identifier_acquire_new_id(ui_mesh);
 	ui_mesh->geometries.init(1, 0);
 	ui_mesh->geometries.emplace();
@@ -164,7 +165,7 @@ bool32 application_init(Application* app_inst)
 	CString::copy(ui_config.material_name, ui_mesh->geometries[0].material_name, Constants::max_material_name_length);
 	ui_mesh->geometries[0].material = MaterialSystem::acquire(ui_mesh->geometries[0].material_name, true);
 	ui_mesh->transform = Math::transform_create();
-	ui_mesh->generation = 0;
+	ui_mesh->generation = 0;*/
 
 	app_state->test_raycast_lines.init(32, 0);
 
@@ -293,7 +294,7 @@ bool32 application_render(FrameData* frame_data)
 
 	RenderViewSystem::gizmo3D_draw(&app_state->editor_gizmo, frame_data, app_state->world_camera);
 
-	RenderViewSystem::meshes_draw(app_state->ui_meshes.data, app_state->ui_meshes.count, {}, frame_data, 0, ui_view_id, ui_shader_id);
+	//RenderViewSystem::meshes_draw(app_state->ui_meshes.data, app_state->ui_meshes.count, {}, frame_data, 0, ui_view_id, ui_shader_id);
 
 	RenderViewSystem::ui_text_draw(&app_state->debug_info_text, frame_data);
 
@@ -404,7 +405,7 @@ static bool32 application_on_debug_event(uint16 code, void* sender, void* listen
 		choice %= 3;
 		
 		Mesh* m = scene_get_mesh(&app_state->main_scene, "test_cube1");
-		if (!m || !m->geometries.count)
+		if (!m || !m->geometries.capacity)
 			return false;
 
 		MeshGeometry* g = &m->geometries[0];

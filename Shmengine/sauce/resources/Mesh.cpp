@@ -4,6 +4,7 @@
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
 #include "renderer/RendererFrontend.hpp"
+#include "renderer/Geometry.hpp"
 #include "resources/loaders/MeshLoader.hpp"
 
 #include "systems/JobSystem.hpp"
@@ -27,28 +28,28 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
     out_mesh->extents = {};
     out_mesh->center = {};
     out_mesh->transform = Math::transform_create();
-    out_mesh->geometries.init(config->g_configs_count, DarrayFlags::NonResizable);
-    out_mesh->geometries.set_count(config->g_configs_count);
+    out_mesh->geometries.init(config->g_configs_count, 0);
     for (uint32 i = 0; i < config->g_configs_count; i++)
     {
         MeshGeometry* g = &out_mesh->geometries[i];
         CString::copy(config->g_configs[i].material_name, g->material_name, Constants::max_material_name_length);
-        g->g_data = GeometrySystem::acquire_from_config(config->g_configs[i].data_config, true);
+        g->g_id = GeometrySystem::acquire_from_config(config->g_configs[i].data_config, true);
         g->material = 0;
 
-        if (g->g_data->extents.max.x > out_mesh->extents.max.x)
-            out_mesh->extents.max.x = g->g_data->extents.max.x;
-        if (g->g_data->extents.max.y > out_mesh->extents.max.y)
-            out_mesh->extents.max.y = g->g_data->extents.max.y;
-        if (g->g_data->extents.max.z > out_mesh->extents.max.z)
-            out_mesh->extents.max.z = g->g_data->extents.max.z;
+        GeometryData* g_data = GeometrySystem::get_geometry_data(g->g_id);
+        if (g_data->extents.max.x > out_mesh->extents.max.x)
+            out_mesh->extents.max.x = g_data->extents.max.x;
+        if (g_data->extents.max.y > out_mesh->extents.max.y)
+            out_mesh->extents.max.y = g_data->extents.max.y;
+        if (g_data->extents.max.z > out_mesh->extents.max.z)
+            out_mesh->extents.max.z = g_data->extents.max.z;
 
-        if (g->g_data->extents.min.x < out_mesh->extents.min.x)
-            out_mesh->extents.min.x = g->g_data->extents.min.x;
-        if (g->g_data->extents.min.y < out_mesh->extents.min.y)
-            out_mesh->extents.min.y = g->g_data->extents.min.y;
-        if (g->g_data->extents.min.z < out_mesh->extents.min.z)
-            out_mesh->extents.min.z = g->g_data->extents.min.z;
+        if (g_data->extents.min.x < out_mesh->extents.min.x)
+            out_mesh->extents.min.x = g_data->extents.min.x;
+        if (g_data->extents.min.y < out_mesh->extents.min.y)
+            out_mesh->extents.min.y = g_data->extents.min.y;
+        if (g_data->extents.min.z < out_mesh->extents.min.z)
+            out_mesh->extents.min.z = g_data->extents.min.z;
     }
 
     out_mesh->center = (out_mesh->extents.min + out_mesh->extents.max) * 0.5f;
@@ -99,8 +100,8 @@ bool32 mesh_destroy(Mesh* mesh)
     if (mesh->state != ResourceState::Unloaded && !mesh_unload(mesh))
         return false;
 
-    for (uint32 i = 0; i < mesh->geometries.count; i++)
-        GeometrySystem::release(mesh->geometries[i].g_data, 0);
+    for (uint16 i = 0; i < mesh->geometries.capacity; i++)
+        GeometrySystem::release(mesh->geometries[i].g_id);
 
     mesh->name.free_data();
 
@@ -128,7 +129,6 @@ bool32 mesh_load(Mesh* mesh)
 
 bool32 mesh_unload(Mesh* mesh)
 {
-
     if (mesh->state <= ResourceState::Initialized)
         return true;
     else if (mesh->state != ResourceState::Loaded)
@@ -139,9 +139,10 @@ bool32 mesh_unload(Mesh* mesh)
     mesh->generation = Constants::max_u8;
     identifier_release_id(mesh->unique_id);
 
-    for (uint32 i = 0; i < mesh->geometries.count; ++i)
+    for (uint32 i = 0; i < mesh->geometries.capacity; ++i)
     {     
-        Renderer::geometry_unload(mesh->geometries[i].g_data);
+        GeometryData* g_data = GeometrySystem::get_geometry_data(mesh->geometries[i].g_id);
+        Renderer::geometry_unload(g_data);
         if (mesh->geometries[i].material)
         {      
             MaterialSystem::release(mesh->geometries[i].material->name);
@@ -161,7 +162,8 @@ struct MeshLoadParams
     bool32 is_reload;
 };
 
-static void mesh_load_job_success(void* params) {
+static void mesh_load_job_success(void* params) 
+{
     MeshLoadParams* mesh_params = (MeshLoadParams*)params;
     Mesh* mesh = mesh_params->out_mesh;  
 
@@ -172,18 +174,21 @@ static void mesh_load_job_success(void* params) {
 
 }
 
-static void mesh_load_job_fail(void* params) {
+static void mesh_load_job_fail(void* params) 
+{
     MeshLoadParams* mesh_params = (MeshLoadParams*)params;
     Mesh* mesh = mesh_params->out_mesh;
 
     SHMERRORV("Failed to load mesh '%s'.", mesh->name.c_str());
 }
 
-static bool32 mesh_load_job_start(void* params, void* result_data) {
+static bool32 mesh_load_job_start(void* params, void* result_data) 
+{
     MeshLoadParams* load_params = (MeshLoadParams*)params;
     Mesh* mesh = load_params->out_mesh;
 
-    for (uint32 i = 0; i < mesh->geometries.count; ++i) {
+    for (uint32 i = 0; i < mesh->geometries.capacity; i++) 
+    {
         MeshGeometry* g = &mesh->geometries[i];
 
         if (g->material_name[0])

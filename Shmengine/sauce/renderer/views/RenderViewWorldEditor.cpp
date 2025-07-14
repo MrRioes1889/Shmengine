@@ -12,6 +12,7 @@
 #include <systems/MaterialSystem.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <renderer/RendererFrontend.hpp>
+#include <renderer/Geometry.hpp>
 #include <renderer/Camera.hpp>
 #include <utility/Sort.hpp>
 
@@ -82,16 +83,16 @@ bool32 render_view_world_editor_on_create(RenderView* self)
 
 	internal_data->projection_matrix = Math::mat_perspective(internal_data->fov, 1280.0f / 720.0f, internal_data->near_clip, internal_data->far_clip);
 
-	GeometryData* grid_geometry = &internal_data->coordinate_grid.geometry;
-	grid_geometry->id = Constants::max_u32;
-	grid_geometry->vertex_size = sizeof(VertexCoordinateGrid);
-	grid_geometry->vertex_count = 6;
-	grid_geometry->vertices.init(grid_geometry->vertex_size * grid_geometry->vertex_count, 0);
-	SarrayRef<byte, VertexCoordinateGrid> grid_vertices(&grid_geometry->vertices);
+	GeometryConfig grid_geometry_config = {};
+	grid_geometry_config.vertex_size = sizeof(VertexCoordinateGrid);
+	grid_geometry_config.vertex_count = 6;
+	grid_geometry_config.vertices.init(grid_geometry_config.vertex_size * grid_geometry_config.vertex_count, 0);
+	SarrayRef<byte, VertexCoordinateGrid> grid_vertices(&grid_geometry_config.vertices);
 	for (uint32 i = 0; i < grid_vertices.capacity; i++)
 		grid_vertices[i].index = i;
 
-	Renderer::geometry_load(grid_geometry);
+	Renderer::create_geometry(&grid_geometry_config, &internal_data->coordinate_grid.geometry);
+	Renderer::geometry_load(&internal_data->coordinate_grid.geometry);
 
 	return true;
 
@@ -102,6 +103,7 @@ void render_view_world_editor_on_destroy(RenderView* self)
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
 	Renderer::geometry_unload(&internal_data->coordinate_grid.geometry);
+	Renderer::destroy_geometry(&internal_data->coordinate_grid.geometry);
 }
 
 void render_view_world_editor_on_resize(RenderView* self, uint32 width, uint32 height)

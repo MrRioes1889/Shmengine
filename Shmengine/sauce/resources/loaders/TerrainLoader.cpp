@@ -7,7 +7,7 @@
 #include "utility/math/Transform.hpp"
 #include "platform/FileSystem.hpp"
 #include "renderer/RendererTypes.hpp"
-#include "renderer/RendererGeometry.hpp"
+#include "renderer/Geometry.hpp"
 #include "systems/GeometrySystem.hpp"
 #include "resources/Mesh.hpp"
 

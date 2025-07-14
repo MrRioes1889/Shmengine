@@ -7,7 +7,7 @@
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
-#include "renderer/RendererGeometry.hpp"
+#include "renderer/Geometry.hpp"
 #include "platform/FileSystem.hpp"
 
 enum class MeshFileType {
@@ -67,7 +67,7 @@ namespace ResourceSystem
     static const char* loader_type_path = "models/";
 
     static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, MeshResourceData* out_resource);
-    static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometrySystem::GeometryConfig* out_data);
+    static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometryConfig* out_data);
 
     static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, MeshResourceData* out_resource);
     static bool32 write_shmesh_file(const char* path, const char* name, MeshResourceData* resource);
@@ -154,7 +154,7 @@ namespace ResourceSystem
 
         for (uint32 i = 0; i < resource->geometries.count; i++)
         {
-            GeometrySystem::GeometryConfig* g_config = &resource->geometries[i].data_config;
+            GeometryConfig* g_config = &resource->geometries[i].data_config;
             g_config->indices.free_data();
             g_config->vertices.free_data();
         }
@@ -339,11 +339,11 @@ namespace ResourceSystem
         // De-duplicate geometry
 
         for (uint32 i = 0; i < out_resource->geometries.count; ++i) {
-            GeometrySystem::GeometryConfig* g = &out_resource->geometries[i].data_config;
+            GeometryConfig* g = &out_resource->geometries[i].data_config;
             SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
 
             Renderer::geometry_deduplicate_vertices(*g);
-            Renderer::geometry_generate_mesh_tangents(g->vertex_count, (Renderer::Vertex3D*)g->vertices.data, g->index_count, g->indices.data);
+            Renderer::generate_mesh_tangents(g->vertex_count, (Renderer::Vertex3D*)g->vertices.data, g->index_count, g->indices.data);
 
             // TODO: Maybe shrink down vertex array to count after deduplication!
         }
@@ -353,7 +353,7 @@ namespace ResourceSystem
 
     }
 
-    static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometrySystem::GeometryConfig* out_data)
+    static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometryConfig* out_data)
     {
 
         out_data->vertex_count = 0;
@@ -482,7 +482,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < resource->geometries.count; i++)
         {
             MeshGeometryResourceData& config = resource->geometries[i];
-            GeometrySystem::GeometryConfig& g_data = config.data_config;
+            GeometryConfig& g_data = config.data_config;
 
             ShmeshFileGeometryHeader geo_header = {};
             geo_header.center = g_data.center;
@@ -557,7 +557,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < file_header->geometry_count; i++)
         {
             MeshGeometryResourceData* config = &out_resource->geometries[out_resource->geometries.emplace()];
-            GeometrySystem::GeometryConfig* g = &config->data_config;
+            GeometryConfig* g = &config->data_config;
 
             check_buffer_size(sizeof(ShmeshFileGeometryHeader));
             ShmeshFileGeometryHeader* geo_header = (ShmeshFileGeometryHeader*)&read_ptr[read_bytes];
