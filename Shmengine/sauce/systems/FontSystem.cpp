@@ -5,6 +5,7 @@
 #include "renderer/RendererFrontend.hpp"
 #include "resources/loaders/TruetypeFontLoader.hpp"
 #include "resources/loaders/BitmapFontLoader.hpp"
+#include "utility/Sort.hpp"
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "vendor/stb/stb_truetype.h"
@@ -14,9 +15,9 @@ namespace FontSystem
 
 	struct BitmapFontLookup
 	{
-		uint16 id;
+		FontId id;
 		uint16 reference_count;
-		BitmapFontResourceData font_data;
+		FontAtlas atlas;
 	};
 
 	/*struct TruetypeFontInvariantData
@@ -26,7 +27,7 @@ namespace FontSystem
 
 	struct TruetypeFontLookup
 	{
-		uint16 id;
+		FontId id;
 		uint16 reference_count;	
 		TruetypeFontResourceData resource_data;
 		Darray<int32> codepoints;
@@ -36,17 +37,15 @@ namespace FontSystem
 
 	struct SystemState
 	{
-		SystemConfig config;
-
-		BitmapFontLookup* registered_bitmap_fonts;
+		Sarray<BitmapFontLookup> registered_bitmap_fonts;
 		HashtableOA<uint16> registered_bitmap_font_table;
 
-		TruetypeFontLookup* registered_truetype_fonts;
+		Sarray<TruetypeFontLookup> registered_truetype_fonts;
 		HashtableOA<uint16> registered_truetype_font_table;
-
 	};
 
 	static bool32 create_font_data(FontAtlas* font);
+	static bool8 create_font_data_new(BitmapFontConfig* config, FontAtlas* out_font);
 
 	static bool32 create_truetype_font_variant(TruetypeFontLookup* lookup, uint16 size, const char* font_name, FontAtlas* out_variant);
 	static bool32 rebuild_truetype_font_variant(TruetypeFontLookup* lookup, FontAtlas* variant);
@@ -61,49 +60,36 @@ namespace FontSystem
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		system_state->config = *sys_config;
+		uint64 bitmap_font_array_size = system_state->registered_bitmap_fonts.get_external_size_requirement(sys_config->max_bitmap_font_count);
+		void* bitmap_font_array_data = allocator_callback(allocator, bitmap_font_array_size);
+		system_state->registered_bitmap_fonts.init(sys_config->max_bitmap_font_count, 0, AllocationTag::Font, bitmap_font_array_data);
 
-		uint64 bitmap_font_array_size = sizeof(BitmapFontLookup) * sys_config->max_bitmap_font_config_count;
-		system_state->registered_bitmap_fonts = (BitmapFontLookup*)allocator_callback(allocator, bitmap_font_array_size);
-
-		uint64 bitmap_hashtable_data_size = sizeof(uint16) * sys_config->max_bitmap_font_config_count;
+		uint64 bitmap_hashtable_data_size = sizeof(uint16) * sys_config->max_bitmap_font_count;
 		void* bitmap_hashtable_data = allocator_callback(allocator, bitmap_hashtable_data_size);
-		system_state->registered_bitmap_font_table.init(sys_config->max_bitmap_font_config_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, bitmap_hashtable_data);
+		system_state->registered_bitmap_font_table.init(sys_config->max_bitmap_font_count, HashtableOAFlag::ExternalMemory, AllocationTag::Unknown, bitmap_hashtable_data);
 
 		system_state->registered_bitmap_font_table.floodfill(Constants::max_u16);
 
-		for (uint32 i = 0; i < sys_config->max_bitmap_font_config_count; ++i)
+		for (uint32 i = 0; i < sys_config->max_bitmap_font_count; ++i)
 		{
 			system_state->registered_bitmap_fonts[i].id = Constants::max_u16;
 			system_state->registered_bitmap_fonts[i].reference_count = 0;
 		}
 
-		uint64 truetype_font_array_size = sizeof(TruetypeFontLookup) * sys_config->max_truetype_font_config_count;
-		system_state->registered_truetype_fonts = (TruetypeFontLookup*)allocator_callback(allocator, truetype_font_array_size);
+		uint64 truetype_font_array_size = system_state->registered_truetype_fonts.get_external_size_requirement(sys_config->max_truetype_font_count);
+		void* truetype_font_array_data = allocator_callback(allocator, truetype_font_array_size);
+		system_state->registered_truetype_fonts.init(sys_config->max_truetype_font_count, 0, AllocationTag::Font, truetype_font_array_data);
 
-		uint64 truetype_hashtable_data_size = sizeof(uint16) * sys_config->max_truetype_font_config_count;
+		uint64 truetype_hashtable_data_size = sizeof(uint16) * sys_config->max_truetype_font_count;
 		void* truetype_hashtable_data = allocator_callback(allocator, truetype_hashtable_data_size);
-		system_state->registered_truetype_font_table.init(sys_config->max_truetype_font_config_count, HashtableOAFlag::ExternalMemory, AllocationTag::UNKNOWN, truetype_hashtable_data);
+		system_state->registered_truetype_font_table.init(sys_config->max_truetype_font_count, HashtableOAFlag::ExternalMemory, AllocationTag::Unknown, truetype_hashtable_data);
 
 		system_state->registered_truetype_font_table.floodfill(Constants::max_u16);
 
-		for (uint32 i = 0; i < sys_config->max_truetype_font_config_count; ++i)
+		for (uint32 i = 0; i < sys_config->max_truetype_font_count; ++i)
 		{
 			system_state->registered_truetype_fonts[i].id = Constants::max_u16;
 			system_state->registered_truetype_fonts[i].reference_count = 0;
-		}
-
-
-		for (uint32 i = 0; i < system_state->config.default_bitmap_font_count; i++)
-		{
-			if (!load_bitmap_font(system_state->config.bitmap_font_configs[i]))
-				SHMERRORV("Failed to load default bitmap font: %s", system_state->config.bitmap_font_configs[i].name);
-		}
-
-		for (uint32 i = 0; i < system_state->config.default_truetype_font_count; i++)
-		{
-			if (!load_truetype_font(system_state->config.truetype_font_configs[i]))
-				SHMERRORV("Failed to load default truetype font: %s", system_state->config.truetype_font_configs[i].name);
 		}
 
 		return true;
@@ -111,19 +97,17 @@ namespace FontSystem
 
 	void system_shutdown(void* state)
 	{
-		for (uint16 i = 0; i < system_state->config.max_bitmap_font_config_count; i++)
+		for (uint16 i = 0; i < system_state->registered_bitmap_fonts.capacity; i++)
 		{
 			if (system_state->registered_bitmap_fonts[i].id != Constants::max_u16)
 			{
-				FontAtlas* font = &system_state->registered_bitmap_fonts[i].font_data.atlas;
+				FontAtlas* font = &system_state->registered_bitmap_fonts[i].atlas;
 				destroy_font_data(font);
 				system_state->registered_bitmap_fonts[i].id = Constants::max_u16;
-
-				ResourceSystem::bitmap_font_loader_unload(&system_state->registered_bitmap_fonts[i].font_data);
 			}
 		}
 
-		for (uint16 i = 0; i < system_state->config.max_truetype_font_config_count; i++)
+		for (uint16 i = 0; i < system_state->registered_truetype_fonts.capacity; i++)
 		{
 			if (system_state->registered_truetype_fonts[i].id == Constants::max_u16)
 				continue;
@@ -149,7 +133,7 @@ namespace FontSystem
 			return true;
 		}
 
-		for (uint16 i = 0; i < system_state->config.max_truetype_font_config_count; i++)
+		for (uint16 i = 0; i < system_state->registered_truetype_fonts.capacity; i++)
 		{
 			if (system_state->registered_truetype_fonts[i].id == Constants::max_u16)
 			{
@@ -177,8 +161,8 @@ namespace FontSystem
 			return false;
 		}
 
-		lookup->size_variants.init(1, 0, AllocationTag::TRUETYPE_FONT);
-		lookup->codepoints.init(96, 0, AllocationTag::TRUETYPE_FONT);
+		lookup->size_variants.init(1, 0, AllocationTag::Font);
+		lookup->codepoints.init(96, 0, AllocationTag::Font);
 		lookup->codepoints.push(-1);
 		for (uint32 i = 0; i < 95; i++)
 			lookup->codepoints.push(i + 32);
@@ -203,18 +187,17 @@ namespace FontSystem
 
 	}
 
-	bool32 load_bitmap_font(const BitmapFontConfig& config)
+	bool8 load_bitmap_font(const char* name, const char* resource_name)
 	{
-
-		uint16 id = system_state->registered_bitmap_font_table.get_value(config.name);
+		uint16 id = system_state->registered_bitmap_font_table.get_value(name);
 
 		if (id != Constants::max_u16)
 		{
-			SHMWARNV("load_bitmap_font - Font named '%s' already exists!", config.name);
+			SHMWARNV("load_bitmap_font - Font named '%s' already exists!", name);
 			return true;
 		}
 
-		for (uint16 i = 0; i < system_state->config.max_bitmap_font_config_count; i++)
+		for (uint16 i = 0; i < system_state->registered_bitmap_fonts.capacity; i++)
 		{
 			if (system_state->registered_bitmap_fonts[i].id == Constants::max_u16)
 			{
@@ -229,19 +212,23 @@ namespace FontSystem
 			return false;
 		}
 
-		BitmapFontLookup* lookup = &system_state->registered_bitmap_fonts[id];
-		if (!ResourceSystem::bitmap_font_loader_load(config.resource_name, 0, &lookup->font_data))
+		BitmapFontResourceData resource = {};
+		if (!ResourceSystem::bitmap_font_loader_load(resource_name, 0, &resource))
 		{
 			SHMERROR("load_bitmap_font - Failed to load resource!");
 			return false;
 		}
 
-		lookup->font_data.atlas.map.texture = TextureSystem::acquire(lookup->font_data.pages[0].file, true);
+		BitmapFontConfig config = ResourceSystem::bitmap_font_loader_get_config_from_resource(&resource);
+		BitmapFontLookup* lookup = &system_state->registered_bitmap_fonts[id];
 
-		system_state->registered_bitmap_font_table.set_value(config.name, id);
+		CString::copy(config.face_name, lookup->atlas.name, Constants::max_font_name_length);
+		system_state->registered_bitmap_font_table.set_value(lookup->atlas.name, id);
 		lookup->id = id;
 
-		return create_font_data(&lookup->font_data.atlas);
+		bool8 res = create_font_data_new(&config, &lookup->atlas);
+		ResourceSystem::bitmap_font_loader_unload(&resource);
+		return res;
 
 	}
 
@@ -260,7 +247,7 @@ namespace FontSystem
 
 			BitmapFontLookup* lookup = &system_state->registered_bitmap_fonts[id];
 			lookup->reference_count++;
-			text->font_atlas = &lookup->font_data.atlas;		
+			text->font_atlas = &lookup->atlas;		
 
 			return true;
 		}
@@ -323,11 +310,11 @@ namespace FontSystem
 			return true;
 		}
 
-		uint16 id = system_state->registered_truetype_font_table.get_value(font->face);
+		uint16 id = system_state->registered_truetype_font_table.get_value(font->name);
 
 		if (id == Constants::max_u16)
 		{
-			SHMERRORV("verify_atlas - No truetype font named '%s' found!", font->face);
+			SHMERRORV("verify_atlas - No truetype font named '%s' found!", font->name);
 			return false;
 		}
 
@@ -377,7 +364,6 @@ namespace FontSystem
 
 	static bool32 create_font_data(FontAtlas* font)
 	{
-
 		font->map.filter_magnify = font->map.filter_minify = TextureFilter::LINEAR;
 		font->map.repeat_u = font->map.repeat_v = font->map.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
 		if (!Renderer::texture_map_acquire_resources(&font->map)) {
@@ -407,7 +393,73 @@ namespace FontSystem
 		}
 
 		return true;
+	}
 
+	static bool8 create_font_data_new(BitmapFontConfig* config, FontAtlas* out_font)
+	{
+		out_font->type = config->type;
+		out_font->font_size = config->font_size;
+		out_font->atlas_size_x = config->atlas_size_x;
+		out_font->atlas_size_y = config->atlas_size_y;
+		out_font->baseline = config->baseline;
+		out_font->line_height = config->line_height;
+		out_font->tab_x_advance = config->tab_x_advance;
+
+		out_font->glyphs.init(256, 0, AllocationTag::Font);
+		for (uint32 i = 0; i < config->glyphs_count; i++)
+		{
+			if (config->glyphs[i].codepoint < (int32)out_font->glyphs.capacity)
+				out_font->glyphs[config->glyphs[i].codepoint] = config->glyphs[i];
+		}
+
+		out_font->kernings.init(config->kernings_count, 0, AllocationTag::Font);
+		for (uint32 i = 0; i < config->kernings_count; i++)
+		{
+			if (config->kernings[i].codepoint_0 < (int32)out_font->glyphs.capacity && config->kernings[i].codepoint_1 < (int32)out_font->glyphs.capacity)
+				out_font->kernings.emplace(config->kernings[i]);
+		}
+
+        quick_sort(out_font->kernings.data, 0, out_font->kernings.count - 1);
+        int32 old_codepoint = -1;
+        for (uint32 i = 0; i < out_font->kernings.count; i++)
+        {
+            int32 codepoint = out_font->kernings[i].codepoint_0;
+            if (codepoint != old_codepoint)
+                out_font->glyphs[codepoint].kernings_offset = i;
+            old_codepoint = codepoint;
+        }
+
+		out_font->map.texture = TextureSystem::acquire(config->texture_name, true);
+
+		out_font->map.filter_magnify = out_font->map.filter_minify = TextureFilter::LINEAR;
+		out_font->map.repeat_u = out_font->map.repeat_v = out_font->map.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
+		if (!Renderer::texture_map_acquire_resources(&out_font->map)) {
+			SHMERROR("Unable to acquire resources for font atlas texture map.");
+			return false;
+		}
+
+		if (!out_font->tab_x_advance) {
+			for (uint32 i = 0; i < out_font->glyphs.capacity; ++i) {
+				if (out_font->glyphs[i].codepoint == '\t') {
+					out_font->tab_x_advance = out_font->glyphs[i].x_advance;
+					break;
+				}
+			}
+
+			if (!out_font->tab_x_advance) {
+				for (uint32 i = 0; i < out_font->glyphs.capacity; ++i) {
+					if (out_font->glyphs[i].codepoint == ' ') {
+						out_font->tab_x_advance = out_font->glyphs[i].x_advance * 4.0f;
+						break;
+					}
+				}
+				if (!out_font->tab_x_advance) {
+					out_font->tab_x_advance = out_font->font_size * 4.0f;
+				}
+			}
+		}
+
+		return true;
 	}
 
 	static void destroy_font_data(FontAtlas* font)
@@ -417,6 +469,8 @@ namespace FontSystem
 		if (font->type == FontType::BITMAP && font->map.texture)
 			TextureSystem::release(font->map.texture->name);
 		font->map.texture = 0;
+		font->glyphs.free_data();
+		font->kernings.free_data();
 	}
 
 	static bool32 create_truetype_font_variant(TruetypeFontLookup* lookup, uint16 size, const char* font_name, FontAtlas* out_variant)
@@ -426,7 +480,7 @@ namespace FontSystem
 		out_variant->atlas_size_y = 1024;
 		out_variant->font_size = size;
 		out_variant->type = FontType::TRUETYPE;
-		CString::copy(font_name, out_variant->face, sizeof(out_variant->face));
+		CString::copy(font_name, out_variant->name, sizeof(out_variant->name));
 
 		char font_texture_name[255];
 		CString::print_s(font_texture_name, sizeof(font_texture_name), "__truetype_fontatlas_%s_sz%hi__", font_name, size);
@@ -460,7 +514,7 @@ namespace FontSystem
 		range.font_size = (float32)variant->font_size;
 		range.num_chars = lookup->codepoints.count;
 		range.chardata_for_range = packed_chars.data;
-		range.array_of_unicode_codepoints = lookup->codepoints.data;
+		range.array_of_unicode_codepoints = (int32*)lookup->codepoints.data;
 		if (!stbtt_PackFontRanges(&context, (unsigned char*)lookup->resource_data.binary_data.data, 0, &range, 1))
 		{
 			SHMERROR("stbtt_PackFontRanges failed");
@@ -479,7 +533,7 @@ namespace FontSystem
 		rgba_pixels.free_data();
 
 		variant->glyphs.free_data();
-		variant->glyphs.init(lookup->codepoints.count, 0, AllocationTag::TRUETYPE_FONT);
+		variant->glyphs.init(lookup->codepoints.count, 0, AllocationTag::Font);
 		for (uint32 i = 0; i < variant->glyphs.capacity; i++)
 		{
 			stbtt_packedchar* pc = &packed_chars[i];
@@ -501,7 +555,7 @@ namespace FontSystem
 		uint32 kerning_count = stbtt_GetKerningTableLength(&lookup->info);
 		if (kerning_count)
 		{
-			variant->kernings.init(kerning_count, 0, AllocationTag::TRUETYPE_FONT);
+			variant->kernings.init(kerning_count, 0, AllocationTag::Font);
 
 			Sarray<stbtt_kerningentry> kerning_entries(kerning_count, 0);
 			int32 res = stbtt_GetKerningTable(&lookup->info, kerning_entries.data, (int32)kerning_entries.capacity);
@@ -577,7 +631,7 @@ namespace FontSystem
 
 	bool32 utf8_bytes_to_codepoint(const char* bytes, uint32 offset, int32* out_codepoint, uint8* out_advance) 
 	{
-		int32 codepoint = (uint32)bytes[offset];
+		int32 codepoint = (int32)bytes[offset];
 		if (codepoint >= 0 && codepoint < 0x7F)
 		{
 			// Normal single-byte ascii character.

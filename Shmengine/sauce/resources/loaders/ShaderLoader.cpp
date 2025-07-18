@@ -99,7 +99,7 @@ namespace ResourceSystem
                 value.split(stage_names, ',');
 
                 if (!out_resource->stages.capacity)
-                    out_resource->stages.init(stage_names.count, 0, AllocationTag::RESOURCE);
+                    out_resource->stages.init(stage_names.count, 0, AllocationTag::Resource);
                 else if (stage_names.count > out_resource->stages.capacity)
                     out_resource->stages.resize(stage_names.count);
                 
@@ -127,7 +127,7 @@ namespace ResourceSystem
                 value.split(stage_filenames, ',');
 
                 if (!out_resource->stages.capacity)
-                    out_resource->stages.init(stage_filenames.count, 0, AllocationTag::RESOURCE);
+                    out_resource->stages.init(stage_filenames.count, 0, AllocationTag::Resource);
                 else if (stage_filenames.count > out_resource->stages.capacity)
                     out_resource->stages.resize(stage_filenames.count);
 

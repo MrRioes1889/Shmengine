@@ -29,7 +29,7 @@ namespace Renderer::Vulkan
 
 	bool32 vk_buffer_create(RenderBuffer* buffer)
 	{
-		buffer->internal_data.init(sizeof(VulkanBuffer), 0, AllocationTag::VULKAN);
+		buffer->internal_data.init(sizeof(VulkanBuffer), 0, AllocationTag::Vulkan);
 		if (!vk_buffer_create_internal((VulkanBuffer*)buffer->internal_data.data, buffer->type, buffer->size, buffer->name.c_str()))
 		{
 			buffer->internal_data.free_data();
@@ -119,7 +119,7 @@ namespace Renderer::Vulkan
 		VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_DEVICE_MEMORY, buffer->memory, name);
 
 		bool32 is_device_memory = buffer_is_device_local(buffer);
-		Memory::track_external_allocation(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_LOCAL : AllocationTag::VULKAN);
+		Memory::track_external_allocation(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 
 		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
 			vk_buffer_map_memory_internal(buffer, 0, size);
@@ -155,7 +155,7 @@ namespace Renderer::Vulkan
 		}
 
 		bool32 is_device_memory = (buffer->memory_property_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		Memory::track_external_free(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_LOCAL : AllocationTag::VULKAN);
+		Memory::track_external_free(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 
 		buffer->usage = 0;
 		buffer->is_locked = false;
@@ -221,9 +221,9 @@ namespace Renderer::Vulkan
 		// Report free of the old, allocate of the new.
 		bool32 is_device_memory = buffer_is_device_local(buffer);
 
-		Memory::track_external_free(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_LOCAL : AllocationTag::VULKAN);
+		Memory::track_external_free(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 		buffer->memory_requirements = requirements;
-		Memory::track_external_allocation(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_LOCAL : AllocationTag::VULKAN);
+		Memory::track_external_allocation(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 
 		// Set new properties
 		buffer->memory = new_memory;

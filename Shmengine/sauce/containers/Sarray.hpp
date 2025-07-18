@@ -19,8 +19,8 @@ template<typename T>
 struct Sarray
 {
 
-	Sarray() : capacity(0), data(0), allocation_tag((uint16)AllocationTag::ARRAY), flags(0) {};
-	SHMINLINE Sarray(uint32 reserve_count, SarrayFlags::Value creation_flags, AllocationTag tag = AllocationTag::ARRAY, void* memory = 0);
+	Sarray() : capacity(0), data(0), allocation_tag((uint16)AllocationTag::Array), flags(0) {};
+	SHMINLINE Sarray(uint32 reserve_count, SarrayFlags::Value creation_flags, AllocationTag tag = AllocationTag::Array, void* memory = 0);
 	SHMINLINE ~Sarray();
 
 	SHMINLINE Sarray(const Sarray& other);
@@ -29,7 +29,7 @@ struct Sarray
 	SHMINLINE Sarray& operator=(Sarray&& other);
 
 	// NOTE: Call for already instantiated arrays
-	SHMINLINE void init(uint32 reserve_count, SarrayFlags::Value creation_flags, AllocationTag tag = AllocationTag::ARRAY, void* memory = 0);
+	SHMINLINE void init(uint32 reserve_count, SarrayFlags::Value creation_flags, AllocationTag tag = AllocationTag::Array, void* memory = 0);
 	SHMINLINE void free_data();
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * sizeof(T); }

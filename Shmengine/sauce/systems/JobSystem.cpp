@@ -66,7 +66,7 @@ namespace JobSystem
 
 		uint64 thread_array_size = system_state->job_threads.get_external_size_requirement(sys_config->job_thread_count);
 		void* thread_array_data = allocator_callback(allocator, thread_array_size);
-		system_state->job_threads.init(sys_config->job_thread_count, 0, AllocationTag::ARRAY, thread_array_data);
+		system_state->job_threads.init(sys_config->job_thread_count, 0, AllocationTag::Array, thread_array_data);
 
 		system_state->pending_results_count = 0;
 
@@ -241,7 +241,7 @@ namespace JobSystem
 		info.params_size = params_size;
 		if (params_size)
 		{
-			info.params = Memory::allocate(params_size, AllocationTag::JOB);
+			info.params = Memory::allocate(params_size, AllocationTag::Job);
 		}		
 		else
 		{
@@ -250,7 +250,7 @@ namespace JobSystem
 
 		info.results_size = results_size;
 		if (results_size)
-			info.results = Memory::allocate(results_size, AllocationTag::JOB);
+			info.results = Memory::allocate(results_size, AllocationTag::Job);
 		else
 			info.results = 0;
 
@@ -268,7 +268,7 @@ namespace JobSystem
 		entry.params = 0;
 		if (entry.params_size)
 		{
-			entry.params = Memory::allocate(entry.params_size, AllocationTag::JOB);
+			entry.params = Memory::allocate(entry.params_size, AllocationTag::Job);
 			Memory::copy_memory(params, entry.params, entry.params_size);
 		}
 

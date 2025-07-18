@@ -20,8 +20,8 @@ template <typename T>
 struct Stack
 {
 
-	SHMINLINE Stack() : count(0), data(0), flags(0), allocation_tag((uint16)AllocationTag::DARRAY) {};
-	SHMINLINE Stack(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::DARRAY, void* memory = 0);
+	SHMINLINE Stack() : count(0), data(0), flags(0), allocation_tag((uint16)AllocationTag::DArray) {};
+	SHMINLINE Stack(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::DArray, void* memory = 0);
 	SHMINLINE ~Stack();
 
 	SHMINLINE Stack(const Stack& other);
@@ -30,7 +30,7 @@ struct Stack
 	SHMINLINE Stack& operator=(Stack&& other);
 
 	// NOTE: Call for already instantiated arrays
-	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::DARRAY, void* memory = 0);
+	SHMINLINE void init(uint32 reserve_count, uint32 creation_flags, AllocationTag tag = AllocationTag::DArray, void* memory = 0);
 	SHMINLINE void free_data();
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * sizeof(T); }

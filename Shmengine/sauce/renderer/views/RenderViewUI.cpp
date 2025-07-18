@@ -29,7 +29,7 @@ struct RenderViewUIInternalData {
 bool32 render_view_ui_on_create(RenderView* self)
 {
 		
-	self->internal_data.init(sizeof(RenderViewUIInternalData), 0, AllocationTag::RENDERER);
+	self->internal_data.init(sizeof(RenderViewUIInternalData), 0, AllocationTag::Renderer);
 	RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
 
 	internal_data->ui_shader_u_locations.diffuse_texture = Constants::max_u16;

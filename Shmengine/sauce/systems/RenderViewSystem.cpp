@@ -57,11 +57,11 @@ namespace RenderViewSystem
 
 		uint64 view_array_size = system_state->views.get_external_size_requirement(sys_config->max_view_count);
 		void* view_array_data = allocator_callback(allocator, view_array_size);
-		system_state->views.init(sys_config->max_view_count, 0, AllocationTag::ARRAY, view_array_data);
+		system_state->views.init(sys_config->max_view_count, 0, AllocationTag::Array, view_array_data);
 
 		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_view_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup_table.init(sys_config->max_view_count, HashtableRHFlag::ExternalMemory, AllocationTag::UNKNOWN, hashtable_data);
+		system_state->lookup_table.init(sys_config->max_view_count, HashtableRHFlag::ExternalMemory, AllocationTag::Unknown, hashtable_data);
 
 		for (uint32 i = 0; i < system_state->views.capacity; i++)
 			system_state->views[i].id.invalidate();
@@ -134,7 +134,7 @@ namespace RenderViewSystem
 		view->on_destroy = config->on_destroy;
 		view->on_regenerate_attachment_target = config->on_regenerate_attachment_target;
 
-		view->renderpasses.init(config->renderpass_count, 0, AllocationTag::RENDERER);
+		view->renderpasses.init(config->renderpass_count, 0, AllocationTag::Renderer);
 		for (uint32 pass_i = 0; pass_i < view->renderpasses.capacity; pass_i++)
 		{
 			if (!Renderer::renderpass_create(&config->renderpass_configs[pass_i], &view->renderpasses[pass_i]))
@@ -145,9 +145,9 @@ namespace RenderViewSystem
 			}
 		}
 
-		view->geometries.init(1, 0, AllocationTag::RENDERER);
-		view->instances.init(1, 0, AllocationTag::RENDERER);
-		view->objects.init(1, 0, AllocationTag::RENDERER);
+		view->geometries.init(1, 0, AllocationTag::Renderer);
+		view->instances.init(1, 0, AllocationTag::Renderer);
+		view->objects.init(1, 0, AllocationTag::Renderer);
 
 		if (!view->on_create(view))
 		{

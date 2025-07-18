@@ -51,7 +51,7 @@ struct RenderViewPickInternalData {
 bool32 render_view_pick_on_create(RenderView* self)
 {
 
-	self->internal_data.init(sizeof(RenderViewPickInternalData), 0, AllocationTag::RENDERER);
+	self->internal_data.init(sizeof(RenderViewPickInternalData), 0, AllocationTag::Renderer);
 	RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 
 	internal_data->world_view = RenderViewSystem::get("Builtin.World");

@@ -15,7 +15,7 @@ namespace Memory
 		owns_memory = memory == 0;
 
 		if (owns_memory)
-			memory = allocate_platform(size, AllocationTag::LINEAR_ALLOCATOR);
+			memory = allocate_platform(size, AllocationTag::LinearAllocator);
 	}
 
 	void LinearAllocator::destroy()

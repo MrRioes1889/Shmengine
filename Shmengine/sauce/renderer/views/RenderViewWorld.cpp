@@ -82,7 +82,7 @@ static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData
 bool32 render_view_world_on_create(RenderView* self)
 {
 
-	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::RENDERER);
+	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::Renderer);
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
 	internal_data->material_phong_u_locations.view = Constants::max_u16;
@@ -385,10 +385,10 @@ bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint
 
 	{
 		void* sorted_geometries_block = frame_data->frame_allocator.allocate(sizeof(RenderViewGeometryData) * self->geometries.count);
-		Darray<RenderViewGeometryData> sorted_geometries(self->geometries.count, 0, AllocationTag::RENDERER, sorted_geometries_block);
+		Darray<RenderViewGeometryData> sorted_geometries(self->geometries.count, 0, AllocationTag::Renderer, sorted_geometries_block);
 
 		void* transparent_geometries_block = frame_data->frame_allocator.allocate(sizeof(RenderViewGeometryData) * self->geometries.count);
-		Darray<GeometryDistance> transparent_geometries(self->geometries.count, 0, AllocationTag::RENDERER, transparent_geometries_block);
+		Darray<GeometryDistance> transparent_geometries(self->geometries.count, 0, AllocationTag::Renderer, transparent_geometries_block);
 
 		for (uint32 i = 0; i < self->geometries.count; i++)
 		{

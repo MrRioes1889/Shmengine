@@ -47,7 +47,7 @@ struct RenderViewWorldInternalData {
 bool32 render_view_world_editor_on_create(RenderView* self)
 {
 
-	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::RENDERER);
+	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::Renderer);
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
 	internal_data->color3D_shader_u_locations.view = Constants::max_u16;

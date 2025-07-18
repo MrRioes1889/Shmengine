@@ -114,13 +114,13 @@ namespace Renderer::Vulkan
 		VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, out_swapchain->handle, &image_count, 0));
 		if (!out_swapchain->render_textures.data)
 		{
-			out_swapchain->render_textures.init(image_count, 0, AllocationTag::RENDERER);
+			out_swapchain->render_textures.init(image_count, 0, AllocationTag::Renderer);
 			out_swapchain->depth_textures.free_data();
 
 			for (uint32 i = 0; i < out_swapchain->render_textures.capacity; i++)
 			{
 				uint64 allocation_size = sizeof(VulkanImage);
-				void* internal_data = Memory::allocate(allocation_size, AllocationTag::TEXTURE);
+				void* internal_data = Memory::allocate(allocation_size, AllocationTag::Texture);
 
 				char tex_name[] = "__internal_vulkan_swapchain_image_0__";
 				tex_name[34] = (char)('0' + i);
@@ -188,11 +188,11 @@ namespace Renderer::Vulkan
 			
 		if (!out_swapchain->depth_textures.data)
 		{
-			out_swapchain->depth_textures.init(image_count, 0, AllocationTag::RENDERER);
+			out_swapchain->depth_textures.init(image_count, 0, AllocationTag::Renderer);
 
 			for (uint32 i = 0; i < out_swapchain->depth_textures.capacity; i++)
 			{
-				VulkanImage* depth_image = (VulkanImage*)Memory::allocate(sizeof(VulkanImage), AllocationTag::RENDERER);
+				VulkanImage* depth_image = (VulkanImage*)Memory::allocate(sizeof(VulkanImage), AllocationTag::Renderer);
 
 				char tex_name[] = "__internal_vulkan_swapchain_depth_0__";
 				tex_name[34] = (char)('0' + i);

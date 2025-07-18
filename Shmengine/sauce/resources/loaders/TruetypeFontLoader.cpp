@@ -116,7 +116,7 @@ namespace ResourceSystem
     {
 
         uint32 file_size = FileSystem::get_file_size32(ttf_file);
-        out_data->binary_data.init(file_size, 0, AllocationTag::TRUETYPE_FONT);
+        out_data->binary_data.init(file_size, 0, AllocationTag::Resource);
         uint32 bytes_read = 0;
         if (!FileSystem::read_all_bytes(ttf_file, out_data->binary_data.data, (uint32)out_data->binary_data.size, &bytes_read))
         {
@@ -190,7 +190,7 @@ namespace ResourceSystem
         CString::copy(file_header->face, out_data->face, sizeof(out_data->face));
 
         check_buffer_size(file_header->binary_size);
-        out_data->binary_data.init(file_header->binary_size, 0, AllocationTag::TRUETYPE_FONT);
+        out_data->binary_data.init(file_header->binary_size, 0, AllocationTag::Resource);
         out_data->binary_data.copy_memory(&read_ptr[read_bytes], file_header->binary_size, 0);
         read_bytes += file_header->binary_size;
 

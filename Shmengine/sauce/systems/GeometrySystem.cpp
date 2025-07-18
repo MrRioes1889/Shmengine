@@ -34,7 +34,7 @@ namespace GeometrySystem
 
         uint64 geometry_array_size = system_state->geometries.get_external_size_requirement(sys_config->max_geometry_count);
 		void* geometry_array_data = allocator_callback(allocator, geometry_array_size);
-        system_state->geometries.init(sys_config->max_geometry_count, 0, AllocationTag::ARRAY, geometry_array_data);
+        system_state->geometries.init(sys_config->max_geometry_count, 0, AllocationTag::Array, geometry_array_data);
 
         // Invalidate all geometries in the array.
         for (uint32 i = 0; i < system_state->geometries.capacity; ++i)

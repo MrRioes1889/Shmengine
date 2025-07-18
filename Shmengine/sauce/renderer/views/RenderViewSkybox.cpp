@@ -31,7 +31,7 @@ struct RenderViewSkyboxInternalData
 bool32 render_view_skybox_on_create(RenderView* self)
 {
 
-	self->internal_data.init(sizeof(RenderViewSkyboxInternalData), 0, AllocationTag::RENDERER);
+	self->internal_data.init(sizeof(RenderViewSkyboxInternalData), 0, AllocationTag::Renderer);
 	RenderViewSkyboxInternalData* internal_data = (RenderViewSkyboxInternalData*)self->internal_data.data;
 
 	internal_data->skybox_shader_u_locations.projection = Constants::max_u16;

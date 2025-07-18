@@ -169,7 +169,7 @@ namespace Renderer::Vulkan
 		{
 			if (!out_support_info->formats)
 				out_support_info->formats =
-				(VkSurfaceFormatKHR*)Memory::allocate(sizeof(VkSurfaceFormatKHR) * out_support_info->format_count, AllocationTag::RENDERER);
+				(VkSurfaceFormatKHR*)Memory::allocate(sizeof(VkSurfaceFormatKHR) * out_support_info->format_count, AllocationTag::Renderer);
 
 			VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &out_support_info->format_count, out_support_info->formats));
 		}
@@ -180,7 +180,7 @@ namespace Renderer::Vulkan
 		{
 			if (!out_support_info->present_modes)
 				out_support_info->present_modes =
-				(VkPresentModeKHR*)Memory::allocate(sizeof(VkPresentModeKHR) * out_support_info->present_mode_count, AllocationTag::RENDERER);
+				(VkPresentModeKHR*)Memory::allocate(sizeof(VkPresentModeKHR) * out_support_info->present_mode_count, AllocationTag::Renderer);
 
 			VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &out_support_info->present_mode_count, out_support_info->present_modes));
 		}
@@ -468,7 +468,7 @@ namespace Renderer::Vulkan
 					return false;
 				}
 				available_extensions =
-					(VkExtensionProperties*)Memory::allocate(sizeof(VkExtensionProperties) * available_extension_count, AllocationTag::RENDERER);
+					(VkExtensionProperties*)Memory::allocate(sizeof(VkExtensionProperties) * available_extension_count, AllocationTag::Renderer);
 				VK_CHECK(vkEnumerateDeviceExtensionProperties(device, 0, &available_extension_count, available_extensions));
 
 				for (uint32 i = 0; i < required_extension_count; i++)

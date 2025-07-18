@@ -43,17 +43,17 @@ struct HashtableOA
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * sizeof(ObjectT); }
 
-	SHMINLINE HashtableOA(uint32 count, HashtableOAFlag::Value creation_flags, AllocationTag tag = AllocationTag::DICT)
+	SHMINLINE HashtableOA(uint32 count, HashtableOAFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict)
 	{
 		init(count, creation_flags, tag);
 	}
 
 	SHMINLINE HashtableOA(uint32 count, HashtableOAFlag::Value creation_flags, void* memory)
 	{
-		init(count, creation_flags, AllocationTag::DICT, memory);
+		init(count, creation_flags, AllocationTag::Dict, memory);
 	}
 
-	SHMINLINE void init(uint32 count, HashtableOAFlag::Value creation_flags, AllocationTag tag = AllocationTag::DICT, void* memory = 0)
+	SHMINLINE void init(uint32 count, HashtableOAFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
 		SHMASSERT_MSG(count, "Element count cannot be null!");
 
@@ -149,12 +149,12 @@ struct HashtableCH
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 hashed_count, uint32 collision_buffer_count) { return (hashed_count + collision_buffer_count) * (sizeof(ObjectT) + sizeof(KeyNode)); }
 
-	SHMINLINE HashtableCH(uint32 count, uint32 collision_buffer_count, HashtableCHFlag::Value creation_flags, AllocationTag tag = AllocationTag::DICT, void* memory = 0)
+	SHMINLINE HashtableCH(uint32 count, uint32 collision_buffer_count, HashtableCHFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
 		init(count, collision_buffer_count, creation_flags, tag, memory);
 	}
 
-	SHMINLINE void init(uint32 count, uint32 collision_buffer_count, HashtableCHFlag::Value creation_flags, AllocationTag tag = AllocationTag::DICT, void* memory = 0)
+	SHMINLINE void init(uint32 count, uint32 collision_buffer_count, HashtableCHFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
 		SHMASSERT_MSG(count, "Element count cannot be null!");
 
@@ -328,12 +328,12 @@ struct HashtableRH
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * (sizeof(KeyNode) + sizeof(ObjectT)); }
 
-	SHMINLINE HashtableRH(uint32 count, HashtableRHFlag::Value creation_flags, AllocationTag tag = AllocationTag::DICT, void* memory = 0)
+	SHMINLINE HashtableRH(uint32 count, HashtableRHFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
 		init(count, creation_flags, tag);
 	}
 
-	void init(uint32 count, HashtableRHFlag::Value creation_flags, AllocationTag tag = AllocationTag::DICT, void* memory = 0)
+	void init(uint32 count, HashtableRHFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
 		SHMASSERT_MSG(count, "Element count cannot be null!");
 

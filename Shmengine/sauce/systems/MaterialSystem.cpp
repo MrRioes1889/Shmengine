@@ -52,11 +52,11 @@ namespace MaterialSystem
 
         uint64 material_array_size = system_state->materials.get_external_size_requirement(sys_config->max_material_count);
         void* material_array_data = allocator_callback(allocator, material_array_size);
-        system_state->materials.init(sys_config->max_material_count, 0, AllocationTag::ARRAY, material_array_data);
+        system_state->materials.init(sys_config->max_material_count, 0, AllocationTag::Array, material_array_data);
 
         uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_material_count);
         void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-        system_state->lookup_table.init(sys_config->max_material_count, HashtableRHFlag::ExternalMemory, AllocationTag::DICT, hashtable_data);
+        system_state->lookup_table.init(sys_config->max_material_count, HashtableRHFlag::ExternalMemory, AllocationTag::Dict, hashtable_data);
 
         // Invalidate all materials in the array.
         for (uint32 i = 0; i < system_state->materials.capacity; ++i) {
@@ -253,7 +253,7 @@ namespace MaterialSystem
         if (m->type == MaterialType::PHONG)
         {
             m->properties_size = sizeof(MaterialPhongProperties);
-            m->properties = Memory::allocate(m->properties_size, AllocationTag::MATERIAL_INSTANCE);
+            m->properties = Memory::allocate(m->properties_size, AllocationTag::MaterialInstance);
             MaterialPhongProperties* properties = (MaterialPhongProperties*)m->properties;
 
             for (uint32 i = 0; i < config->properties_count; i++)
@@ -323,7 +323,7 @@ namespace MaterialSystem
         else if (m->type == MaterialType::UI)
         {
             m->properties_size = sizeof(MaterialUIProperties);
-            m->properties = Memory::allocate(m->properties_size, AllocationTag::MATERIAL_INSTANCE);
+            m->properties = Memory::allocate(m->properties_size, AllocationTag::MaterialInstance);
             MaterialUIProperties* properties = (MaterialUIProperties*)m->properties;
 
             for (uint32 i = 0; i < config->properties_count; i++)
@@ -444,7 +444,7 @@ namespace MaterialSystem
         Texture* default_textures[3] = { TextureSystem::get_default_diffuse_texture(), TextureSystem::get_default_specular_texture(), TextureSystem::get_default_normal_texture() };
         const uint32 maps_count = 3;
         static TextureMap default_maps[maps_count] = {};
-        mat->maps.init(maps_count, SarrayFlags::ExternalMemory, AllocationTag::MATERIAL_INSTANCE, default_maps);
+        mat->maps.init(maps_count, SarrayFlags::ExternalMemory, AllocationTag::MaterialInstance, default_maps);
         for (uint32 i = 0; i < mat->maps.capacity; i++)
         {
             mat->maps[i].filter_minify = mat->maps[i].filter_magnify = TextureFilter::LINEAR;
@@ -480,7 +480,7 @@ namespace MaterialSystem
 
         const uint32 maps_count = 1;
         static TextureMap default_maps[maps_count] = {};
-        mat->maps.init(maps_count, SarrayFlags::ExternalMemory, AllocationTag::MATERIAL_INSTANCE, default_maps);
+        mat->maps.init(maps_count, SarrayFlags::ExternalMemory, AllocationTag::MaterialInstance, default_maps);
         for (uint32 i = 0; i < mat->maps.capacity; i++)
         {
             mat->maps[i].filter_minify = mat->maps[i].filter_magnify = TextureFilter::LINEAR;

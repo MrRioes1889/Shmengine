@@ -16,8 +16,8 @@ namespace BufferFlags
 
 struct SHMAPI Buffer
 {
-	Buffer() : size(0), flags(0), data(0), allocation_tag((uint16)AllocationTag::UNKNOWN) {};
-	Buffer(uint32 reserve_size, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
+	Buffer() : size(0), flags(0), data(0), allocation_tag((uint16)AllocationTag::Unknown) {};
+	Buffer(uint32 reserve_size, uint32 creation_flags, AllocationTag tag = AllocationTag::Unknown, void* memory = 0);
 	~Buffer();
 
 	SHMINLINE Buffer(const Buffer& other);
@@ -62,7 +62,7 @@ struct SHMAPI Buffer
 	}
 
 	// NOTE: Call for already instantiated arrays
-	void init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag = AllocationTag::UNKNOWN, void* memory = 0);
+	void init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag = AllocationTag::Unknown, void* memory = 0);
 	void free_data();
 
 	void resize(uint64 new_size, void* memory = 0);

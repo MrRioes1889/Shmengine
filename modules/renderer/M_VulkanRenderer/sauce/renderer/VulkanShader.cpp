@@ -29,7 +29,7 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::RENDERER);
+		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::Renderer);
 
 		VkShaderStageFlags vk_stages[RendererConfig::shader_max_stages];
 		for (uint8 i = 0; i < config->stages_count; ++i) {
@@ -326,13 +326,13 @@ namespace Renderer::Vulkan
 		pipeline_topologies[(uint32)VulkanTopologyCLass::TRIANGLE] |= RenderTopologyTypeFlags::TriangleFan;
 
 		if (shader->topologies & RenderTopologyTypeFlags::PointList)
-			v_shader->pipelines[(uint32)VulkanTopologyCLass::POINT] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
+			v_shader->pipelines[(uint32)VulkanTopologyCLass::POINT] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::Renderer);
 
 		if (shader->topologies & RenderTopologyTypeFlags::LineList || shader->topologies & RenderTopologyTypeFlags::LineStrip)
-			v_shader->pipelines[(uint32)VulkanTopologyCLass::LINE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
+			v_shader->pipelines[(uint32)VulkanTopologyCLass::LINE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::Renderer);
 
 		if (shader->topologies & RenderTopologyTypeFlags::TriangleList || shader->topologies & RenderTopologyTypeFlags::TriangleStrip || shader->topologies & RenderTopologyTypeFlags::TriangleFan)
-			v_shader->pipelines[(uint32)VulkanTopologyCLass::TRIANGLE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::RENDERER);
+			v_shader->pipelines[(uint32)VulkanTopologyCLass::TRIANGLE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::Renderer);
 
 		v_shader->bound_pipeline_id = Constants::max_u32;
 		for (uint32 i = 0; i < v_shader->pipelines.capacity; i++)

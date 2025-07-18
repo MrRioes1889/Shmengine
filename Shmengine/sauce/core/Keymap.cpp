@@ -32,7 +32,7 @@ namespace Input
 			}
 		}
 
-		KeymapBinding* new_entry = (KeymapBinding*)Memory::allocate(sizeof(KeymapBinding), AllocationTag::UNKNOWN);
+		KeymapBinding* new_entry = (KeymapBinding*)Memory::allocate(sizeof(KeymapBinding), AllocationTag::Unknown);
 		new_entry->callback = callback;
 		new_entry->modifiers = modifiers;
 		new_entry->type = type;

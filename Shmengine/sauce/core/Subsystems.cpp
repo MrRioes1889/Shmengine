@@ -270,10 +270,8 @@ namespace SubsystemManager
 
 		FontSystem::SystemConfig font_sys_config;
 		font_sys_config.auto_release = false;
-		font_sys_config.default_bitmap_font_count = 0;
-		font_sys_config.default_truetype_font_count = 0;
-		font_sys_config.max_bitmap_font_config_count = 15;
-		font_sys_config.max_truetype_font_config_count = 15;
+		font_sys_config.max_bitmap_font_count = 15;
+		font_sys_config.max_truetype_font_count = 15;
 
 		if (!register_system(SubsystemType::FONT_SYSTEM, FontSystem::system_init, FontSystem::system_shutdown, 0, &font_sys_config))
 		{

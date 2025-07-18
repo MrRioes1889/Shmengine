@@ -108,11 +108,11 @@ namespace ResourceSystem
             }
         }
 
-        out_resource->skyboxes.init(skyboxes_count, 0, AllocationTag::RESOURCE);
-        out_resource->meshes.init(meshes_count, 0, AllocationTag::RESOURCE);
-        out_resource->terrains.init(terrains_count, 0, AllocationTag::RESOURCE);
-        out_resource->dir_lights.init(dir_lights_count, 0, AllocationTag::RESOURCE);
-        out_resource->point_lights.init(point_lights_count, 0, AllocationTag::RESOURCE);
+        out_resource->skyboxes.init(skyboxes_count, 0, AllocationTag::Resource);
+        out_resource->meshes.init(meshes_count, 0, AllocationTag::Resource);
+        out_resource->terrains.init(terrains_count, 0, AllocationTag::Resource);
+        out_resource->dir_lights.init(dir_lights_count, 0, AllocationTag::Resource);
+        out_resource->point_lights.init(point_lights_count, 0, AllocationTag::Resource);
 
         uint32 dir_light_i = Constants::max_u32;
         uint32 point_light_i = Constants::max_u32;

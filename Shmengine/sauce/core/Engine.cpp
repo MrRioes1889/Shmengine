@@ -266,14 +266,14 @@ namespace Engine
 		
 		app_inst->state = 0;
 		if (app_config->state_size)
-			app_inst->state = Memory::allocate(app_config->state_size, AllocationTag::APPLICATION);
+			app_inst->state = Memory::allocate(app_config->state_size, AllocationTag::Application);
 
 		uint64 frame_allocator_size = mebibytes(32);
-		void* f_data = Memory::allocate(frame_allocator_size, AllocationTag::ENGINE);
+		void* f_data = Memory::allocate(frame_allocator_size, AllocationTag::Engine);
 		engine_state.frame_data.frame_allocator.init(frame_allocator_size, f_data);
 
 		if (app_config->app_frame_data_size)
-			engine_state.frame_data.app_data = Memory::allocate(app_config->app_frame_data_size, AllocationTag::APPLICATION);
+			engine_state.frame_data.app_data = Memory::allocate(app_config->app_frame_data_size, AllocationTag::Application);
 
 		app_inst->is_suspended = false;
 		app_inst->name = app_config->name;

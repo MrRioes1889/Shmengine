@@ -111,7 +111,7 @@ namespace ResourceSystem
             return false;
         }
 
-        out_resource->geometries.init(1, 0, AllocationTag::RESOURCE);
+        out_resource->geometries.init(1, 0, AllocationTag::Resource);
 
         bool32 res = false;
         switch (file_type)

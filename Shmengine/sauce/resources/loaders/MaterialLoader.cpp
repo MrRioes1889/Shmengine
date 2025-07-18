@@ -259,8 +259,8 @@ namespace ResourceSystem
 		CString::copy(name, out_resource->name, Constants::max_material_name_length);
 
         out_resource->type = MaterialType::PHONG;
-        out_resource->maps.init(3, 0, AllocationTag::RESOURCE);
-        out_resource->properties.init(10, 0, AllocationTag::RESOURCE);
+        out_resource->maps.init(3, 0, AllocationTag::Resource);
+        out_resource->properties.init(10, 0, AllocationTag::Resource);
 
         uint32 file_size = FileSystem::get_file_size32(&f);
         String file_content(file_size + 1);

@@ -57,7 +57,7 @@ namespace Renderer
 		system_state->frames_since_resize = 0;
 
 		uint64 context_size_req = system_state->module.get_context_size_requirement();
-		system_state->module_context = Memory::allocate(context_size_req, AllocationTag::RENDERER);
+		system_state->module_context = Memory::allocate(context_size_req, AllocationTag::Renderer);
 
 		ModuleConfig backend_config = {};
 		backend_config.application_name = sys_config->application_name;
@@ -239,7 +239,7 @@ namespace Renderer
 		}
 
 		out_renderpass->name = config->name;
-		out_renderpass->render_targets.init(config->render_target_count, 0, AllocationTag::RENDERER);
+		out_renderpass->render_targets.init(config->render_target_count, 0, AllocationTag::Renderer);
 		out_renderpass->clear_flags = config->clear_flags;
 		out_renderpass->clear_color = config->clear_color;
 		out_renderpass->dim = config->dim;
@@ -247,7 +247,7 @@ namespace Renderer
 		for (uint32 t = 0; t < out_renderpass->render_targets.capacity; t++)
 		{
 			RenderTarget* target = &out_renderpass->render_targets[t];
-			target->attachments.init(config->target_config.attachment_count, 0, AllocationTag::RENDERER);
+			target->attachments.init(config->target_config.attachment_count, 0, AllocationTag::Renderer);
 
 			for (uint32 a = 0; a < target->attachments.capacity; a++)
 			{
@@ -458,9 +458,9 @@ namespace Renderer
 		shader->bound_instance_id = Constants::max_u32;
 		shader->last_update_frame_number = Constants::max_u8;
 
-		shader->global_texture_maps.init(1, 0, AllocationTag::RENDERER);
-		shader->uniforms.init(1, 0, AllocationTag::RENDERER);
-		shader->attributes.init(1, 0, AllocationTag::RENDERER);
+		shader->global_texture_maps.init(1, 0, AllocationTag::Renderer);
+		shader->uniforms.init(1, 0, AllocationTag::Renderer);
+		shader->attributes.init(1, 0, AllocationTag::Renderer);
 
 		shader->uniform_lookup.init(1024, 0);
 		shader->uniform_lookup.floodfill(Constants::max_u16);
@@ -627,7 +627,7 @@ namespace Renderer
 		ShaderInstance* instance = &s->instances[*out_instance_id];
 
 		if (texture_maps_count)
-			instance->instance_texture_maps.init(texture_maps_count, true, AllocationTag::RENDERER);
+			instance->instance_texture_maps.init(texture_maps_count, true, AllocationTag::Renderer);
 
 		// Allocate some space in the UBO - by the stride, not the size.
 		uint64 size = s->ubo_stride;
@@ -700,7 +700,7 @@ namespace Renderer
 				freelist_nodes_count = 10000;
 
 			uint64 freelist_nodes_size = Freelist::get_required_nodes_array_memory_size_by_node_count(freelist_nodes_count);
-			out_buffer->freelist_data.init(freelist_nodes_size, 0, AllocationTag::RENDERER);
+			out_buffer->freelist_data.init(freelist_nodes_size, 0, AllocationTag::Renderer);
 			out_buffer->freelist.init(size, out_buffer->freelist_data.data, freelist_page_size, freelist_nodes_count);
 		}
 

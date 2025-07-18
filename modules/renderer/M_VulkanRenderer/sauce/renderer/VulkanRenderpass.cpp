@@ -12,7 +12,7 @@ namespace Renderer::Vulkan
 	bool32 vk_renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass)
 	{
 
-		out_renderpass->internal_data.init(sizeof(VulkanRenderpass), 0, AllocationTag::RENDERER);
+		out_renderpass->internal_data.init(sizeof(VulkanRenderpass), 0, AllocationTag::Renderer);
 		VulkanRenderpass* v_renderpass = (VulkanRenderpass*)out_renderpass->internal_data.data;
 
 		v_renderpass->depth = config->depth;

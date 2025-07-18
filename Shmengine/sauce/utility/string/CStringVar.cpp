@@ -2,6 +2,7 @@
 
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
+#include "utility/String.hpp"
 
 namespace CString
 {
@@ -569,19 +570,19 @@ namespace CString
 					format++;
 					break;
 				}
-				/*case 's':
+				case 's':
 				{
-					if (args[ptr_i].type != Arg::Type::CHAR_PTR)
+					if (args[ptr_i].type != Arg::Type::STRING_PTR)
 					{
 						SHMERROR("string_scan: Provided arguments do not match format!");
 						return false;
 					}
 
-					CString::copy(parse_buffer, parse_buffer_size, args[ptr_i++].char_buffer);
+					(*args[ptr_i++].string_ptr) = parse_buffer;
 
 					format++;
 					break;
-				}*/
+				}
 				}
 
 				if (!valid_format)
@@ -803,8 +804,8 @@ namespace CString
 			case 's':
 			{
 
-				args[arg_count].char_buffer = (char*)va_arg(arg_ptr, char*);
-				args[arg_count++].type = Arg::Type::CHAR_PTR;
+				args[arg_count].string_ptr = (String*)va_arg(arg_ptr, char*);
+				args[arg_count++].type = Arg::Type::STRING_PTR;
 
 				temp_format_ptr++;
 				break;

@@ -224,8 +224,8 @@ namespace Renderer::Vulkan
 
 		create_command_buffers();
 
-		context->image_available_semaphores.init(context->swapchain.max_frames_in_flight, 0, AllocationTag::RENDERER);
-		context->queue_complete_semaphores.init(context->swapchain.max_frames_in_flight, 0, AllocationTag::RENDERER);
+		context->image_available_semaphores.init(context->swapchain.max_frames_in_flight, 0, AllocationTag::Renderer);
+		context->queue_complete_semaphores.init(context->swapchain.max_frames_in_flight, 0, AllocationTag::Renderer);
 
 		for (uint32 i = 0; i < context->swapchain.max_frames_in_flight; i++)
 		{
@@ -238,7 +238,7 @@ namespace Renderer::Vulkan
 			VK_CHECK(vkCreateFence(context->device.logical_device, &fence_create_info, context->allocator_callbacks, &context->framebuffer_fences[i]));
 		}
 
-		context->end_of_frame_task_queue.init(100, 0, AllocationTag::RENDERER);
+		context->end_of_frame_task_queue.init(100, 0, AllocationTag::Renderer);
 
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;
@@ -473,7 +473,7 @@ namespace Renderer::Vulkan
 
 	static void _texture_create(Texture* texture, VkFormat image_format)
 	{
-		texture->internal_data.init(sizeof(VulkanImage), 0, AllocationTag::TEXTURE);
+		texture->internal_data.init(sizeof(VulkanImage), 0, AllocationTag::Texture);
 		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 
 		VkImageUsageFlags usage = 0;
@@ -650,7 +650,7 @@ namespace Renderer::Vulkan
 	{
 		if (!context->graphics_command_buffers.data)
 		{
-			context->graphics_command_buffers.init(context->swapchain.render_textures.capacity, 0, AllocationTag::RENDERER);
+			context->graphics_command_buffers.init(context->swapchain.render_textures.capacity, 0, AllocationTag::Renderer);
 			for (uint32 i = 0; i < context->graphics_command_buffers.capacity; i++)
 				context->graphics_command_buffers[i] = {};
 		}
@@ -740,7 +740,7 @@ namespace Renderer::Vulkan
 		if (!size)
 			return 0;
 
-		void* ret = Memory::allocate(size, AllocationTag::VULKAN, (uint16)alignment);
+		void* ret = Memory::allocate(size, AllocationTag::Vulkan, (uint16)alignment);
 		if (!ret)
 		{
 			ALLOC_ERROR("VulkanAlloc: Failed to allocate memory block.");
@@ -786,18 +786,18 @@ namespace Renderer::Vulkan
 	static void vkInternalAllocationNotification_callback(void* user_data, size_t size, VkInternalAllocationType type, VkSystemAllocationScope scope)
 	{
 		ALLOC_TRACEV("VulkanAlloc: External allocation: size=%lu.", size);
-		Memory::track_external_allocation(size, AllocationTag::VULKAN_EXT);
+		Memory::track_external_allocation(size, AllocationTag::VulkanExt);
 	}
 
 	static void vkInternalFreeNotification_callback(void* user_data, size_t size, VkInternalAllocationType type, VkSystemAllocationScope scope)
 	{
 		ALLOC_TRACEV("VulkanAlloc: External free: size=%lu.", size);
-		Memory::track_external_free(size, AllocationTag::VULKAN_EXT);
+		Memory::track_external_free(size, AllocationTag::VulkanExt);
 	}
 
 	static void create_vulkan_allocator(VkAllocationCallbacks*& callbacks)
 	{
-		callbacks = (VkAllocationCallbacks*)Memory::allocate(sizeof(VkAllocationCallbacks), AllocationTag::VULKAN);
+		callbacks = (VkAllocationCallbacks*)Memory::allocate(sizeof(VkAllocationCallbacks), AllocationTag::Vulkan);
 		callbacks->pfnAllocation = vkAllocationFunction_callback;
 		callbacks->pfnFree = vkFreeFunction_callback;
 		callbacks->pfnReallocation = vkReallocationFunction_callback;

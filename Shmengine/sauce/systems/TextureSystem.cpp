@@ -65,11 +65,11 @@ namespace TextureSystem
 
 		uint64 texture_array_size = system_state->textures.get_external_size_requirement(sys_config->max_texture_count);
 		void* texture_array_data = allocator_callback(allocator, texture_array_size);
-		system_state->textures.init(sys_config->max_texture_count, 0, AllocationTag::ARRAY, texture_array_data);
+		system_state->textures.init(sys_config->max_texture_count, 0, AllocationTag::Array, texture_array_data);
 
 		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_texture_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup_table.init(sys_config->max_texture_count, HashtableOAFlag::ExternalMemory, AllocationTag::DICT, hashtable_data);
+		system_state->lookup_table.init(sys_config->max_texture_count, HashtableOAFlag::ExternalMemory, AllocationTag::Dict, hashtable_data);
 
 		for (uint32 i = 0; i < sys_config->max_texture_count; i++)
 			system_state->textures[i].id.invalidate();
@@ -209,7 +209,7 @@ namespace TextureSystem
 			if (out_texture)
 				t = out_texture;
 			else
-				t = (Texture*)Memory::allocate(sizeof(Texture), AllocationTag::TEXTURE);
+				t = (Texture*)Memory::allocate(sizeof(Texture), AllocationTag::Texture);
 
 			SHMTRACEV("wrap_internal created texture '%s', but not registering, resulting in an allocation. It is up to the caller to free this memory.", name);
 		}
@@ -224,7 +224,7 @@ namespace TextureSystem
 		t->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
 		t->flags |= TextureFlags::IsWritable;
 		t->flags |= TextureFlags::IsWrapped;
-		t->internal_data.init(internal_data_size, 0, AllocationTag::TEXTURE, internal_data);
+		t->internal_data.init(internal_data_size, 0, AllocationTag::Texture, internal_data);
 
 		return true;
 
@@ -232,7 +232,7 @@ namespace TextureSystem
 
 	bool8 set_internal(Texture* t, void* internal_data, uint64 internal_data_size)
 	{	
-		t->internal_data.init(internal_data_size, 0, AllocationTag::TEXTURE, internal_data);
+		t->internal_data.init(internal_data_size, 0, AllocationTag::Texture, internal_data);
 		return true;
 	}
 
@@ -341,8 +341,10 @@ namespace TextureSystem
 
 	static bool32 texture_load_job_start(void* params, void* results)
 	{
+		Memory::copy_memory(params, results, sizeof(TextureLoadParams));
+		Memory::zero_memory(params, sizeof(TextureLoadParams));
 
-		TextureLoadParams* load_params = (TextureLoadParams*)params;
+		TextureLoadParams* load_params = (TextureLoadParams*)results;
 
 		ImageResourceParams resource_params;
 		resource_params.flip_y = true;
@@ -378,9 +380,7 @@ namespace TextureSystem
 		load_params->temp_texture.flags = 0;
 		load_params->temp_texture.flags |= has_transparency ? TextureFlags::HasTransparency : 0;
 
-		Memory::copy_memory(load_params, results, sizeof(TextureLoadParams));
-		Memory::zero_memory(load_params, sizeof(TextureLoadParams));
-
+		
 		return true;
 
 	}
@@ -391,7 +391,7 @@ namespace TextureSystem
 		JobSystem::JobInfo job = JobSystem::job_create(texture_load_job_start, texture_load_on_success, texture_load_on_failure, sizeof(TextureLoadParams), sizeof(TextureLoadParams));
 		TextureLoadParams* params = (TextureLoadParams*)job.params;
 		uint32 name_length = CString::length(texture_name);
-		params->resource_name = (char*)Memory::allocate(name_length + 1, AllocationTag::STRING);
+		params->resource_name = (char*)Memory::allocate(name_length + 1, AllocationTag::String);
 		CString::copy(texture_name, params->resource_name, name_length + 1);
 		params->out_texture = t;
 		params->config = {};
@@ -429,7 +429,7 @@ namespace TextureSystem
 				CString::copy(texture_names[i], t->name, Constants::max_texture_name_length);
 
 				image_size = t->width * t->height * t->channel_count;
-				pixels.init(image_size * 6, 0, AllocationTag::TEXTURE);			
+				pixels.init(image_size * 6, 0, AllocationTag::Texture);			
 			}
 			else
 			{

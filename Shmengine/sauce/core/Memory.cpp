@@ -71,8 +71,8 @@ namespace Memory
             return false;
         }
 
-        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, 0, system_state->config.total_allocation_size, AllocatorPageSize::TINY, AllocationTag::MAIN_MEMORY, 10000, 64);
-        init_buffer_and_allocator_pair(&system_state->string_memory, &system_state->string_allocator, &system_state->main_allocator, mebibytes(64), AllocatorPageSize::SMALL, AllocationTag::ALLOCATORS, 100000, 64);
+        init_buffer_and_allocator_pair(&system_state->main_memory, &system_state->main_allocator, 0, system_state->config.total_allocation_size, AllocatorPageSize::TINY, AllocationTag::MainMemory, 10000, 64);
+        init_buffer_and_allocator_pair(&system_state->string_memory, &system_state->string_allocator, &system_state->main_allocator, mebibytes(64), AllocatorPageSize::SMALL, AllocationTag::Allocators, 100000, 64);
 
         system_state->allocated_size = 0;
         system_state->allocation_count = 0;
@@ -187,7 +187,7 @@ namespace Memory
         if (!allocator)
         {
             ret = platform_allocate(size, alignment);
-            tag = AllocationTag::PLATFORM;
+            tag = AllocationTag::Platform;
         }         
         else
         {
@@ -227,7 +227,7 @@ namespace Memory
         if (!system_state || !allocator)
         {
             ret = platform_reallocate(size, block, alignment);
-            tag = AllocationTag::PLATFORM;
+            tag = AllocationTag::Platform;
         }        
         else
         {
@@ -260,7 +260,7 @@ namespace Memory
         if (!system_state || !allocator)
         {
             platform_free(block, aligned);
-            tag = AllocationTag::PLATFORM;
+            tag = AllocationTag::Platform;
         }          
         else
         {

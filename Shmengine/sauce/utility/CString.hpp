@@ -5,6 +5,8 @@
 #include "utility/Math.hpp"
 #include <stdarg.h>
 
+struct String;
+
 namespace CString
 {	
 
@@ -134,9 +136,7 @@ namespace CString
 	struct Arg
 	{
 
-		enum class Type { NONE, INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, FLOAT32, FLOAT64, CHAR, CHAR_PTR, FLOAT32_PTR, FLOAT64_PTR, INT8_PTR, INT16_PTR, INT32_PTR, INT64_PTR, UINT8_PTR, UINT16_PTR, UINT32_PTR, UINT64_PTR };
-	
-		Type type;
+		enum class Type { NONE, INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, FLOAT32, FLOAT64, CHAR, CHAR_PTR, STRING_PTR, FLOAT32_PTR, FLOAT64_PTR, INT8_PTR, INT16_PTR, INT32_PTR, INT64_PTR, UINT8_PTR, UINT16_PTR, UINT32_PTR, UINT64_PTR }; Type type;
 		union {
 			int8 int8_value[8];
 			int16 int16_value[4];
@@ -150,7 +150,7 @@ namespace CString
 			float64 float64_value;
 			char char_value[8];
 			const char* char_ptr;
-			char* char_buffer;
+			String* string_ptr;
 			float32* float32_ptr;
 			float64* float64_ptr;
 			int8* int8_ptr;
@@ -177,8 +177,8 @@ namespace CString
 		Arg(float64 value) : type(Type::FLOAT64) { float64_value = value; }
 		Arg(char value) : type(Type::CHAR) { char_value[0] = value; }
 
-		Arg(char* value) : type(Type::CHAR_PTR) { char_buffer = value; }
 		Arg(const char* value) : type(Type::CHAR_PTR) { char_ptr = value; }
+		Arg(String* value) : type(Type::STRING_PTR) { string_ptr = value; }
 		Arg(int8* value) : type(Type::INT8_PTR) { int8_ptr = value; }
 		Arg(int16* value) : type(Type::INT16_PTR) { int16_ptr = value; }
 		Arg(int32* value) : type(Type::INT32_PTR) { int32_ptr = value; }

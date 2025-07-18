@@ -69,7 +69,7 @@ namespace ResourceSystem
 			return false;
 		}
 
-		Buffer raw_data(file_size, 0, AllocationTag::RESOURCE);
+		Buffer raw_data(file_size, 0, AllocationTag::Resource);
 		uint32 bytes_read = 0;
 		if (!FileSystem::read_all_bytes(&f, raw_data.data, (uint32)raw_data.size, &bytes_read))
 		{

@@ -29,7 +29,7 @@ namespace ResourceSystem
         }
 
         uint32 file_size = FileSystem::get_file_size32(&f);
-        out_buffer->init(file_size, 0, AllocationTag::RESOURCE);
+        out_buffer->init(file_size, 0, AllocationTag::Resource);
         uint32 bytes_read = 0;
         if (!FileSystem::read_all_bytes(&f, out_buffer->data, (uint32)out_buffer->size, &bytes_read))
         {
