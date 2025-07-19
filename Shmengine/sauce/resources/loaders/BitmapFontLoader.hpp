@@ -6,12 +6,11 @@
 
 struct FontGlyph;
 struct FontKerning;
-struct BitmapFontConfig;
+struct FontConfig;
 
 struct BitmapFontResourceData 
 {
 	String face_name;
-	String texture_name;
 	uint16 font_size;
 	uint16 line_height;
 	int16 baseline;
@@ -20,13 +19,14 @@ struct BitmapFontResourceData
 	float32 tab_x_advance;
 	Sarray<FontGlyph> glyphs;
 	Sarray<FontKerning> kernings;
+	String texture_name;
 };
 
 namespace ResourceSystem
 {
 	//ResourceLoader bitmap_font_resource_loader_create();
-	bool32 bitmap_font_loader_load(const char* name, void* params, BitmapFontResourceData* out_resource);
+	bool32 bitmap_font_loader_load(const char* name, BitmapFontResourceData* out_resource);
 	void bitmap_font_loader_unload(BitmapFontResourceData* resource);
 
-	BitmapFontConfig bitmap_font_loader_get_config_from_resource(BitmapFontResourceData* resource);
+	FontConfig bitmap_font_loader_get_config_from_resource(BitmapFontResourceData* resource);
 }

@@ -78,11 +78,8 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
 	if (config->heightmap_name)
 	{
-		ImageResourceParams image_load_params = {};
-		image_load_params.flip_y = false;
-
 		ImageConfig image_config = {};
-		if (!ResourceSystem::image_loader_load(config->heightmap_name, &image_load_params, &image_config))
+		if (!ResourceSystem::image_loader_load(config->heightmap_name, false, &image_config))
 		{
 			SHMERROR("Failed to load heightmap for terrain!");
 			return false;
@@ -183,7 +180,7 @@ bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrai
     out_terrain->state = ResourceState::Initializing;
 
     TerrainResourceData resource = {};
-    if (!ResourceSystem::terrain_loader_load(resource_name, 0, &resource))
+    if (!ResourceSystem::terrain_loader_load(resource_name, &resource))
     {
         SHMERRORV("Failed to load terrain from resource '%s'", resource_name);
         out_terrain->state = ResourceState::Uninitialized;

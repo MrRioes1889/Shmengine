@@ -67,7 +67,7 @@ bool32 mesh_init_from_resource(const char* resource_name, Mesh* out_mesh)
     out_mesh->state = ResourceState::Initializing;
 
     MeshResourceData resource = {};
-    if (!ResourceSystem::mesh_loader_load(resource_name, 0, &resource))
+    if (!ResourceSystem::mesh_loader_load(resource_name, &resource))
     {
         SHMERRORV("Failed to load mesh from resource '%s'", resource_name);
         out_mesh->state = ResourceState::Uninitialized;

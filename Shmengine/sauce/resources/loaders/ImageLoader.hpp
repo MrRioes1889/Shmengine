@@ -10,13 +10,9 @@ struct ImageConfig
 	uint8* pixels;
 };
 
-struct ImageResourceParams {
-	bool8 flip_y;
-};
-
 namespace ResourceSystem
 {
-	bool32 image_loader_load(const char* name, void* params, ImageConfig* out_config);
+	bool32 image_loader_load(const char* name, bool8 flip_y, ImageConfig* out_config);
 	void image_loader_unload(ImageConfig* config);
 }
 

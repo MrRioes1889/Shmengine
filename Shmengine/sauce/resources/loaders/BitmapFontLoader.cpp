@@ -47,7 +47,7 @@ namespace ResourceSystem
     static bool32 write_shmbmf_file(const char* shmbmf_filepath, const char* name, const BitmapFontResourceData* out_data);
     static bool32 load_shmbmf_file(FileSystem::FileHandle* shmbmf_file, const char* shmbmf_filepath, BitmapFontResourceData* out_data);
 
-    bool32 bitmap_font_loader_load(const char* name, void* params, BitmapFontResourceData* out_resource)
+    bool32 bitmap_font_loader_load(const char* name, BitmapFontResourceData* out_resource)
     {
 
         const char* format = "%s%s%s";
@@ -128,13 +128,11 @@ namespace ResourceSystem
         resource->texture_name.free_data();
     }
 
-    BitmapFontConfig bitmap_font_loader_get_config_from_resource(BitmapFontResourceData* resource)
+    FontConfig bitmap_font_loader_get_config_from_resource(BitmapFontResourceData* resource)
     {
-        BitmapFontConfig config =
+        FontConfig config =
         {
-            .face_name = resource->face_name.c_str(),
-            .texture_name = resource->texture_name.c_str(),
-            .type = FontType::BITMAP,
+            .type = FontType::Bitmap,
             .font_size = resource->font_size,
             .line_height = resource->line_height,
             .baseline = resource->baseline,
@@ -144,7 +142,10 @@ namespace ResourceSystem
             .glyphs_count = resource->glyphs.capacity,
             .kernings_count = resource->kernings.capacity,
             .glyphs = resource->glyphs.data,
-            .kernings = resource->kernings.data
+            .kernings = resource->kernings.data,
+            .texture_name = resource->texture_name.c_str(),
+            .texture_buffer_size = 0,
+            .texture_buffer = 0
         };
 
         return config;

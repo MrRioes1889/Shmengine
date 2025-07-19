@@ -169,7 +169,7 @@ namespace ShaderSystem
 	bool32 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass)
 	{
 		ShaderResourceData resource = {};
-		if (!ResourceSystem::shader_loader_load(resource_name, 0, &resource))
+		if (!ResourceSystem::shader_loader_load(resource_name, &resource))
 		{
 			SHMERROR("Failed to load world pick shader config.");
 			return false;

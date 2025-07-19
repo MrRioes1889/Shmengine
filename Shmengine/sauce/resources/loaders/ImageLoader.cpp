@@ -16,14 +16,12 @@ namespace ResourceSystem
 
 	static const char* loader_type_path = "textures/";
 
-	bool32 image_loader_load(const char* name, void* params, ImageConfig* out_config)
+	bool32 image_loader_load(const char* name, bool8 flip_y, ImageConfig* out_config)
 	{
-
-		ImageResourceParams* load_params = (ImageResourceParams*)params;
 
 		const char* format = "%s%s%s";
 		const int32 required_channel_count = 4;
-		stbi_set_flip_vertically_on_load_thread(load_params->flip_y);
+		stbi_set_flip_vertically_on_load_thread(flip_y);
 		char full_filepath[Constants::max_filepath_length];
 
 		CString::safe_print_s<const char*, const char*, const char*>

@@ -21,6 +21,6 @@ struct MeshResourceData
 
 namespace ResourceSystem
 {
-	bool32 mesh_loader_load(const char* name, void* params, MeshResourceData* out_resource);
+	bool32 mesh_loader_load(const char* name, MeshResourceData* out_resource);
 	void mesh_loader_unload(MeshResourceData* resource);
 }

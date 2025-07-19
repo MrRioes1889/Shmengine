@@ -208,7 +208,7 @@ namespace MaterialSystem
     static bool8 load_material_from_resource(const char* name, Material* m)
     {
         MaterialResourceData resource;
-        if (!ResourceSystem::material_loader_load(name, 0, &resource))
+        if (!ResourceSystem::material_loader_load(name, &resource))
         {
             SHMERRORV("Failed to load material resources for material '%s'", name);
             return false;

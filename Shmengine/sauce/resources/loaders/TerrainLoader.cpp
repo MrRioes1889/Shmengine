@@ -23,7 +23,7 @@ namespace ResourceSystem
         continue; \
     }
 
-    bool32 terrain_loader_load(const char* name, void* params, TerrainResourceData* out_resource)
+    bool32 terrain_loader_load(const char* name, TerrainResourceData* out_resource)
     {
 
         const char* format = "%s%s%s%s";

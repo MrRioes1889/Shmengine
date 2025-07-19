@@ -72,7 +72,7 @@ namespace ResourceSystem
     static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, MeshResourceData* out_resource);
     static bool32 write_shmesh_file(const char* path, const char* name, MeshResourceData* resource);
 
-    bool32 mesh_loader_load(const char* name, void* params, MeshResourceData* out_resource)
+    bool32 mesh_loader_load(const char* name, MeshResourceData* out_resource)
     {
 
         const char* format = "%s%s%s";

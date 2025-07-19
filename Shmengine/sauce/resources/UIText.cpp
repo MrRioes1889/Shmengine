@@ -142,12 +142,6 @@ void ui_text_update(UIText* ui_text)
     if (!ui_text->is_dirty)
         return;
 
-    if (!FontSystem::verify_atlas(ui_text->font_atlas, ui_text->text_ref.c_str()))
-    {
-        SHMERROR("Font atlas verification failed");
-        return;
-    }
-
     uint64 old_vertex_buffer_size = ui_text->geometry.vertices.size();
     uint64 old_index_buffer_size = ui_text->geometry.indices.size();
 
@@ -210,23 +204,8 @@ static void regenerate_geometry(UIText* ui_text)
         }
 
         FontGlyph* glyph = 0;
-        for (uint32 i = 0; i < ui_text->font_atlas->glyphs.capacity; ++i) {
-            if (ui_text->font_atlas->glyphs[i].codepoint == codepoint) {
-                glyph = &ui_text->font_atlas->glyphs[i];
-                break;
-            }
-        }
-
-        if (!glyph) {
-            // If not found, use the codepoint -1
-            codepoint = -1;
-            for (uint32 i = 0; i < ui_text->font_atlas->glyphs.capacity; ++i) {
-                if (ui_text->font_atlas->glyphs[i].codepoint == codepoint) {
-                    glyph = &ui_text->font_atlas->glyphs[i];
-                    break;
-                }
-            }
-        }
+        if (codepoint >= 0 && codepoint < (int32)ui_text->font_atlas->glyphs.capacity)
+            glyph = &ui_text->font_atlas->glyphs[(uint32)codepoint];
 
         if (glyph) {
             // Found the glyph. generate points.

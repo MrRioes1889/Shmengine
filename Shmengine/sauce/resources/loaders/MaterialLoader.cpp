@@ -229,7 +229,7 @@ namespace ResourceSystem
 
     }
 
-	bool32 material_loader_load(const char* name, void* params, MaterialResourceData* out_resource)
+	bool32 material_loader_load(const char* name, MaterialResourceData* out_resource)
 	{
 
 		const char* format = "%s%s%s%s";

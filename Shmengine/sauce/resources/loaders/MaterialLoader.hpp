@@ -28,7 +28,7 @@ struct MaterialResourceData
 
 namespace ResourceSystem
 {
-	bool32 material_loader_load(const char* name, void* params, MaterialResourceData* out_config);
+	bool32 material_loader_load(const char* name, MaterialResourceData* out_config);
 	void material_loader_unload(MaterialResourceData* config);
 
 	bool32 material_loader_import_obj_material_library_file(const char* file_path);

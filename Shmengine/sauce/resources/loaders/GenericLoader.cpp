@@ -12,7 +12,7 @@ namespace ResourceSystem
 
     static const char* loader_type_path = "";
 
-    bool32 generic_loader_load(const char* name, void* params, Buffer* out_buffer)
+    bool32 generic_loader_load(const char* name, Buffer* out_buffer)
     {
 
         const char* format = "%s%s%s%s";

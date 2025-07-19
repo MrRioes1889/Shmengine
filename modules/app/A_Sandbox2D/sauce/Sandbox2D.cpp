@@ -57,12 +57,9 @@ bool32 application_init(Application* app_inst)
 
 	app_state->allocation_count = 0;
 
-	FontSystem::TruetypeFontConfig truetype_font_configs[1] = {};
-	truetype_font_configs[0].name = "Martian Mono";
-	truetype_font_configs[0].resource_name = "MartianMono";
-	truetype_font_configs[0].default_size = 21;
-
-	if (!FontSystem::load_bitmap_font("Noto Serif 21px", "NotoSerif_21") || !FontSystem::load_bitmap_font("Roboto Mono 21px", "RobotoMono_21") || !FontSystem::load_truetype_font(truetype_font_configs[0]))
+	if (!FontSystem::load_bitmap_font("Noto Serif 21px", "NotoSerif_21") || 
+		!FontSystem::load_bitmap_font("Roboto Mono 21px", "RobotoMono_21") || 
+		!FontSystem::load_truetype_font("Martian Mono", "MartianMono", 21))
 	{
 		SHMERROR("Failed to load default fonts.");
 		return false;

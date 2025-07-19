@@ -33,14 +33,12 @@ struct FontGlyph {
 
 enum class FontType : uint8
 {
-	BITMAP,
-	TRUETYPE
+	Bitmap,
+	Truetype
 };
 
-struct BitmapFontConfig
+struct FontConfig
 {
-	const char* face_name;
-	const char* texture_name;
 	FontType type;
 	uint16 font_size;
 	uint16 line_height;
@@ -52,6 +50,9 @@ struct BitmapFontConfig
 	uint32 kernings_count;
 	FontGlyph* glyphs;
 	FontKerning* kernings;
+	const char* texture_name;
+	uint32 texture_buffer_size;
+	uint32* texture_buffer;
 };
 
 typedef Id16 FontId;
@@ -73,14 +74,6 @@ struct FontAtlas
 
 namespace FontSystem
 {
-
-	struct TruetypeFontConfig
-	{
-		const char* name;
-		const char* resource_name;
-		uint16 default_size;
-	};
-
 	struct SystemConfig
 	{
 		bool8 auto_release;
@@ -92,13 +85,11 @@ namespace FontSystem
 	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI bool32 load_truetype_font(const TruetypeFontConfig& config);
+	SHMAPI bool32 load_truetype_font(const char* name, const char* resource_name, uint16 font_size);
 	SHMAPI bool8 load_bitmap_font(const char* name, const char* resource_name);
 
 	bool32 acquire(const char* font_name, uint16 font_size, UIText* text);
 	bool32 release(UIText* text);
-
-	bool32 verify_atlas(FontAtlas* font, const char* text);
 
 	uint32 utf8_string_length(const char* str, uint32 char_length, bool32 ignore_control_characters);
 	bool32 utf8_bytes_to_codepoint(const char* bytes, uint32 offset, int32* out_codepoint, uint8* out_advance);

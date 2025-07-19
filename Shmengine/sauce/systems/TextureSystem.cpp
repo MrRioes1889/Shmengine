@@ -346,11 +346,8 @@ namespace TextureSystem
 
 		TextureLoadParams* load_params = (TextureLoadParams*)results;
 
-		ImageResourceParams resource_params;
-		resource_params.flip_y = true;
-
 		ImageConfig* config = &load_params->config;
-		if (!ResourceSystem::image_loader_load(load_params->resource_name, &resource_params, config))
+		if (!ResourceSystem::image_loader_load(load_params->resource_name, true, config))
 		{
 			SHMERRORV("load_texture - Failed to load image resources for texture '%s'", load_params->resource_name);
 			return false;
@@ -407,12 +404,8 @@ namespace TextureSystem
 
 		for (uint32 i = 0; i < 6; i++)
 		{
-
-			ImageResourceParams params;
-			params.flip_y = false;
-
 			ImageConfig img_resource_data;
-			if (!ResourceSystem::image_loader_load(texture_names[i], &params, &img_resource_data))
+			if (!ResourceSystem::image_loader_load(texture_names[i], false, &img_resource_data))
 			{
 				SHMERRORV("load_texture - Failed to load image resources for texture '%s'", texture_names[i]);
 				return false;

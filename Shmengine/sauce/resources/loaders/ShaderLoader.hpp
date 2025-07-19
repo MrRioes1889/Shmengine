@@ -19,7 +19,7 @@ struct ShaderResourceData
 
 namespace ResourceSystem
 {
-	bool32 shader_loader_load(const char* name, void* params, ShaderResourceData* out_resource);
+	bool32 shader_loader_load(const char* name, ShaderResourceData* out_resource);
 	void shader_loader_unload(ShaderResourceData* resource);
 
 	ShaderConfig shader_loader_get_config_from_resource(ShaderResourceData* resource);

@@ -695,7 +695,7 @@ namespace Renderer::Vulkan
 	{
 		// Read the resource.
 		Buffer data = {};
-		if (!ResourceSystem::generic_loader_load(config.filename, 0, &data))
+		if (!ResourceSystem::generic_loader_load(config.filename, &data))
 		{
 			SHMERRORV("Unable to read shader module: %s.", config.filename);
 			return false;
