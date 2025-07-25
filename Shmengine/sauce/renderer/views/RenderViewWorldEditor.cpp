@@ -231,7 +231,7 @@ bool32 render_view_world_editor_on_render(RenderView* self, FrameData* frame_dat
 	ShaderSystem::use_shader(internal_data->coordinate_grid_shader->id);
 	ShaderSystem::bind_globals();
 
-	Renderer::geometry_draw(&internal_data->coordinate_grid.geometry);
+	//Renderer::geometry_draw(&internal_data->coordinate_grid.geometry);
 
 	if (!Renderer::renderpass_end(renderpass))
 	{

@@ -12,10 +12,6 @@ namespace Renderer
 	SHMAPI bool8 create_geometry(GeometryConfig* config, GeometryData* g);
 	SHMAPI void destroy_geometry(GeometryData* g);
 
-	SHMAPI bool8 geometry_load(GeometryData* geometry);
-	SHMAPI bool8 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size);
-	SHMAPI void geometry_unload(GeometryData* geometry);
-
 	SHMAPI void geometry_draw(GeometryData* geometry);
 
 	SHMAPI void generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometryConfig* out_config);

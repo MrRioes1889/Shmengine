@@ -436,16 +436,13 @@ namespace Renderer::Vulkan
 	bool32 vk_shader_bind_globals(Shader* s)
 	{
 		if (!s)
-		{
 			return false;
-		}
 
 		uint32 image_index = context->bound_framebuffer_index;
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
 		VkDescriptorSet global_descriptor = v_shader->global_descriptor_sets[image_index];
 
-		s->bound_ubo_offset = s->global_ubo_offset;
 		// Bind the global descriptor set to be updated.
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, 0, 1, &global_descriptor, 0, 0);
 		return true;
@@ -478,7 +475,7 @@ namespace Renderer::Vulkan
 		// Apply UBO first
 		VkDescriptorBufferInfo bufferInfo;
 		bufferInfo.buffer = ((VulkanBuffer*)s->uniform_buffer.internal_data.data)->handle;
-		bufferInfo.offset = s->global_ubo_offset;
+		bufferInfo.offset = s->global_ubo_alloc_ref.byte_offset;
 		bufferInfo.range = s->global_ubo_stride;
 
 		// Update descriptor sets.
@@ -531,7 +528,7 @@ namespace Renderer::Vulkan
 
 		VkDescriptorBufferInfo buffer_info;
 		buffer_info.buffer = ((VulkanBuffer*)s->uniform_buffer.internal_data.data)->handle;
-		buffer_info.offset = instance->offset;
+		buffer_info.offset = instance->alloc_ref.byte_offset;
 		buffer_info.range = s->ubo_stride;
 
 		VkWriteDescriptorSet ubo_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };

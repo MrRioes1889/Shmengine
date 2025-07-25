@@ -324,116 +324,62 @@ namespace Renderer
 
 	bool8 geometry_load(GeometryData* geometry)
 	{	
-
-		bool32 is_reload = geometry->loaded;
+		bool8 is_reload = geometry->loaded;
 
 		uint64 vertex_buffer_size = geometry->vertex_count * (uint64)geometry->vertex_size;
 		uint64 index_buffer_size = geometry->index_count * sizeof(geometry->indices[0]);
 
-		if (!is_reload)
-		{		
+		if (!vertex_buffer_size)
+			return false;
 
-			if (!renderbuffer_allocate(&system_state->general_vertex_buffer, vertex_buffer_size, &geometry->vertex_buffer_offset))
-			{
-				SHMERROR("Failed to allocate memory from vertex buffer.");
-				return false;
-			}
-
-			if (!renderbuffer_load_range(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, vertex_buffer_size, geometry->vertices.data))
-			{
-				SHMERROR("Failed to load data into vertex buffer.");
-				return false;
-			}
-
-			if (index_buffer_size)
-			{
-				if (!renderbuffer_allocate(&system_state->general_index_buffer, index_buffer_size, &geometry->index_buffer_offset))
-				{
-					SHMERROR("Failed to allocate memory from index buffer.");
-					return false;
-				}
-
-				if (!renderbuffer_load_range(&system_state->general_index_buffer, geometry->index_buffer_offset, index_buffer_size, geometry->indices.data))
-				{
-					SHMERROR("Failed to load data into index buffer.");
-					return false;
-				}
-			}
-
-		}
-		else
+		if (!(is_reload ?
+			renderbuffer_reallocate(&system_state->general_vertex_buffer, vertex_buffer_size, &geometry->vertex_buffer_alloc_ref) :
+			renderbuffer_allocate(&system_state->general_vertex_buffer, vertex_buffer_size, &geometry->vertex_buffer_alloc_ref))
+			)
 		{
-			return geometry_reload(geometry, 0, 0);
-		}	
+			SHMERROR("Failed to allocate memory from vertex buffer.");
+			return false;
+		}
+
+		if (!renderbuffer_load_range(&system_state->general_vertex_buffer, geometry->vertex_buffer_alloc_ref.byte_offset, vertex_buffer_size, geometry->vertices.data))
+		{
+			SHMERROR("Failed to load data into vertex buffer.");
+			return false;
+		}
+
+		if (index_buffer_size)
+		{
+			if (!(is_reload ?
+				renderbuffer_reallocate(&system_state->general_index_buffer, index_buffer_size, &geometry->index_buffer_alloc_ref) :
+				renderbuffer_allocate(&system_state->general_index_buffer, index_buffer_size, &geometry->index_buffer_alloc_ref))
+				)
+			{
+				SHMERROR("Failed to allocate memory from index buffer.");
+				return false;
+			}
+
+			if (!renderbuffer_load_range(&system_state->general_index_buffer, geometry->index_buffer_alloc_ref.byte_offset, index_buffer_size, geometry->indices.data))
+			{
+				SHMERROR("Failed to load data into index buffer.");
+				return false;
+			}
+		}
 
 		geometry->loaded = true;
 
 		return true;
-
 	}
-
-	bool8 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size)
-	{
-		
-		bool32 is_reload = geometry->loaded;
-
-		uint64 new_vertex_buffer_size = geometry->vertex_count * (uint64)geometry->vertex_size;
-		uint64 new_index_buffer_size = geometry->index_count * sizeof(geometry->indices[0]);
-
-		if (is_reload)
-		{
-
-			if (new_vertex_buffer_size > old_vertex_buffer_size)
-			{
-				if (!renderbuffer_reallocate(&system_state->general_vertex_buffer, new_vertex_buffer_size, geometry->vertex_buffer_offset, &geometry->vertex_buffer_offset))
-				{
-					SHMERROR("Failed to reallocate memory from vertex buffer.");
-					return false;
-				}
-			}
-
-			if (!renderbuffer_load_range(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, new_vertex_buffer_size, geometry->vertices.data))
-			{
-				SHMERROR("Failed to load data into vertex buffer.");
-				return false;
-			}
-
-			if (new_index_buffer_size)
-			{
-				if (new_index_buffer_size > old_index_buffer_size)
-				{
-					if (!renderbuffer_reallocate(&system_state->general_index_buffer, new_index_buffer_size, geometry->index_buffer_offset, &geometry->index_buffer_offset))
-					{
-						SHMERROR("Failed to allocate memory from index buffer.");
-						return false;
-					}
-				}		
-
-				if (!renderbuffer_load_range(&system_state->general_index_buffer, geometry->index_buffer_offset, new_index_buffer_size, geometry->indices.data))
-				{
-					SHMERROR("Failed to load data into index buffer.");
-					return false;
-				}
-			}
-
-		}
-		else
-		{
-			return geometry_load(geometry);
-		}
-
-		return true;
-
-	}
-
 
 	void geometry_unload(GeometryData* geometry)
 	{
+		if (!geometry->loaded)
+			return;
+
 		system_state->module.device_sleep_till_idle();
 
-		renderbuffer_free(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset);
+		renderbuffer_free(&system_state->general_vertex_buffer, &geometry->vertex_buffer_alloc_ref);
 		if (geometry->indices.data)
-			renderbuffer_free(&system_state->general_index_buffer, geometry->index_buffer_offset);
+			renderbuffer_free(&system_state->general_index_buffer, &geometry->index_buffer_alloc_ref);
 
 		geometry->loaded = false;
 	}
@@ -446,9 +392,9 @@ namespace Renderer
 
 		bool32 includes_indices = geometry->index_count > 0;
 
-		renderbuffer_draw(&system_state->general_vertex_buffer, geometry->vertex_buffer_offset, geometry->vertex_count, includes_indices);
+		renderbuffer_draw(&system_state->general_vertex_buffer, geometry->vertex_buffer_alloc_ref.byte_offset, geometry->vertex_count, includes_indices);
 		if (includes_indices)
-			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_offset, geometry->index_count, false);
+			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_alloc_ref.byte_offset, geometry->index_count, false);
 	}
 
 	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
@@ -479,7 +425,7 @@ namespace Renderer
 			shader->shader_flags |= ShaderFlags::DepthWrite;
 
 		for (uint32 i = 0; i < RendererConfig::shader_max_instances; ++i)
-			shader->instances[i].offset = Constants::max_u64;
+			shader->instances[i].alloc_ref = {};
 
 		shader->global_uniform_count = 0;
 		shader->global_uniform_sampler_count = 0;
@@ -547,7 +493,7 @@ namespace Renderer
 		renderbuffer_bind(&s->uniform_buffer, 0);
 
 		// Allocate space for the global UBO, whcih should occupy the _stride_ space, _not_ the actual size used.
-		if (!renderbuffer_allocate(&s->uniform_buffer, s->global_ubo_stride, &s->global_ubo_offset))
+		if (!renderbuffer_allocate(&s->uniform_buffer, s->global_ubo_stride, &s->global_ubo_alloc_ref))
 		{
 			renderbuffer_destroy(&s->uniform_buffer);
 			SHMERROR("Failed to allocate space for the uniform buffer!");
@@ -568,13 +514,14 @@ namespace Renderer
 
 	bool32 shader_bind_globals(Shader* s) 
 	{
+		s->bound_ubo_offset = s->global_ubo_alloc_ref.byte_offset;
 		return system_state->module.shader_bind_globals(s);
 	}
 
 	bool32 shader_bind_instance(Shader* s, uint32 instance_id) 
 	{
 		s->bound_instance_id = instance_id;
-		s->bound_ubo_offset = (uint32)s->instances[instance_id].offset;
+		s->bound_ubo_offset = s->instances[instance_id].alloc_ref.byte_offset;
 
 		return system_state->module.shader_bind_instance(s, instance_id);
 	}
@@ -611,7 +558,7 @@ namespace Renderer
 		*out_instance_id = Constants::max_u32;
 		for (uint32 i = 0; i < 1024; ++i)
 		{
-			if (s->instances[i].offset == Constants::max_u64)
+			if (!s->instances[i].alloc_ref.byte_size)
 			{
 				*out_instance_id = i;
 				break;
@@ -633,7 +580,7 @@ namespace Renderer
 		uint64 size = s->ubo_stride;
 		if (size > 0)
 		{
-			if (!renderbuffer_allocate(&s->uniform_buffer, size, &instance->offset))
+			if (!renderbuffer_allocate(&s->uniform_buffer, size, &instance->alloc_ref))
 			{
 				SHMERROR("vulkan_material_shader_acquire_resources failed to acquire ubo space");
 				return false;
@@ -649,9 +596,7 @@ namespace Renderer
 
 		instance->instance_texture_maps.free_data();
 
-		renderbuffer_free(&s->uniform_buffer, instance->offset);
-		instance->offset = Constants::max_u64;
-
+		renderbuffer_free(&s->uniform_buffer, &instance->alloc_ref);
 		s->instance_count--;
 
 		return system_state->module.shader_release_instance_resources(s, instance_id);
@@ -686,7 +631,7 @@ namespace Renderer
 
 	bool32 renderbuffer_create(const char* name, RenderBufferType type, uint64 size, bool32 use_freelist, RenderBuffer* out_buffer)
 	{
-
+		SHMASSERT_MSG(size < Constants::max_u32, "Renderer types use offsets and sizes with 4 byte integers. Change in typedef if needed.");
 		out_buffer->name = name;
 		out_buffer->size = size;
 		out_buffer->type = type;
@@ -787,7 +732,7 @@ namespace Renderer
 
 	}
 
-	bool32 renderbuffer_allocate(RenderBuffer* buffer, uint64 size, uint64* out_offset)
+	bool8 renderbuffer_allocate(RenderBuffer* buffer, uint64 size, RenderBufferAllocationReference* alloc)
 	{
 		if (!buffer->has_freelist)
 		{
@@ -795,11 +740,15 @@ namespace Renderer
 			return false;
 		}
 
-		buffer->freelist.allocate(size, out_offset);
+		AllocationReference alloc64;
+		if (!buffer->freelist.allocate(size, &alloc64))
+			return false;
+
+		*alloc = alloc64;
 		return true;
 	}
 
-	bool32 renderbuffer_reallocate(RenderBuffer* buffer, uint64 new_size, uint64 old_offset, uint64* new_offset)
+	bool8 renderbuffer_reallocate(RenderBuffer* buffer, uint64 new_size, RenderBufferAllocationReference* alloc)
 	{
 		if (!buffer->has_freelist)
 		{
@@ -807,12 +756,16 @@ namespace Renderer
 			return false;
 		}
 
-		buffer->freelist.free(old_offset);
-		buffer->freelist.allocate(new_size, new_offset);
+		buffer->freelist.free(alloc->byte_offset);
+		AllocationReference alloc64;
+		if (!buffer->freelist.allocate(new_size, &alloc64))
+			return false;
+
+		*alloc = alloc64;
 		return true;
 	}
 
-	void renderbuffer_free(RenderBuffer* buffer, uint64 offset)
+	void renderbuffer_free(RenderBuffer* buffer, RenderBufferAllocationReference* alloc)
 	{
 		if (!buffer->has_freelist)
 		{
@@ -820,7 +773,9 @@ namespace Renderer
 			return;
 		}
 
-		buffer->freelist.free(offset);
+		buffer->freelist.free(alloc->byte_offset);
+		alloc->byte_size = 0;
+		alloc->byte_offset = 0;
 	}
 
 	bool32 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data)

@@ -59,9 +59,9 @@ bool32 application_init(Application* app_inst)
 	app_state->world_camera->set_position({ 10.5f, 5.0f, 9.5f });
 	app_state->allocation_count = 0;
 
-	if (!FontSystem::load_bitmap_font("Noto Serif 21px", "NotoSerif_21") ||
-		!FontSystem::load_bitmap_font("Roboto Mono 21px", "RobotoMono_21") ||
-		!FontSystem::load_truetype_font("Martian Mono", "MartianMono", 21))
+	if (!FontSystem::load_font("Noto Serif 21px", "NotoSerif_21", 21) ||
+		!FontSystem::load_font("Roboto Mono 21px", "RobotoMono_21", 21) ||
+		!FontSystem::load_font("Martian Mono", "MartianMono", 21))
 	{
 		SHMERROR("Failed to load default fonts.");
 		return false;
@@ -71,7 +71,6 @@ bool32 application_init(Application* app_inst)
 	app_state->debug_console.load();
 
 	UITextConfig ui_text_config = {};
-	ui_text_config.type = UITextType::TRUETYPE;
 	ui_text_config.font_name = "Martian Mono";
 	ui_text_config.font_size = 21;
 	ui_text_config.text_content = "Some täest text,\n\tyo!";
@@ -255,7 +254,6 @@ bool32 application_update(FrameData* frame_data)
 			app_state->hovered_object_id, frame_data->drawn_geometry_count, mouse_pos.x, mouse_pos.y, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, last_frametime * 1000.0, last_logictime * 1000.0, last_rendertime * 1000.0);
 
 	ui_text_set_text(&app_state->debug_info_text, ui_text_buffer);
-	ui_text_update(&app_state->debug_info_text);
 
 	gizmo3D_update(&app_state->editor_gizmo);
 

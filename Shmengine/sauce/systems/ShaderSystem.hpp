@@ -143,7 +143,7 @@ namespace ShaderFlags
 
 struct ShaderInstance
 {
-	uint64 offset;
+	RenderBufferAllocationReference alloc_ref;
 	uint8 last_update_frame_number;
 
 	Sarray<TextureMap*> instance_texture_maps;
@@ -170,7 +170,7 @@ struct Shader
 	uint64 required_ubo_alignment;
 	uint32 global_ubo_size;
 	uint32 global_ubo_stride;
-	uint64 global_ubo_offset;
+	RenderBufferAllocationReference global_ubo_alloc_ref;
 
 	uint32 ubo_size;
 	uint32 ubo_stride;

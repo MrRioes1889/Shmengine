@@ -14,29 +14,21 @@ namespace Renderer
 	struct RenderViewInstanceData;
 }
 
-enum class UITextType
-{
-	UNKNOWN = 0,
-	BITMAP,
-	TRUETYPE
-};
-
 struct UITextConfig
 {
-	UITextType type;	
-	uint16 font_size;
-	const char* font_name;
 	const char* text_content;
+	const char* font_name;
+	uint16 font_size;
 };
 
 struct UIText
 {
-	UITextType type;
 	ResourceState state;
 	bool8 is_dirty;
 	UniqueId unique_id;
+	FontId font_id;
+	uint16 font_size;
 	uint32 shader_instance_id;
-	FontAtlas* font_atlas;
 	StringRef text_ref;
 	Math::Transform transform;
 	GeometryData geometry;
@@ -50,4 +42,5 @@ SHMAPI bool32 ui_text_unload(UIText* text);
 SHMAPI void ui_text_set_position(UIText* ui_text, Math::Vec3f position);
 SHMAPI void ui_text_set_text(UIText* ui_text, const char* text, uint32 offset = 0, uint32 length = Constants::max_u32);
 SHMAPI void ui_text_set_text(UIText* ui_text, const String* text, uint32 offset = 0, uint32 length = Constants::max_u32);
+SHMAPI bool8 ui_text_set_font(UIText* ui_text, const char* font_name, uint16 font_size);
 SHMAPI void ui_text_update(UIText* ui_text);

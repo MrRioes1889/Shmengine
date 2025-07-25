@@ -11,9 +11,22 @@ enum class AllocatorPageSize
 	LARGE = 0x100
 };
 
+struct AllocationReference
+{
+	uint64 byte_offset;
+	uint64 byte_size;
+};
+
+struct AllocationReference32
+{
+	uint32 byte_offset;
+	uint32 byte_size;
+	AllocationReference32() : byte_offset(0), byte_size(0) {}
+	AllocationReference32(AllocationReference ref) : byte_offset((uint32)ref.byte_offset), byte_size((uint32)ref.byte_size) {}
+};
+
 struct SHMAPI Freelist
 {
-
 	struct Node
 	{
 		bool32 reserved;
@@ -39,8 +52,8 @@ struct SHMAPI Freelist
 	void clear_nodes();
 	void destroy();
 
-	bool32 allocate(uint64 size, uint64* out_offset, uint64* bytes_allocated = 0);
-	bool32 allocate_aligned(uint64 size, uint64* out_offset, uint16 alignment, uint64* bytes_allocated = 0);
+	bool8 allocate(uint64 size, AllocationReference* alloc);
+	bool8 allocate_aligned(uint64 size, uint16 alignment, AllocationReference* alloc);
 	bool32 free(uint64 offset, uint64* bytes_freed = 0);
 
 	int64 get_reserved_size(uint64 offset);

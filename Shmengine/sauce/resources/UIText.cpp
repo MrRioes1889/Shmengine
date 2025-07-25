@@ -14,7 +14,7 @@
 
 #include "optick.h"
 
-static void regenerate_geometry(UIText* ui_text);
+static void regenerate_geometry(UIText* ui_text, const FontAtlas* atlas);
 
 static const uint32 quad_vertex_count = 4;
 static const uint32 quad_index_count = 6;
@@ -25,14 +25,13 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
         return false;
 
     out_ui_text->state = ResourceState::Initializing;
-
-    out_ui_text->type = config->type;
-
-    if (!FontSystem::acquire(config->font_name, config->font_size, out_ui_text))
+    out_ui_text->font_id = FontSystem::acquire(config->font_name);
+    if (!out_ui_text->font_id.is_valid())
     {
-        SHMERROR("ui_text_create - failed to acquire resources!");
+        SHMERROR("Failed to acquire ui text font!");
         return false;
     }
+    out_ui_text->font_size = config->font_size;
 
     out_ui_text->text_ref = config->text_content;
     out_ui_text->transform = Math::transform_create();
@@ -88,7 +87,11 @@ bool32 ui_text_load(UIText* ui_text)
         return false;
     }
 
-    regenerate_geometry(ui_text);
+    const FontAtlas* atlas = FontSystem::get_atlas(ui_text->font_id, ui_text->font_size);
+    if (!atlas)
+        return false;
+
+    regenerate_geometry(ui_text, atlas);
     Renderer::geometry_load(&ui_text->geometry);
 
     ui_text->state = ResourceState::Loaded;
@@ -137,147 +140,116 @@ void ui_text_set_text(UIText* ui_text, const String* text, uint32 offset, uint32
 	ui_text->is_dirty = true;
 }
 
+bool8 ui_text_set_font(UIText* ui_text, const char* font_name, uint16 font_size)
+{
+    FontId font_id = FontSystem::acquire(font_name);
+    if (!font_id.is_valid())
+        return false;
+
+    ui_text->font_id = font_id;
+    ui_text->font_size = font_size;
+    ui_text->is_dirty = true;
+    return true;
+}
+
 void ui_text_update(UIText* ui_text)
 {
+    OPTICK_EVENT();
     if (!ui_text->is_dirty)
         return;
 
-    uint64 old_vertex_buffer_size = ui_text->geometry.vertices.size();
-    uint64 old_index_buffer_size = ui_text->geometry.indices.size();
+    const FontAtlas* atlas = FontSystem::get_atlas(ui_text->font_id, ui_text->font_size);
+    if (!atlas)
+        return;
 
-    regenerate_geometry(ui_text);
+    regenerate_geometry(ui_text, atlas);
 
     if (ui_text->state == ResourceState::Loaded)
-        Renderer::geometry_reload(&ui_text->geometry, old_vertex_buffer_size, old_index_buffer_size);
+        Renderer::geometry_load(&ui_text->geometry);
         
     ui_text->is_dirty = false;
 }
 
-static void regenerate_geometry(UIText* ui_text)
+static void regenerate_geometry(UIText* ui_text, const FontAtlas* atlas)
 {
-
     OPTICK_EVENT();
-
-    uint32 char_length = ui_text->text_ref.len();
-    uint32 utf8_length = FontSystem::utf8_string_length(ui_text->text_ref.c_str(), ui_text->text_ref.len(), true);
-
-    if (utf8_length < 1)
-        return;
 
     GeometryData* geometry = &ui_text->geometry;
 
-    geometry->vertex_count = quad_vertex_count * utf8_length;
-    geometry->index_count = quad_index_count * utf8_length;
-    uint64 vertex_buffer_size = sizeof(Renderer::Vertex2D) * geometry->vertex_count;
+    uint32 max_vertex_count = quad_vertex_count * ui_text->text_ref.len();
+    uint32 max_index_count = quad_index_count * ui_text->text_ref.len();
 
+    uint64 vertex_buffer_size = sizeof(Renderer::Vertex2D) * max_vertex_count;
     if (vertex_buffer_size > geometry->vertices.capacity)
     {
         geometry->vertices.resize((uint32)vertex_buffer_size);
-        geometry->indices.resize(geometry->index_count);
+        geometry->indices.resize(max_index_count);
     }  
 
-    // Generate new geometry for each character.
     float32 x = 0;
     float32 y = 0;
+    uint32 quad_count = 0;
+    for (uint32 c = 0; c < ui_text->text_ref.len(); c++) 
+    {
+        char codepoint = ui_text->text_ref[c];
 
-    // Take the length in chars and get the correct codepoint from it.
-    for (uint32 c = 0, uc = 0; c < char_length; ++c) {
-        int32 codepoint = ui_text->text_ref[c];
-
-        // Continue to next line for newline.
-        if (codepoint == '\n') {
+        if (codepoint == '\n') 
+        {
             x = 0;
-            y += ui_text->font_atlas->line_height;
+            y += atlas->line_height;
+            continue;
+        }
+        else if (codepoint == '\t') 
+        {
+            x += atlas->glyphs[' '].x_advance * 4.0f;
             continue;
         }
 
-        if (codepoint == '\t') {
-            x += ui_text->font_atlas->tab_x_advance;
+        const FontGlyph* glyph = &atlas->glyphs[(uint8)codepoint];
+        if (!glyph->width)
+        {
+            x += glyph->x_advance;
             continue;
         }
 
-        // NOTE: UTF-8 codepoint handling.
-        uint8 advance = 0;
-        if (!FontSystem::utf8_bytes_to_codepoint(ui_text->text_ref.c_str(), c, &codepoint, &advance)) {
-            SHMWARN("Invalid UTF-8 found in string, using unknown codepoint of -1");
-            codepoint = -1;
-        }
+		float32 minx = x + glyph->x_offset;
+		float32 miny = y + glyph->y_offset;
+		float32 maxx = minx + glyph->width;
+		float32 maxy = miny + glyph->height;
+		float32 tminx = (float32)glyph->x / atlas->atlas_size_x;
+		float32 tmaxx = (float32)(glyph->x + glyph->width) / atlas->atlas_size_x;
+		float32 tminy = (float32)glyph->y / atlas->atlas_size_y;
+		float32 tmaxy = (float32)(glyph->y + glyph->height) / atlas->atlas_size_y;
+		// Flip the y axis for system text
+		if (atlas->type == FontType::Truetype)
+		{
+			tminy = 1.0f - tminy;
+			tmaxy = 1.0f - tmaxy;
+		}
 
-        FontGlyph* glyph = 0;
-        if (codepoint >= 0 && codepoint < (int32)ui_text->font_atlas->glyphs.capacity)
-            glyph = &ui_text->font_atlas->glyphs[(uint32)codepoint];
+		Renderer::Vertex2D p0 = { {minx, miny}, {tminx, tminy} };
+		Renderer::Vertex2D p1 = { {maxx, miny}, {tmaxx, tminy} };
+		Renderer::Vertex2D p2 = { {maxx, maxy}, {tmaxx, tmaxy} };
+		Renderer::Vertex2D p3 = { {minx, maxy}, {tminx, tmaxy} };
 
-        if (glyph) {
-            // Found the glyph. generate points.
-            float32 minx = x + glyph->x_offset;
-            float32 miny = y + glyph->y_offset;
-            float32 maxx = minx + glyph->width;
-            float32 maxy = miny + glyph->height;
-            float32 tminx = (float32)glyph->x / ui_text->font_atlas->atlas_size_x;
-            float32 tmaxx = (float32)(glyph->x + glyph->width) / ui_text->font_atlas->atlas_size_x;
-            float32 tminy = (float32)glyph->y / ui_text->font_atlas->atlas_size_y;
-            float32 tmaxy = (float32)(glyph->y + glyph->height) / ui_text->font_atlas->atlas_size_y;
-            // Flip the y axis for system text
-            if (ui_text->type == UITextType::TRUETYPE) {
-                tminy = 1.0f - tminy;
-                tmaxy = 1.0f - tmaxy;
-            }
+		geometry->vertices.get_as<Renderer::Vertex2D>((quad_count * 4) + 0) = p0;  // 0    3
+		geometry->vertices.get_as<Renderer::Vertex2D>((quad_count * 4) + 1) = p2;  //
+		geometry->vertices.get_as<Renderer::Vertex2D>((quad_count * 4) + 2) = p3;  //
+		geometry->vertices.get_as<Renderer::Vertex2D>((quad_count * 4) + 3) = p1;  // 2    1
 
-            Renderer::Vertex2D p0 = { {minx, miny}, {tminx, tminy} };
-            Renderer::Vertex2D p1 = { {maxx, miny}, {tmaxx, tminy} };
-            Renderer::Vertex2D p2 = { {maxx, maxy}, {tmaxx, tmaxy} };
-            Renderer::Vertex2D p3 = { {minx, maxy}, {tminx, tmaxy} };
+		int32 kerning = 0;
+		x += glyph->x_advance + kerning;
 
-            geometry->vertices.get_as<Renderer::Vertex2D>((uc * 4) + 0) = p0;  // 0    3
-            geometry->vertices.get_as<Renderer::Vertex2D>((uc * 4) + 1) = p2;  //
-            geometry->vertices.get_as<Renderer::Vertex2D>((uc * 4) + 2) = p3;  //
-            geometry->vertices.get_as<Renderer::Vertex2D>((uc * 4) + 3) = p1;  // 2    1
+        geometry->indices[(quad_count * 6) + 0] = (quad_count * 4) + 2;
+        geometry->indices[(quad_count * 6) + 1] = (quad_count * 4) + 1;
+        geometry->indices[(quad_count * 6) + 2] = (quad_count * 4) + 0;
+        geometry->indices[(quad_count * 6) + 3] = (quad_count * 4) + 3;
+        geometry->indices[(quad_count * 6) + 4] = (quad_count * 4) + 0;
+        geometry->indices[(quad_count * 6) + 5] = (quad_count * 4) + 1;
 
-            // Try to find kerning
-            int32 kerning = 0;
-
-            // Get the offset of the next character. If there is no advance, move forward one,
-            // otherwise use advance as-is.
-            uint32 offset = c + advance;  //(advance < 1 ? 1 : advance);
-            if (offset < utf8_length - 1) {
-                // Get the next codepoint.
-                int32 next_codepoint = 0;
-                uint8 advance_next = 0;
-
-                if (!FontSystem::utf8_bytes_to_codepoint(ui_text->text_ref.c_str(), offset, &next_codepoint, &advance_next)) {
-                    SHMWARN("Invalid UTF-8 found in string, using unknown codepoint of -1");
-                    codepoint = -1;
-                }
-                else {
-                    for (uint32 i = 0; i < ui_text->font_atlas->kernings.count; ++i) {
-                        FontKerning* k = &ui_text->font_atlas->kernings[i];
-                        if (k->codepoint_0 == codepoint && k->codepoint_1 == next_codepoint) {
-                            kerning = k->advance;
-                        }
-                    }
-                }
-            }
-            x += glyph->x_advance + kerning;
-
-        }
-        else {
-            SHMERROR("Unable to find unknown codepoint. Skipping.");
-            // Increment utf-8 character count.
-            uc++;
-            continue;
-        }
-
-        geometry->indices[(uc * 6) + 0] = (uc * 4) + 2;
-        geometry->indices[(uc * 6) + 1] = (uc * 4) + 1;
-        geometry->indices[(uc * 6) + 2] = (uc * 4) + 0;
-        geometry->indices[(uc * 6) + 3] = (uc * 4) + 3;
-        geometry->indices[(uc * 6) + 4] = (uc * 4) + 0;
-        geometry->indices[(uc * 6) + 5] = (uc * 4) + 1;
-
-        // Now advance c
-        c += advance - 1;  // Subtracting 1 because the loop always increments once for single-byte anyway.
-        // Increment utf-8 character count.
-        uc++;
+        quad_count++;
     }
 
+    geometry->vertex_count = quad_vertex_count * quad_count;
+    geometry->index_count = quad_index_count * quad_count;
 }

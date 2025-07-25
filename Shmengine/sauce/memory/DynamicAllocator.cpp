@@ -37,13 +37,13 @@ void DynamicAllocator::init(uint64 buffer_size, void* buffer_ptr, uint64 nodes_b
 void* DynamicAllocator::allocate(uint64 size, AllocationTag tag, uint16 alignment, uint64* bytes_allocated)
 {
 	size += (alignment > 1 ? alignment : 0) + sizeof(AllocHeader);
-	uint64 data_offset;
-	if (!freelist.allocate(size, &data_offset, bytes_allocated))
+	AllocationReference alloc;
+	if (!freelist.allocate(size, &alloc))
 		return 0;
 
-	uint64 total_data_offset = (uint64)data + data_offset + sizeof(AllocHeader);
+	uint64 total_data_offset = (uint64)data + alloc.byte_offset + sizeof(AllocHeader);
 	uint64 alignment_offset = get_aligned(total_data_offset, alignment) - total_data_offset;	
-	uint8* ret = PTR_BYTES_OFFSET(data, data_offset + alignment_offset);
+	uint8* ret = PTR_BYTES_OFFSET(data, alloc.byte_offset + alignment_offset);
 	((AllocHeader*)ret)->alignment_offset = (uint16)alignment_offset;
 	((AllocHeader*)ret)->allocation_tag = (uint8)tag;
 	ret += sizeof(AllocHeader);

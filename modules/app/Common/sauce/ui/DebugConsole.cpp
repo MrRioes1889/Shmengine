@@ -24,7 +24,6 @@ bool32 DebugConsole::init()
 	held_key = 0;
 
 	UITextConfig ui_text_config = {};
-	ui_text_config.type = UITextType::TRUETYPE;
 	ui_text_config.font_name = "Martian Mono";
 	ui_text_config.font_size = 21;
 	ui_text_config.text_content = "";
@@ -91,8 +90,6 @@ bool32 DebugConsole::unload()
 
 void DebugConsole::update()
 {
-	ui_text_update(&text_control);
-	ui_text_update(&entry_control);
 }
 
 UIText* DebugConsole::get_text()
@@ -150,13 +147,14 @@ void DebugConsole::scroll_to_bottom()
 	{
 		lines_display_offset = 0;
 		text_display_offset = 0;
-		return;
 	}
-
-	lines_display_offset = lines_count - lines_display_limit;
-	text_display_offset = console_text.len();
-	for (uint32 i = 0; i < lines_display_limit; i++)
-		text_display_offset -= line_lenghts[lines_count - 1 - i];
+	else
+	{
+		lines_display_offset = lines_count - lines_display_limit;
+		text_display_offset = console_text.len();
+		for (uint32 i = 0; i < lines_display_limit; i++)
+			text_display_offset -= line_lenghts[lines_count - 1 - i];
+	}
 	update_displayed_console_text(this);
 }
 

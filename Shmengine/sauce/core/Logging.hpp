@@ -16,8 +16,8 @@
 
 namespace Log
 {
-
-    enum LogLevel {
+    enum LogLevel 
+    {
         LOG_LEVEL_FATAL = 0,
         LOG_LEVEL_ERROR = 1,
         LOG_LEVEL_WARN = 2,
@@ -34,7 +34,7 @@ namespace Log
 
 }
 
-    // Logs a fatal-level message.
+// Logs a fatal-level message.
 #define SHMFATALV(message, ...) Log::log_output(Log::LOG_LEVEL_FATAL, message, ##__VA_ARGS__)
 #define SHMFATAL(message) Log::log_output(Log::LOG_LEVEL_FATAL, message)
 
@@ -83,3 +83,9 @@ namespace Log
 #define SHMTRACEV(message, ...)
 #define SHMTRACE(message)
 #endif
+
+#define goto_on_fail_log(condition, tagname, message, ...) if(!(condition)) \
+{\
+    SHMERRORV(message, ##__VA_ARGS__);\
+    goto tagname;\
+}

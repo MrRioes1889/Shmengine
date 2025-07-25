@@ -4,6 +4,7 @@
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
 #include "renderer/Geometry.hpp"
+#include "renderer/RendererFrontend.hpp"
 
 static void update_vertices(Line3D* out_line);
 
@@ -99,7 +100,7 @@ bool32 line3D_update(Line3D* line)
 
 	update_vertices(line);
 	if (line->state == ResourceState::Loaded)
-		return Renderer::geometry_reload(&line->geometry, line->geometry.vertices.size(), 0);
+		return Renderer::geometry_load(&line->geometry);
 
 	return true;
 }

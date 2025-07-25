@@ -21,6 +21,8 @@ namespace Renderer
 		g->index_count = config->index_count;
 		g->vertices.steal(config->vertices);
 		g->indices.steal(config->indices);
+		g->vertex_buffer_alloc_ref = {};
+		g->index_buffer_alloc_ref = {};
 		g->loaded = false;
 
 		return true;
@@ -36,6 +38,9 @@ namespace Renderer
 		g->vertex_size = 0;
 		g->vertex_count = 0;
 		g->index_count = 0;
+		g->vertex_buffer_alloc_ref = {};
+		g->index_buffer_alloc_ref = {};
+		g->loaded = false;
 
 		CString::empty(g->name);
 	}

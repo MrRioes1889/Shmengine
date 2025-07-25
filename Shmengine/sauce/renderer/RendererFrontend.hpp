@@ -60,7 +60,6 @@ namespace Renderer
 	SHMAPI void texture_destroy(Texture* texture);
 
 	SHMAPI bool8 geometry_load(GeometryData* geometry);
-	SHMAPI bool8 geometry_reload(GeometryData* geometry, uint64 old_vertex_buffer_size, uint64 old_index_buffer_size);
 	SHMAPI void geometry_unload(GeometryData* geometry);
 
 	SHMAPI void geometry_draw(GeometryData* geometry);
@@ -94,9 +93,9 @@ namespace Renderer
 	SHMAPI bool32 renderbuffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size);
 	SHMAPI bool32 renderbuffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory);
 	SHMAPI bool32 renderbuffer_resize(RenderBuffer* buffer, uint64 new_total_size);
-	SHMAPI bool32 renderbuffer_allocate(RenderBuffer* buffer, uint64 size, uint64* out_offset);
-	SHMAPI bool32 renderbuffer_reallocate(RenderBuffer* buffer, uint64 new_size, uint64 old_offset, uint64* new_offset);
-	SHMAPI void renderbuffer_free(RenderBuffer* buffer, uint64 offset);
+	SHMAPI bool8 renderbuffer_allocate(RenderBuffer* buffer, uint64 size, RenderBufferAllocationReference* alloc);
+	SHMAPI bool8 renderbuffer_reallocate(RenderBuffer* buffer, uint64 new_size, RenderBufferAllocationReference* alloc);
+	SHMAPI void renderbuffer_free(RenderBuffer* buffer, RenderBufferAllocationReference* alloc);
 	SHMAPI bool32 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data);
 	SHMAPI bool32 renderbuffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size);
 	SHMAPI bool32 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only);

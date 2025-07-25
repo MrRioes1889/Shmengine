@@ -84,23 +84,27 @@ void Freelist::destroy()
 	pages_count = 0;
 }
 
-bool32 Freelist::allocate(uint64 size, uint64* out_offset, uint64* bytes_allocated)
+bool8 Freelist::allocate(uint64 size, AllocationReference* alloc)
 {
-	return allocate_aligned(size, out_offset, (uint16)page_size, bytes_allocated);
+	return allocate_aligned(size, (uint16)page_size, alloc);
 }
 
-bool32 Freelist::allocate_aligned(uint64 size, uint64* out_offset, uint16 alignment, uint64* bytes_allocated)
+bool8 Freelist::allocate_aligned(uint64 size, uint16 alignment, AllocationReference* alloc)
 {
+	*alloc = {.byte_offset = Constants::max_u64, .byte_size = 0};
+
+	if (!size)
+		return alloc;
 
 	if ((uint16)page_size % alignment == 0)
 		alignment = 1;
 
 	if (alignment > 1 && (alignment % (uint16)page_size) != 0)
-		return false;
+		return alloc;
 
 	uint32 nodes_added = 1 + (alignment > 1 ? 1 : 0);
 	if ((nodes_count + nodes_added) > max_nodes_count)
-		return false;
+		return alloc;
 
 	uint16 page_alignment = alignment / (uint16)page_size;
 
@@ -118,15 +122,13 @@ bool32 Freelist::allocate_aligned(uint64 size, uint64* out_offset, uint16 alignm
 		node_index = find_first_free_node(this, pages_needed, &page_index);
 
 	if (node_index < 0)
-		return false;
+		return alloc;
 
 	insert_reservation_at(this, (uint64)node_index, pages_needed, node_page_offset);
 
-	if (bytes_allocated)
-		*bytes_allocated = pages_needed * (uint32)page_size;
-
-	*out_offset = (uint64)page_index * (uint32)page_size;
-	return true;
+	alloc->byte_size = pages_needed * (uint32)page_size;
+	alloc->byte_offset = (uint64)page_index * (uint32)page_size;
+	return alloc;
 }
 
 bool32 Freelist::free(uint64 offset, uint64* pages_freed)

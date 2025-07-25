@@ -4,6 +4,7 @@
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
 #include "renderer/Geometry.hpp"
+#include "renderer/RendererFrontend.hpp"
 
 static void update_vertices(Gizmo3D* out_gizmo);
 
@@ -102,7 +103,7 @@ bool32 gizmo3D_update(Gizmo3D* gizmo)
 
 	update_vertices(gizmo);
 	if (gizmo->state == ResourceState::Loaded)
-		return Renderer::geometry_reload(&gizmo->geometry, gizmo->geometry.vertices.size(), 0);
+		return Renderer::geometry_load(&gizmo->geometry);
 
 	gizmo->is_dirty = false;
 

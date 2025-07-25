@@ -133,10 +133,9 @@ namespace CString
 	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint64* out_arr);
 	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, bool8* out_arr);
 
-	struct Arg
+	struct PrintArg
 	{
-
-		enum class Type { NONE, INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, FLOAT32, FLOAT64, CHAR, CHAR_PTR, STRING_PTR, FLOAT32_PTR, FLOAT64_PTR, INT8_PTR, INT16_PTR, INT32_PTR, INT64_PTR, UINT8_PTR, UINT16_PTR, UINT32_PTR, UINT64_PTR }; Type type;
+		enum class Type { NONE, INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, FLOAT32, FLOAT64, CHAR, CHAR_PTR};
 		union {
 			int8 int8_value[8];
 			int16 int16_value[4];
@@ -163,32 +162,53 @@ namespace CString
 			uint64* uint64_ptr;
 		};
 
-		Arg() : type(Type::NONE), int64_value(0){}
+		Type type;
+		PrintArg() : type(Type::NONE), int64_value(0){}
+		PrintArg(int8 value) : type(Type::INT8) { int8_value[0] = value; }
+		PrintArg(int16 value) : type(Type::INT16) { int16_value[0] = value; }
+		PrintArg(int32 value) : type(Type::INT32) { int32_value[0] = value; }
+		PrintArg(int64 value) : type(Type::INT64) { int64_value = value; }
+		PrintArg(uint8 value) : type(Type::UINT8) { uint8_value[0] = value; }
+		PrintArg(uint16 value) : type(Type::UINT16) { uint16_value[0] = value; }
+		PrintArg(uint32 value) : type(Type::UINT32) { uint32_value[0] = value; }
+		PrintArg(uint64 value) : type(Type::UINT64) { uint64_value = value; }
+		PrintArg(float32 value) : type(Type::FLOAT32) { float32_value[0] = value; }
+		PrintArg(float64 value) : type(Type::FLOAT64) { float64_value = value; }
+		PrintArg(char value) : type(Type::CHAR) { char_value[0] = value; }
+		PrintArg(const char* value) : type(Type::CHAR_PTR) { char_ptr = value; }
+	};
 
-		Arg(int8 value) : type(Type::INT8) { int8_value[0] = value; }
-		Arg(int16 value) : type(Type::INT16) { int16_value[0] = value; }
-		Arg(int32 value) : type(Type::INT32) { int32_value[0] = value; }
-		Arg(int64 value) : type(Type::INT64) { int64_value = value; }
-		Arg(uint8 value) : type(Type::UINT8) { uint8_value[0] = value; }
-		Arg(uint16 value) : type(Type::UINT16) { uint16_value[0] = value; }
-		Arg(uint32 value) : type(Type::UINT32) { uint32_value[0] = value; }
-		Arg(uint64 value) : type(Type::UINT64) { uint64_value = value; }
-		Arg(float32 value) : type(Type::FLOAT32) { float32_value[0] = value; }
-		Arg(float64 value) : type(Type::FLOAT64) { float64_value = value; }
-		Arg(char value) : type(Type::CHAR) { char_value[0] = value; }
+	struct ScanArg
+	{
+		enum class Type { NONE, STRING_PTR, FLOAT32_PTR, FLOAT64_PTR, INT8_PTR, INT16_PTR, INT32_PTR, INT64_PTR, UINT8_PTR, UINT16_PTR, UINT32_PTR, UINT64_PTR };
+		union 
+		{
+			String* string_ptr;
+			float32* float32_ptr;
+			float64* float64_ptr;
+			int8* int8_ptr;
+			int16* int16_ptr;
+			int32* int32_ptr;
+			int64* int64_ptr;
+			uint8* uint8_ptr;
+			uint16* uint16_ptr;
+			uint32* uint32_ptr;
+			uint64* uint64_ptr;
+		};
 
-		Arg(const char* value) : type(Type::CHAR_PTR) { char_ptr = value; }
-		Arg(String* value) : type(Type::STRING_PTR) { string_ptr = value; }
-		Arg(int8* value) : type(Type::INT8_PTR) { int8_ptr = value; }
-		Arg(int16* value) : type(Type::INT16_PTR) { int16_ptr = value; }
-		Arg(int32* value) : type(Type::INT32_PTR) { int32_ptr = value; }
-		Arg(int64* value) : type(Type::INT64_PTR) { int64_ptr = value; }
-		Arg(uint8* value) : type(Type::UINT8_PTR) { uint8_ptr = value; }
-		Arg(uint16* value) : type(Type::UINT16_PTR) { uint16_ptr = value; }
-		Arg(uint32* value) : type(Type::UINT32_PTR) { uint32_ptr = value; }
-		Arg(uint64* value) : type(Type::UINT64_PTR) { uint64_ptr = value; }
-		Arg(float32* value) : type(Type::FLOAT32_PTR) { float32_ptr = value; }
-		Arg(float64* value) : type(Type::FLOAT64_PTR) { float64_ptr = value; }	
+		Type type;
+		ScanArg() : type(Type::NONE), int8_ptr(0){}
+		ScanArg(String* value) : type(Type::STRING_PTR) { string_ptr = value; }
+		ScanArg(int8* value) : type(Type::INT8_PTR) { int8_ptr = value; }
+		ScanArg(int16* value) : type(Type::INT16_PTR) { int16_ptr = value; }
+		ScanArg(int32* value) : type(Type::INT32_PTR) { int32_ptr = value; }
+		ScanArg(int64* value) : type(Type::INT64_PTR) { int64_ptr = value; }
+		ScanArg(uint8* value) : type(Type::UINT8_PTR) { uint8_ptr = value; }
+		ScanArg(uint16* value) : type(Type::UINT16_PTR) { uint16_ptr = value; }
+		ScanArg(uint32* value) : type(Type::UINT32_PTR) { uint32_ptr = value; }
+		ScanArg(uint64* value) : type(Type::UINT64_PTR) { uint64_ptr = value; }
+		ScanArg(float32* value) : type(Type::FLOAT32_PTR) { float32_ptr = value; }
+		ScanArg(float64* value) : type(Type::FLOAT64_PTR) { float64_ptr = value; }	
 	
 	};
 
@@ -200,7 +220,7 @@ namespace CString
 		LONG_LONG
 	};
 
-	SHMAPI int32 _print_s_base(char* target_buffer, uint32 buffer_limit, const char* format, const Arg* args, uint64 arg_count);
+	SHMAPI int32 _print_s_base(char* target_buffer, uint32 buffer_limit, const char* format, const PrintArg* args, uint64 arg_count);
 
 	int32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, va_list arg_ptr);
 	SHMAPI int32 print_s(char* target_buffer, uint32 buffer_limit, const char* format, ...);
@@ -208,18 +228,18 @@ namespace CString
 	template<typename... Args>
 	SHMINLINE int32 safe_print_s(char* target_buffer, uint32 buffer_limit, const char* format, const Args&... args)
 	{
-		Arg arg_array[] = { args... };
+		PrintArg arg_array[] = { args... };
 		return _print_s_base(target_buffer, buffer_limit, format, arg_array, sizeof...(Args));
 	}
 
-	SHMAPI bool32 _scan_base(const char* source, const char* format, const Arg* args, uint64 arg_count);
+	SHMAPI bool32 _scan_base(const char* source, const char* format, const ScanArg* args, uint64 arg_count);
 
 	SHMAPI bool32 scan(const char* source, const char* format, ...);
 
 	template<typename... Args>
 	SHMINLINE bool32 safe_scan(const char* source, const char* format, const Args&... args)
 	{
-		Arg arg_array[] = { args... };
+		ScanArg arg_array[] = { args... };
 		return _scan_base(source, format, arg_array, sizeof...(Args));
 	}
 

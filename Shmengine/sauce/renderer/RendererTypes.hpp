@@ -15,13 +15,14 @@ struct UIText;
 struct Skybox;
 struct FrameData;
 struct Mesh;
-struct GeometryData;
 struct Material;
 struct Texture;
 struct TextureMap;
 struct Shader;
 struct ShaderConfig;
 struct ShaderUniform;
+
+typedef AllocationReference32 RenderBufferAllocationReference;
 
 namespace Platform
 {
@@ -89,8 +90,8 @@ struct GeometryData
 	Sarray<byte> vertices;
 	Sarray<uint32> indices;
 
-	uint64 vertex_buffer_offset;
-	uint64 index_buffer_offset;
+	RenderBufferAllocationReference vertex_buffer_alloc_ref;
+	RenderBufferAllocationReference index_buffer_alloc_ref;
 };
 
 namespace Renderer

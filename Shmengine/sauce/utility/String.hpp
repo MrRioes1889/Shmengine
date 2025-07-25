@@ -81,7 +81,7 @@ struct SHMAPI String
 		if (!arr.data)
 			return -1;
 
-		CString::Arg arg_array[] = { args... };
+		CString::PrintArg arg_array[] = { args... };
 		int32 res = CString::_print_s_base(arr.data, arr.capacity, format, arg_array, sizeof...(Args));
 		if (res >= 0)
 			arr.count = (uint32)res;

@@ -514,12 +514,14 @@ namespace RenderViewSystem
 		out_instance_data->instance_properties = &white_color;
 		out_instance_data->texture_maps_count = 1;
 		out_instance_data->texture_maps = (TextureMap**)frame_data->frame_allocator.allocate(sizeof(TextureMap*) * out_instance_data->texture_maps_count);
-		out_instance_data->texture_maps[0] = &text->font_atlas->map;
+		out_instance_data->texture_maps[0] = &FontSystem::get_atlas(text->font_id, text->font_size)->map;
 		out_instance_data->shader_instance_id = text->shader_instance_id;
 	}
 
 	bool32 ui_text_draw(UIText* text, FrameData* frame_data, RenderViewId view_id, ShaderId shader_id)
 	{
+		ui_text_update(text);
+
 		if (!view_id.is_valid())
 			view_id = system_state->default_ui_view_id;	
 		if (!shader_id.is_valid())
