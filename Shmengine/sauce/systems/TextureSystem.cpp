@@ -9,7 +9,7 @@
 
 #include "renderer/RendererFrontend.hpp"
 
-#include "resources/loaders/ImageLoader.hpp"
+#include "resources/loaders/TextureLoader.hpp"
 #include "systems/JobSystem.hpp"
 
 
@@ -21,7 +21,7 @@ namespace TextureSystem
 		char* resource_name;
 		Texture* out_texture;
 		Texture temp_texture;
-		ImageConfig config;
+		TextureResourceData resource;
 	};
 
 	struct TextureReference
@@ -311,16 +311,16 @@ namespace TextureSystem
 		Texture old;
 		Memory::copy_memory(texture_params->out_texture, &old, sizeof(old));
 		
-		ImageConfig* config = (ImageConfig*)&texture_params->config;
-		Renderer::texture_create(config->pixels, &texture_params->temp_texture);
+		TextureResourceData* resource = (TextureResourceData*)&texture_params->resource;
+		TextureConfig config = ResourceSystem::texture_loader_get_config_from_resource(resource);
+		Renderer::texture_create(config.pixels, &texture_params->temp_texture);
 
 		Memory::copy_memory(&texture_params->temp_texture, texture_params->out_texture, sizeof(*texture_params->out_texture));
 		Renderer::texture_destroy(&old);
-		texture_params->out_texture->flags |= TextureFlags::IsLoaded;
 
 		SHMTRACEV("Successfully loaded texture '%s'.", texture_params->resource_name);
 
-		ResourceSystem::image_loader_unload(config);
+		ResourceSystem::texture_loader_unload(resource);
 		Memory::free_memory(texture_params->resource_name);
 
 		system_state->textures_loading_count--;
@@ -332,7 +332,7 @@ namespace TextureSystem
 
 		SHMTRACEV("Failed to load texture '%s'.", texture_params->resource_name);
 
-		ResourceSystem::image_loader_unload(&texture_params->config);
+		ResourceSystem::texture_loader_unload(&texture_params->resource);
 		if (texture_params->resource_name)
 			Memory::free_memory(texture_params->resource_name);
 
@@ -346,24 +346,25 @@ namespace TextureSystem
 
 		TextureLoadParams* load_params = (TextureLoadParams*)results;
 
-		ImageConfig* config = &load_params->config;
-		if (!ResourceSystem::image_loader_load(load_params->resource_name, true, config))
+		TextureResourceData* resource = &load_params->resource;
+		if (!ResourceSystem::texture_loader_load(load_params->resource_name, true, resource))
 		{
 			SHMERRORV("load_texture - Failed to load image resources for texture '%s'", load_params->resource_name);
 			return false;
 		}
 
-		load_params->temp_texture.channel_count = config->channel_count;
-		load_params->temp_texture.width = config->width;
-		load_params->temp_texture.height = config->height;
+		TextureConfig config = ResourceSystem::texture_loader_get_config_from_resource(resource);
+		load_params->temp_texture.channel_count = config.channel_count;
+		load_params->temp_texture.width = config.width;
+		load_params->temp_texture.height = config.height;
 		load_params->temp_texture.type = TextureType::Plane;
 
 		load_params->out_texture->flags &= ~TextureFlags::IsLoaded;
 
-		uint8* pixels = config->pixels;
+		uint8* pixels = config.pixels;
 		uint64 size = load_params->temp_texture.width * load_params->temp_texture.height * load_params->temp_texture.channel_count;
 		bool8 has_transparency = false;
-		for (uint64 i = 0; i < size; i += config->channel_count)
+		for (uint64 i = 0; i < size; i += config.channel_count)
 		{
 			uint8 a = pixels[i + 3];
 			if (a < 255)
@@ -376,10 +377,8 @@ namespace TextureSystem
 		CString::copy(load_params->resource_name, load_params->temp_texture.name, Constants::max_texture_name_length);
 		load_params->temp_texture.flags = 0;
 		load_params->temp_texture.flags |= has_transparency ? TextureFlags::HasTransparency : 0;
-
 		
 		return true;
-
 	}
 
 	static bool8 load_texture(const char* texture_name, Texture* t)
@@ -391,7 +390,7 @@ namespace TextureSystem
 		params->resource_name = (char*)Memory::allocate(name_length + 1, AllocationTag::String);
 		CString::copy(texture_name, params->resource_name, name_length + 1);
 		params->out_texture = t;
-		params->config = {};
+		params->resource = {};
 		JobSystem::submit(job);
 		return true;
 	}
@@ -404,18 +403,19 @@ namespace TextureSystem
 
 		for (uint32 i = 0; i < 6; i++)
 		{
-			ImageConfig img_resource_data;
-			if (!ResourceSystem::image_loader_load(texture_names[i], false, &img_resource_data))
+			TextureResourceData resource_data;
+			if (!ResourceSystem::texture_loader_load(texture_names[i], false, &resource_data))
 			{
 				SHMERRORV("load_texture - Failed to load image resources for texture '%s'", texture_names[i]);
 				return false;
 			}
+			TextureConfig config = ResourceSystem::texture_loader_get_config_from_resource(&resource_data);
 
 			if (!pixels.data)
 			{
-				t->channel_count = img_resource_data.channel_count;
-				t->width = img_resource_data.width;
-				t->height = img_resource_data.height;
+				t->channel_count = config.channel_count;
+				t->width = config.width;
+				t->height = config.height;
 				t->type = TextureType::Cube;
 
 				t->flags = 0;
@@ -426,7 +426,7 @@ namespace TextureSystem
 			}
 			else
 			{
-				if (t->width != img_resource_data.width || t->height != img_resource_data.height || t->channel_count != img_resource_data.channel_count)
+				if (t->width != config.width || t->height != config.height || t->channel_count != config.channel_count)
 				{
 					SHMERROR("load_cube_textures - Cannot load cube textures since dimensions vary between textures!");
 					pixels.free_data();
@@ -434,9 +434,9 @@ namespace TextureSystem
 				}
 			}
 
-			pixels.copy_memory(img_resource_data.pixels, image_size, image_size * i);
+			pixels.copy_memory(config.pixels, image_size, image_size * i);
 
-			ResourceSystem::image_loader_unload(&img_resource_data);
+			ResourceSystem::texture_loader_unload(&resource_data);
 
 		}
 

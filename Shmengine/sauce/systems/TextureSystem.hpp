@@ -29,13 +29,21 @@ enum class TextureType : uint8
 
 typedef Id16 TextureId;
 
+struct TextureConfig
+{
+	uint8 channel_count;
+	uint32 width;
+	uint32 height;
+	uint8* pixels;
+};
+
 struct Texture
 {
+	char name[Constants::max_texture_name_length];
 	TextureId id;
 	TextureType type;
 	TextureFlags::Value flags;
 	uint8 channel_count;
-	char name[Constants::max_texture_name_length];
 	uint32 width;
 	uint32 height;
 	Buffer internal_data = {};

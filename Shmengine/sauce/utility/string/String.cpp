@@ -114,7 +114,7 @@ void String::reserve(uint32 reserve_size)
 	reserve_size++;
 	if (!arr.data)
 	{
-		arr.init(reserve_size, DarrayFlags::IsString, AllocationTag::String);
+		arr.init(SHMAX(reserve_size, String::min_reserve_size), DarrayFlags::IsString, AllocationTag::String);
 		return;
 	}
 
@@ -142,25 +142,16 @@ void String::free_data()
 
 void String::append(char appendage)
 {
-	if (!arr.data)
-		arr.init(String::min_reserve_size, DarrayFlags::IsString, AllocationTag::String);
-
-	uint32 total_length = 1 + arr.count;
-	if (total_length + 1 > arr.capacity)
-		arr.resize(total_length + 1);
+	reserve(len() + 1);
 	CString::append(arr.data + arr.count, arr.capacity - arr.count, appendage);
-	arr.count = total_length;
+	arr.count++;
 }
 
 void String::append(const char* appendage, int32 length)
 {
-	if (!arr.data)
-		arr.init(String::min_reserve_size, DarrayFlags::IsString, AllocationTag::String);
-
 	uint32 append_length = length < 0 ? CString::length(appendage) : (uint32)length;
 	uint32 total_length = append_length + arr.count;
-	if (total_length + 1 > arr.capacity)
-		arr.resize(total_length + 1);
+	reserve(total_length);
 	CString::append(arr.data + arr.count, arr.capacity - arr.count, appendage, length);
 	arr.count = total_length;
 }

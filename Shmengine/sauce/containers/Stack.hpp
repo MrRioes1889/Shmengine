@@ -156,31 +156,35 @@ SHMINLINE void Stack<T>::init(uint32 reserve_count, uint32 creation_flags, Alloc
 	capacity = reserve_count;
 	count = 0;
 	flags = (uint16)creation_flags;
-	if (creation_flags & StackFlags::ExternalMemory)
-		flags |= StackFlags::NonResizable;
 
 	if (memory)
+	{
+		flags |= StackFlags::ExternalMemory | StackFlags::NonResizable;
 		data = (T*)memory;
+	}
 	else
+	{
+		flags &= ~StackFlags::ExternalMemory;
 		data = (T*)Memory::allocate(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
+	}
 }
 
 template<typename T>
 SHMINLINE void Stack<T>::free_data()
 {
-
-	if (data && !(flags & StackFlags::ExternalMemory))
+	if (data)
 	{
 		for (uint32 i = 0; i < count; i++)
 			data[i].~T();
 
-		Memory::free_memory(data);
+		if (!(flags & StackFlags::ExternalMemory))
+			Memory::free_memory(data);
 	}
+
 
 	capacity = 0;
 	data = 0;
 	count = 0;
-
 }
 
 template<typename T>

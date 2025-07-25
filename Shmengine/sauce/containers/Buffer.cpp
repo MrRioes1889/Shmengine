@@ -17,17 +17,20 @@ void Buffer::init(uint64 reserve_size, uint32 creation_flags, AllocationTag tag,
 {
 	SHMASSERT(!data);
 
-	flags = (uint16)creation_flags;
 	allocation_tag = (uint16)tag;
 	size = reserve_size;
-	if (!memory)
+	flags = (uint16)creation_flags;
+
+	if (memory)
 	{
-		data = Memory::allocate(size, (AllocationTag)allocation_tag);
+		flags |= SarrayFlags::ExternalMemory;
+		data = memory;
 	}
 	else
 	{
-		data = memory;
-	}		
+		flags &= ~SarrayFlags::ExternalMemory;
+		data = Memory::allocate(size, (AllocationTag)allocation_tag);
+	}
 }
 
 void Buffer::free_data()
@@ -39,7 +42,6 @@ void Buffer::free_data()
 		else
 			Memory::free_memory(data);
 	}
-		
 
 	data = 0;
 	size = 0;

@@ -178,26 +178,27 @@ SHMINLINE void Sarray<T>::init(uint32 reserve_count, SarrayFlags::Value creation
 	flags = (uint16)creation_flags;
 
 	if (memory)
+	{
 		flags |= SarrayFlags::ExternalMemory;
-	else
-		flags &= ~SarrayFlags::ExternalMemory;
-
-	if (!memory)
-		data = (T*)Memory::allocate(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
-	else
 		data = (T*)memory;
-
+	}
+	else
+	{
+		flags &= ~SarrayFlags::ExternalMemory;
+		data = (T*)Memory::allocate(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
+	}
 }
 
 template<typename T>
 SHMINLINE void Sarray<T>::free_data()
 {
-	if (data && !(flags & SarrayFlags::ExternalMemory))
+	if (data)
 	{
 		for (uint32 i = 0; i < capacity; i++)
 			data[i].~T();
 
-		Memory::free_memory(data);
+		if (!(flags & SarrayFlags::ExternalMemory))
+			Memory::free_memory(data);
 	}
 		
 	data = 0;

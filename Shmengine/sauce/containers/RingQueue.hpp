@@ -118,7 +118,6 @@ SHMINLINE void RingQueue<T>::init(uint32 reserve_count, RingQueueFlags creation_
 	flags = creation_flags;
 	head_index = 0;
 	tail_index = 0;
-
 }
 
 template<typename T>

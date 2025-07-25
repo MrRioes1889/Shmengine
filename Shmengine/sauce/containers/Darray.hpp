@@ -211,34 +211,36 @@ SHMINLINE void Darray<T>::init(uint32 reserve_count, DarrayFlags::Value creation
 	count = 0;
 	flags = (uint16)creation_flags;
 	if (memory)
-		flags |= DarrayFlags::ExternalMemory;
+	{
+		flags |= DarrayFlags::ExternalMemory | DarrayFlags::NonResizable;
+		data = (T*)memory;
+	}
 	else
+	{
 		flags &= ~DarrayFlags::ExternalMemory;
 
-	if (flags & DarrayFlags::ExternalMemory)
-		flags |= DarrayFlags::NonResizable;
-
-	if (memory)
-		data = (T*)memory;
-	else if (flags & DarrayFlags::IsString)
-		data = (T*)Memory::allocate_string(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
-	else
-		data = (T*)Memory::allocate(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
+		if (flags & DarrayFlags::IsString)
+			data = (T*)Memory::allocate_string(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
+		else
+			data = (T*)Memory::allocate(sizeof(T) * reserve_count, (AllocationTag)allocation_tag);
+	}
 }
 
 template<typename T>
 SHMINLINE void Darray<T>::free_data()
 {
-
-	if (data && !(flags & DarrayFlags::ExternalMemory))
+	if (data)
 	{
 		for (uint32 i = 0; i < count; i++)
 			data[i].~T();
 
-		if (flags & DarrayFlags::IsString)
-			Memory::free_memory_string(data);
-		else
-			Memory::free_memory(data);
+		if (!(flags & DarrayFlags::ExternalMemory))
+		{
+			if (flags & DarrayFlags::IsString)
+				Memory::free_memory_string(data);
+			else
+				Memory::free_memory(data);
+		}
 	}
 
 	capacity = 0;

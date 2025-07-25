@@ -8,7 +8,7 @@
 #include "renderer/RendererTypes.hpp"
 #include "renderer/Geometry.hpp"
 #include "renderer/RendererFrontend.hpp"
-#include "resources/loaders/ImageLoader.hpp"
+#include "resources/loaders/TextureLoader.hpp"
 #include "resources/loaders/TerrainLoader.hpp"
 
 #include "systems/ShaderSystem.hpp"
@@ -78,21 +78,22 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
 	if (config->heightmap_name)
 	{
-		ImageConfig image_config = {};
-		if (!ResourceSystem::image_loader_load(config->heightmap_name, false, &image_config))
+		TextureResourceData resource = {};
+		if (!ResourceSystem::texture_loader_load(config->heightmap_name, false, &resource))
 		{
 			SHMERROR("Failed to load heightmap for terrain!");
 			return false;
 		}
+		TextureConfig texture_config = ResourceSystem::texture_loader_get_config_from_resource(&resource);
 
-		out_terrain->tile_count_x = image_config.width - 1;
-		out_terrain->tile_count_z = image_config.height - 1;
+		out_terrain->tile_count_x = texture_config.width - 1;
+		out_terrain->tile_count_z = texture_config.height - 1;
 		geometry_config.vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
 		out_terrain->vertex_infos.init(geometry_config.vertex_count, 0);
 
 		for (uint32 i = 0; i < geometry_config.vertex_count; i++)
 		{
-			uint8 r = image_config.pixels[(i * 4) + 0];
+			uint8 r = texture_config.pixels[(i * 4) + 0];
 			float32 height = r / 255.0f;
 			out_terrain->vertex_infos[i].height = height;
 			if (height > geometry_config.extents.max.y)
@@ -104,7 +105,7 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		geometry_config.extents.max.y *= out_terrain->scale_y;
 		geometry_config.extents.min.y = 0.0f;
 
-		ResourceSystem::image_loader_unload(&image_config);
+		ResourceSystem::texture_loader_unload(&resource);
 	}
 	else
 	{

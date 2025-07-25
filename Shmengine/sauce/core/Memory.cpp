@@ -60,7 +60,6 @@ namespace Memory
 
     bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
-
         system_state = (SystemState*)platform_allocate(sizeof(SystemState), true);
         zero_memory(system_state, sizeof(SystemState));
         system_state->config = *((SystemConfig*)config);
@@ -136,7 +135,6 @@ namespace Memory
     {
         Threading::mutex_lock(&system_state->allocation_mutex);
         system_state->external_allocation_size += size;
-        //system_state->stats.tagged_allocations[tag] += size;
         system_state->external_allocation_count++;
         Threading::mutex_unlock(&system_state->allocation_mutex);
     }
@@ -145,7 +143,6 @@ namespace Memory
     {
         Threading::mutex_lock(&system_state->allocation_mutex);
         system_state->external_allocation_size -= size;
-        //system_state->stats.tagged_allocations[tag] -= size;
         system_state->external_allocation_count--;
         Threading::mutex_unlock(&system_state->allocation_mutex);
     }
@@ -180,10 +177,6 @@ namespace Memory
         if (!system_state && allocator)
             return 0;   
     
-        /*uint64 bytes_allocated = 0;
-        ret = system_state->string_allocator.allocate(size, &bytes_allocated);
-        uint64 offset = (uint64)ret - (uint64)system_state->string_allocator.data;
-        SHMDEBUGV("string allocated at offset: %lu; bytes allocated: %lu", offset, bytes_allocated);*/
         if (!allocator)
         {
             ret = platform_allocate(size, alignment);
@@ -217,12 +210,6 @@ namespace Memory
 
         void* ret = 0;    
 
-        /*uint64 bytes_freed = 0;
-        uint64 bytes_allocated = 0;
-        ret = system_state->string_allocator.reallocate(size, block, &bytes_freed, &bytes_allocated);
-        uint64 from_offset = (uint64)block - (uint64)system_state->string_allocator.data;
-        uint64 to_offset = (uint64)ret - (uint64)system_state->string_allocator.data;
-        SHMDEBUGV("String reallocated from: %lu, to: %lu; Bytes freed: %lu; Bytes allocated; %lu", from_offset, to_offset, bytes_freed, bytes_allocated);*/
         AllocationTag tag;
         if (!system_state || !allocator)
         {
@@ -248,35 +235,24 @@ namespace Memory
 
     static void _free_memory(DynamicAllocator* allocator, void* block, bool8 aligned)
     {       
-
-        if (!system_state && system_initialized && allocator)
-            return;
-
-        /*uint64 bytes_freed = 0;
-        system_state->string_allocator.free(block, &bytes_freed);
-        uint64 offset = (uint64)block - (uint64)system_state->string_allocator.data;
-        SHMDEBUGV("String freed at offset: %lu; Bytes freed: %lu", offset, bytes_freed);*/
-        AllocationTag tag;
         if (!system_state || !allocator)
         {
             platform_free(block, aligned);
-            tag = AllocationTag::Platform;
+            return;
         }          
-        else
-        {
-            if (!Threading::mutex_lock(&system_state->allocation_mutex))
-            {
-                SHMFATAL("Failed obtaining lock for general allocation mutex!");
-                return;
-            }
 
-            allocator->free(block, &tag);
+        AllocationTag tag;
+		if (!Threading::mutex_lock(&system_state->allocation_mutex))
+		{
+			SHMFATAL("Failed obtaining lock for general allocation mutex!");
+			return;
+		}
 
-            system_state->allocation_count--;
+		allocator->free(block, &tag);
 
-            Threading::mutex_unlock(&system_state->allocation_mutex);
-        }   
-        
+		system_state->allocation_count--;
+
+		Threading::mutex_unlock(&system_state->allocation_mutex);
     }
 
     static void* platform_allocate(uint64 size, uint16 alignment)
