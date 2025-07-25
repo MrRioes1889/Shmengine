@@ -29,16 +29,16 @@ namespace Memory
         
     };
     
-    static bool32 system_initialized = false;
+    static bool8 system_initialized = false;
     static SystemState* system_state;
 
     static void* platform_allocate(uint64 size, uint16 alignment);
     static void* platform_reallocate(uint64 size, void* block, uint16 alignment);
-    static void platform_free(void* block, bool32 aligned);
+    static void platform_free(void* block, bool8 aligned);
 
     static void* _allocate(DynamicAllocator* allocator, uint64 size, AllocationTag tag, uint16 alignment = 1);
     static void* _reallocate(DynamicAllocator* allocator, uint64 size, void* block, uint16 alignment = 1);
-    static void _free_memory(DynamicAllocator* allocator, void* block, bool32 aligned = true);
+    static void _free_memory(DynamicAllocator* allocator, void* block, bool8 aligned = true);
 
     static void init_buffer_and_allocator_pair(Buffer* buffer, DynamicAllocator* out_allocator, DynamicAllocator* target_allocator, uint64 size, AllocatorPageSize page_size, AllocationTag tag, uint32 node_count_limit = 0, uint16 alignment = 1)
     {
@@ -58,7 +58,7 @@ namespace Memory
         out_allocator->init(size, buffer->data, nodes_size, main_nodes, page_size, node_count_limit);
     }
 
-    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+    bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
 
         system_state = (SystemState*)platform_allocate(sizeof(SystemState), true);
@@ -127,7 +127,7 @@ namespace Memory
     {
         return _reallocate(0, size, block, alignment);
     }
-    void free_memory_platform(void* block, bool32 aligned)
+    void free_memory_platform(void* block, bool8 aligned)
     {
         _free_memory(0, block, aligned);
     }
@@ -246,7 +246,7 @@ namespace Memory
    
     }
 
-    static void _free_memory(DynamicAllocator* allocator, void* block, bool32 aligned)
+    static void _free_memory(DynamicAllocator* allocator, void* block, bool8 aligned)
     {       
 
         if (!system_state && system_initialized && allocator)
@@ -293,7 +293,7 @@ namespace Memory
         return new_block;
     }
 
-    static void platform_free(void* block, bool32 aligned)
+    static void platform_free(void* block, bool8 aligned)
     {
         Platform::free_memory(block, aligned);
     }

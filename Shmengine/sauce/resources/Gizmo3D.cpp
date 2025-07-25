@@ -10,7 +10,7 @@ static void update_vertices(Gizmo3D* out_gizmo);
 
 static const uint32 rotate_circle_segments = 32;
 
-bool32 gizmo3D_init(Gizmo3D* out_gizmo)
+bool8 gizmo3D_init(Gizmo3D* out_gizmo)
 {
 	if (out_gizmo->state >= ResourceState::Initialized)
 		return false;
@@ -42,7 +42,7 @@ bool32 gizmo3D_init(Gizmo3D* out_gizmo)
 	return true;
 }
 
-bool32 gizmo3D_destroy(Gizmo3D* gizmo)
+bool8 gizmo3D_destroy(Gizmo3D* gizmo)
 {
 	if (gizmo->state != ResourceState::Unloaded && !gizmo3D_unload(gizmo))
 		return false;
@@ -53,13 +53,13 @@ bool32 gizmo3D_destroy(Gizmo3D* gizmo)
 	return true;
 }
 
-bool32 gizmo3D_load(Gizmo3D* gizmo)
+bool8 gizmo3D_load(Gizmo3D* gizmo)
 {
 
 	if (gizmo->state != ResourceState::Initialized && gizmo->state != ResourceState::Unloaded)
 		return false;
 
-	bool32 is_reload = gizmo->state == ResourceState::Unloaded;
+	bool8 is_reload = gizmo->state == ResourceState::Unloaded;
 
 	gizmo->state = ResourceState::Loading;
 	gizmo->unique_id = identifier_acquire_new_id(gizmo);
@@ -76,7 +76,7 @@ bool32 gizmo3D_load(Gizmo3D* gizmo)
 
 }
 
-bool32 gizmo3D_unload(Gizmo3D* gizmo)
+bool8 gizmo3D_unload(Gizmo3D* gizmo)
 {
 
 	if (gizmo->state <= ResourceState::Initialized)
@@ -96,7 +96,7 @@ bool32 gizmo3D_unload(Gizmo3D* gizmo)
 
 }
 
-bool32 gizmo3D_update(Gizmo3D* gizmo)
+bool8 gizmo3D_update(Gizmo3D* gizmo)
 {
 	if (!gizmo->is_dirty)
 		return true;

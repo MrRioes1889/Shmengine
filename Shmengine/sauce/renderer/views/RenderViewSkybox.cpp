@@ -28,7 +28,7 @@ struct RenderViewSkyboxInternalData
 	Math::Mat4 projection_matrix;
 };
 
-bool32 render_view_skybox_on_create(RenderView* self)
+bool8 render_view_skybox_on_create(RenderView* self)
 {
 
 	self->internal_data.init(sizeof(RenderViewSkyboxInternalData), 0, AllocationTag::Renderer);
@@ -83,7 +83,7 @@ void render_view_skybox_on_resize(RenderView* self, uint32 width, uint32 height)
 	}
 }
 
-bool32 render_view_skybox_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
+bool8 render_view_skybox_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
 {
 	RenderViewSkyboxInternalData* internal_data = (RenderViewSkyboxInternalData*)self->internal_data.data;
 	
@@ -94,7 +94,7 @@ void render_view_skybox_on_end_frame(RenderView* self)
 {
 }
 
-static bool32 set_globals_skybox(RenderViewSkyboxInternalData* internal_data, Math::Mat4* view_matrix)
+static bool8 set_globals_skybox(RenderViewSkyboxInternalData* internal_data, Math::Mat4* view_matrix)
 {
 
 	ShaderSystem::bind_shader(internal_data->skybox_shader->id);
@@ -107,7 +107,7 @@ static bool32 set_globals_skybox(RenderViewSkyboxInternalData* internal_data, Ma
 
 }
 
-static bool32 set_instance_skybox(RenderViewSkyboxInternalData* internal_data, RenderViewInstanceData instance)
+static bool8 set_instance_skybox(RenderViewSkyboxInternalData* internal_data, RenderViewInstanceData instance)
 {
 
 	ShaderSystem::bind_shader(internal_data->skybox_shader->id);
@@ -119,7 +119,7 @@ static bool32 set_instance_skybox(RenderViewSkyboxInternalData* internal_data, R
 
 }
 
-bool32 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
+bool8 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
 	OPTICK_EVENT();
 
@@ -150,7 +150,7 @@ bool32 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uin
 		if (instance_data->shader_instance_id == Constants::max_u32)
 			continue;
 
-		bool32 instance_set = true;
+		bool8 instance_set = true;
 		if (instance_data->shader_id == internal_data->skybox_shader->id)
 			instance_set = set_instance_skybox(internal_data, *instance_data);
 		else

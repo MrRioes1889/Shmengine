@@ -15,7 +15,7 @@ namespace Renderer::Vulkan
 		VkImageTiling tiling,
 		VkImageUsageFlags usage,
 		VkMemoryPropertyFlags memory_flags,
-		bool32 create_view,
+		bool8 create_view,
 		VkImageAspectFlags view_aspect_flags,
 		VulkanImage* out_image)
 	{
@@ -65,7 +65,7 @@ namespace Renderer::Vulkan
 		//vk_debug_set_object_name(context, VK_OBJECT_TYPE_DEVICE_MEMORY, &out_image->memory, out_image->name)
 		VK_CHECK(vkBindImageMemory(context->device.logical_device, out_image->handle, out_image->memory, 0)); // TODO: Add configurable memory offset
 
-		bool32 is_device_memory = (out_image->memory_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		bool8 is_device_memory = (out_image->memory_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		Memory::track_external_allocation(out_image->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 
 		if (create_view)
@@ -241,7 +241,7 @@ namespace Renderer::Vulkan
 		if (image->handle)
 			vkDestroyImage(context->device.logical_device, image->handle, context->allocator_callbacks);
 
-		bool32 is_device_memory = (image->memory_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		bool8 is_device_memory = (image->memory_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		Memory::track_external_free(image->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 
 		image->view = 0;
@@ -290,7 +290,7 @@ namespace Renderer::Vulkan
 		vkCmdCopyImageToBuffer(command_buffer->handle, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, 1, &region);
 	}
 
-	bool32 vk_image_write_data(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 offset, uint32 size, const uint8* pixels)
+	bool8 vk_image_write_data(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 offset, uint32 size, const uint8* pixels)
 	{		
 
 		VulkanBuffer staging;
@@ -321,7 +321,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_image_read_data(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 offset, uint32 size, void* out_memory)
+	bool8 vk_image_read_data(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 offset, uint32 size, void* out_memory)
 	{
 
 		VulkanBuffer read;
@@ -354,7 +354,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_image_read_pixel(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 x, uint32 y, uint32* out_rgba)
+	bool8 vk_image_read_pixel(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 x, uint32 y, uint32* out_rgba)
 	{
 
 		VulkanBuffer read;

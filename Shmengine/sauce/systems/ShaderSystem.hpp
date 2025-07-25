@@ -279,11 +279,11 @@ namespace ShaderSystem
 		uint16 max_instance_textures;
 	};
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI bool32 create_shader(const Renderer::RenderPass* renderpass,const ShaderConfig* config);
-	SHMAPI bool32 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass);
+	SHMAPI bool8 create_shader(const Renderer::RenderPass* renderpass,const ShaderConfig* config);
+	SHMAPI bool8 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass);
 
 	SHMAPI void destroy_shader(ShaderId shader_id);
 	SHMAPI void destroy_shader(const char* shader_name);
@@ -295,16 +295,16 @@ namespace ShaderSystem
 
 	SHMAPI void bind_shader(ShaderId shader_id);
 
-	SHMAPI bool32 use_shader(ShaderId shader_id);
-	SHMAPI bool32 use_shader(const char* shader_name);
+	SHMAPI bool8 use_shader(ShaderId shader_id);
+	SHMAPI bool8 use_shader(const char* shader_name);
 
 	SHMAPI ShaderUniformId get_uniform_index(Shader* shader, const char* uniform_name);
 
-	SHMAPI bool32 set_uniform(const char* uniform_name, const void* value);
-	SHMAPI bool32 set_uniform(ShaderUniformId index, const void* value);
+	SHMAPI bool8 set_uniform(const char* uniform_name, const void* value);
+	SHMAPI bool8 set_uniform(ShaderUniformId index, const void* value);
 
-	SHMAPI bool32 bind_globals();
-	SHMAPI bool32 bind_instance(uint32 instance_id);
+	SHMAPI bool8 bind_globals();
+	SHMAPI bool8 bind_instance(uint32 instance_id);
 
 	SHMAPI ShaderId get_material_phong_shader_id();
 	SHMAPI ShaderId get_terrain_shader_id();

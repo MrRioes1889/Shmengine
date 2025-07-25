@@ -31,14 +31,14 @@ namespace ShaderSystem
 
 	static SystemState* system_state = 0;
 
-	static bool32 add_attribute(Shader* shader, const ShaderAttributeConfig* config);
-	static bool32 add_sampler(Shader* shader, const ShaderUniformConfig* config);
-	static bool32 add_uniform(Shader* shader, const ShaderUniformConfig* config);
-	static bool32 add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool32 is_sampler);
+	static bool8 add_attribute(Shader* shader, const ShaderAttributeConfig* config);
+	static bool8 add_sampler(Shader* shader, const ShaderUniformConfig* config);
+	static bool8 add_uniform(Shader* shader, const ShaderUniformConfig* config);
+	static bool8 add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool8 is_sampler);
 
-	static bool32 create_default_texture_map();
+	static bool8 create_default_texture_map();
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 		SystemConfig* sys_config = (SystemConfig*)config;
 		if (sys_config->max_shader_count < 512)
@@ -91,7 +91,7 @@ namespace ShaderSystem
 		system_state = 0;
 	}
 
-	bool32 create_shader(const Renderer::RenderPass* renderpass, const ShaderConfig* config)
+	bool8 create_shader(const Renderer::RenderPass* renderpass, const ShaderConfig* config)
 	{
 		using namespace Renderer;
 
@@ -166,7 +166,7 @@ namespace ShaderSystem
 
 	}
 
-	bool32 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass)
+	bool8 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass)
 	{
 		ShaderResourceData resource = {};
 		if (!ResourceSystem::shader_loader_load(resource_name, &resource))
@@ -239,7 +239,7 @@ namespace ShaderSystem
 		system_state->bound_shader_id = shader_id;
 	}
 
-	bool32 use_shader(ShaderId shader_id)
+	bool8 use_shader(ShaderId shader_id)
 	{
 		Shader* shader = get_shader(shader_id);
 		if (!Renderer::shader_use(shader))
@@ -252,7 +252,7 @@ namespace ShaderSystem
 		return true;
 	}
 
-	bool32 use_shader(const char* shader_name)
+	bool8 use_shader(const char* shader_name)
 	{
 		ShaderId shader_id = get_shader_id(shader_name);
 		if (!shader_id.is_valid())
@@ -273,7 +273,7 @@ namespace ShaderSystem
 		return shader->uniforms[index].index;
 	}
 
-	bool32 set_uniform(ShaderUniformId index, const void* value)
+	bool8 set_uniform(ShaderUniformId index, const void* value)
 	{
 		using namespace Renderer;
 
@@ -295,7 +295,7 @@ namespace ShaderSystem
 
 	}
 
-	bool32 set_uniform(const char* uniform_name, const void* value)
+	bool8 set_uniform(const char* uniform_name, const void* value)
 	{
 		if (!system_state->bound_shader_id.is_valid()) 
 		{
@@ -308,13 +308,13 @@ namespace ShaderSystem
 		return set_uniform(index, value);
 	}
 
-	bool32 bind_globals()
+	bool8 bind_globals()
 	{
 		Shader* shader = &system_state->shaders[system_state->bound_shader_id];
 		return Renderer::shader_bind_globals(shader);
 	}
 
-	bool32 bind_instance(uint32 instance_id)
+	bool8 bind_instance(uint32 instance_id)
 	{
 		Shader* shader = &system_state->shaders[system_state->bound_shader_id];
 		shader->bound_instance_id = instance_id;
@@ -346,7 +346,7 @@ namespace ShaderSystem
 		return system_state->color3D_shader_id;
 	}
 
-	static bool32 add_attribute(Shader* shader, const ShaderAttributeConfig* config)
+	static bool8 add_attribute(Shader* shader, const ShaderAttributeConfig* config)
 	{
 		using namespace Renderer;
 
@@ -395,7 +395,7 @@ namespace ShaderSystem
 		return true;
 	}
 
-	static bool32 add_sampler(Shader* shader, const ShaderUniformConfig* config)
+	static bool8 add_sampler(Shader* shader, const ShaderUniformConfig* config)
 	{
 		using namespace Renderer;
 
@@ -441,12 +441,12 @@ namespace ShaderSystem
 		return add_uniform(shader, config->name, 0, config->type, config->scope, location, true);
 	}
 
-	static bool32 add_uniform(Shader* shader, const ShaderUniformConfig* config)
+	static bool8 add_uniform(Shader* shader, const ShaderUniformConfig* config)
 	{
 		return add_uniform(shader, config->name, config->size, config->type, config->scope, 0, false);
 	}
 
-	static bool32 add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool32 is_sampler)
+	static bool8 add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool8 is_sampler)
 	{
 		using namespace Renderer;
 
@@ -502,7 +502,7 @@ namespace ShaderSystem
 		return true;
 	}
 
-	static bool32 create_default_texture_map()
+	static bool8 create_default_texture_map()
 	{
 		system_state->default_texture_map.filter_magnify = TextureFilter::LINEAR;
 		system_state->default_texture_map.filter_minify = TextureFilter::LINEAR;

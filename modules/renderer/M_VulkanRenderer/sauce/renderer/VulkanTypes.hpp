@@ -28,7 +28,7 @@ namespace Renderer::Vulkan
 		VkBuffer handle;
 		VkDeviceMemory memory;
 		void* mapped_memory;
-		bool32 is_locked;
+		bool8 is_locked;
 		VkBufferUsageFlags usage;
 		int32 memory_index;
 		uint32 memory_property_flags;
@@ -205,7 +205,7 @@ namespace Renderer::Vulkan
 
 		RenderTopologyTypeFlags::Value topologies;
 		RenderCullMode cull_mode;
-		bool32 is_wireframe;
+		bool8 is_wireframe;
 		uint32 shader_flags;	
 	};
 

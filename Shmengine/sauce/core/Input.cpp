@@ -41,7 +41,7 @@ namespace Input
 
     static InputState* system_state;
 
-    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+    bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
 
         system_state = (InputState*)allocator_callback(allocator, sizeof(InputState));
@@ -77,7 +77,7 @@ namespace Input
         system_state->keymap_stack.clear();
     }
 
-    static bool32 check_modifiers(KeymapModifierFlags::Value modifiers)
+    static bool8 check_modifiers(KeymapModifierFlags::Value modifiers)
     {
         if (modifiers & KeymapModifierFlags::Shift)
         {
@@ -128,7 +128,7 @@ namespace Input
             {
                 Keymap* map = &system_state->keymap_stack[m];
                 KeymapBinding* binding = &map->entries[key].bindings[0];
-                bool32 unset = false;
+                bool8 unset = false;
 
                 while (binding)
                 {
@@ -249,48 +249,48 @@ namespace Input
 		Event::event_fire(SystemEventCode::MOUSE_SCROLL, 0, e);
     }
 
-    bool32 clip_cursor()
+    bool8 clip_cursor()
     {
         system_state->cursor_clipped = (!system_state->cursor_clipped);
         return Platform::clip_cursor(Platform::get_active_window(), system_state->cursor_clipped);
     }
 
-    bool32 is_key_down(KeyCode::Value key)
+    bool8 is_key_down(KeyCode::Value key)
     {
         return system_state->keyboard_cur.keys[key];
     }
 
-    bool32 is_key_up(KeyCode::Value key)
+    bool8 is_key_up(KeyCode::Value key)
     {
         return system_state->keyboard_cur.keys[key] == false;
     }
 
-    bool32 was_key_down(KeyCode::Value key)
+    bool8 was_key_down(KeyCode::Value key)
     {
         return system_state->keyboard_prev.keys[key];
     }
 
-    bool32 was_key_up(KeyCode::Value key)
+    bool8 was_key_up(KeyCode::Value key)
     {
         return system_state->keyboard_prev.keys[key] == false;
     }
 
-    bool32 is_mousebutton_down(MouseButton::Value button)
+    bool8 is_mousebutton_down(MouseButton::Value button)
     {
         return system_state->mouse_cur.buttons[button];
     }
 
-    bool32 is_mousebutton_up(MouseButton::Value button)
+    bool8 is_mousebutton_up(MouseButton::Value button)
     {
         return system_state->mouse_cur.buttons[button] == false;
     }
 
-    bool32 was_mousebutton_down(MouseButton::Value button)
+    bool8 was_mousebutton_down(MouseButton::Value button)
     {
         return system_state->mouse_prev.buttons[button];
     }
 
-    bool32 was_mousebutton_up(MouseButton::Value button)
+    bool8 was_mousebutton_up(MouseButton::Value button)
     {
         return system_state->mouse_cur.buttons[button] == false;
     }
@@ -310,7 +310,7 @@ namespace Input
         return system_state->mouse_internal_offset;
     }
 
-    bool32 is_cursor_clipped()
+    bool8 is_cursor_clipped()
     {
         return system_state->cursor_clipped;
     }

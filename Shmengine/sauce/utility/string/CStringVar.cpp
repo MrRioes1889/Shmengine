@@ -55,7 +55,7 @@ namespace CString
 
 			format_identifier = c[0];
 
-			bool32 valid_format = true;
+			bool8 valid_format = true;
 
 			switch (format_identifier)
 			{
@@ -400,7 +400,7 @@ namespace CString
 	}
 
 	// TODO: Replace asserts width regular errors
-	bool32 _scan_base(const char* source, const char* format, const ScanArg* args, uint64 arg_count)
+	bool8 _scan_base(const char* source, const char* format, const ScanArg* args, uint64 arg_count)
 	{
 
 		SHMASSERT_MSG(arg_count <= 20, "Argument count exceeded string scan limit");
@@ -459,7 +459,7 @@ namespace CString
 					source++;
 				}
 
-				bool32 valid_format = true;
+				bool8 valid_format = true;
 				switch (format_identifier)
 				{
 				case 'f':
@@ -677,7 +677,7 @@ namespace CString
 
 	}
 
-	bool32 scan(const char* source, const char* format, ...)
+	bool8 scan(const char* source, const char* format, ...)
 	{
 
 		va_list arg_ptr;
@@ -815,7 +815,7 @@ namespace CString
 			macro_index = index_of(temp_format_ptr, '%');
 		}
 
-		bool32 res = _scan_base(source, format, args, arg_count);
+		bool8 res = _scan_base(source, format, args, arg_count);
 
 		va_end(arg_ptr);
 

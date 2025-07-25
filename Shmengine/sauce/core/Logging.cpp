@@ -21,7 +21,7 @@ namespace Log
     static const char* level_strings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: " };
     static SystemState* system_state = 0;
 
-    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+    bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
 
         system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
@@ -65,7 +65,7 @@ namespace Log
     void log_output(LogLevel level, const char* message, ...) {
         // TODO: Execute all of the logging stuff on another thread
 
-        bool32 is_error = level < LOG_LEVEL_WARN;
+        bool8 is_error = level < LOG_LEVEL_WARN;
 
         const uint32 msg_length = 4096;
         char out_message[msg_length] = {};

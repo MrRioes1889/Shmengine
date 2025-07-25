@@ -23,7 +23,7 @@ namespace ResourceSystem
         continue; \
     }
 
-    bool32 scene_loader_load(const char* name, void* params, SceneResourceData* out_resource)
+    bool8 scene_loader_load(const char* name, void* params, SceneResourceData* out_resource)
     {
 
         const char* format = "%s%s%s%s";
@@ -67,7 +67,7 @@ namespace ResourceSystem
         String var_name;
         String value;
 
-        bool32 success = true;
+        bool8 success = true;
 
         uint32 dir_lights_count = 0;
         uint32 point_lights_count = 0;

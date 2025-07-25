@@ -5,5 +5,5 @@
 
 namespace Renderer::Vulkan
 {
-	bool32 create_vulkan_surface();
+	bool8 create_vulkan_surface();
 }

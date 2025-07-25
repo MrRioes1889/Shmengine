@@ -8,7 +8,7 @@ struct FrameData;
 namespace JobSystem
 {
 
-	typedef bool32 (*FP_job_start)(void*, void*);
+	typedef bool8 (*FP_job_start)(void*, void*);
 	typedef void (*FP_job_on_complete)(void*);
 
 	namespace JobTypeFlags
@@ -53,10 +53,10 @@ namespace JobSystem
 		JobTypeFlags::Value* type_flags;
 	};
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	bool32 update(void* state, const FrameData* frame_data);
+	bool8 update(void* state, const FrameData* frame_data);
 
 	SHMAPI void submit(JobInfo info);
 

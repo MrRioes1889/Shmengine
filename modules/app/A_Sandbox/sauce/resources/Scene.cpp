@@ -19,7 +19,7 @@
 
 static uint32 global_scene_id = 0;
 
-bool32 scene_init(SceneConfig* config, Scene* out_scene)
+bool8 scene_init(SceneConfig* config, Scene* out_scene)
 {
 
 	if (out_scene->state >= ResourceState::Initialized)
@@ -128,7 +128,7 @@ bool32 scene_init(SceneConfig* config, Scene* out_scene)
 
 }
 
-bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
+bool8 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 {
 	if (out_scene->state >= ResourceState::Initialized)
 		return false;
@@ -218,7 +218,7 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 	config.point_light_count = resource.point_lights.capacity;
 	config.point_lights = resource.point_lights.data;
 
-	bool32 success = scene_init(&config, out_scene);
+	bool8 success = scene_init(&config, out_scene);
 	skybox_configs.free_data();
 	mesh_configs.free_data();
 	mesh_geometry_configs.free_data();
@@ -228,7 +228,7 @@ bool32 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 
 }
 
-bool32 scene_destroy(Scene* scene)
+bool8 scene_destroy(Scene* scene)
 {
 
 	if (scene->state != ResourceState::Unloaded && !scene_unload(scene))
@@ -275,7 +275,7 @@ bool32 scene_destroy(Scene* scene)
 
 }
 
-bool32 scene_load(Scene* scene)
+bool8 scene_load(Scene* scene)
 {
 
 	if (scene->state != ResourceState::Initialized && scene->state != ResourceState::Unloaded)
@@ -323,7 +323,7 @@ bool32 scene_load(Scene* scene)
 
 }
 
-bool32 scene_unload(Scene* scene)
+bool8 scene_unload(Scene* scene)
 {
 
 	if (scene->state <= ResourceState::Initialized)
@@ -375,7 +375,7 @@ bool32 scene_unload(Scene* scene)
 
 }
 
-bool32 scene_update(Scene* scene)
+bool8 scene_update(Scene* scene)
 {
 
 	for (uint32 i = 0; i < scene->terrains.count; i++)
@@ -391,7 +391,7 @@ bool32 scene_update(Scene* scene)
 
 	if (scene->state == ResourceState::Initializing)
 	{
-		bool32 objects_initialized = true;
+		bool8 objects_initialized = true;
 
 		if (scene->skybox.state != ResourceState::Initialized)
 			objects_initialized = false;
@@ -428,7 +428,7 @@ bool32 scene_update(Scene* scene)
 	}
 	else if (scene->state == ResourceState::Loading)
 	{
-		bool32 objects_loaded = true;
+		bool8 objects_loaded = true;
 
 		if (scene->skybox.state != ResourceState::Loaded)
 			objects_loaded = false;
@@ -465,7 +465,7 @@ bool32 scene_update(Scene* scene)
 	}
 	/*else if (scene->state == ResourceState::UNLOADING)
 	{
-		bool32 objects_unloaded = true;
+		bool8 objects_unloaded = true;
 
 		if (scene->skybox && scene->skybox->state > ResourceState::UNLOADED)
 			objects_unloaded = false;
@@ -486,7 +486,7 @@ bool32 scene_update(Scene* scene)
 	return true;
 }
 
-bool32 scene_add_directional_light(Scene* scene, DirectionalLight light)
+bool8 scene_add_directional_light(Scene* scene, DirectionalLight light)
 {
 	if (scene->dir_lights.count == scene->dir_lights.capacity)
 		return false;
@@ -496,7 +496,7 @@ bool32 scene_add_directional_light(Scene* scene, DirectionalLight light)
 	return true;
 }
 
-//bool32 scene_remove_directional_light(Scene* scene, uint32 index)
+//bool8 scene_remove_directional_light(Scene* scene, uint32 index)
 //{
 //	if (index > scene->dir_lights.count - 1)
 //		return false;
@@ -505,7 +505,7 @@ bool32 scene_add_directional_light(Scene* scene, DirectionalLight light)
 //	return true;
 //}
 
-bool32 scene_add_point_light(Scene* scene, PointLight light)
+bool8 scene_add_point_light(Scene* scene, PointLight light)
 {
 	if (scene->p_lights.count == scene->p_lights.capacity)
 		return false;
@@ -532,7 +532,7 @@ bool32 scene_add_point_light(Scene* scene, PointLight light)
 	return true;
 }
 
-//bool32 scene_remove_point_light(Scene* scene, uint32 index)
+//bool8 scene_remove_point_light(Scene* scene, uint32 index)
 //{
 //	if (index > scene->p_lights.count - 1)
 //		return false;
@@ -548,12 +548,12 @@ bool32 scene_add_point_light(Scene* scene, PointLight light)
 //	return true;
 //}
 
-bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
+bool8 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 {
 
 	Mesh* mesh = &scene->meshes[scene->meshes.emplace()];
 
-	bool32 initialized = false;
+	bool8 initialized = false;
 	if (config->resource_name)
 		initialized = mesh_init_from_resource(config->resource_name, mesh);		
 	else
@@ -596,7 +596,7 @@ bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 	return true;
 }
 
-//static bool32 scene_remove_mesh(Scene* scene, uint32 index)
+//static bool8 scene_remove_mesh(Scene* scene, uint32 index)
 //{
 //	for (uint32 i = 0; i < scene->meshes.count; i++)
 //	{
@@ -618,7 +618,7 @@ bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 //	return true;
 //}
 
-//bool32 scene_remove_mesh(Scene* scene, const char* name)
+//bool8 scene_remove_mesh(Scene* scene, const char* name)
 //{
 //
 //	uint32 mesh_index = Constants::max_u32;
@@ -637,12 +637,12 @@ bool32 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 //	return scene_remove_mesh(scene, mesh_index);
 //}
 
-bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
+bool8 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 {
 
 	Terrain* terrain = &scene->terrains[scene->terrains.emplace()];
 
-	bool32 initialized = false;
+	bool8 initialized = false;
 	if (config->resource_name)
 	{
 		initialized = terrain_init_from_resource(config->resource_name, terrain);		
@@ -672,7 +672,7 @@ bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 	return true;
 }
 
-//bool32 scene_remove_terrain(Scene* scene, const char* name)
+//bool8 scene_remove_terrain(Scene* scene, const char* name)
 //{
 //
 //	uint32 terrain_index = Constants::max_u32;
@@ -699,7 +699,7 @@ bool32 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 //	return true;
 //}
 
-bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config)
+bool8 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 {
 
 	if (scene->skybox.state >= ResourceState::Initialized)
@@ -729,7 +729,7 @@ bool32 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 	return true;
 }
 
-//bool32 scene_remove_skybox(Scene* scene, const char* name)
+//bool8 scene_remove_skybox(Scene* scene, const char* name)
 //{
 //	if (!scene->skybox.name.equal_i(name))
 //		return false;
@@ -789,7 +789,7 @@ PointLight* scene_get_point_light(Scene* scene, uint32 index)
 	return &scene->p_lights[index];
 }
 
-bool32 scene_draw(Scene* scene, const Math::Frustum* camera_frustum, FrameData* frame_data)
+bool8 scene_draw(Scene* scene, const Math::Frustum* camera_frustum, FrameData* frame_data)
 {
 
 	if (scene->state != ResourceState::Loaded)

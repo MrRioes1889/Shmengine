@@ -28,7 +28,7 @@ namespace Engine
 	struct EngineState
 	{
 		Application* app_inst;
-		bool32 is_running;
+		bool8 is_running;
 		//Clock clock;
 
 		char assets_base_path[Constants::max_filepath_length];
@@ -36,14 +36,14 @@ namespace Engine
 		FrameData frame_data;
 	};
 
-	static bool32 initialized = false;
+	static bool8 initialized = false;
 	static EngineState engine_state = {};
 
-	static bool32 boot_application(ApplicationConfig* app_config);
-	static bool32 load_application_library(const char* module_name, const char* lib_filename, bool32 reload);
-	static bool32 on_watched_file_written(uint16 code, void* sender, void* listener_inst, EventData e_data);
-	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
-	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data);
+	static bool8 boot_application(ApplicationConfig* app_config);
+	static bool8 load_application_library(const char* module_name, const char* lib_filename, bool8 reload);
+	static bool8 on_watched_file_written(uint16 code, void* sender, void* listener_inst, EventData e_data);
+	bool8 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
+	bool8 on_resized(uint16 code, void* sender, void* listener_inst, EventData data);
 
 	void* allocate_subsystem_callback (void* allocator, uint64 size)
 	{
@@ -52,7 +52,7 @@ namespace Engine
 		return ptr;
 	};
 
-	bool32 init(Application* app_inst)
+	bool8 init(Application* app_inst)
 	{
 		if (initialized)
 			return false;
@@ -105,7 +105,7 @@ namespace Engine
 
 	}
 
-	bool32 run(Application* app_inst)
+	bool8 run(Application* app_inst)
 	{
 		uint32 frame_count = 0;
 		float64 target_frame_seconds = 1.0f / 120.0f;
@@ -215,7 +215,7 @@ namespace Engine
 	}
 
 
-	static bool32 boot_application(ApplicationConfig* app_config)
+	static bool8 boot_application(ApplicationConfig* app_config)
 	{
 		char application_module_filename[Constants::max_filepath_length];
 		char application_loaded_module_filename[Constants::max_filepath_length];
@@ -291,7 +291,7 @@ namespace Engine
 
 	}
 
-	static bool32 load_application_library(const char* module_name, const char* lib_filename, bool32 reload) 
+	static bool8 load_application_library(const char* module_name, const char* lib_filename, bool8 reload) 
 	{
 		Application* app = engine_state.app_inst;
 		if (!Platform::load_dynamic_library(application_module_name, lib_filename, &app->application_lib))
@@ -321,7 +321,7 @@ namespace Engine
 
 	}
 
-	static bool32 on_watched_file_written(uint16 code, void* sender, void* listener_inst, EventData e_data)
+	static bool8 on_watched_file_written(uint16 code, void* sender, void* listener_inst, EventData e_data)
 	{
 
 		Application* app = (Application*)listener_inst;
@@ -387,7 +387,7 @@ namespace Engine
 		return engine_state.assets_base_path;
 	}
 
-	bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
+	bool8 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
 		switch (code)
 		{
@@ -402,7 +402,7 @@ namespace Engine
 		return false;
 	}
 
-	bool32 on_resized(uint16 code, void* sender, void* listener_inst, EventData data)
+	bool8 on_resized(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
 		Application* app_inst = (Application*)listener_inst;
 		

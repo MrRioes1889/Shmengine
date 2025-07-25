@@ -67,9 +67,9 @@ namespace SubsystemManager
 
 	static ManagerState manager_state = {};
 
-	static bool32 register_system(SubsystemType::Value type, FP_system_init init_callback, FP_system_shutdown shutdown_callback, FP_system_update update_callback, void* config);
-	static bool32 register_known_systems_pre_boot();
-	static bool32 register_known_systems_post_boot(const ApplicationConfig* app_config);
+	static bool8 register_system(SubsystemType::Value type, FP_system_init init_callback, FP_system_shutdown shutdown_callback, FP_system_update update_callback, void* config);
+	static bool8 register_known_systems_pre_boot();
+	static bool8 register_known_systems_post_boot(const ApplicationConfig* app_config);
 
 	static void* allocate_system(void* allocator, uint64 size)
 	{
@@ -77,7 +77,7 @@ namespace SubsystemManager
 		return lin_allocator->allocate(size);
 	}
 
-	bool32 init_basic()
+	bool8 init_basic()
 	{
 		Memory::SystemConfig mem_config;
 		mem_config.total_allocation_size = gibibytes(1);
@@ -94,7 +94,7 @@ namespace SubsystemManager
 		return register_known_systems_pre_boot();
 	}
 
-	bool32 init_advanced(const ApplicationConfig* app_config)
+	bool8 init_advanced(const ApplicationConfig* app_config)
 	{
 		return register_known_systems_post_boot(app_config);
 	}
@@ -113,7 +113,7 @@ namespace SubsystemManager
 		manager_state.allocator.destroy();
 	}
 
-	bool32 update(const FrameData* frame_data)
+	bool8 update(const FrameData* frame_data)
 	{
 		OPTICK_EVENT();
 		for (uint32 i = 0; i < SubsystemType::MAX_TYPES_COUNT; ++i) {
@@ -127,7 +127,7 @@ namespace SubsystemManager
 		return true;
 	}
 
-	static bool32 register_system(SubsystemType::Value type, FP_system_init init_callback, FP_system_shutdown shutdown_callback, FP_system_update update_callback, void* config)
+	static bool8 register_system(SubsystemType::Value type, FP_system_init init_callback, FP_system_shutdown shutdown_callback, FP_system_update update_callback, void* config)
 	{
 
 		Subsystem sys;
@@ -154,7 +154,7 @@ namespace SubsystemManager
 
 	}
 
-	static bool32 register_known_systems_pre_boot()
+	static bool8 register_known_systems_pre_boot()
 	{
 
 		if (!register_system(SubsystemType::CONSOLE, Console::system_init, Console::system_shutdown, 0, 0))
@@ -191,7 +191,7 @@ namespace SubsystemManager
 
 	}
 
-	static bool32 register_known_systems_post_boot(const ApplicationConfig* app_config)
+	static bool8 register_known_systems_post_boot(const ApplicationConfig* app_config)
 	{
 
 		Renderer::SystemConfig renderer_sys_config;

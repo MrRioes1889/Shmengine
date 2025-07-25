@@ -56,7 +56,7 @@ namespace JobSystem
 	static uint32 job_thread_run(void* params);
 	static void process_queue(RingQueue<JobInfo>& queue, Threading::Mutex* queue_mutex);
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 
 		SystemConfig* sys_config = (SystemConfig*)config;
@@ -128,7 +128,7 @@ namespace JobSystem
 	}
 
 
-	bool32 update(void* state, const FrameData* frame_data)
+	bool8 update(void* state, const FrameData* frame_data)
 	{
 
 		if (!system_state->is_running)
@@ -180,7 +180,7 @@ namespace JobSystem
 			for (uint32 i = 0; i < thread_count; ++i) {
 				JobThread* thread = &system_state->job_threads[i];
 				if (system_state->job_threads[i].type_flags & info.type_flags) {
-					bool32 found = false;
+					bool8 found = false;
 
 					Threading::mutex_lock(&thread->info_mutex);
 					if (!system_state->job_threads[i].info.entry_point) {
@@ -207,7 +207,7 @@ namespace JobSystem
 		Threading::mutex_unlock(queue_mutex);
 		//SHMTRACE("Job queued.");
 #else
-		bool32 result = info.entry_point(info.params, info.results);
+		bool8 result = info.entry_point(info.params, info.results);
 		if (result)
 			info.on_success(info.results);
 		else
@@ -311,7 +311,7 @@ namespace JobSystem
 
 			if (info.entry_point)
 			{
-				bool32 result = info.entry_point(info.params, info.results);
+				bool8 result = info.entry_point(info.params, info.results);
 
 				if (result && info.on_success)
 					store_result(info.on_success, info.results_size, info.results);
@@ -355,7 +355,7 @@ namespace JobSystem
 		{
 			JobInfo* info = queue.peek();
 
-			bool32 thread_found = false;
+			bool8 thread_found = false;
 			for (uint32 i = 0; i < thread_count; i++)
 			{
 				JobThread* thread = &system_state->job_threads[i];

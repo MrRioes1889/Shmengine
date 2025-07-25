@@ -44,7 +44,7 @@ struct RenderViewWorldInternalData {
 	CoordinateGrid coordinate_grid;
 };
 
-bool32 render_view_world_editor_on_create(RenderView* self)
+bool8 render_view_world_editor_on_create(RenderView* self)
 {
 
 	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::Renderer);
@@ -125,7 +125,7 @@ void render_view_world_editor_on_resize(RenderView* self, uint32 width, uint32 h
 	}
 }
 
-static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data, Camera* camera)
+static bool8 set_globals_color3D(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->color3D_shader->id);
 	ShaderSystem::bind_globals();
@@ -136,13 +136,13 @@ static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data, Ca
 	return Renderer::shader_apply_globals(internal_data->color3D_shader);
 }
 
-static bool32 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
+static bool8 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
 {
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.model, model));
 	return true;
 }
 
-static bool32 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_data, Camera* camera)
+static bool8 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->coordinate_grid_shader->id);
 	ShaderSystem::bind_globals();
@@ -155,7 +155,7 @@ static bool32 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_
 	return Renderer::shader_apply_globals(internal_data->coordinate_grid_shader);
 }
 
-bool32 render_view_world_editor_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
+bool8 render_view_world_editor_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
 {
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
@@ -166,7 +166,7 @@ void render_view_world_editor_on_end_frame(RenderView* self)
 {
 }
 
-bool32 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
+bool8 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
 
 	OPTICK_EVENT();
@@ -186,7 +186,7 @@ bool32 render_view_world_editor_on_render(RenderView* self, FrameData* frame_dat
 		if (instance_data->shader_instance_id == Constants::max_u32)
 			continue;
 
-		bool32 instance_set = true;
+		bool8 instance_set = true;
 		SHMERROR("Unknown shader for applying instance.");
 
 		if (!instance_set)

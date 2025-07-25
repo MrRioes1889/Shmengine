@@ -47,14 +47,14 @@ namespace ResourceSystem
 
     static const char* loader_type_path = "fonts/";
 
-    static bool32 import_fnt_file(FileSystem::FileHandle* fnt_file, const char* resource_name, const char* shmbmf_filepath, FontResourceData* out_data);
-    static bool32 write_shmbmf_file(const char* shmbmf_filepath, const char* name, const FontResourceData* out_data);
-    static bool32 load_shmbmf_file(FileSystem::FileHandle* shmbmf_file, const char* shmbmf_filepath, FontResourceData* out_data);
+    static bool8 import_fnt_file(FileSystem::FileHandle* fnt_file, const char* resource_name, const char* shmbmf_filepath, FontResourceData* out_data);
+    static bool8 write_shmbmf_file(const char* shmbmf_filepath, const char* name, const FontResourceData* out_data);
+    static bool8 load_shmbmf_file(FileSystem::FileHandle* shmbmf_file, const char* shmbmf_filepath, FontResourceData* out_data);
 
     static bool8 import_ttf_file(FileSystem::FileHandle* ttf_file, const char* resource_name, const char* shmttf_filepath, Buffer* out_binary_buffer);
     static bool8 parse_ttf_binary_data(const char* name, uint16 font_size, const Buffer* binary_buffer, FontResourceData* out_data);
 
-    bool32 font_loader_load(const char* name, uint16 font_size, FontResourceData* out_resource)
+    bool8 font_loader_load(const char* name, uint16 font_size, FontResourceData* out_resource)
     {
         Buffer binary_buffer = {};
         const char* format = "%s%s%s";
@@ -95,7 +95,7 @@ namespace ResourceSystem
             return false;
         }
 
-        bool32 res = false;
+        bool8 res = false;
         switch (file_type)
         {
         case FontFileType::FNT:
@@ -168,7 +168,7 @@ namespace ResourceSystem
         return config;
     }
 
-    static bool32 import_fnt_file(FileSystem::FileHandle* fnt_file, const char* resource_name, const char* shmbmf_filepath, FontResourceData* out_data)
+    static bool8 import_fnt_file(FileSystem::FileHandle* fnt_file, const char* resource_name, const char* shmbmf_filepath, FontResourceData* out_data)
     {
 
         uint32 file_size = FileSystem::get_file_size32(fnt_file);
@@ -329,7 +329,7 @@ namespace ResourceSystem
 
     }
 
-    static bool32 write_shmbmf_file(const char* shmbmf_filepath, const char* resource_name, const FontResourceData* out_data)
+    static bool8 write_shmbmf_file(const char* shmbmf_filepath, const char* resource_name, const FontResourceData* out_data)
     {
 
         FileSystem::FileHandle f;
@@ -377,7 +377,7 @@ namespace ResourceSystem
 
     }
 
-    static bool32 load_shmbmf_file(FileSystem::FileHandle* shmbmf_file, const char* shmbmf_filepath, FontResourceData* out_data)
+    static bool8 load_shmbmf_file(FileSystem::FileHandle* shmbmf_file, const char* shmbmf_filepath, FontResourceData* out_data)
     {
         
         uint32 file_size = FileSystem::get_file_size32(shmbmf_file);

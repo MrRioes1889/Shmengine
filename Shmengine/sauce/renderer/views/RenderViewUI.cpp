@@ -26,7 +26,7 @@ struct RenderViewUIInternalData {
 	Math::Mat4 view_matrix;
 };
 
-bool32 render_view_ui_on_create(RenderView* self)
+bool8 render_view_ui_on_create(RenderView* self)
 {
 		
 	self->internal_data.init(sizeof(RenderViewUIInternalData), 0, AllocationTag::Renderer);
@@ -84,7 +84,7 @@ void render_view_ui_on_resize(RenderView* self, uint32 width, uint32 height)
 	}
 }
 
-bool32 render_view_ui_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
+bool8 render_view_ui_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
 {		
 	RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
 
@@ -95,7 +95,7 @@ void render_view_ui_on_end_frame(RenderView* self)
 {
 }
 
-static bool32 set_globals_ui(RenderViewUIInternalData* internal_data)
+static bool8 set_globals_ui(RenderViewUIInternalData* internal_data)
 {
 
 	ShaderSystem::bind_shader(internal_data->ui_shader->id);
@@ -108,7 +108,7 @@ static bool32 set_globals_ui(RenderViewUIInternalData* internal_data)
 
 }
 
-static bool32 set_instance_ui(RenderViewUIInternalData* internal_data, RenderViewInstanceData instance)
+static bool8 set_instance_ui(RenderViewUIInternalData* internal_data, RenderViewInstanceData instance)
 {
 
 	ShaderSystem::bind_shader(internal_data->ui_shader->id);
@@ -121,14 +121,14 @@ static bool32 set_instance_ui(RenderViewUIInternalData* internal_data, RenderVie
 
 }
 
-static bool32 set_locals_ui(RenderViewUIInternalData* internal_data, Math::Mat4* model)
+static bool8 set_locals_ui(RenderViewUIInternalData* internal_data, Math::Mat4* model)
 {
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.model, model));
 
 	return true;
 }
 
-bool32 render_view_ui_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
+bool8 render_view_ui_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
 
 	OPTICK_EVENT();
@@ -145,7 +145,7 @@ bool32 render_view_ui_on_render(RenderView* self, FrameData* frame_data, uint32 
 		if (instance_data->shader_instance_id == Constants::max_u32)
 			continue;
 
-		bool32 instance_set = true;
+		bool8 instance_set = true;
 		if (instance_data->shader_id == internal_data->ui_shader->id)
 			instance_set = set_instance_ui(internal_data, *instance_data);
 		else

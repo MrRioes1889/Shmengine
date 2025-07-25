@@ -14,7 +14,7 @@ namespace ResourceSystem
 
     static const char* loader_type_path = "materials/";
 
-    static bool32 write_shmt_file(MaterialResourceData* resource);
+    static bool8 write_shmt_file(MaterialResourceData* resource);
 
     static MaterialType parse_material_type(String* s, uint32 line_number)
     {
@@ -90,7 +90,7 @@ namespace ResourceSystem
         success = false; \
     }
 
-    static bool32 parse_property(String* s, uint32 line_number, MaterialProperty* out_property)
+    static bool8 parse_property(String* s, uint32 line_number, MaterialProperty* out_property)
     {
 
         out_property->type = MaterialPropertyType::INVALID;
@@ -149,7 +149,7 @@ namespace ResourceSystem
             return false;
         }
 
-        bool32 success = true;
+        bool8 success = true;
 
         switch (out_property->type)
         {
@@ -229,7 +229,7 @@ namespace ResourceSystem
 
     }
 
-	bool32 material_loader_load(const char* name, MaterialResourceData* out_resource)
+	bool8 material_loader_load(const char* name, MaterialResourceData* out_resource)
 	{
 
 		const char* format = "%s%s%s%s";
@@ -254,7 +254,7 @@ namespace ResourceSystem
 
         ParserScope scope = ParserScope::MATERIAL;
 
-        out_resource->auto_release = true;
+        out_resource->auto_unload = true;
         CString::copy(Renderer::RendererConfig::builtin_shader_name_material_phong, out_resource->shader_name, Constants::max_shader_name_length);
 		CString::copy(name, out_resource->name, Constants::max_material_name_length);
 
@@ -282,7 +282,7 @@ namespace ResourceSystem
         uint32 property_i = Constants::max_u32;
         uint32 texture_map_i = Constants::max_u32;
 
-        bool32 success = true;
+        bool8 success = true;
 
         const char* continue_ptr = 0;
         while (FileSystem::read_line(file_content.c_str(), line, &continue_ptr))
@@ -425,7 +425,7 @@ namespace ResourceSystem
 
 	}
 
-    bool32 material_loader_import_obj_material_library_file(const char* file_path)
+    bool8 material_loader_import_obj_material_library_file(const char* file_path)
     {
 
         FileSystem::FileHandle f;
@@ -436,7 +436,7 @@ namespace ResourceSystem
         }
 
         MaterialResourceData current_resource = {};
-        current_resource.auto_release = true;
+        current_resource.auto_unload = true;
         current_resource.type = MaterialType::PHONG;
         CString::copy(Renderer::RendererConfig::builtin_shader_name_material_phong, current_resource.shader_name, Constants::max_shader_name_length);
         current_resource.maps.init(3, 0);
@@ -452,7 +452,7 @@ namespace ResourceSystem
         }
 
         // Read each line of the file.
-        bool32 hit_name = false;
+        bool8 hit_name = false;
 
         String line(512);
         uint32 line_number = 1;
@@ -460,9 +460,9 @@ namespace ResourceSystem
         String identifier;
         String values;
 
-        bool32 diffuse_parsed = false;
-        bool32 specular_parsed = false;
-        bool32 normal_parsed = false;
+        bool8 diffuse_parsed = false;
+        bool8 specular_parsed = false;
+        bool8 normal_parsed = false;
 
         TextureMapResourceData default_map = {};
         default_map.filter_min = default_map.filter_mag = TextureFilter::LINEAR;
@@ -585,7 +585,7 @@ namespace ResourceSystem
     }
 
     // TODO: Move this function to a proper place and look for dynamic directory
-    static bool32 write_shmt_file(MaterialResourceData* resource)
+    static bool8 write_shmt_file(MaterialResourceData* resource)
     {
 
         const char* format = "%s%s%s%s";

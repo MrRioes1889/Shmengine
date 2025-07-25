@@ -8,7 +8,7 @@
 #include "systems/GeometrySystem.hpp"
 #include "systems/ShaderSystem.hpp"
 
-bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
+bool8 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 {
 	if (out_skybox->state >= ResourceState::Initialized)
 		return false;
@@ -34,7 +34,7 @@ bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 	return true;
 }
 
-bool32 skybox_destroy(Skybox* skybox)
+bool8 skybox_destroy(Skybox* skybox)
 {
 	if (skybox->state != ResourceState::Unloaded && !skybox_unload(skybox))
 		return false;
@@ -48,7 +48,7 @@ bool32 skybox_destroy(Skybox* skybox)
 	return true;
 }
 
-bool32 skybox_load(Skybox* skybox)
+bool8 skybox_load(Skybox* skybox)
 {
 
 	if (skybox->state != ResourceState::Initialized && skybox->state != ResourceState::Unloaded)
@@ -77,7 +77,7 @@ bool32 skybox_load(Skybox* skybox)
 
 }
 
-bool32 skybox_unload(Skybox* skybox)
+bool8 skybox_unload(Skybox* skybox)
 {
 
 	if (skybox->state <= ResourceState::Initialized)

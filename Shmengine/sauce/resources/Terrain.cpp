@@ -13,7 +13,7 @@
 
 #include "systems/ShaderSystem.hpp"
 
-bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
+bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 {
     if (out_terrain->state >= ResourceState::Initialized)
         return false;
@@ -175,7 +175,7 @@ bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     return true;
 }
 
-bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrain)
+bool8 terrain_init_from_resource(const char* resource_name, Terrain* out_terrain)
 {
     out_terrain->state = ResourceState::Initializing;
 
@@ -212,7 +212,7 @@ bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrai
     return true;
 }
 
-bool32 terrain_destroy(Terrain* terrain)
+bool8 terrain_destroy(Terrain* terrain)
 {
     if (terrain->state != ResourceState::Unloaded && !terrain_unload(terrain))
         return false;
@@ -228,12 +228,12 @@ bool32 terrain_destroy(Terrain* terrain)
     return true;
 }
 
-bool32 terrain_load(Terrain* terrain)
+bool8 terrain_load(Terrain* terrain)
 {
     if (terrain->state != ResourceState::Initialized && terrain->state != ResourceState::Unloaded)
         return false;
 
-    bool32 is_reload = terrain->state == ResourceState::Unloaded;
+    bool8 is_reload = terrain->state == ResourceState::Unloaded;
 
     terrain->state = ResourceState::Loading;
 	terrain->unique_id = identifier_acquire_new_id(terrain);
@@ -277,7 +277,7 @@ bool32 terrain_load(Terrain* terrain)
     return true;
 }
 
-bool32 terrain_unload(Terrain* terrain)
+bool8 terrain_unload(Terrain* terrain)
 {
     if (terrain->state <= ResourceState::Initialized)
         return true;
@@ -305,7 +305,7 @@ bool32 terrain_unload(Terrain* terrain)
     return true;
 }
 
-bool32 terrain_update(Terrain* terrain)
+bool8 terrain_update(Terrain* terrain)
 {
     return true;
 }

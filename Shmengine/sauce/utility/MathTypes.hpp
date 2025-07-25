@@ -193,7 +193,7 @@ namespace Math
 
 		Mat4 local;
 		Transform* parent;
-		bool32 is_dirty;
+		bool8 is_dirty;
 	};
 
 	struct Extents2D

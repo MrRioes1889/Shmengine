@@ -459,7 +459,7 @@ namespace Renderer
         uint32 found_count = 0;
         for (uint32 o = 0; o < old_vertex_count; o++)
         {
-            bool32 found = false;
+            bool8 found = false;
             for (uint32 n = 0; n < new_vertices.count; n++)
             {
                 if (vertex3d_equal(new_vertices[n], old_vertices[o]))

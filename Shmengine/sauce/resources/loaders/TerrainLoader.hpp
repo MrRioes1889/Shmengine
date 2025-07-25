@@ -28,6 +28,6 @@ struct TerrainResourceData
 
 namespace ResourceSystem
 {
-	bool32 terrain_loader_load(const char* name, TerrainResourceData* out_resource);
+	bool8 terrain_loader_load(const char* name, TerrainResourceData* out_resource);
 	void terrain_loader_unload(TerrainResourceData* resource);
 }

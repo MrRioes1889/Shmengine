@@ -32,7 +32,7 @@ namespace Console
 
 	static SystemState* system_state = 0;
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
@@ -56,7 +56,7 @@ namespace Console
 		system_state = 0;
 	}
 
-	bool32 register_consumer(void* inst, FP_consumer_write callback, uint32* out_consumer_id)
+	bool8 register_consumer(void* inst, FP_consumer_write callback, uint32* out_consumer_id)
 	{
 
 		uint32 first_free_index = Constants::max_u32;
@@ -118,7 +118,7 @@ namespace Console
 		}			
 	}
 
-	bool32 register_command(const char* command, uint32 arg_count, FP_command callback)
+	bool8 register_command(const char* command, uint32 arg_count, FP_command callback)
 	{
 
 		for (uint32 i = 0; i < system_state->registered_commands.count; i++)
@@ -136,7 +136,7 @@ namespace Console
 
 	}
 
-	bool32 unregister_command(const char* command)
+	bool8 unregister_command(const char* command)
 	{
 		for (uint32 i = 0; i < system_state->registered_commands.count; i++)
 		{
@@ -150,7 +150,7 @@ namespace Console
 		return false;
 	}
 
-	bool32 execute_command(const char* command)
+	bool8 execute_command(const char* command)
 	{
 
 		uint32 parts_count = 1;
@@ -174,8 +174,8 @@ namespace Console
 		char echo[512] = {};
 		CString::print_s(echo, 512, "-->%s", command);
 
-		bool32 success = true;
-		bool32 command_found = false;
+		bool8 success = true;
+		bool8 command_found = false;
 
 		for (uint32 i = 0; i < system_state->registered_commands.count; i++)
 		{

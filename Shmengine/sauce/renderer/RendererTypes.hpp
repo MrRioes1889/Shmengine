@@ -217,7 +217,7 @@ namespace Renderer
 		Sarray<RenderTargetAttachment> attachments;
 		void* internal_framebuffer;
 
-		bool32 sync_window_to_size;
+		bool8 sync_window_to_size;
 	};
 
 	enum class RenderCullMode : uint8
@@ -292,7 +292,7 @@ namespace Renderer
 		String name;
 		uint64 size;
 		RenderBufferType type;
-		bool32 has_freelist;
+		bool8 has_freelist;
 		Buffer freelist_data;
 		Freelist freelist;
 		Buffer internal_data;
@@ -331,7 +331,7 @@ namespace Renderer
 
 		uint64(*get_context_size_requirement)();
 
-		bool32(*init)(void* context, const ModuleConfig& config, uint32* out_window_render_target_count);
+		bool8(*init)(void* context, const ModuleConfig& config, uint32* out_window_render_target_count);
 		void (*shutdown)();
 
 		void (*device_sleep_till_idle)();
@@ -340,17 +340,17 @@ namespace Renderer
 
 		void (*on_resized)(uint32 width, uint32 height);
 
-		bool32(*begin_frame)(const FrameData* frame_data);
-		bool32(*end_frame)(const FrameData* frame_data);
+		bool8(*begin_frame)(const FrameData* frame_data);
+		bool8(*end_frame)(const FrameData* frame_data);
 
-		bool32(*render_target_create)(uint32 attachment_count, const RenderTargetAttachment* attachments, RenderPass* pass, uint32 width, uint32 height, RenderTarget* out_target);
-		void (*render_target_destroy)(RenderTarget* target, bool32 free_internal_memory);
+		bool8(*render_target_create)(uint32 attachment_count, const RenderTargetAttachment* attachments, RenderPass* pass, uint32 width, uint32 height, RenderTarget* out_target);
+		void (*render_target_destroy)(RenderTarget* target, bool8 free_internal_memory);
 
-		bool32(*renderpass_create)(const RenderPassConfig* config, RenderPass* out_renderpass);
+		bool8(*renderpass_create)(const RenderPassConfig* config, RenderPass* out_renderpass);
 		void (*renderpass_destroy)(RenderPass* pass);
 
-		bool32(*renderpass_begin)(RenderPass* pass, RenderTarget* target);
-		bool32(*renderpass_end)(RenderPass* pass);
+		bool8(*renderpass_begin)(RenderPass* pass, RenderTarget* target);
+		bool8(*renderpass_end)(RenderPass* pass);
 
 		Texture* (*get_window_attachment)(uint32 index);
 		Texture* (*get_depth_attachment)(uint32 attachment_index);
@@ -366,37 +366,37 @@ namespace Renderer
 		void (*texture_create)(const void* pixels, Texture* texture);
 		void (*texture_create_writable)(Texture* texture);
 		void (*texture_resize)(Texture* texture, uint32 width, uint32 height);
-		bool32(*texture_write_data)(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
-		bool32(*texture_read_data)(Texture* t, uint32 offset, uint32 size, void* out_memory);
-		bool32(*texture_read_pixel)(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
+		bool8(*texture_write_data)(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
+		bool8(*texture_read_data)(Texture* t, uint32 offset, uint32 size, void* out_memory);
+		bool8(*texture_read_pixel)(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 		void (*texture_destroy)(Texture* texture);
 
-		bool32(*shader_create)(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
+		bool8(*shader_create)(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
 		void (*shader_destroy)(Shader* shader);
-		bool32(*shader_init)(Shader* shader);
-		bool32(*shader_use)(Shader* shader);
-		bool32(*shader_bind_globals)(Shader* shader);
-		bool32(*shader_bind_instance)(Shader* shader, uint32 instance_id);
-		bool32(*shader_apply_globals)(Shader* shader);
-		bool32(*shader_apply_instance)(Shader* shader);
-		bool32(*shader_acquire_instance_resources)(Shader* shader, uint32 texture_maps_count, uint32 instance_id);
-		bool32(*shader_release_instance_resources)(Shader* shader, uint32 instance_id);
-		bool32(*shader_set_uniform)(Shader* shader, ShaderUniform* uniform, const void* value);
-		bool32(*texture_map_acquire_resources)(TextureMap* out_map);
+		bool8(*shader_init)(Shader* shader);
+		bool8(*shader_use)(Shader* shader);
+		bool8(*shader_bind_globals)(Shader* shader);
+		bool8(*shader_bind_instance)(Shader* shader, uint32 instance_id);
+		bool8(*shader_apply_globals)(Shader* shader);
+		bool8(*shader_apply_instance)(Shader* shader);
+		bool8(*shader_acquire_instance_resources)(Shader* shader, uint32 texture_maps_count, uint32 instance_id);
+		bool8(*shader_release_instance_resources)(Shader* shader, uint32 instance_id);
+		bool8(*shader_set_uniform)(Shader* shader, ShaderUniform* uniform, const void* value);
+		bool8(*texture_map_acquire_resources)(TextureMap* out_map);
 		void (*texture_map_release_resources)(TextureMap* out_map);
 
-		bool32(*renderbuffer_create_internal)(RenderBuffer* buffer);
+		bool8(*renderbuffer_create_internal)(RenderBuffer* buffer);
 		void (*renderbuffer_destroy_internal)(RenderBuffer* buffer);
-		bool32(*renderbuffer_bind)(RenderBuffer* buffer, uint64 offset);
-		bool32(*renderbuffer_unbind)(RenderBuffer* buffer);
+		bool8(*renderbuffer_bind)(RenderBuffer* buffer, uint64 offset);
+		bool8(*renderbuffer_unbind)(RenderBuffer* buffer);
 		void* (*renderbuffer_map_memory)(RenderBuffer* buffer, uint64 offset, uint64 size);
 		void (*renderbuffer_unmap_memory)(RenderBuffer* buffer);
-		bool32(*renderbuffer_flush)(RenderBuffer* buffer, uint64 offset, uint64 size);
-		bool32(*renderbuffer_read)(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory);
-		bool32(*renderbuffer_resize)(RenderBuffer* buffer, uint64 new_total_size);
-		bool32(*renderbuffer_load_range)(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data);
-		bool32(*renderbuffer_copy_range)(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size);
-		bool32(*renderbuffer_draw)(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only);
+		bool8(*renderbuffer_flush)(RenderBuffer* buffer, uint64 offset, uint64 size);
+		bool8(*renderbuffer_read)(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory);
+		bool8(*renderbuffer_resize)(RenderBuffer* buffer, uint64 new_total_size);
+		bool8(*renderbuffer_load_range)(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data);
+		bool8(*renderbuffer_copy_range)(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size);
+		bool8(*renderbuffer_draw)(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool8 bind_only);
 
 		bool8(*is_multithreaded)();
 	};
@@ -415,7 +415,7 @@ namespace Renderer
 
 		uint32 window_render_target_count;
 
-		bool32 resizing;
+		bool8 resizing;
 		uint32 frames_since_resize;
 
 		uint8 frame_number;

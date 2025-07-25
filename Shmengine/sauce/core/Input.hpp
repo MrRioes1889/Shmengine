@@ -303,7 +303,7 @@ struct FrameData;
 
 namespace Input
 {
-    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* confige);
+    bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* confige);
     void system_shutdown(void* state);
 
     struct Keymap;
@@ -314,15 +314,15 @@ namespace Input
     void frame_start();
     void frame_end(const FrameData* frame_data);
 
-    SHMAPI bool32 is_key_down(KeyCode::Value key);
-    SHMAPI bool32 is_key_up(KeyCode::Value key);
-    SHMAPI bool32 was_key_down(KeyCode::Value key);
-    SHMAPI bool32 was_key_up(KeyCode::Value key);   
+    SHMAPI bool8 is_key_down(KeyCode::Value key);
+    SHMAPI bool8 is_key_up(KeyCode::Value key);
+    SHMAPI bool8 was_key_down(KeyCode::Value key);
+    SHMAPI bool8 was_key_up(KeyCode::Value key);   
 
-    SHMAPI bool32 is_mousebutton_down(MouseButton::Value button);
-    SHMAPI bool32 is_mousebutton_up(MouseButton::Value button);
-    SHMAPI bool32 was_mousebutton_down(MouseButton::Value button);
-    SHMAPI bool32 was_mousebutton_up(MouseButton::Value button);
+    SHMAPI bool8 is_mousebutton_down(MouseButton::Value button);
+    SHMAPI bool8 is_mousebutton_up(MouseButton::Value button);
+    SHMAPI bool8 was_mousebutton_down(MouseButton::Value button);
+    SHMAPI bool8 was_mousebutton_up(MouseButton::Value button);
     SHMAPI Math::Vec2i get_mouse_position();
     SHMAPI Math::Vec2i get_previous_mouse_position();
     SHMAPI Math::Vec2i get_internal_mouse_offset();
@@ -333,8 +333,8 @@ namespace Input
     void process_mouse_internal_move(int32 x_offset, int32 y_offset);
     void process_mouse_scroll(int32 delta);
 
-    SHMAPI bool32 clip_cursor();
-    SHMAPI bool32 is_cursor_clipped();
+    SHMAPI bool8 clip_cursor();
+    SHMAPI bool8 is_cursor_clipped();
 
     SHMINLINE SHMAPI bool8 key_pressed(KeyCode::Value key)
     {

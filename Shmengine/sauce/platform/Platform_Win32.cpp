@@ -36,10 +36,10 @@ namespace Platform
     static float64 clock_frequency;
     static LARGE_INTEGER start_time;
 
-    static bool32 win32_process_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param);
+    static bool8 win32_process_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param);
     LRESULT CALLBACK win32_process_message(HWND hwnd, uint32 msg, WPARAM w_param, LPARAM l_param);
 
-    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+    bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
 
         SystemConfig* sys_config = (SystemConfig*)config;
@@ -92,7 +92,7 @@ namespace Platform
         FreeConsole();
     }
 
-    bool32 create_window(WindowConfig config)
+    bool8 create_window(WindowConfig config)
     {
         uint32 window_id = Constants::max_u32;
         for (uint32 i = 0; i < plat_state->windows.capacity; i++)
@@ -153,7 +153,7 @@ namespace Platform
         window->id = window_id;
 
         // Show the window
-        bool32 activate = 1;  // TODO: if the window should not accept input, this should be false.
+        bool8 activate = 1;  // TODO: if the window should not accept input, this should be false.
         int32 show_window_command_flags = activate ? SW_SHOW : SW_SHOWNOACTIVATE;
         if (activate)
             plat_state->active_window = window;
@@ -207,7 +207,7 @@ namespace Platform
         }
     }
 
-    bool32 pump_messages()
+    bool8 pump_messages()
     {
         MSG message;
         while (PeekMessageA(&message, NULL, 0, 0, PM_REMOVE)) 
@@ -260,7 +260,7 @@ namespace Platform
             return malloc(size);
     }
 
-    void free_memory(void* block, bool32 aligned)
+    void free_memory(void* block, bool8 aligned)
     {
         if (aligned)
 #if DEV_SYSTEM
@@ -319,7 +319,7 @@ namespace Platform
         return ReturnCode::SUCCESS;
     }
 
-    bool32 unregister_file_watch(uint32 watch_id)
+    bool8 unregister_file_watch(uint32 watch_id)
     {
         if (watch_id > plat_state->file_watches.count - 1)
             return false;
@@ -412,7 +412,7 @@ namespace Platform
         SetCursorPos(x, y);
     }
 
-    bool32 clip_cursor(const Window* window, bool32 clip)
+    bool8 clip_cursor(const Window* window, bool8 clip)
     {
         ShowCursor(!clip);
 
@@ -439,7 +439,7 @@ namespace Platform
         return true;
     }
 
-    bool32 load_dynamic_library(const char* name, const char* filename, DynamicLibrary* out_lib)
+    bool8 load_dynamic_library(const char* name, const char* filename, DynamicLibrary* out_lib)
     {
 
         HMODULE lib = LoadLibraryA(filename);
@@ -456,7 +456,7 @@ namespace Platform
 
     }
 
-    bool32 unload_dynamic_library(DynamicLibrary* lib)
+    bool8 unload_dynamic_library(DynamicLibrary* lib)
     {
       
         if (!FreeLibrary((HMODULE)lib->handle))
@@ -468,7 +468,7 @@ namespace Platform
 
     }
 
-    bool32 load_dynamic_library_function(DynamicLibrary* lib, const char* name, void** out_function)
+    bool8 load_dynamic_library_function(DynamicLibrary* lib, const char* name, void** out_function)
     {
         FARPROC fp = GetProcAddress((HMODULE)lib->handle, name);
         if (!fp)
@@ -489,7 +489,7 @@ namespace Platform
         SetWindowTextA((HWND)window_handle.h_wnd, s);
     }
 
-    static bool32 win32_process_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param)
+    static bool8 win32_process_message_fast(uint32 msg, WPARAM w_param, LPARAM l_param)
     {
         switch (msg) 
         {

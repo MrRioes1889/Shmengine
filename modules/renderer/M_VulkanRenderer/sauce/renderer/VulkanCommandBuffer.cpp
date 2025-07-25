@@ -5,7 +5,7 @@ namespace Renderer::Vulkan
 
 	extern VulkanContext* context;
 
-	void vk_command_buffer_allocate(VkCommandPool pool, bool32 primary, VulkanCommandBuffer* out_buffer)
+	void vk_command_buffer_allocate(VkCommandPool pool, bool8 primary, VulkanCommandBuffer* out_buffer)
 	{
 
 		*out_buffer = {};
@@ -29,7 +29,7 @@ namespace Renderer::Vulkan
 		buffer->state = VulkanCommandBufferState::NOT_ALLOCATED;
 	}
 
-	void vk_command_buffer_begin(VulkanCommandBuffer* buffer, bool32 single_use, bool32 renderpass_continue, bool32 simultaneous_use)
+	void vk_command_buffer_begin(VulkanCommandBuffer* buffer, bool8 single_use, bool8 renderpass_continue, bool8 simultaneous_use)
 	{
 
 		VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };

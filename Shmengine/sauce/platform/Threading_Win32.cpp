@@ -25,7 +25,7 @@ namespace Platform
 namespace Threading
 {
 
-	bool32 thread_create(FP_thread_start start_function, void* params, bool32 auto_detach, Thread* out_thread)
+	bool8 thread_create(FP_thread_start start_function, void* params, bool8 auto_detach, Thread* out_thread)
 	{
 
 		out_thread->internal_data = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)start_function, params, 0, (DWORD*)&out_thread->thread_id);
@@ -61,7 +61,7 @@ namespace Threading
 		thread->internal_data = 0;
 	}*/
 
-	bool32 thread_is_active(Thread* thread)
+	bool8 thread_is_active(Thread* thread)
 	{
 		DWORD exit_code = WaitForSingleObject(thread->internal_data, 0);
 		if (exit_code == WAIT_TIMEOUT)
@@ -81,7 +81,7 @@ namespace Threading
 		return GetCurrentThreadId();
 	}
 
-	bool32 mutex_create(Mutex* out_mutex)
+	bool8 mutex_create(Mutex* out_mutex)
 	{
 		out_mutex->internal_data = CreateMutex(0, 0, 0);
 		if (!out_mutex->internal_data) {
@@ -98,7 +98,7 @@ namespace Threading
 		mutex->internal_data = 0;
 	}
 
-	bool32 mutex_lock(Mutex* mutex)
+	bool8 mutex_lock(Mutex* mutex)
 	{
 		DWORD result = WaitForSingleObject(mutex->internal_data, INFINITE);
 		switch (result) {
@@ -115,7 +115,7 @@ namespace Threading
 		return true;
 	}
 
-	bool32 mutex_unlock(Mutex* mutex)
+	bool8 mutex_unlock(Mutex* mutex)
 	{
 		int32 result = ReleaseMutex(mutex->internal_data);
 		if (!result)

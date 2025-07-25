@@ -23,7 +23,7 @@ namespace ResourceSystem
         continue; \
     }
 
-    bool32 terrain_loader_load(const char* name, TerrainResourceData* out_resource)
+    bool8 terrain_loader_load(const char* name, TerrainResourceData* out_resource)
     {
 
         const char* format = "%s%s%s%s";
@@ -61,7 +61,7 @@ namespace ResourceSystem
         String var_name;
         String value;
 
-        bool32 success = true;
+        bool8 success = true;
 
         out_resource->name[0] = 0;
         out_resource->heightmap_name[0] = 0;

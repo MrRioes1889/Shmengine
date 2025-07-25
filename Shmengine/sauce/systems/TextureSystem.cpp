@@ -28,7 +28,7 @@ namespace TextureSystem
 	{
 		TextureId id;
 		uint16 reference_count;
-		bool8 auto_release;
+		bool8 auto_unload;
 	};
 
 	struct SystemState
@@ -46,17 +46,17 @@ namespace TextureSystem
 
 	static SystemState* system_state = 0;
 	
-	static bool32 load_texture(const char* texture_name, Texture* t);
-	static bool32 load_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t);
+	static bool8 load_texture(const char* texture_name, Texture* t);
+	static bool8 load_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t);
 	static void destroy_texture(Texture* t);
 
 	static void create_default_textures();
 	static void destroy_default_textures();
 
-	static bool8 add_reference(const char* name, bool8 auto_release, TextureId* out_texture_id, bool8* out_load);
+	static bool8 add_reference(const char* name, bool8 auto_unload, TextureId* out_texture_id, bool8* out_load);
 	static TextureId remove_reference(const char* name);
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
@@ -96,7 +96,7 @@ namespace TextureSystem
 		}
 	}
 
-	Texture* acquire(const char* name, bool8 auto_release)
+	Texture* acquire(const char* name, bool8 auto_unload)
 	{
 		
 		if (CString::equal_i(name, SystemConfig::default_name))
@@ -113,7 +113,7 @@ namespace TextureSystem
 
 		TextureId id = TextureId::invalid_value;
 		bool8 load = false;
-		if (!add_reference(name, auto_release, &id, &load))
+		if (!add_reference(name, auto_unload, &id, &load))
 		{
 			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
 			return 0;
@@ -130,11 +130,11 @@ namespace TextureSystem
 		return t;
 	}
 
-	Texture* acquire_cube(const char* name, bool8 auto_release)
+	Texture* acquire_cube(const char* name, bool8 auto_unload)
 	{
 		TextureId id = TextureId::invalid_value;
 		bool8 load = false;
-		if (!add_reference(name, auto_release, &id, &load))
+		if (!add_reference(name, auto_unload, &id, &load))
 		{
 			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
 			return 0;
@@ -339,7 +339,7 @@ namespace TextureSystem
 		system_state->textures_loading_count--;
 	}
 
-	static bool32 texture_load_job_start(void* params, void* results)
+	static bool8 texture_load_job_start(void* params, void* results)
 	{
 		Memory::copy_memory(params, results, sizeof(TextureLoadParams));
 		Memory::zero_memory(params, sizeof(TextureLoadParams));
@@ -362,7 +362,7 @@ namespace TextureSystem
 
 		uint8* pixels = config->pixels;
 		uint64 size = load_params->temp_texture.width * load_params->temp_texture.height * load_params->temp_texture.channel_count;
-		bool32 has_transparency = false;
+		bool8 has_transparency = false;
 		for (uint64 i = 0; i < size; i += config->channel_count)
 		{
 			uint8 a = pixels[i + 3];
@@ -382,7 +382,7 @@ namespace TextureSystem
 
 	}
 
-	static bool32 load_texture(const char* texture_name, Texture* t)
+	static bool8 load_texture(const char* texture_name, Texture* t)
 	{	
 		system_state->textures_loading_count++;
 		JobSystem::JobInfo job = JobSystem::job_create(texture_load_job_start, texture_load_on_success, texture_load_on_failure, sizeof(TextureLoadParams), sizeof(TextureLoadParams));
@@ -396,7 +396,7 @@ namespace TextureSystem
 		return true;
 	}
 
-	static bool32 load_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t)
+	static bool8 load_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t)
 	{
 
 		Buffer pixels = {};
@@ -570,7 +570,7 @@ namespace TextureSystem
 		t->name[0] = 0;
 	}
 
-	static bool8 add_reference(const char* name, bool8 auto_release, TextureId* out_texture_id, bool8* out_load)
+	static bool8 add_reference(const char* name, bool8 auto_unload, TextureId* out_texture_id, bool8* out_load)
 	{
 		*out_texture_id = TextureId::invalid_value;
 		*out_load = false;
@@ -602,7 +602,7 @@ namespace TextureSystem
 
 		t->id = new_id;
 		CString::copy(name, t->name, Constants::max_texture_name_length);
-		TextureReference new_ref = { .id = new_id, .reference_count = 1, .auto_release = auto_release };
+		TextureReference new_ref = { .id = new_id, .reference_count = 1, .auto_unload = auto_unload };
 		ref = system_state->lookup_table.set_value(t->name, new_ref);
 		*out_texture_id = ref->id;
 		*out_load = true;
@@ -625,7 +625,7 @@ namespace TextureSystem
 		}
 
 		ref->reference_count--;
-		if (ref->reference_count == 0 && ref->auto_release)
+		if (ref->reference_count == 0 && ref->auto_unload)
 		{
 			return ref->id;
 		}

@@ -29,7 +29,7 @@ struct SHMAPI Freelist
 {
 	struct Node
 	{
-		bool32 reserved;
+		bool8 reserved;
 		uint32 page_count;
 	};
 
@@ -54,7 +54,7 @@ struct SHMAPI Freelist
 
 	bool8 allocate(uint64 size, AllocationReference* alloc);
 	bool8 allocate_aligned(uint64 size, uint16 alignment, AllocationReference* alloc);
-	bool32 free(uint64 offset, uint64* bytes_freed = 0);
+	bool8 free(uint64 offset, uint64* bytes_freed = 0);
 
 	int64 get_reserved_size(uint64 offset);
 

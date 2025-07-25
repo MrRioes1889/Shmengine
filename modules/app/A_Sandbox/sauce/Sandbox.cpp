@@ -31,7 +31,7 @@ ApplicationState* app_state = 0;
 static void register_events();
 static void unregister_events();
 
-bool32 application_load_config(ApplicationConfig* out_config)
+bool8 application_load_config(ApplicationConfig* out_config)
 {
 	out_config->app_frame_data_size = sizeof(ApplicationFrameData);
 	out_config->state_size = sizeof(ApplicationState);
@@ -48,7 +48,7 @@ bool32 application_load_config(ApplicationConfig* out_config)
 	return true;
 }
 
-bool32 application_init(Application* app_inst)
+bool8 application_init(Application* app_inst)
 {
 	app_state = (ApplicationState*)app_inst->state;
 
@@ -178,7 +178,7 @@ void application_shutdown()
 
 }
 
-bool32 application_update(FrameData* frame_data)
+bool8 application_update(FrameData* frame_data)
 {
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
@@ -262,7 +262,7 @@ bool32 application_update(FrameData* frame_data)
 	return true;
 }
 
-bool32 application_render(FrameData* frame_data)
+bool8 application_render(FrameData* frame_data)
 {
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
@@ -325,7 +325,7 @@ void application_on_module_unload()
 	Input::clear_keymaps();
 }
 
-static bool32 application_on_mousebutton_released(uint16 code, void* sender, void* listener_inst, EventData data)
+static bool8 application_on_mousebutton_released(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 
 	if (app_state->main_scene.state != ResourceState::Loaded)
@@ -360,7 +360,7 @@ static bool32 application_on_mousebutton_released(uint16 code, void* sender, voi
 	return false;
 }
 
-static bool32 application_on_event(uint16 code, void* sender, void* listener_inst, EventData data)
+static bool8 application_on_event(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 	switch (code)
 	{
@@ -374,7 +374,7 @@ static bool32 application_on_event(uint16 code, void* sender, void* listener_ins
 	return true;
 }
 
-static bool32 application_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
+static bool8 application_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 
 	if (code == SystemEventCode::DEBUG0 && app_state->main_scene.state == ResourceState::Loaded)

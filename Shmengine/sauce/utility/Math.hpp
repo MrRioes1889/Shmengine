@@ -15,7 +15,7 @@
 namespace Math
 {
 	
-	SHMINLINE bool32 is_power_of_2(uint64 value) {
+	SHMINLINE bool8 is_power_of_2(uint64 value) {
 		return (value != 0) && ((value & (value - 1)) == 0);
 	}
 

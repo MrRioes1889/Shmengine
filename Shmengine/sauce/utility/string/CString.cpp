@@ -54,7 +54,7 @@ namespace CString
 			write_output_size--;
 		}
 
-		bool32 use_length = length >= 0;
+		bool8 use_length = length >= 0;
 		for (uint32 i = 0; i < write_output_size; i++)
 		{
 			if (!*buffer_source || (appendix_length >= (uint32)length && use_length))
@@ -130,7 +130,7 @@ namespace CString
 
 		uint32 base = 10;
 		static char buf[64] = {};
-		bool32 is_neg = (val < 0);
+		bool8 is_neg = (val < 0);
 		uint32 value = is_neg ? -val : val;
 
 		int i = 62;
@@ -153,7 +153,7 @@ namespace CString
 
 		uint32 base = 10;
 		static char buf[64] = {};
-		bool32 is_neg = (val < 0);
+		bool8 is_neg = (val < 0);
 		uint64 value = is_neg ? -val : val;
 
 		int i = 62;
@@ -188,7 +188,7 @@ namespace CString
 			leading_zeroes++;
 
 		static char buf[64] = {};
-		bool32 is_neg = (val < 0);
+		bool8 is_neg = (val < 0);
 		int64 value = Math::round_f_to_i64(is_neg ? -val : val);
 
 		int32 i = 62;
@@ -240,7 +240,7 @@ namespace CString
 			leading_zeroes++;
 
 		static char buf[64] = {};
-		bool32 is_neg = (val < 0);
+		bool8 is_neg = (val < 0);
 		int64 value = Math::round_f_to_i64(is_neg ? -val : val);
 
 		int32 i = 62;
@@ -276,7 +276,7 @@ namespace CString
 
 	}
 
-	bool32 equal(const char* a, const char* b)
+	bool8 equal(const char* a, const char* b)
 	{
 		while (*a != 0)
 		{
@@ -292,7 +292,7 @@ namespace CString
 			return false;
 	}
 
-	bool32 equal_i(const char* a, const char* b)
+	bool8 equal_i(const char* a, const char* b)
 	{
 
 		int32 upper_lower_offset = 'a' - 'A';
@@ -302,8 +302,8 @@ namespace CString
 			
 			if (*a != *b)
 			{
-				bool32 lower_case_a = (*a >= 'a' && *a <= 'z');
-				bool32 upper_case_a = (*a >= 'A' && *a <= 'Z');
+				bool8 lower_case_a = (*a >= 'a' && *a <= 'z');
+				bool8 upper_case_a = (*a >= 'A' && *a <= 'Z');
 
 				if (!lower_case_a && !upper_case_a)
 					return false;
@@ -324,7 +324,7 @@ namespace CString
 
 	}
 
-	bool32 nequal(const char* a, const char* b, uint32 length)
+	bool8 nequal(const char* a, const char* b, uint32 length)
 	{
 		uint32 i = 0;
 		while (*a != 0 && i < length)
@@ -342,7 +342,7 @@ namespace CString
 			return false;
 	}
 
-	bool32 nequal_i(const char* a, const char* b, uint32 length)
+	bool8 nequal_i(const char* a, const char* b, uint32 length)
 	{
 
 		uint32 i = 0;
@@ -353,8 +353,8 @@ namespace CString
 
 			if (*a != *b)
 			{
-				bool32 lower_case_a = (*a >= 'a' && *a <= 'z');
-				bool32 upper_case_a = (*a >= 'A' && *a <= 'Z');
+				bool8 lower_case_a = (*a >= 'a' && *a <= 'z');
+				bool8 upper_case_a = (*a >= 'A' && *a <= 'Z');
 
 				if (!lower_case_a && !upper_case_a)
 					return false;
@@ -437,7 +437,7 @@ namespace CString
 
 	}
 
-	bool32 parse(const char* s, float32* out)
+	bool8 parse(const char* s, float32* out)
 	{
 
 		int32 sign = 1;
@@ -494,7 +494,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, float64* out)
+	bool8 parse(const char* s, float64* out)
 	{
 
 		int32 sign = 1;
@@ -551,7 +551,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, int8* out)
+	bool8 parse(const char* s, int8* out)
 	{
 
 		int8 sign = 1;
@@ -580,7 +580,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, int16* out)
+	bool8 parse(const char* s, int16* out)
 	{
 
 		int8 sign = 1;
@@ -609,7 +609,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, int32* out)
+	bool8 parse(const char* s, int32* out)
 	{
 
 		int8 sign = 1;
@@ -638,7 +638,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, int64* out)
+	bool8 parse(const char* s, int64* out)
 	{
 
 		int8 sign = 1;
@@ -667,7 +667,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, uint8* out)
+	bool8 parse(const char* s, uint8* out)
 	{
 
 		int8 sign = 1;
@@ -696,7 +696,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, uint16* out)
+	bool8 parse(const char* s, uint16* out)
 	{
 
 		int8 sign = 1;
@@ -725,7 +725,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, uint32* out)
+	bool8 parse(const char* s, uint32* out)
 	{
 
 		int8 sign = 1;
@@ -754,7 +754,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, uint64* out)
+	bool8 parse(const char* s, uint64* out)
 	{
 
 		int8 sign = 1;
@@ -783,7 +783,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse(const char* s, bool8* out)
+	bool8 parse(const char* s, bool8* out)
 	{
 		if (equal_i(s, "true") || equal_i(s, "1"))
 			*out = true;
@@ -793,7 +793,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, float32* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, float32* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -812,7 +812,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, float64* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, float64* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -831,7 +831,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int8* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, int8* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -850,7 +850,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int16* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, int16* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -869,7 +869,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int32* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, int32* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -888,7 +888,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int64* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, int64* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -907,7 +907,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint8* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, uint8* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -926,7 +926,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint16* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, uint16* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -945,7 +945,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint32* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, uint32* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -964,7 +964,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint64* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, uint64* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];
@@ -983,7 +983,7 @@ namespace CString
 		return true;
 	}
 
-	bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, bool8* out_arr)
+	bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, bool8* out_arr)
 	{
 		const char* read = s;
 		char parse_buffer[32];

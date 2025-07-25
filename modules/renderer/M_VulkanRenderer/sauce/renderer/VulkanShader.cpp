@@ -15,12 +15,12 @@ namespace Renderer::Vulkan
 
 	extern VulkanContext* context;
 
-	static bool32 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage);
+	static bool8 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage);
 
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
 
-	bool32 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
+	bool8 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
 	{
 
 		if (shader->internal_data)
@@ -211,7 +211,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_shader_init(Shader* shader)
+	bool8 vk_shader_init(Shader* shader)
 	{
 
 		VkDevice& logical_device = context->device.logical_device;
@@ -423,7 +423,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_shader_use(Shader* s)
+	bool8 vk_shader_use(Shader* s)
 	{
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->bound_framebuffer_index];
@@ -433,7 +433,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_shader_bind_globals(Shader* s)
+	bool8 vk_shader_bind_globals(Shader* s)
 	{
 		if (!s)
 			return false;
@@ -448,7 +448,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_shader_bind_instance(Shader* s, uint32 instance_id)
+	bool8 vk_shader_bind_instance(Shader* s, uint32 instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -464,7 +464,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_shader_apply_globals(Shader* s)
+	bool8 vk_shader_apply_globals(Shader* s)
 	{
 
 		OPTICK_EVENT();
@@ -507,7 +507,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_shader_apply_instance(Shader* s)
+	bool8 vk_shader_apply_instance(Shader* s)
 	{
 		
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -603,7 +603,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32 instance_id)
+	bool8 vk_shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32 instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -648,7 +648,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_shader_release_instance_resources(Shader* s, uint32 instance_id)
+	bool8 vk_shader_release_instance_resources(Shader* s, uint32 instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -668,7 +668,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value)
+	bool8 vk_shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value)
 	{
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		
@@ -688,7 +688,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage)
+	bool8 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage)
 	{
 		// Read the resource.
 		Buffer data = {};
@@ -751,7 +751,7 @@ namespace Renderer::Vulkan
 		}
 	}
 
-	bool32 vk_texture_map_acquire_resources(TextureMap* out_map) 
+	bool8 vk_texture_map_acquire_resources(TextureMap* out_map) 
 	{
 		// Create a sampler for the texture
 		VkSamplerCreateInfo sampler_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };

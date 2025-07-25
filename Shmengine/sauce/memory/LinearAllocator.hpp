@@ -11,7 +11,7 @@ namespace Memory
 		uint64 allocated;
 
 		void* memory;
-		bool32 owns_memory;
+		bool8 owns_memory;
 
 		SHMAPI void init(uint64 memory_size, void* memory_ptr = 0);
 		SHMAPI void destroy();

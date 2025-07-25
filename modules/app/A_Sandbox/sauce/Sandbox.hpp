@@ -26,15 +26,15 @@ namespace SandboxRenderViews
 extern "C"
 {
 
-    SHMAPI bool32 application_load_config(ApplicationConfig* out_config);
+    SHMAPI bool8 application_load_config(ApplicationConfig* out_config);
 
-    SHMAPI bool32 application_init(Application* app_inst);
+    SHMAPI bool8 application_init(Application* app_inst);
 
     SHMAPI void application_shutdown();
 
-    SHMAPI bool32 application_update(FrameData* frame_data);
+    SHMAPI bool8 application_update(FrameData* frame_data);
 
-    SHMAPI bool32 application_render(FrameData* frame_data);
+    SHMAPI bool8 application_render(FrameData* frame_data);
 
     SHMAPI void application_on_resize(uint32 width, uint32 height);
 

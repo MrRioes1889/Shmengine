@@ -8,10 +8,10 @@
 #include <core/Engine.hpp>
 
 static void command_exit(Console::CommandContext context);
-static bool32 consumer_write(void* inst, Log::LogLevel log_level, const char* message);
+static bool8 consumer_write(void* inst, Log::LogLevel log_level, const char* message);
 static void update_displayed_console_text(DebugConsole* console);
 
-bool32 DebugConsole::init()
+bool8 DebugConsole::init()
 {
 	state = ResourceState::Uninitialized;
 	Memory::zero_memory(line_lenghts, lines_limit * sizeof(uint16));
@@ -62,7 +62,7 @@ void DebugConsole::destroy()
 	state = ResourceState::Destroyed;
 }
 
-bool32 DebugConsole::load()
+bool8 DebugConsole::load()
 {
 	entry_text = entry_text_prefix;
 	entry_text.append('_');
@@ -76,7 +76,7 @@ bool32 DebugConsole::load()
 	return true;
 }
 
-bool32 DebugConsole::unload()
+bool8 DebugConsole::unload()
 {
 	if (!loaded)
 		return false;
@@ -102,7 +102,7 @@ UIText* DebugConsole::get_entry_text()
 	return &entry_control;
 }
 
-bool32 DebugConsole::is_visible()
+bool8 DebugConsole::is_visible()
 {
 	return visible;
 }
@@ -206,7 +206,7 @@ static inline void console_add_line(DebugConsole* console, uint16 message_length
 		console->lines_display_offset++;
 }
 
-static bool32 consumer_write(void* inst, Log::LogLevel log_level, const char* message)
+static bool8 consumer_write(void* inst, Log::LogLevel log_level, const char* message)
 {
 	DebugConsole* console = (DebugConsole*)inst;
 	if (console->state < ResourceState::Initialized)

@@ -20,7 +20,7 @@ namespace MaterialSystem
 	{
 		MaterialId id;
 		uint16 reference_count;
-		bool8 auto_release;
+		bool8 auto_unload;
 	};
 
 	struct SystemState
@@ -38,14 +38,14 @@ namespace MaterialSystem
 	static bool8 load_material(const MaterialConfig* config, Material* m);
 	static void destroy_material(Material* m);
 
-	static bool32 create_default_material();
-	static bool32 create_default_ui_material();
+	static bool8 create_default_material();
+	static bool8 create_default_ui_material();
 
-	static bool8 add_reference(const char* name, bool8 auto_release, MaterialId* out_material_id, bool8* out_load);
+	static bool8 add_reference(const char* name, bool8 auto_unload, MaterialId* out_material_id, bool8* out_load);
 	static MaterialId remove_reference(const char* name);
-    static bool32 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture);
+    static bool8 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture);
 
-    bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config) {
+    bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config) {
 
         SystemConfig* sys_config = (SystemConfig*)config;
         system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
@@ -92,7 +92,7 @@ namespace MaterialSystem
 
     }
 
-    static Material* acquire_(const MaterialConfig* config, const char* name, bool8 auto_release)
+    static Material* acquire_(const MaterialConfig* config, const char* name, bool8 auto_unload)
     {
         if (CString::equal_i(name, SystemConfig::default_name))
             return &system_state->default_material;    
@@ -107,7 +107,7 @@ namespace MaterialSystem
         bool8 load = false;
         Material* m = 0;
 
-        if (!add_reference(name, auto_release, &id, &load))
+        if (!add_reference(name, auto_unload, &id, &load))
         {
             SHMERRORV("Failed to add reference to material system.");
             return 0;
@@ -133,14 +133,14 @@ namespace MaterialSystem
         return m;
     }
 
-    Material* acquire(const char* name, bool8 auto_release) 
+    Material* acquire(const char* name, bool8 auto_unload) 
     {
-        return acquire_(0, name, auto_release);
+        return acquire_(0, name, auto_unload);
     }
 
-    Material* acquire(const MaterialConfig* config, bool8 auto_release) 
+    Material* acquire(const MaterialConfig* config, bool8 auto_unload) 
     {
-        return acquire_(config, config->name, auto_release);
+        return acquire_(config, config->name, auto_unload);
     }
 
     void release(const char* name) {
@@ -174,7 +174,7 @@ namespace MaterialSystem
         }
     }
 
-    static bool32 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture)
+    static bool8 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture)
     {
         map->filter_minify = config->filter_min;
         map->filter_magnify = config->filter_mag;
@@ -270,9 +270,9 @@ namespace MaterialSystem
 
             m->maps.init(3, 0);
 
-            bool32 diffuse_assigned = false;
-            bool32 specular_assigned = false;
-            bool32 normal_assigned = false;
+            bool8 diffuse_assigned = false;
+            bool8 specular_assigned = false;
+            bool8 normal_assigned = false;
 
             for (uint32 i = 0; i < config->maps_count; i++)
             {
@@ -382,7 +382,7 @@ namespace MaterialSystem
             return false;
         }
 
-        bool32 res = Renderer::shader_acquire_instance_resources(shader, m->maps.capacity, &m->shader_instance_id);
+        bool8 res = Renderer::shader_acquire_instance_resources(shader, m->maps.capacity, &m->shader_instance_id);
         if (!res)
             SHMERRORV("Failed to acquire renderer resources for material '%s'.", m->name);
 
@@ -426,7 +426,7 @@ namespace MaterialSystem
         return &system_state->default_ui_material;
     }
     
-    static bool32 create_default_material() {
+    static bool8 create_default_material() {
 
         Material* mat = &system_state->default_material;
 
@@ -464,7 +464,7 @@ namespace MaterialSystem
         return true;
     }
 
-    static bool32 create_default_ui_material() {
+    static bool8 create_default_ui_material() {
 
         Material* mat = &system_state->default_ui_material;
 
@@ -500,7 +500,7 @@ namespace MaterialSystem
         return true;
     }
 
-	static bool8 add_reference(const char* name, bool8 auto_release, MaterialId* out_material_id, bool8* out_load)
+	static bool8 add_reference(const char* name, bool8 auto_unload, MaterialId* out_material_id, bool8* out_load)
 	{
 		*out_material_id = MaterialId::invalid_value;
 		*out_load = false;
@@ -532,7 +532,7 @@ namespace MaterialSystem
 
 		m->id = new_id;
         CString::copy(name, m->name, Constants::max_material_name_length);
-		MaterialReference new_ref = { .id = new_id, .reference_count = 1, .auto_release = auto_release };
+		MaterialReference new_ref = { .id = new_id, .reference_count = 1, .auto_unload = auto_unload };
 		ref = system_state->lookup_table.set_value(m->name, new_ref);
 		*out_material_id = ref->id;
         *out_load = true;
@@ -555,7 +555,7 @@ namespace MaterialSystem
 		}
 
 		ref->reference_count--;
-		if (ref->reference_count == 0 && ref->auto_release)
+		if (ref->reference_count == 0 && ref->auto_unload)
 		{
 			return ref->id;
 		}

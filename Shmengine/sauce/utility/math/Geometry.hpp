@@ -28,16 +28,16 @@ namespace Math
 
 	SHMAPI float32 plane_signed_distance(Plane3D p, Vec3f position);
 
-	SHMAPI bool32 plane_intersects_sphere(Plane3D p, Vec3f center, float32 radius);
-	SHMAPI bool32 plane_intersects_aabb(Plane3D p, Vec3f center, Vec3f extents);
+	SHMAPI bool8 plane_intersects_sphere(Plane3D p, Vec3f center, float32 radius);
+	SHMAPI bool8 plane_intersects_aabb(Plane3D p, Vec3f center, Vec3f extents);
 
-	SHMAPI bool32 frustum_intersects_sphere(Frustum f,  Vec3f center, float32 radius);
-	SHMAPI bool32 frustum_intersects_aabb(Frustum f,  Vec3f center,  Vec3f extents);
+	SHMAPI bool8 frustum_intersects_sphere(Frustum f,  Vec3f center, float32 radius);
+	SHMAPI bool8 frustum_intersects_aabb(Frustum f,  Vec3f center,  Vec3f extents);
 
 	SHMAPI Ray3D ray3D_create(Vec3f origin, Vec3f direction);
 	SHMAPI Ray3D ray3D_create_from_screen(Vec2f screen_pos, Vec2f viewport_size, Vec3f origin, Mat4 view, Mat4 projection);
 
-	SHMAPI bool32 ray3D_cast_obb(Extents3D bb_extents, Mat4 bb_model, Ray3D ray, float32* out_dist);
+	SHMAPI bool8 ray3D_cast_obb(Extents3D bb_extents, Mat4 bb_model, Ray3D ray, float32* out_dist);
 
 	//------- Quat functions
 
@@ -101,7 +101,7 @@ namespace Math
 		return res;
 	}
 
-	SHMINLINE Quat quat_from_axis_angle(Vec3f axis, float32 angle, bool32 normalize) {
+	SHMINLINE Quat quat_from_axis_angle(Vec3f axis, float32 angle, bool8 normalize) {
 		const float32 half_angle = 0.5f * angle;
 		float32 s = sin(half_angle);
 		float32 c = cos(half_angle);

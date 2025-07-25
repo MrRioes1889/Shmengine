@@ -142,12 +142,12 @@ namespace Math
 		return inner_product(p.normal, position) - p.distance;
 	}
 
-	bool32 plane_intersects_sphere(Plane3D p, Vec3f center, float32 radius)
+	bool8 plane_intersects_sphere(Plane3D p, Vec3f center, float32 radius)
 	{
 		return plane_signed_distance(p, center) > -radius;
 	}
 
-	bool32 frustum_intersects_sphere(Frustum f, Vec3f center, float32 radius)
+	bool8 frustum_intersects_sphere(Frustum f, Vec3f center, float32 radius)
 	{
 		for (uint32 i = 0; i < 6; i++)
 		{
@@ -158,7 +158,7 @@ namespace Math
 		return true;
 	}
 
-	bool32 plane_intersects_aabb(Plane3D p, Vec3f center, Vec3f extents)
+	bool8 plane_intersects_aabb(Plane3D p, Vec3f center, Vec3f extents)
 	{
 		float32 r =
 			extents.x * Math::abs(p.normal.x) +
@@ -168,7 +168,7 @@ namespace Math
 		return -r <= plane_signed_distance(p, center);
 	}	
 
-	bool32 frustum_intersects_aabb(Frustum f, Vec3f center, Vec3f extents)
+	bool8 frustum_intersects_aabb(Frustum f, Vec3f center, Vec3f extents)
 	{
 		for (uint32 i = 0; i < 6; i++)
 		{
@@ -206,7 +206,7 @@ namespace Math
 		return ray;
 	}
 
-	bool32 ray3D_cast_obb(Extents3D bb_extents, Mat4 bb_model, Ray3D ray, float32* out_dist)
+	bool8 ray3D_cast_obb(Extents3D bb_extents, Mat4 bb_model, Ray3D ray, float32* out_dist)
 	{
 		// Intersection based on the Real-Time Rendering and Essential Mathematics for Games
 

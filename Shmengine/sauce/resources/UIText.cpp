@@ -19,7 +19,7 @@ static void regenerate_geometry(UIText* ui_text, const FontAtlas* atlas);
 static const uint32 quad_vertex_count = 4;
 static const uint32 quad_index_count = 6;
 
-bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
+bool8 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 {
     if (out_ui_text->state >= ResourceState::Initialized)
         return false;
@@ -33,12 +33,12 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
     }
     out_ui_text->font_size = config->font_size;
 
-    out_ui_text->text_ref = config->text_content;
+    out_ui_text->text = config->text_content;
     out_ui_text->transform = Math::transform_create();
 
     out_ui_text->shader_instance_id = Constants::max_u32;
 
-    uint32 text_length = out_ui_text->text_ref.len();
+    uint32 text_length = out_ui_text->text.len();
     if (text_length < 1)
         text_length = 1;
 
@@ -61,19 +61,20 @@ bool32 ui_text_init(UITextConfig* config, UIText* out_ui_text)
     return true;
 }
 
-bool32 ui_text_destroy(UIText* ui_text)
+bool8 ui_text_destroy(UIText* ui_text)
 {
     if (ui_text->state != ResourceState::Unloaded && !ui_text_unload(ui_text))
         return false;
 
     Renderer::destroy_geometry(&ui_text->geometry);
+    ui_text->text.free_data();
 
     ui_text->state = ResourceState::Destroyed;
 
     return true;
 }
 
-bool32 ui_text_load(UIText* ui_text)
+bool8 ui_text_load(UIText* ui_text)
 {
     if (ui_text->state != ResourceState::Initialized && ui_text->state != ResourceState::Unloaded)
         return false;
@@ -99,7 +100,7 @@ bool32 ui_text_load(UIText* ui_text)
     return true;
 }
 
-bool32 ui_text_unload(UIText* ui_text)
+bool8 ui_text_unload(UIText* ui_text)
 {
     if (ui_text->state <= ResourceState::Initialized)
         return true;
@@ -130,13 +131,14 @@ void ui_text_set_position(UIText* ui_text, Math::Vec3f position)
 
 void ui_text_set_text(UIText* ui_text, const char* text, uint32 offset, uint32 length)
 {   
-    ui_text->text_ref.set_text(text, offset, length);
+    SHMASSERT(offset < CString::length(text));
+    ui_text->text.copy_n(&text[offset], length);
     ui_text->is_dirty = true;
 }
 
 void ui_text_set_text(UIText* ui_text, const String* text, uint32 offset, uint32 length)
-{   
-    ui_text->text_ref.set_text(text, offset, length);
+{
+    ui_text->text.copy_n(&((*text)[offset]), length);
 	ui_text->is_dirty = true;
 }
 
@@ -176,8 +178,8 @@ static void regenerate_geometry(UIText* ui_text, const FontAtlas* atlas)
 
     GeometryData* geometry = &ui_text->geometry;
 
-    uint32 max_vertex_count = quad_vertex_count * ui_text->text_ref.len();
-    uint32 max_index_count = quad_index_count * ui_text->text_ref.len();
+    uint32 max_vertex_count = quad_vertex_count * ui_text->text.len();
+    uint32 max_index_count = quad_index_count * ui_text->text.len();
 
     uint64 vertex_buffer_size = sizeof(Renderer::Vertex2D) * max_vertex_count;
     if (vertex_buffer_size > geometry->vertices.capacity)
@@ -189,9 +191,9 @@ static void regenerate_geometry(UIText* ui_text, const FontAtlas* atlas)
     float32 x = 0;
     float32 y = 0;
     uint32 quad_count = 0;
-    for (uint32 c = 0; c < ui_text->text_ref.len(); c++) 
+    for (uint32 c = 0; c < ui_text->text.len(); c++) 
     {
-        char codepoint = ui_text->text_ref[c];
+        char codepoint = ui_text->text[c];
 
         if (codepoint == '\n') 
         {

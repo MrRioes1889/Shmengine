@@ -77,10 +77,10 @@ struct Terrain
 	uint32 shader_instance_id;
 };
 
-SHMAPI bool32 terrain_init(TerrainConfig* config, Terrain* out_terrain);
-SHMAPI bool32 terrain_init_from_resource(const char* resource_name, Terrain* out_terrain);
-SHMAPI bool32 terrain_destroy(Terrain* terrain);
-SHMAPI bool32 terrain_load(Terrain* terrain);
-SHMAPI bool32 terrain_unload(Terrain* terrain);
+SHMAPI bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain);
+SHMAPI bool8 terrain_init_from_resource(const char* resource_name, Terrain* out_terrain);
+SHMAPI bool8 terrain_destroy(Terrain* terrain);
+SHMAPI bool8 terrain_load(Terrain* terrain);
+SHMAPI bool8 terrain_unload(Terrain* terrain);
 
-SHMAPI bool32 terrain_update(Terrain* terrain);
+SHMAPI bool8 terrain_update(Terrain* terrain);

@@ -29,15 +29,15 @@ struct UIText
 	FontId font_id;
 	uint16 font_size;
 	uint32 shader_instance_id;
-	StringRef text_ref;
+	String text;
 	Math::Transform transform;
 	GeometryData geometry;
 };
 
-SHMAPI bool32 ui_text_init(UITextConfig* config, UIText* out_text);
-SHMAPI bool32 ui_text_destroy(UIText* text);
-SHMAPI bool32 ui_text_load(UIText* text);
-SHMAPI bool32 ui_text_unload(UIText* text);
+SHMAPI bool8 ui_text_init(UITextConfig* config, UIText* out_text);
+SHMAPI bool8 ui_text_destroy(UIText* text);
+SHMAPI bool8 ui_text_load(UIText* text);
+SHMAPI bool8 ui_text_unload(UIText* text);
 
 SHMAPI void ui_text_set_position(UIText* ui_text, Math::Vec3f position);
 SHMAPI void ui_text_set_text(UIText* ui_text, const char* text, uint32 offset = 0, uint32 length = Constants::max_u32);

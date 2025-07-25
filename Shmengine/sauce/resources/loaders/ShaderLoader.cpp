@@ -12,7 +12,7 @@ namespace ResourceSystem
 
     static const char* loader_type_path = "shaders/configs/";
 
-	bool32 shader_loader_load(const char* name, ShaderResourceData* out_resource)
+	bool8 shader_loader_load(const char* name, ShaderResourceData* out_resource)
 	{
 
         using namespace Renderer;

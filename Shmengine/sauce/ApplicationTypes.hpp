@@ -36,11 +36,11 @@ struct ApplicationConfig
 
 struct Application
 {
-	typedef bool32(*FP_load_config)(ApplicationConfig* out_config);
-	typedef bool32(*FP_init)(Application* app_inst);
+	typedef bool8(*FP_load_config)(ApplicationConfig* out_config);
+	typedef bool8(*FP_init)(Application* app_inst);
 	typedef void(*FP_shutdown)();
-	typedef bool32(*FP_update)(FrameData* frame_data);
-	typedef bool32(*FP_render)(FrameData* frame_data);
+	typedef bool8(*FP_update)(FrameData* frame_data);
+	typedef bool8(*FP_render)(FrameData* frame_data);
 	typedef void(*FP_on_resize)(uint32 width, uint32 height);
 	typedef void(*FP_on_module_reload)(void* app_state);
 	typedef void(*FP_on_module_unload)();
@@ -64,6 +64,6 @@ struct Application
 
 	ApplicationStage stage;
 	bool8 limit_framerate;
-	bool32 is_suspended;
+	bool8 is_suspended;
 
 };

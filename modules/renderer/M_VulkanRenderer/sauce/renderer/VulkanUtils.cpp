@@ -5,7 +5,7 @@
 namespace Renderer::Vulkan
 {
 
-    const char* vk_result_string(VkResult result, bool32 get_extended) {
+    const char* vk_result_string(VkResult result, bool8 get_extended) {
         // From: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkResult.html
         // Success Codes
         switch (result) {
@@ -88,7 +88,7 @@ namespace Renderer::Vulkan
         }
     }
 
-    bool32 vk_result_is_success(VkResult result) {
+    bool8 vk_result_is_success(VkResult result) {
         // From: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkResult.html
         switch (result) {
             // Success Codes

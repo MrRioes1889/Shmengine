@@ -24,11 +24,11 @@
 namespace Renderer
 {
 
-	typedef bool32(*FP_create_renderer_module)(Renderer::Module* out_module);
+	typedef bool8(*FP_create_renderer_module)(Renderer::Module* out_module);
 
 	SystemState* system_state = 0;
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
@@ -103,23 +103,23 @@ namespace Renderer
 		system_state = 0;
 	}
 
-	bool32 flags_enabled(RendererConfigFlags::Value flags)
+	bool8 flags_enabled(RendererConfigFlags::Value flags)
 	{
 		return (flags & system_state->flags);
 	}
 
-	void set_flags(RendererConfigFlags::Value flags, bool32 enabled)
+	void set_flags(RendererConfigFlags::Value flags, bool8 enabled)
 	{
 		system_state->flags = (enabled ? system_state->flags | flags : system_state->flags & ~flags);
 		system_state->module.on_config_changed();
 	}
 
-	bool32 draw_frame(FrameData* frame_data)
+	bool8 draw_frame(FrameData* frame_data)
 	{
 		OPTICK_EVENT();
 		Module& backend = system_state->module;
 		backend.frame_number++;
-		bool32 did_resize = false;
+		bool8 did_resize = false;
 
 		if (system_state->resizing) {
 			system_state->frames_since_resize++;
@@ -179,12 +179,12 @@ namespace Renderer
 		
 	}
 
-	bool32 render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, RenderPass* pass, uint32 width, uint32 height, RenderTarget* out_target)
+	bool8 render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, RenderPass* pass, uint32 width, uint32 height, RenderTarget* out_target)
 	{
 		return system_state->module.render_target_create(attachment_count, attachments, pass, width, height, out_target);
 	}
 
-	void render_target_destroy(RenderTarget* target, bool32 free_internal_memory)
+	void render_target_destroy(RenderTarget* target, bool8 free_internal_memory)
 	{
 		system_state->module.render_target_destroy(target, free_internal_memory);
 	}
@@ -229,7 +229,7 @@ namespace Renderer
 		return system_state->module.get_window_attachment_count();
 	}
 
-	bool32 renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass)
+	bool8 renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass)
 	{
 
 		if (config->render_target_count <= 0)
@@ -276,12 +276,12 @@ namespace Renderer
 		pass->name.free_data();
 	}
 
-	bool32 renderpass_begin(RenderPass* pass, RenderTarget* target)
+	bool8 renderpass_begin(RenderPass* pass, RenderTarget* target)
 	{
 		return system_state->module.renderpass_begin(pass, target);
 	}
 
-	bool32 renderpass_end(RenderPass* pass)
+	bool8 renderpass_end(RenderPass* pass)
 	{
 		return system_state->module.renderpass_end(pass);
 	}
@@ -301,17 +301,17 @@ namespace Renderer
 		system_state->module.texture_resize(texture, width, height);
 	}
 
-	bool32 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
+	bool8 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
 	{
 		return system_state->module.texture_write_data(t, offset, size, pixels);
 	}
 
-	bool32 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory)
+	bool8 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory)
 	{
 		return system_state->module.texture_read_data(t, offset, size, out_memory);
 	}
 
-	bool32 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba)
+	bool8 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba)
 	{
 		return system_state->module.texture_read_pixel(t, x, y, out_rgba);
 	}
@@ -390,14 +390,14 @@ namespace Renderer
 		if (!geometry->loaded)
 			geometry_load(geometry);
 
-		bool32 includes_indices = geometry->index_count > 0;
+		bool8 includes_indices = geometry->index_count > 0;
 
 		renderbuffer_draw(&system_state->general_vertex_buffer, geometry->vertex_buffer_alloc_ref.byte_offset, geometry->vertex_count, includes_indices);
 		if (includes_indices)
 			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_alloc_ref.byte_offset, geometry->index_count, false);
 	}
 
-	bool32 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
+	bool8 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
 	{
 
 		shader->name = config->name;
@@ -471,7 +471,7 @@ namespace Renderer
 		s->~Shader();
 	}
 
-	bool32 shader_init(Shader* s) 
+	bool8 shader_init(Shader* s) 
 	{
 
 		s->instance_count = 0;
@@ -500,25 +500,25 @@ namespace Renderer
 			return false;
 		}
 
-		bool32 res = system_state->module.shader_init(s);
+		bool8 res = system_state->module.shader_init(s);
 		if (!res)
 			renderbuffer_destroy(&s->uniform_buffer);
 
 		return res;
 	}
 
-	bool32 shader_use(Shader* s) 
+	bool8 shader_use(Shader* s) 
 	{
 		return system_state->module.shader_use(s);
 	}
 
-	bool32 shader_bind_globals(Shader* s) 
+	bool8 shader_bind_globals(Shader* s) 
 	{
 		s->bound_ubo_offset = s->global_ubo_alloc_ref.byte_offset;
 		return system_state->module.shader_bind_globals(s);
 	}
 
-	bool32 shader_bind_instance(Shader* s, uint32 instance_id) 
+	bool8 shader_bind_instance(Shader* s, uint32 instance_id) 
 	{
 		s->bound_instance_id = instance_id;
 		s->bound_ubo_offset = s->instances[instance_id].alloc_ref.byte_offset;
@@ -526,7 +526,7 @@ namespace Renderer
 		return system_state->module.shader_bind_instance(s, instance_id);
 	}
 
-	bool32 shader_apply_globals(Shader* s) 
+	bool8 shader_apply_globals(Shader* s) 
 	{
 		if (s->last_update_frame_number == system_state->frame_number)
 			return true;
@@ -535,7 +535,7 @@ namespace Renderer
 		return system_state->module.shader_apply_globals(s);
 	}
 
-	bool32 shader_apply_instance(Shader* s) 
+	bool8 shader_apply_instance(Shader* s) 
 	{
 		if (s->instance_uniform_count < 1 && s->instance_uniform_sampler_count < 1)
 		{
@@ -551,7 +551,7 @@ namespace Renderer
 		return system_state->module.shader_apply_instance(s);
 	}
 
-	bool32 shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32* out_instance_id)
+	bool8 shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32* out_instance_id)
 	{
 
 		// TODO: dynamic
@@ -590,7 +590,7 @@ namespace Renderer
 		return system_state->module.shader_acquire_instance_resources(s, texture_maps_count, *out_instance_id);
 	}
 
-	bool32 shader_release_instance_resources(Shader* s, uint32 instance_id) 
+	bool8 shader_release_instance_resources(Shader* s, uint32 instance_id) 
 	{
 		ShaderInstance* instance = &s->instances[instance_id];
 
@@ -602,7 +602,7 @@ namespace Renderer
 		return system_state->module.shader_release_instance_resources(s, instance_id);
 	}
 
-	bool32 shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value) 
+	bool8 shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value) 
 	{
 
 		if (uniform->type == ShaderUniformType::Sampler)
@@ -619,7 +619,7 @@ namespace Renderer
 		
 	}
 
-	bool32 texture_map_acquire_resources(TextureMap* out_map)
+	bool8 texture_map_acquire_resources(TextureMap* out_map)
 	{
 		return system_state->module.texture_map_acquire_resources(out_map);
 	}
@@ -629,7 +629,7 @@ namespace Renderer
 		return system_state->module.texture_map_release_resources(out_map);
 	}
 
-	bool32 renderbuffer_create(const char* name, RenderBufferType type, uint64 size, bool32 use_freelist, RenderBuffer* out_buffer)
+	bool8 renderbuffer_create(const char* name, RenderBufferType type, uint64 size, bool8 use_freelist, RenderBuffer* out_buffer)
 	{
 		SHMASSERT_MSG(size < Constants::max_u32, "Renderer types use offsets and sizes with 4 byte integers. Change in typedef if needed.");
 		out_buffer->name = name;
@@ -669,12 +669,12 @@ namespace Renderer
 		buffer->name.free_data();
 	}
 
-	bool32 renderbuffer_bind(RenderBuffer* buffer, uint64 offset)
+	bool8 renderbuffer_bind(RenderBuffer* buffer, uint64 offset)
 	{
 		return system_state->module.renderbuffer_bind(buffer, offset);
 	}
 
-	bool32 renderbuffer_unbind(RenderBuffer* buffer)
+	bool8 renderbuffer_unbind(RenderBuffer* buffer)
 	{
 		return system_state->module.renderbuffer_unbind(buffer);
 	}
@@ -689,17 +689,17 @@ namespace Renderer
 		system_state->module.renderbuffer_unmap_memory(buffer);
 	}
 
-	bool32 renderbuffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size)
+	bool8 renderbuffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size)
 	{
 		return system_state->module.renderbuffer_flush(buffer, offset, size);
 	}
 
-	bool32 renderbuffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
+	bool8 renderbuffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
 	{
 		return system_state->module.renderbuffer_read(buffer, offset, size, out_memory);
 	}
 
-	bool32 renderbuffer_resize(RenderBuffer* buffer, uint64 new_total_size)
+	bool8 renderbuffer_resize(RenderBuffer* buffer, uint64 new_total_size)
 	{
 
 		if (new_total_size <= buffer->size) {
@@ -778,18 +778,18 @@ namespace Renderer
 		alloc->byte_offset = 0;
 	}
 
-	bool32 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data)
+	bool8 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
 		OPTICK_EVENT();
 		return system_state->module.renderbuffer_load_range(buffer, offset, size, data);
 	}
 
-	bool32 renderbuffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size)
+	bool8 renderbuffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size)
 	{
 		return system_state->module.renderbuffer_copy_range(source, source_offset, dest, dest_offset, size);
 	}
 
-	bool32 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
+	bool8 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool8 bind_only)
 	{
 		return system_state->module.renderbuffer_draw(buffer, offset, element_count, bind_only);
 	}

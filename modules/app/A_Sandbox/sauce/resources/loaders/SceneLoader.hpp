@@ -55,6 +55,6 @@ struct SceneResourceData
 
 namespace ResourceSystem
 {
-	bool32 scene_loader_load(const char* name, void* params, SceneResourceData* out_resource);
+	bool8 scene_loader_load(const char* name, void* params, SceneResourceData* out_resource);
 	void scene_loader_unload(SceneResourceData* resource);
 }

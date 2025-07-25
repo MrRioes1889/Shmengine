@@ -14,12 +14,12 @@ namespace Renderer::Vulkan
 
 	extern VulkanContext* context;
 
-	static bool32 create(uint32 width, uint32 height, VulkanSwapchain* out_swapchain)
+	static bool8 create(uint32 width, uint32 height, VulkanSwapchain* out_swapchain)
 	{
 
 		VkExtent2D swapchain_extent = { width, height };
 
-		bool32 found = false;
+		bool8 found = false;
 		for (uint32 i = 0; i < context->device.swapchain_support.format_count; i++)
 		{
 			VkSurfaceFormatKHR format = context->device.swapchain_support.formats[i];
@@ -256,12 +256,12 @@ namespace Renderer::Vulkan
 		swapchain->render_textures.free_data();
 	}
 
-	bool32 vk_swapchain_create(uint32 width, uint32 height, VulkanSwapchain* out_swapchain)
+	bool8 vk_swapchain_create(uint32 width, uint32 height, VulkanSwapchain* out_swapchain)
 	{
 		return create(width, height, out_swapchain);
 	}
 
-	bool32 vk_swapchain_recreate(uint32 width, uint32 height, VulkanSwapchain* swapchain)
+	bool8 vk_swapchain_recreate(uint32 width, uint32 height, VulkanSwapchain* swapchain)
 	{
 		destroy(swapchain);
 		return create(width, height, swapchain);
@@ -272,7 +272,7 @@ namespace Renderer::Vulkan
 		destroy(swapchain);
 	}
 
-	bool32 vk_swapchain_acquire_next_image_index(VulkanSwapchain* swapchain, uint64 timeout_ns, VkSemaphore image_available_semaphore, VkFence fence, uint32* out_image_index)
+	bool8 vk_swapchain_acquire_next_image_index(VulkanSwapchain* swapchain, uint64 timeout_ns, VkSemaphore image_available_semaphore, VkFence fence, uint32* out_image_index)
 	{
 
 		VkResult result = vkAcquireNextImageKHR(context->device.logical_device, swapchain->handle, timeout_ns, image_available_semaphore, fence, out_image_index);

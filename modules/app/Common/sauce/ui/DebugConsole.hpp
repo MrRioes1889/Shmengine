@@ -29,20 +29,20 @@ struct DebugConsole
 	UIText text_control;
 	UIText entry_control;
 
-	bool32 init();
+	bool8 init();
 	void destroy();
 
 	void setup_keymap();
 
-	bool32 load();
-	bool32 unload();
+	bool8 load();
+	bool8 unload();
 
 	void update();
 
 	UIText* get_text();
 	UIText* get_entry_text();
 
-	bool32 is_visible();
+	bool8 is_visible();
 	void set_visible(bool8 flag);
 
 	void scroll_up();

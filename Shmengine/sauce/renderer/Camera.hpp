@@ -40,6 +40,6 @@ private:
 	Math::Vec3f position;
 	Math::Vec3f euler_rotation;
 	Math::Mat4 view;
-	bool32 is_dirty;
+	bool8 is_dirty;
 };
 

@@ -8,7 +8,7 @@
 
 static void update_vertices(Box3D* out_box);
 
-bool32 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
+bool8 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 {
 	if (out_box->state >= ResourceState::Initialized)
 		return false;
@@ -41,7 +41,7 @@ bool32 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 	return true;
 }
 
-bool32 box3D_destroy(Box3D* box)
+bool8 box3D_destroy(Box3D* box)
 {
 	if (box->state != ResourceState::Unloaded && !box3D_unload(box))
 		return false;
@@ -52,13 +52,13 @@ bool32 box3D_destroy(Box3D* box)
 	return true;
 }
 
-bool32 box3D_load(Box3D* box)
+bool8 box3D_load(Box3D* box)
 {
 
 	if (box->state != ResourceState::Initialized && box->state != ResourceState::Unloaded)
 		return false;
 
-	bool32 is_reload = box->state == ResourceState::Unloaded;
+	bool8 is_reload = box->state == ResourceState::Unloaded;
 
 	box->state = ResourceState::Loading;
 	box->unique_id = identifier_acquire_new_id(box);
@@ -75,7 +75,7 @@ bool32 box3D_load(Box3D* box)
 
 }
 
-bool32 box3D_unload(Box3D* box)
+bool8 box3D_unload(Box3D* box)
 {
 
 	if (box->state <= ResourceState::Initialized)
@@ -95,7 +95,7 @@ bool32 box3D_unload(Box3D* box)
 
 }
 
-bool32 box3D_update(Box3D* box)
+bool8 box3D_update(Box3D* box)
 {
 	if (!box->is_dirty)
 		return true;

@@ -32,14 +32,14 @@ namespace Renderer::Vulkan
 {
 
 	static void create_command_buffers();
-	static bool32 recreate_swapchain();
+	static bool8 recreate_swapchain();
 	static int32 find_memory_index(uint32 type_filter, uint32 property_flags);
 	static void process_task(TaskInfo task);
 	static void create_vulkan_allocator(VkAllocationCallbacks*& callbacks);
 
 	VulkanContext* context = 0;
 
-	bool32 init(void* context_block, const ModuleConfig& config, uint32* out_window_render_target_count)
+	bool8 init(void* context_block, const ModuleConfig& config, uint32* out_window_render_target_count)
 	{
 
 		context = (VulkanContext*)context_block;
@@ -96,7 +96,7 @@ namespace Renderer::Vulkan
 		for (uint32 i = 0; i < extension_count; i++)
 		{
 			SHMDEBUGV("Searching for extension: %s...", extension_names[i]);
-			bool32 found = false;
+			bool8 found = false;
 			for (uint32 j = 0; j < available_extension_count; j++)
 			{
 				if (CString::equal((char*)extension_names[i], available_extensions[j].extensionName))
@@ -136,7 +136,7 @@ namespace Renderer::Vulkan
 		for (uint32 i = 0; i < validation_layer_count; i++)
 		{
 			SHMDEBUGV("Searching for layer: %s...", validation_layer_names[i]);
-			bool32 found = false;
+			bool8 found = false;
 			for (uint32 j = 0; j < available_layer_count; j++)
 			{
 				if (CString::equal((char*)validation_layer_names[i], available_layers[j].layerName))
@@ -318,7 +318,7 @@ namespace Renderer::Vulkan
 		context->framebuffer_size_generation++;
 	}
 
-	bool32 vk_begin_frame(const FrameData* frame_data)
+	bool8 vk_begin_frame(const FrameData* frame_data)
 	{
 		
 		OPTICK_EVENT();
@@ -382,7 +382,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_end_frame(const FrameData* frame_data)
+	bool8 vk_end_frame(const FrameData* frame_data)
 	{
 				
 		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->bound_framebuffer_index];
@@ -569,19 +569,19 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
+	bool8 vk_texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
 	{
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 		return vk_image_write_data((VulkanImage*)t->internal_data.data, image_format, t->type, offset, size, pixels);
 	}
 
-	bool32 vk_texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory)
+	bool8 vk_texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory)
 	{
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 		return vk_image_read_data((VulkanImage*)t->internal_data.data, image_format, t->type, offset, size, out_memory);
 	}
 
-	bool32 vk_texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba)
+	bool8 vk_texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba)
 	{
 		VkFormat image_format = channel_count_to_format(t->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 		return vk_image_read_pixel((VulkanImage*)t->internal_data.data, image_format, t->type, x, y, out_rgba);
@@ -666,7 +666,7 @@ namespace Renderer::Vulkan
 		SHMDEBUG("Command buffers created.");
 	}
 
-	static bool32 recreate_swapchain()
+	static bool8 recreate_swapchain()
 	{
 
 		if (context->recreating_swapchain)

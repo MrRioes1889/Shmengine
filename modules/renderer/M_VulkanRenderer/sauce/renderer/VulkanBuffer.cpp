@@ -12,22 +12,22 @@ namespace Renderer::Vulkan
 
 	extern VulkanContext* context;
 
-	static SHMINLINE bool32 buffer_is_device_local(const VulkanBuffer* buffer)
+	static SHMINLINE bool8 buffer_is_device_local(const VulkanBuffer* buffer)
 	{
 		return (buffer->memory_property_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	}
 
-	static SHMINLINE bool32 buffer_is_host_visible(const VulkanBuffer* buffer)
+	static SHMINLINE bool8 buffer_is_host_visible(const VulkanBuffer* buffer)
 	{
 		return (buffer->memory_property_flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 	}
 
-	static SHMINLINE bool32 buffer_is_host_coherent(const VulkanBuffer* buffer)
+	static SHMINLINE bool8 buffer_is_host_coherent(const VulkanBuffer* buffer)
 	{
 		return (buffer->memory_property_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
 
-	bool32 vk_buffer_create(RenderBuffer* buffer)
+	bool8 vk_buffer_create(RenderBuffer* buffer)
 	{
 		buffer->internal_data.init(sizeof(VulkanBuffer), 0, AllocationTag::Vulkan);
 		if (!vk_buffer_create_internal((VulkanBuffer*)buffer->internal_data.data, buffer->type, buffer->size, buffer->name.c_str()))
@@ -39,7 +39,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_buffer_create_internal(VulkanBuffer* buffer, RenderBufferType type, uint64 size, const char* name)
+	bool8 vk_buffer_create_internal(VulkanBuffer* buffer, RenderBufferType type, uint64 size, const char* name)
 	{
 
 		switch (type) {
@@ -118,7 +118,7 @@ namespace Renderer::Vulkan
 		}
 		VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_DEVICE_MEMORY, buffer->memory, name);
 
-		bool32 is_device_memory = buffer_is_device_local(buffer);
+		bool8 is_device_memory = buffer_is_device_local(buffer);
 		Memory::track_external_allocation(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 
 		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
@@ -154,7 +154,7 @@ namespace Renderer::Vulkan
 			buffer->handle = 0;
 		}
 
-		bool32 is_device_memory = (buffer->memory_property_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		bool8 is_device_memory = (buffer->memory_property_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		Memory::track_external_free(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 
 		buffer->usage = 0;
@@ -162,13 +162,13 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_buffer_resize(RenderBuffer* buffer, uint64 new_size)
+	bool8 vk_buffer_resize(RenderBuffer* buffer, uint64 new_size)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_resize_internal(internal_buffer, buffer->size, new_size, buffer->name.c_str());
 	}
 
-	bool32 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size, const char* name)
+	bool8 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size, const char* name)
 	{
 
 		// Create new buffer.
@@ -219,7 +219,7 @@ namespace Renderer::Vulkan
 		}
 
 		// Report free of the old, allocate of the new.
-		bool32 is_device_memory = buffer_is_device_local(buffer);
+		bool8 is_device_memory = buffer_is_device_local(buffer);
 
 		Memory::track_external_free(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 		buffer->memory_requirements = requirements;
@@ -235,25 +235,25 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_buffer_bind(RenderBuffer* buffer, uint64 offset)
+	bool8 vk_buffer_bind(RenderBuffer* buffer, uint64 offset)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_bind_internal(internal_buffer, offset);
 	}
 
-	bool32 vk_buffer_bind_internal(VulkanBuffer* buffer, uint64 offset)
+	bool8 vk_buffer_bind_internal(VulkanBuffer* buffer, uint64 offset)
 	{
 		VK_CHECK(vkBindBufferMemory(context->device.logical_device, buffer->handle, buffer->memory, offset));
 		return true;
 	}
 
-	bool32 vk_buffer_unbind(RenderBuffer* buffer)
+	bool8 vk_buffer_unbind(RenderBuffer* buffer)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_unbind_internal(internal_buffer);
 	}
 
-	bool32 vk_buffer_unbind_internal(VulkanBuffer* buffer)
+	bool8 vk_buffer_unbind_internal(VulkanBuffer* buffer)
 	{
 		return true;
 	}
@@ -288,7 +288,7 @@ namespace Renderer::Vulkan
 		buffer->mapped_memory = 0;
 	}
 
-	bool32 vk_buffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size)
+	bool8 vk_buffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		if (!buffer_is_host_coherent(internal_buffer))
@@ -303,13 +303,13 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_buffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
+	bool8 vk_buffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
 	{
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_read_internal(internal_buffer, offset, size, out_memory);
 	}
 
-	bool32 vk_buffer_read_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
+	bool8 vk_buffer_read_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
 	{
 	
 		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
@@ -344,7 +344,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_buffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data)
+	bool8 vk_buffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
 
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
@@ -353,7 +353,7 @@ namespace Renderer::Vulkan
 	}
 
 	// TODO: Overhaul for performance necessary. Creating/destruction of staging buffer and copy function seem to be major bottlenecks!
-	bool32 vk_buffer_load_range_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, const void* data)
+	bool8 vk_buffer_load_range_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
 
 		OPTICK_EVENT();
@@ -382,14 +382,14 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_buffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size)
+	bool8 vk_buffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size)
 	{
 		VulkanBuffer* source_v_buffer = (VulkanBuffer*)source->internal_data.data;
 		VulkanBuffer* dest_v_buffer = (VulkanBuffer*)dest->internal_data.data;
 		return vk_buffer_copy_range_internal(source_v_buffer->handle, source_offset, dest_v_buffer->handle, dest_offset, size);
 	}
 
-	bool32 vk_buffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool32 bind_only)
+	bool8 vk_buffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool8 bind_only)
 	{
 
 		VulkanCommandBuffer& command_buffer = context->graphics_command_buffers[context->bound_framebuffer_index];
@@ -417,7 +417,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool32 vk_buffer_copy_range_internal(VkBuffer source, uint64 source_offset, VkBuffer dest, uint64 dest_offset, uint64 size)
+	bool8 vk_buffer_copy_range_internal(VkBuffer source, uint64 source_offset, VkBuffer dest, uint64 dest_offset, uint64 size)
 	{
 
 		VkQueue queue = context->device.graphics_queue;

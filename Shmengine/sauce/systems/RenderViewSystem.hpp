@@ -50,13 +50,13 @@ struct RenderViewGeometryData
 	GeometryData* geometry_data;
 };
 
-typedef bool32(*FP_on_create)(RenderView* self);
+typedef bool8(*FP_on_create)(RenderView* self);
 typedef void (*FP_on_destroy)(RenderView* self);
 typedef void (*FP_on_resize)(RenderView* self, uint32 width, uint32 height);
-typedef bool32(*FP_on_build_packet)(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data);
+typedef bool8(*FP_on_build_packet)(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data);
 typedef void (*FP_on_end_frame)(RenderView* self);
-typedef bool32(*FP_on_render)(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index);
-typedef bool32(*FP_regenerate_attachment_target)(const RenderView* self, uint32 pass_index, Renderer::RenderTargetAttachment* attachment);
+typedef bool8(*FP_on_render)(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index);
+typedef bool8(*FP_regenerate_attachment_target)(const RenderView* self, uint32 pass_index, Renderer::RenderTargetAttachment* attachment);
 
 struct RenderViewConfig
 {
@@ -117,10 +117,10 @@ namespace RenderViewSystem
 		inline static const char* default_name = "default";
 	};
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI bool32 create_view(const RenderViewConfig* config);
+	SHMAPI bool8 create_view(const RenderViewConfig* config);
 	SHMAPI void destroy_view(RenderViewId view_id);
 
 	SHMAPI RenderView* get(const char* name);
@@ -128,20 +128,20 @@ namespace RenderViewSystem
 
 	SHMAPI Camera* get_bound_world_camera();
 
-	SHMAPI bool32 build_packet(RenderViewId view_id, FrameData* frame_data, const RenderViewPacketData* packet_data);
+	SHMAPI bool8 build_packet(RenderViewId view_id, FrameData* frame_data, const RenderViewPacketData* packet_data);
 
 	void on_window_resize(uint32 width, uint32 height);
-	bool32 on_render(FrameData* frame_data, uint32 frame_number, uint64 render_target_index);
+	bool8 on_render(FrameData* frame_data, uint32 frame_number, uint64 render_target_index);
 	void on_end_frame();
 
 	SHMAPI void regenerate_render_targets(RenderViewId view_id);
 
 	SHMAPI uint32 mesh_draw(Mesh* mesh, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
 	SHMAPI uint32 meshes_draw(Mesh* meshes, uint32 mesh_count, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
-	SHMAPI bool32 skybox_draw(Skybox* skybox, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI bool8 skybox_draw(Skybox* skybox, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
 	SHMAPI uint32 terrain_draw(Terrain* terrain, LightingInfo lighting, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
 	SHMAPI uint32 terrains_draw(Terrain* terrains, uint32 terrains_coun, LightingInfo lighting, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
-	SHMAPI bool32 ui_text_draw(UIText* text, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
+	SHMAPI bool8 ui_text_draw(UIText* text, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
 	SHMAPI uint32 box3D_draw(Box3D* box, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
 	SHMAPI uint32 boxes3D_draw(Box3D* boxes, uint32 boxes_count, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
 	SHMAPI uint32 line3D_draw(Line3D* line, FrameData* frame_data, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);

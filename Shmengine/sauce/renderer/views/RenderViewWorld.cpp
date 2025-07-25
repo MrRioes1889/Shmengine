@@ -37,7 +37,7 @@ struct RenderViewWorldInternalData {
 	LightingInfo lighting;
 };
 
-static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
+static bool8 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 
 	RenderView* self = (RenderView*)listener_inst;
@@ -79,7 +79,7 @@ static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData
 	return false;
 }
 
-bool32 render_view_world_on_create(RenderView* self)
+bool8 render_view_world_on_create(RenderView* self)
 {
 
 	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::Renderer);
@@ -218,7 +218,7 @@ void render_view_world_on_resize(RenderView* self, uint32 width, uint32 height)
 	}
 }
 
-static bool32 set_globals_material_phong(RenderViewWorldInternalData* internal_data, Camera* camera)
+static bool8 set_globals_material_phong(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 	MaterialPhongShaderUniformLocations u_locations = internal_data->material_phong_u_locations;
 	ShaderSystem::bind_shader(internal_data->material_phong_shader->id);
@@ -251,7 +251,7 @@ static bool32 set_globals_material_phong(RenderViewWorldInternalData* internal_d
 	return Renderer::shader_apply_globals(internal_data->material_phong_shader);
 }
 
-static bool32 set_instance_material_phong(RenderViewWorldInternalData* internal_data, RenderViewInstanceData instance)
+static bool8 set_instance_material_phong(RenderViewWorldInternalData* internal_data, RenderViewInstanceData instance)
 {
 	MaterialPhongShaderUniformLocations u_locations = internal_data->material_phong_u_locations;
 	ShaderSystem::bind_shader(internal_data->material_phong_shader->id);
@@ -266,13 +266,13 @@ static bool32 set_instance_material_phong(RenderViewWorldInternalData* internal_
 	return Renderer::shader_apply_instance(internal_data->material_phong_shader);
 }
 
-static bool32 set_locals_material_phong(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
+static bool8 set_locals_material_phong(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
 {
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->material_phong_u_locations.model, model));
 	return true;
 }
 
-static bool32 set_globals_terrain(RenderViewWorldInternalData* internal_data, Camera* camera)
+static bool8 set_globals_terrain(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 
 	TerrainShaderUniformLocations u_locations = internal_data->terrain_u_locations;
@@ -306,7 +306,7 @@ static bool32 set_globals_terrain(RenderViewWorldInternalData* internal_data, Ca
 	return Renderer::shader_apply_globals(internal_data->terrain_shader);
 }
 
-static bool32 set_instance_terrain(RenderViewWorldInternalData* internal_data, RenderViewInstanceData instance)
+static bool8 set_instance_terrain(RenderViewWorldInternalData* internal_data, RenderViewInstanceData instance)
 {
 	ShaderSystem::bind_shader(internal_data->terrain_shader->id);
 	ShaderSystem::bind_instance(instance.shader_instance_id);
@@ -318,13 +318,13 @@ static bool32 set_instance_terrain(RenderViewWorldInternalData* internal_data, R
 	return Renderer::shader_apply_instance(internal_data->terrain_shader);
 }
 
-static bool32 set_locals_terrain(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
+static bool8 set_locals_terrain(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
 {
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->terrain_u_locations.model, model));
 	return true;
 }
 
-static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data, Camera* camera)
+static bool8 set_globals_color3D(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->color3D_shader->id);
 	ShaderSystem::bind_globals();
@@ -335,13 +335,13 @@ static bool32 set_globals_color3D(RenderViewWorldInternalData* internal_data, Ca
 	return Renderer::shader_apply_globals(internal_data->color3D_shader);
 }
 
-static bool32 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
+static bool8 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
 {
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.model, model));
 	return true;
 }
 
-bool32 render_view_world_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
+bool8 render_view_world_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
 {
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
@@ -366,7 +366,7 @@ void render_view_world_on_end_frame(RenderView* self)
 	internal_data->lighting = {};
 }
 
-bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
+bool8 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
 
 	struct GeometryDistance
@@ -430,7 +430,7 @@ bool32 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint
 		if (instance_data->shader_instance_id == Constants::max_u32)
 			continue;
 
-		bool32 instance_set = true;
+		bool8 instance_set = true;
 		if (instance_data->shader_id == internal_data->material_phong_shader->id)
 			instance_set = set_instance_material_phong(internal_data, *instance_data);
 		else if (instance_data->shader_id == internal_data->terrain_shader->id)

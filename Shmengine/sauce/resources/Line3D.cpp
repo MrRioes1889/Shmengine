@@ -8,7 +8,7 @@
 
 static void update_vertices(Line3D* out_line);
 
-bool32 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Line3D* out_line)
+bool8 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Line3D* out_line)
 {
 	if (out_line->state >= ResourceState::Initialized)
 		return false;
@@ -39,7 +39,7 @@ bool32 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Li
 	return true;
 }
 
-bool32 line3D_destroy(Line3D* line)
+bool8 line3D_destroy(Line3D* line)
 {
 	if (line->state != ResourceState::Unloaded && !line3D_unload(line))
 		return false;
@@ -50,13 +50,13 @@ bool32 line3D_destroy(Line3D* line)
 	return true;
 }
 
-bool32 line3D_load(Line3D* line)
+bool8 line3D_load(Line3D* line)
 {
 
 	if (line->state != ResourceState::Initialized && line->state != ResourceState::Unloaded)
 		return false;
 
-	bool32 is_reload = line->state == ResourceState::Unloaded;
+	bool8 is_reload = line->state == ResourceState::Unloaded;
 
 	line->state = ResourceState::Loading;
 	line->unique_id = identifier_acquire_new_id(line);
@@ -73,7 +73,7 @@ bool32 line3D_load(Line3D* line)
 
 }
 
-bool32 line3D_unload(Line3D* line)
+bool8 line3D_unload(Line3D* line)
 {
 
 	if (line->state <= ResourceState::Initialized)
@@ -93,7 +93,7 @@ bool32 line3D_unload(Line3D* line)
 
 }
 
-bool32 line3D_update(Line3D* line)
+bool8 line3D_update(Line3D* line)
 {
 	if (!line->is_dirty)
 		return true;

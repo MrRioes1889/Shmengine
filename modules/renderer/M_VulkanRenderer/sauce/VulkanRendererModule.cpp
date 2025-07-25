@@ -10,7 +10,7 @@ namespace Renderer::Vulkan
 		return sizeof(VulkanContext);
 	}
 
-	bool32 create_module(Module* out_module)
+	bool8 create_module(Module* out_module)
 	{
 
 		out_module->frame_number = 0;

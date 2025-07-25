@@ -48,7 +48,7 @@ namespace Memory
 		uint64 total_allocation_size;
 	};
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
 	SHMAPI void* allocate(uint64 size, AllocationTag tag, uint16 alignment = 1);
@@ -61,7 +61,7 @@ namespace Memory
 
 	void* allocate_platform(uint64 size, AllocationTag tag, uint16 alignment = 1);
 	void* reallocate_platform(uint64 size, void* block, uint16 alignment = 1);
-	void free_memory_platform(void* block, bool32 aligned = true);
+	void free_memory_platform(void* block, bool8 aligned = true);
 
 	SHMAPI void track_external_allocation(uint64 size, AllocationTag tag);
 	SHMAPI void track_external_free(uint64 size, AllocationTag tag);

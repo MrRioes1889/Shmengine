@@ -9,7 +9,7 @@ namespace Renderer::Vulkan
 
 	extern VulkanContext* context;
 
-	bool32 vk_renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass)
+	bool8 vk_renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass)
 	{
 
 		out_renderpass->internal_data.init(sizeof(VulkanRenderpass), 0, AllocationTag::Renderer);
@@ -223,7 +223,7 @@ namespace Renderer::Vulkan
 		}
 	}
 
-	bool32 vk_renderpass_begin(RenderPass* renderpass, RenderTarget* render_target)
+	bool8 vk_renderpass_begin(RenderPass* renderpass, RenderTarget* render_target)
 	{
 		VulkanCommandBuffer* command_buffer = &context->graphics_command_buffers[context->bound_framebuffer_index];
 		VulkanRenderpass* v_renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
@@ -273,7 +273,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_renderpass_end(RenderPass* renderpass)
+	bool8 vk_renderpass_end(RenderPass* renderpass)
 	{
 		VulkanRenderpass* v_renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
 
@@ -306,7 +306,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool32 vk_render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, RenderPass* pass, uint32 width, uint32 height, RenderTarget* out_target)
+	bool8 vk_render_target_create(uint32 attachment_count, const RenderTargetAttachment* attachments, RenderPass* pass, uint32 width, uint32 height, RenderTarget* out_target)
 	{
 		SHMASSERT(attachment_count <= 32);
 		VkImageView attachment_views[32];
@@ -329,7 +329,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	void vk_render_target_destroy(RenderTarget* target, bool32 free_internal_memory)
+	void vk_render_target_destroy(RenderTarget* target, bool8 free_internal_memory)
 	{
 		if (!target->internal_framebuffer)
 			return;

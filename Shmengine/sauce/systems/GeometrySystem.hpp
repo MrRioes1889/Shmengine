@@ -20,11 +20,11 @@ namespace GeometrySystem
 		inline static const char* default_name = "default";
 	};
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
 	SHMAPI GeometryId acquire_by_id(GeometryId id);
-	SHMAPI GeometryId acquire_from_config(GeometryConfig* config, bool8 auto_release);
+	SHMAPI GeometryId acquire_from_config(GeometryConfig* config, bool8 auto_unload);
 	SHMAPI GeometryData* get_geometry_data(GeometryId id);
 	SHMAPI void release(GeometryId id);
 	SHMAPI uint32 get_ref_count(GeometryId id);

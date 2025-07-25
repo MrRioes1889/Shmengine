@@ -19,7 +19,7 @@ struct TimerPool
 	const char* timer_names[pool_size];
 	float64 timer_times[pool_size];
 	uint32 timer_count;
-	bool32 timer_running;
+	bool8 timer_running;
 
 	void reset();
 	void timer_start(const char* name);

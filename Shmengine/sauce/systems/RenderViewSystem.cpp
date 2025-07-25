@@ -45,12 +45,12 @@ namespace RenderViewSystem
 		Camera default_world_camera;
 	};
 
-	static bool32 create_default_render_views();
-	static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
+	static bool8 create_default_render_views();
+	static bool8 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
 
 	static SystemState* system_state = 0;
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
@@ -96,7 +96,7 @@ namespace RenderViewSystem
 		system_state = 0;
 	}
 
-	bool32 create_view(const RenderViewConfig* config)
+	bool8 create_view(const RenderViewConfig* config)
 	{
 		if (system_state->lookup_table.get(config->name)) 
 		{
@@ -206,7 +206,7 @@ namespace RenderViewSystem
 		return &system_state->default_world_camera;
 	}
 
-	bool32 build_packet(RenderViewId view_id, FrameData* frame_data, const RenderViewPacketData* packet_data)
+	bool8 build_packet(RenderViewId view_id, FrameData* frame_data, const RenderViewPacketData* packet_data)
 	{
 		OPTICK_EVENT();
 		RenderView* view = &system_state->views[view_id];
@@ -227,7 +227,7 @@ namespace RenderViewSystem
 		}
 	}
 
-	bool32 on_render(FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
+	bool8 on_render(FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 	{
 		OPTICK_EVENT();
 		for (uint32 i = 0; i < system_state->views.capacity; ++i) 
@@ -369,7 +369,7 @@ namespace RenderViewSystem
 			{
 				MeshGeometry* g = &m->geometries[j];
 
-				bool32 in_frustum = true;
+				bool8 in_frustum = true;
 				if (frustum)
 				{
 					Math::Vec3f extents_max = Math::vec_mul_mat(m->extents.max, object_data->model);
@@ -412,7 +412,7 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = skybox->shader_instance_id;
 	}
 
-	bool32 skybox_draw(Skybox* skybox, FrameData* frame_data, RenderViewId view_id, ShaderId shader_id)
+	bool8 skybox_draw(Skybox* skybox, FrameData* frame_data, RenderViewId view_id, ShaderId shader_id)
 	{
 		if (!view_id.is_valid())
 			view_id = system_state->default_skybox_view_id;
@@ -518,7 +518,7 @@ namespace RenderViewSystem
 		out_instance_data->shader_instance_id = text->shader_instance_id;
 	}
 
-	bool32 ui_text_draw(UIText* text, FrameData* frame_data, RenderViewId view_id, ShaderId shader_id)
+	bool8 ui_text_draw(UIText* text, FrameData* frame_data, RenderViewId view_id, ShaderId shader_id)
 	{
 		ui_text_update(text);
 
@@ -690,7 +690,7 @@ namespace RenderViewSystem
 		return RenderViewSystem::build_packet(view->id, frame_data, &packet_data);
 	}
 
-	static bool32 create_default_render_views()
+	static bool8 create_default_render_views()
 	{
 		const Platform::Window* main_window = Engine::get_main_window();
 
@@ -964,7 +964,7 @@ namespace RenderViewSystem
 		return true;
 	}
 
-	static bool32 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
+	static bool8 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
 		switch (code)
 		{

@@ -14,10 +14,10 @@
 
 static void mesh_load_job_success(void* params);
 static void mesh_load_job_fail(void* params);
-static bool32 mesh_load_job_start(void* params, void* result_data);
-static bool32 mesh_load_async(Mesh* mesh, bool32 reload);
+static bool8 mesh_load_job_start(void* params, void* result_data);
+static bool8 mesh_load_async(Mesh* mesh, bool8 reload);
 
-bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
+bool8 mesh_init(MeshConfig* config, Mesh* out_mesh)
 {
     if (out_mesh->state >= ResourceState::Initialized)
         return false;
@@ -61,7 +61,7 @@ bool32 mesh_init(MeshConfig* config, Mesh* out_mesh)
     return true;
 }
 
-bool32 mesh_init_from_resource(const char* resource_name, Mesh* out_mesh)
+bool8 mesh_init_from_resource(const char* resource_name, Mesh* out_mesh)
 {
 
     out_mesh->state = ResourceState::Initializing;
@@ -95,7 +95,7 @@ bool32 mesh_init_from_resource(const char* resource_name, Mesh* out_mesh)
 
 }
 
-bool32 mesh_destroy(Mesh* mesh)
+bool8 mesh_destroy(Mesh* mesh)
 {
     if (mesh->state != ResourceState::Unloaded && !mesh_unload(mesh))
         return false;
@@ -109,13 +109,13 @@ bool32 mesh_destroy(Mesh* mesh)
     return true;
 }
 
-bool32 mesh_load(Mesh* mesh)
+bool8 mesh_load(Mesh* mesh)
 {
 
     if (mesh->state != ResourceState::Initialized && mesh->state != ResourceState::Unloaded)
         return false;
 
-    bool32 is_reload = mesh->state == ResourceState::Unloaded;
+    bool8 is_reload = mesh->state == ResourceState::Unloaded;
 
     mesh->state = ResourceState::Loading;
     mesh->generation = Constants::max_u8;
@@ -127,7 +127,7 @@ bool32 mesh_load(Mesh* mesh)
 
 }
 
-bool32 mesh_unload(Mesh* mesh)
+bool8 mesh_unload(Mesh* mesh)
 {
     if (mesh->state <= ResourceState::Initialized)
         return true;
@@ -159,7 +159,7 @@ bool32 mesh_unload(Mesh* mesh)
 struct MeshLoadParams
 {
 	Mesh* out_mesh;
-    bool32 is_reload;
+    bool8 is_reload;
 };
 
 static void mesh_load_job_success(void* params) 
@@ -182,7 +182,7 @@ static void mesh_load_job_fail(void* params)
     SHMERRORV("Failed to load mesh '%s'.", mesh->name.c_str());
 }
 
-static bool32 mesh_load_job_start(void* params, void* result_data) 
+static bool8 mesh_load_job_start(void* params, void* result_data) 
 {
     MeshLoadParams* load_params = (MeshLoadParams*)params;
     Mesh* mesh = load_params->out_mesh;
@@ -204,7 +204,7 @@ static bool32 mesh_load_job_start(void* params, void* result_data)
     return true;
 }
 
-static bool32 mesh_load_async(Mesh* mesh, bool32 reload)
+static bool8 mesh_load_async(Mesh* mesh, bool8 reload)
 {
     mesh->generation = Constants::max_u8;
 

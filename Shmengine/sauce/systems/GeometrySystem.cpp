@@ -13,7 +13,7 @@ namespace GeometrySystem
 	{
 		GeometryId id;
 		uint16 reference_count;
-		bool8 auto_release;
+		bool8 auto_unload;
 		GeometryData geometry;
 	};
 
@@ -26,7 +26,7 @@ namespace GeometrySystem
 
 	static SystemState* system_state = 0;
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
 
 		SystemConfig* sys_config = (SystemConfig*)config;
@@ -67,7 +67,7 @@ namespace GeometrySystem
 		return id;
 	}
 
-	GeometryId acquire_from_config(GeometryConfig* config, bool8 auto_release)
+	GeometryId acquire_from_config(GeometryConfig* config, bool8 auto_unload)
 	{
 		GeometryId id = GeometryId::invalid_value;
 		for (uint16 i = 0; i < system_state->geometries.capacity; i++)
@@ -94,7 +94,7 @@ namespace GeometrySystem
 		}
 
 		system_state->geometries[id].reference_count = 1;
-		system_state->geometries[id].auto_release = auto_release;
+		system_state->geometries[id].auto_unload = auto_unload;
 		system_state->geometries[id].id = id;
 		return id;
 	}
@@ -119,7 +119,7 @@ namespace GeometrySystem
 		if (ref->reference_count > 0)
 			ref->reference_count--;
 
-		if (ref->reference_count < 1 && ref->auto_release)
+		if (ref->reference_count < 1 && ref->auto_unload)
 			destroy_geometry_reference(ref);
 	}
 
@@ -137,6 +137,6 @@ namespace GeometrySystem
 		Renderer::destroy_geometry(&ref->geometry);
 		ref->reference_count = 0;
 		ref->id = GeometryId::invalid_value;
-		ref->auto_release = false;
+		ref->auto_unload = false;
 	}
 }

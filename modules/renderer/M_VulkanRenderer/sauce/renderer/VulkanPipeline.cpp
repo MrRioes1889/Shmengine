@@ -10,7 +10,7 @@ namespace Renderer::Vulkan
 
     extern VulkanContext* context;
 
-    bool32 vk_pipeline_create(const VulkanPipelineConfig* config, VulkanPipeline* out_pipeline)
+    bool8 vk_pipeline_create(const VulkanPipelineConfig* config, VulkanPipeline* out_pipeline)
     {
 
         out_pipeline->topologies = config->topologies;

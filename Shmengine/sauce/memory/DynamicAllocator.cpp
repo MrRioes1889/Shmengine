@@ -51,7 +51,7 @@ void* DynamicAllocator::allocate(uint64 size, AllocationTag tag, uint16 alignmen
 	return ret;
 }
 
-bool32 DynamicAllocator::free(void* data_ptr, AllocationTag* out_tag, uint64* bytes_freed)
+bool8 DynamicAllocator::free(void* data_ptr, AllocationTag* out_tag, uint64* bytes_freed)
 {
 
 	SHMASSERT(data_ptr >= data);

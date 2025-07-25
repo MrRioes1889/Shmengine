@@ -87,7 +87,7 @@ struct HashtableOA
 		return buffer.capacity;
 	}
 
-	SHMINLINE bool32 set_value(const char* name, const ObjectT& value)
+	SHMINLINE bool8 set_value(const char* name, const ObjectT& value)
 	{
 		uint32 hash = hash_key(name, buffer.capacity);
 		buffer[hash] = value;
@@ -106,7 +106,7 @@ struct HashtableOA
 		return buffer[hash];
 	}
 
-	SHMINLINE bool32 floodfill(const ObjectT& value)
+	SHMINLINE bool8 floodfill(const ObjectT& value)
 	{
 		for (uint32 i = 0; i < buffer.capacity; i++)
 			buffer[i] = value;

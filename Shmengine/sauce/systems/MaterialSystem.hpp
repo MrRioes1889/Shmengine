@@ -209,11 +209,11 @@ namespace MaterialSystem
 		inline static const char* default_terrain_name = "default_terrain";
 	};
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI Material* acquire(const char* name, bool8 auto_release);
-	SHMAPI Material* acquire(const MaterialConfig* config, bool8 auto_release);
+	SHMAPI Material* acquire(const char* name, bool8 auto_unload);
+	SHMAPI Material* acquire(const MaterialConfig* config, bool8 auto_unload);
 
 	SHMAPI void release(const char* name);
 

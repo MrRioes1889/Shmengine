@@ -4,6 +4,6 @@
 
 namespace Renderer
 {
-	SHMAPI bool32 flags_enabled(RendererConfigFlags::Value flags);
-	SHMAPI void set_flags(RendererConfigFlags::Value flags, bool32 enabled);
+	SHMAPI bool8 flags_enabled(RendererConfigFlags::Value flags);
+	SHMAPI void set_flags(RendererConfigFlags::Value flags, bool8 enabled);
 }

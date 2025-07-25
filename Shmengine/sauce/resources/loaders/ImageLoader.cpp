@@ -16,7 +16,7 @@ namespace ResourceSystem
 
 	static const char* loader_type_path = "textures/";
 
-	bool32 image_loader_load(const char* name, bool8 flip_y, ImageConfig* out_config)
+	bool8 image_loader_load(const char* name, bool8 flip_y, ImageConfig* out_config)
 	{
 
 		const char* format = "%s%s%s";
@@ -28,7 +28,7 @@ namespace ResourceSystem
 			(full_filepath, Constants::max_filepath_length, format, Engine::get_assets_base_path(), loader_type_path, name);
 
 		const uint32 valid_extension_count = 4;
-		bool32 found = false;
+		bool8 found = false;
 		const char* extensions[valid_extension_count] = { ".tga", ".png", ".jpg", ".bmp" };
 		char full_filepath_tmp[Constants::max_filepath_length] = {};
 		for (uint32 i = 0; i < valid_extension_count; i++)

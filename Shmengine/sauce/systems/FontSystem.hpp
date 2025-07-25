@@ -78,7 +78,7 @@ namespace FontSystem
 		uint8 max_font_count;
 	};	
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
 	SHMAPI bool8 load_font(const char* name, const char* resource_name, uint16 font_size);

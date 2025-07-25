@@ -28,7 +28,7 @@ namespace Event
 
 	static SystemState* system_state;
 
-	bool32 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
+	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
@@ -48,7 +48,7 @@ namespace Event
 		}
 	}
 
-	bool32 event_register(uint16 code, void* listener, FP_OnEvent on_event)
+	bool8 event_register(uint16 code, void* listener, FP_OnEvent on_event)
 	{
 		if (!system_state)
 			return false;
@@ -73,7 +73,7 @@ namespace Event
 		return true;
 	}
 
-	bool32 event_unregister(uint16 code, void* listener, FP_OnEvent on_event)
+	bool8 event_unregister(uint16 code, void* listener, FP_OnEvent on_event)
 	{
 		if (!system_state)
 			return false;
@@ -93,7 +93,7 @@ namespace Event
 		return false;
 	}
 
-	bool32 event_fire(uint16 code, void* sender, EventData data)
+	bool8 event_fire(uint16 code, void* sender, EventData data)
 	{
 		if (!system_state)
 			return false;

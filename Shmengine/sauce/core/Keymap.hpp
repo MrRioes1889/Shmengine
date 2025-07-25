@@ -46,7 +46,7 @@ namespace Input
 
 	struct Keymap
 	{
-		bool32 overrides_all;
+		bool8 overrides_all;
 		KeymapEntry entries[KeyCode::MAX_KEYS];
 
 		SHMAPI void init();

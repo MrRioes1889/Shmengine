@@ -25,11 +25,11 @@ namespace CString
 	SHMAPI uint32 copy(const char* buffer_source, char* buffer_output, uint32 buffer_output_size, int32 length = -1);
 
 	// Case insensitive version: equal_i()
-	SHMAPI bool32 equal(const char* a, const char* b);
-	SHMAPI bool32 equal_i(const char* a, const char* b);
+	SHMAPI bool8 equal(const char* a, const char* b);
+	SHMAPI bool8 equal_i(const char* a, const char* b);
 
-	SHMAPI bool32 nequal(const char* a, const char* b, uint32 length);
-	SHMAPI bool32 nequal_i(const char* a, const char* b, uint32 length);
+	SHMAPI bool8 nequal(const char* a, const char* b, uint32 length);
+	SHMAPI bool8 nequal_i(const char* a, const char* b, uint32 length);
 
 	SHMAPI uint32 trim(char* string);
 
@@ -68,12 +68,12 @@ namespace CString
 		return ret;
 	}
 
-	SHMINLINE bool32 is_whitespace(char c)
+	SHMINLINE bool8 is_whitespace(char c)
 	{
 		return index_of(" \f\n\r\t\v", c) != -1;
 	}
 
-	SHMINLINE void empty(char* buffer, bool32 full_empty = false)
+	SHMINLINE void empty(char* buffer, bool8 full_empty = false)
 	{
 		char* p = buffer;
 		*p++ = 0;
@@ -109,29 +109,29 @@ namespace CString
 		}
 	}
 
-	SHMAPI bool32 parse(const char* s, float32* out);
-	SHMAPI bool32 parse(const char* s, float64* out);
-	SHMAPI bool32 parse(const char* s, int8* out);
-	SHMAPI bool32 parse(const char* s, int16* out);
-	SHMAPI bool32 parse(const char* s, int32* out);
-	SHMAPI bool32 parse(const char* s, int64* out);
-	SHMAPI bool32 parse(const char* s, uint8* out);
-	SHMAPI bool32 parse(const char* s, uint16* out);
-	SHMAPI bool32 parse(const char* s, uint32* out);
-	SHMAPI bool32 parse(const char* s, uint64* out);
-	SHMAPI bool32 parse(const char* s, bool8* out);
+	SHMAPI bool8 parse(const char* s, float32* out);
+	SHMAPI bool8 parse(const char* s, float64* out);
+	SHMAPI bool8 parse(const char* s, int8* out);
+	SHMAPI bool8 parse(const char* s, int16* out);
+	SHMAPI bool8 parse(const char* s, int32* out);
+	SHMAPI bool8 parse(const char* s, int64* out);
+	SHMAPI bool8 parse(const char* s, uint8* out);
+	SHMAPI bool8 parse(const char* s, uint16* out);
+	SHMAPI bool8 parse(const char* s, uint32* out);
+	SHMAPI bool8 parse(const char* s, uint64* out);
+	SHMAPI bool8 parse(const char* s, bool8* out);
 
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, float32* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, float64* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int8* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int16* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int32* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, int64* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint8* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint16* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint32* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, uint64* out_arr);
-	SHMAPI bool32 parse_arr(const char* s, char delimiter, uint32 arr_count, bool8* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, float32* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, float64* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, int8* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, int16* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, int32* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, int64* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, uint8* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, uint16* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, uint32* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, uint64* out_arr);
+	SHMAPI bool8 parse_arr(const char* s, char delimiter, uint32 arr_count, bool8* out_arr);
 
 	struct PrintArg
 	{
@@ -232,18 +232,18 @@ namespace CString
 		return _print_s_base(target_buffer, buffer_limit, format, arg_array, sizeof...(Args));
 	}
 
-	SHMAPI bool32 _scan_base(const char* source, const char* format, const ScanArg* args, uint64 arg_count);
+	SHMAPI bool8 _scan_base(const char* source, const char* format, const ScanArg* args, uint64 arg_count);
 
-	SHMAPI bool32 scan(const char* source, const char* format, ...);
+	SHMAPI bool8 scan(const char* source, const char* format, ...);
 
 	template<typename... Args>
-	SHMINLINE bool32 safe_scan(const char* source, const char* format, const Args&... args)
+	SHMINLINE bool8 safe_scan(const char* source, const char* format, const Args&... args)
 	{
 		ScanArg arg_array[] = { args... };
 		return _scan_base(source, format, arg_array, sizeof...(Args));
 	}
 
-	SHMINLINE bool32 parse(const char* s, Math::Mat4* out_f)
+	SHMINLINE bool8 parse(const char* s, Math::Mat4* out_f)
 	{
 		return safe_scan<float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*, float32*>
 			(s, "%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f", 
@@ -253,17 +253,17 @@ namespace CString
 				&out_f->data[12], &out_f->data[13], &out_f->data[14], &out_f->data[15]);
 	}
 
-	SHMINLINE bool32 parse(const char* s, Math::Vec4f* out_f)
+	SHMINLINE bool8 parse(const char* s, Math::Vec4f* out_f)
 	{
 		return safe_scan<float32*, float32*, float32*, float32*>(s, "%f %f %f %f", &out_f->e[0], &out_f->e[1], &out_f->e[2], &out_f->e[3]);
 	}
 
-	SHMINLINE bool32 parse(const char* s, Math::Vec3f* out_f)
+	SHMINLINE bool8 parse(const char* s, Math::Vec3f* out_f)
 	{
 		return safe_scan<float32*, float32*, float32*>(s, "%f %f %f", &out_f->e[0], &out_f->e[1], &out_f->e[2]);
 	}
 
-	SHMINLINE bool32 parse(const char* s, Math::Vec2f* out_f)
+	SHMINLINE bool8 parse(const char* s, Math::Vec2f* out_f)
 	{
 		return safe_scan<float32*, float32*>(s, "%f %f", &out_f->e[0], &out_f->e[1]);
 	}

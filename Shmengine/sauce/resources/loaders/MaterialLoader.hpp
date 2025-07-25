@@ -20,7 +20,7 @@ struct MaterialResourceData
 	char shader_name[Constants::max_shader_name_length];
 
 	MaterialType type;
-	bool32 auto_release;
+	bool8 auto_unload;
 
     Darray<MaterialProperty> properties;
 	Darray<TextureMapResourceData> maps;
@@ -28,9 +28,9 @@ struct MaterialResourceData
 
 namespace ResourceSystem
 {
-	bool32 material_loader_load(const char* name, MaterialResourceData* out_config);
+	bool8 material_loader_load(const char* name, MaterialResourceData* out_config);
 	void material_loader_unload(MaterialResourceData* config);
 
-	bool32 material_loader_import_obj_material_library_file(const char* file_path);
+	bool8 material_loader_import_obj_material_library_file(const char* file_path);
 }
 

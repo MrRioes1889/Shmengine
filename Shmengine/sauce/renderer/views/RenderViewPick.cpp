@@ -48,7 +48,7 @@ struct RenderViewPickInternalData {
 	UniqueId hovered_object_id;
 };
 
-bool32 render_view_pick_on_create(RenderView* self)
+bool8 render_view_pick_on_create(RenderView* self)
 {
 
 	self->internal_data.init(sizeof(RenderViewPickInternalData), 0, AllocationTag::Renderer);
@@ -137,7 +137,7 @@ void render_view_pick_on_resize(RenderView* self, uint32 width, uint32 height)
 	}
 }
 
-static bool32 set_globals_material_phong_pick(RenderViewPickInternalData* internal_data, Camera* camera)
+static bool8 set_globals_material_phong_pick(RenderViewPickInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->material_phong_pick_shader->id);
 	ShaderSystem::bind_globals();
@@ -148,7 +148,7 @@ static bool32 set_globals_material_phong_pick(RenderViewPickInternalData* intern
 	return Renderer::shader_apply_globals(internal_data->material_phong_pick_shader);
 }
 
-static bool32 set_globals_terrain_pick(RenderViewPickInternalData* internal_data, Camera* camera)
+static bool8 set_globals_terrain_pick(RenderViewPickInternalData* internal_data, Camera* camera)
 {
 	ShaderSystem::bind_shader(internal_data->terrain_pick_shader->id);
 	ShaderSystem::bind_globals();
@@ -159,7 +159,7 @@ static bool32 set_globals_terrain_pick(RenderViewPickInternalData* internal_data
 	return Renderer::shader_apply_globals(internal_data->terrain_pick_shader);
 }
 
-static bool32 set_globals_ui_pick(RenderViewPickInternalData* internal_data)
+static bool8 set_globals_ui_pick(RenderViewPickInternalData* internal_data)
 {
 	ShaderSystem::bind_shader(internal_data->ui_pick_shader->id);
 	ShaderSystem::bind_globals();
@@ -170,7 +170,7 @@ static bool32 set_globals_ui_pick(RenderViewPickInternalData* internal_data)
 	return Renderer::shader_apply_globals(internal_data->ui_pick_shader);
 }
 
-bool32 render_view_pick_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
+bool8 render_view_pick_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
 {
 	RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 
@@ -181,7 +181,7 @@ void render_view_pick_on_end_frame(RenderView* self)
 {
 }
 
-bool32 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
+bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
 
 	RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
@@ -336,7 +336,7 @@ bool32 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint3
 
 }
 
-bool32 render_view_pick_regenerate_attachment_target(const RenderView* self, uint32 pass_index, Renderer::RenderTargetAttachment* attachment)
+bool8 render_view_pick_regenerate_attachment_target(const RenderView* self, uint32 pass_index, Renderer::RenderTargetAttachment* attachment)
 {
 	RenderViewPickInternalData* data = (RenderViewPickInternalData*)self->internal_data.data;
 

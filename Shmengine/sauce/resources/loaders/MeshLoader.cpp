@@ -66,13 +66,13 @@ namespace ResourceSystem
 
     static const char* loader_type_path = "models/";
 
-    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, MeshResourceData* out_resource);
+    static bool8 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, MeshResourceData* out_resource);
     static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometryConfig* out_data);
 
-    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, MeshResourceData* out_resource);
-    static bool32 write_shmesh_file(const char* path, const char* name, MeshResourceData* resource);
+    static bool8 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, MeshResourceData* out_resource);
+    static bool8 write_shmesh_file(const char* path, const char* name, MeshResourceData* resource);
 
-    bool32 mesh_loader_load(const char* name, MeshResourceData* out_resource)
+    bool8 mesh_loader_load(const char* name, MeshResourceData* out_resource)
     {
 
         const char* format = "%s%s%s";
@@ -113,7 +113,7 @@ namespace ResourceSystem
 
         out_resource->geometries.init(1, 0, AllocationTag::Resource);
 
-        bool32 res = false;
+        bool8 res = false;
         switch (file_type)
         {
         case MeshFileType::OBJ:
@@ -162,7 +162,7 @@ namespace ResourceSystem
 
     }
 
-    static bool32 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, MeshResourceData* out_resource)
+    static bool8 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, MeshResourceData* out_resource)
     {
         
         uint32 file_size = FileSystem::get_file_size32(obj_file);
@@ -358,15 +358,15 @@ namespace ResourceSystem
 
         out_data->vertex_count = 0;
         out_data->vertex_size = sizeof(Renderer::Vertex3D);
-        bool32 extent_set = false;
+        bool8 extent_set = false;
         out_data->extents.min = {};
         out_data->extents.max = {};
 
         Darray<Renderer::Vertex3D> vertices(faces.count * 3, 0);
         Darray<uint32> indices(faces.count * 3, 0);
 
-        bool32 skip_normals = normals.count == 0;
-        bool32 skip_tex_coords = tex_coords.count == 0;
+        bool8 skip_normals = normals.count == 0;
+        bool8 skip_tex_coords = tex_coords.count == 0;
 
         if (skip_normals)
             SHMWARN("No normals found for mesh!");
@@ -450,7 +450,7 @@ namespace ResourceSystem
 
     }
 
-    static bool32 write_shmesh_file(const char* path, const char* name, MeshResourceData* resource)
+    static bool8 write_shmesh_file(const char* path, const char* name, MeshResourceData* resource)
     {
 
         FileSystem::FileHandle f;
@@ -523,7 +523,7 @@ namespace ResourceSystem
 
 
 
-    static bool32 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, MeshResourceData* out_resource)
+    static bool8 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, MeshResourceData* out_resource)
     {
 
         uint32 file_size = FileSystem::get_file_size32(shmesh_file);

@@ -29,18 +29,19 @@ struct SHMAPI String
 	void free_data();
 
 	SHMINLINE char& operator[](uint32 index) { return arr.data[index]; }
+	SHMINLINE const char& operator[](uint32 index) const { return arr.data[index]; }
 
-	SHMINLINE bool32 equal(const char* other) { return CString::equal(arr.data, other); }
-	SHMINLINE bool32 equal(const String& other) { return CString::equal(arr.data, other.c_str()); }
-	SHMINLINE bool32 operator==(const char* other) { return equal(other); }
-	SHMINLINE bool32 operator==(const String& other) { return equal(other); }
+	SHMINLINE bool8 equal(const char* other) { return CString::equal(arr.data, other); }
+	SHMINLINE bool8 equal(const String& other) { return CString::equal(arr.data, other.c_str()); }
+	SHMINLINE bool8 operator==(const char* other) { return equal(other); }
+	SHMINLINE bool8 operator==(const String& other) { return equal(other); }
 
-	SHMINLINE bool32 equal_i(const char* other) { return CString::equal_i(arr.data, other); }
-	SHMINLINE bool32 equal_i(const String& other) { return CString::equal_i(arr.data, other.c_str()); }
-	SHMINLINE bool32 nequal(const char* other, uint32 length) { return CString::nequal(arr.data, other, length); }
-	SHMINLINE bool32 nequal(const String& other, uint32 length) { return CString::nequal(arr.data, other.c_str(), length); }
-	SHMINLINE bool32 nequal_i(const char* other, uint32 length) { return CString::nequal_i(arr.data, other, length); }
-	SHMINLINE bool32 nequal_i(const String& other, uint32 length) { return CString::nequal_i(arr.data, other.c_str(), length); }
+	SHMINLINE bool8 equal_i(const char* other) { return CString::equal_i(arr.data, other); }
+	SHMINLINE bool8 equal_i(const String& other) { return CString::equal_i(arr.data, other.c_str()); }
+	SHMINLINE bool8 nequal(const char* other, uint32 length) { return CString::nequal(arr.data, other, length); }
+	SHMINLINE bool8 nequal(const String& other, uint32 length) { return CString::nequal(arr.data, other.c_str(), length); }
+	SHMINLINE bool8 nequal_i(const char* other, uint32 length) { return CString::nequal_i(arr.data, other, length); }
+	SHMINLINE bool8 nequal_i(const String& other, uint32 length) { return CString::nequal_i(arr.data, other.c_str(), length); }
 
 	void append(char appendage);
 	void append(const char* appendage, int32 length = -1);
@@ -60,7 +61,7 @@ struct SHMAPI String
 
 	SHMINLINE int32 index_of(char c) const { return CString::index_of(arr.data, c); }
 	SHMINLINE int32 index_of_last(char c) const { return CString::index_of_last(arr.data, c); }
-	SHMINLINE bool32 is_empty() const { return !arr.data || !arr.count; }
+	SHMINLINE bool8 is_empty() const { return !arr.data || !arr.count; }
 	SHMINLINE char first() const { return arr[0]; }
 	SHMINLINE char last() const { return arr[arr.count-1]; }
 
@@ -129,15 +130,15 @@ struct SHMAPI StringRef
 	SHMINLINE void set_ref_length(uint32 length) { ref_length = SHMIN(length, full_length - ref_offset); }
 	SHMINLINE char operator[](uint32 index) { return index <= ref_length - 1 ? str[ref_offset + index] : 0; }
 
-	SHMINLINE bool32 nequal(const char* other) { return CString::nequal((str + ref_offset), other, ref_length); }
-	SHMINLINE bool32 nequal(const String& other) { return CString::nequal((str + ref_offset), other.c_str(), ref_length); }
-	SHMINLINE bool32 operator==(const char* other) { return nequal(other); }
-	SHMINLINE bool32 operator==(const String& other) { return nequal(other); }
+	SHMINLINE bool8 nequal(const char* other) { return CString::nequal((str + ref_offset), other, ref_length); }
+	SHMINLINE bool8 nequal(const String& other) { return CString::nequal((str + ref_offset), other.c_str(), ref_length); }
+	SHMINLINE bool8 operator==(const char* other) { return nequal(other); }
+	SHMINLINE bool8 operator==(const String& other) { return nequal(other); }
 
-	SHMINLINE bool32 nequal_i(const char* other, uint32 length) { return CString::nequal_i((str + ref_offset), other, ref_length); }
-	SHMINLINE bool32 nequal_i(const String& other, uint32 length) { return CString::nequal_i((str + ref_offset), other.c_str(), ref_length); }
+	SHMINLINE bool8 nequal_i(const char* other, uint32 length) { return CString::nequal_i((str + ref_offset), other, ref_length); }
+	SHMINLINE bool8 nequal_i(const String& other, uint32 length) { return CString::nequal_i((str + ref_offset), other.c_str(), ref_length); }
 
-	SHMINLINE bool32 is_empty() { return !str || !str[ref_offset]; }
+	SHMINLINE bool8 is_empty() { return !str || !str[ref_offset]; }
 	SHMINLINE char first() { return str[ref_offset]; }
 	SHMINLINE char last() { return str[ref_offset + ref_length - 1]; }
 

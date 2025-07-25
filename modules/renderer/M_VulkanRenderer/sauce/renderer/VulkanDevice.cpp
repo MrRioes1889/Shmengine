@@ -13,12 +13,12 @@ namespace Renderer::Vulkan
 	{
 		Sarray<const char*> device_extension_names;
 
-		bool32 graphics;
-		bool32 present;
-		bool32 compute;
-		bool32 transfer;	
-		bool32 sampler_anisotropy;
-		bool32 discrete_gpu;
+		bool8 graphics;
+		bool8 present;
+		bool8 compute;
+		bool8 transfer;	
+		bool8 sampler_anisotropy;
+		bool8 discrete_gpu;
 	};
 
 	struct VulkanPhysicalDeviceQueueFamilyInfo
@@ -29,8 +29,8 @@ namespace Renderer::Vulkan
 		int32 transfer_family_index;
 	};
 
-	static bool32 select_physical_device();
-	static bool32 physical_device_meets_requirements(
+	static bool8 select_physical_device();
+	static bool8 physical_device_meets_requirements(
 		VkPhysicalDevice device,
 		VkSurfaceKHR surface,
 		const VkPhysicalDeviceProperties* properties,
@@ -40,15 +40,15 @@ namespace Renderer::Vulkan
 		VulkanSwapchainSupportInfo* out_swapchain_support
 	);
 
-	bool32 vk_device_create()
+	bool8 vk_device_create()
 	{
 		if (!select_physical_device())
 			return false;
 
 		SHMINFO("Creating logical device...");
 		// NOTE: Do not create additional queues for shared indices
-		bool32 present_shares_graphics_queue = context->device.graphics_queue_index == context->device.present_queue_index;
-		bool32 transfer_shares_graphics_queue = context->device.graphics_queue_index == context->device.transfer_queue_index;
+		bool8 present_shares_graphics_queue = context->device.graphics_queue_index == context->device.present_queue_index;
+		bool8 transfer_shares_graphics_queue = context->device.graphics_queue_index == context->device.transfer_queue_index;
 		uint32 index_count = 1;
 		if (!present_shares_graphics_queue)
 			index_count++;
@@ -186,7 +186,7 @@ namespace Renderer::Vulkan
 		}
 	}
 
-	bool32 vk_device_detect_depth_format(VulkanDevice* device)
+	bool8 vk_device_detect_depth_format(VulkanDevice* device)
 	{
 		const uint32 candidate_count = 3;
 		VkFormat candidates[candidate_count] =
@@ -221,7 +221,7 @@ namespace Renderer::Vulkan
 		return false;
 	}
 
-	static bool32 select_physical_device()
+	static bool8 select_physical_device()
 	{
 		uint32 physical_device_count = 0;
 		VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, 0));
@@ -269,7 +269,7 @@ namespace Renderer::Vulkan
 			}
 
 			VulkanPhysicalDeviceQueueFamilyInfo queue_info = {};
-			bool32 meets_requirements = physical_device_meets_requirements(
+			bool8 meets_requirements = physical_device_meets_requirements(
 				physical_devices[i],
 				context->surface,
 				&properties,
@@ -345,7 +345,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	static bool32 physical_device_meets_requirements(
+	static bool8 physical_device_meets_requirements(
 		VkPhysicalDevice device,
 		VkSurfaceKHR surface,
 		const VkPhysicalDeviceProperties* properties,
@@ -473,7 +473,7 @@ namespace Renderer::Vulkan
 
 				for (uint32 i = 0; i < required_extension_count; i++)
 				{
-					bool32 found = false;
+					bool8 found = false;
 					for (uint32 j = 0; i < available_extension_count; j++)
 					{
 						if (CString::equal(requirements->device_extension_names[i], available_extensions[j].extensionName))

@@ -31,9 +31,9 @@ ApplicationState* app_state = 0;
 static void register_events();
 static void unregister_events();
 
-static bool32 on_debug_event(uint16 code, void* sender, void* listener_inst, EventData e_data);
+static bool8 on_debug_event(uint16 code, void* sender, void* listener_inst, EventData e_data);
 
-bool32 application_load_config(ApplicationConfig* out_config)
+bool8 application_load_config(ApplicationConfig* out_config)
 {
 	out_config->app_frame_data_size = sizeof(ApplicationFrameData);
 	out_config->state_size = sizeof(ApplicationState);
@@ -50,7 +50,7 @@ bool32 application_load_config(ApplicationConfig* out_config)
 	return true;
 }
 
-bool32 application_init(Application* app_inst)
+bool8 application_init(Application* app_inst)
 {
 	app_state = (ApplicationState*)app_inst->state;
 
@@ -97,7 +97,7 @@ void application_shutdown()
 	// end
 }
 
-bool32 application_update(FrameData* frame_data)
+bool8 application_update(FrameData* frame_data)
 {
 	OPTICK_EVENT();
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
@@ -133,7 +133,7 @@ bool32 application_update(FrameData* frame_data)
 	return true;
 }
 
-bool32 application_render(FrameData* frame_data)
+bool8 application_render(FrameData* frame_data)
 {
 	ApplicationFrameData* app_frame_data = (ApplicationFrameData*)frame_data->app_data;
 
@@ -179,7 +179,7 @@ void application_on_module_unload()
 	Input::clear_keymaps();
 }
 
-static bool32 on_debug_event(uint16 code, void* sender, void* listener_inst, EventData e_data)
+static bool8 on_debug_event(uint16 code, void* sender, void* listener_inst, EventData e_data)
 {
 	if (code == SystemEventCode::KEY_PRESSED)
 	{

@@ -11,7 +11,7 @@ namespace Renderer::Vulkan
 {
 	extern Renderer::Vulkan::VulkanContext* context;
    
-    bool32 create_vulkan_surface()
+    bool8 create_vulkan_surface()
     {
         const Platform::Window* client = Platform::get_active_window();
 

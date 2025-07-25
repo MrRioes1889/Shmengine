@@ -13,7 +13,7 @@
 namespace FileSystem
 {
 
-	bool32 file_exists(const char* path)
+	bool8 file_exists(const char* path)
 	{
 		DWORD dwAttrib = GetFileAttributesA(path);
 
@@ -45,7 +45,7 @@ namespace FileSystem
 
 	}
 
-	bool32 file_open(const char* path, FileMode mode, FileHandle* out_file)
+	bool8 file_open(const char* path, FileMode mode, FileHandle* out_file)
 	{
 
 		out_file->handle = 0;
@@ -90,7 +90,7 @@ namespace FileSystem
 
 	}
 
-	Platform::ReturnCode file_copy(const char* source, const char* dest, bool32 overwrite)
+	Platform::ReturnCode file_copy(const char* source, const char* dest, bool8 overwrite)
 	{
 		BOOL result = CopyFileA(source, dest, !overwrite);
 		if (result)
@@ -99,7 +99,7 @@ namespace FileSystem
 			return Platform::get_last_error();	
 	}
 
-	bool32 read_bytes(FileHandle* file, uint32 size, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read)
+	bool8 read_bytes(FileHandle* file, uint32 size, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read)
 	{
 
 		if (file->handle) {
@@ -121,7 +121,7 @@ namespace FileSystem
 
 	}
 
-	bool32 read_all_bytes(FileHandle* file, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read)
+	bool8 read_all_bytes(FileHandle* file, void* out_buffer, uint32 out_buffer_size, uint32* out_bytes_read)
 	{
 
 		uint32 file_size = get_file_size32(file);
@@ -162,7 +162,7 @@ namespace FileSystem
 
 	}
 
-	bool32 write(FileHandle* file, uint32 size, const void* data, uint32* out_bytes_written)
+	bool8 write(FileHandle* file, uint32 size, const void* data, uint32* out_bytes_written)
 	{
 		if (!file)
 			return true;
@@ -180,7 +180,7 @@ namespace FileSystem
 
 	}
 
-	bool32 read_bytes(FileHandle* file, uint32 size, String& out_buffer, uint32* out_bytes_read)
+	bool8 read_bytes(FileHandle* file, uint32 size, String& out_buffer, uint32* out_bytes_read)
 	{
 		if (!file->handle)
 			return false;
@@ -197,7 +197,7 @@ namespace FileSystem
 
 	}
 
-	bool32 read_all_bytes(FileHandle* file, String& out_buffer, uint32* out_bytes_read)
+	bool8 read_all_bytes(FileHandle* file, String& out_buffer, uint32* out_bytes_read)
 	{
 		uint32 file_size = get_file_size32(file);
 		if (file_size) {
@@ -207,7 +207,7 @@ namespace FileSystem
 		return false;
 	}
 
-	bool32 read_line(const char* file_buffer, String& line_buffer, const char** out_continue_ptr)
+	bool8 read_line(const char* file_buffer, String& line_buffer, const char** out_continue_ptr)
 	{
 
 		const char* source = file_buffer;

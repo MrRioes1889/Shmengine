@@ -29,7 +29,7 @@ struct Skybox
 	uint32 shader_instance_id;
 };
 
-SHMAPI bool32 skybox_init(SkyboxConfig* config, Skybox* out_skybox);
-SHMAPI bool32 skybox_destroy(Skybox* skybox);
-SHMAPI bool32 skybox_load(Skybox* skybox);
-SHMAPI bool32 skybox_unload(Skybox* skybox);
+SHMAPI bool8 skybox_init(SkyboxConfig* config, Skybox* out_skybox);
+SHMAPI bool8 skybox_destroy(Skybox* skybox);
+SHMAPI bool8 skybox_load(Skybox* skybox);
+SHMAPI bool8 skybox_unload(Skybox* skybox);

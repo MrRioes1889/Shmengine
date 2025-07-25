@@ -5,8 +5,8 @@
 #include "utility/Math.hpp"
 #include "utility/Utility.hpp"
 
-static bool32 insert_reservation_at(Freelist* freelist, uint64 index, uint32 reservation_page_count, uint16 node_page_offset);
-static bool32 remove_reservation_at(Freelist* freelist, uint64 index);
+static bool8 insert_reservation_at(Freelist* freelist, uint64 index, uint32 reservation_page_count, uint16 node_page_offset);
+static bool8 remove_reservation_at(Freelist* freelist, uint64 index);
 
 static SHMINLINE int64 find_first_free_node(Freelist* freelist, uint32 pages_needed, uint32* out_page_index);
 static SHMINLINE int64 find_first_free_node_aligned(Freelist* freelist, uint32 pages_needed, uint16 page_alignment, uint16* out_page_alignment_offset, uint32* out_page_index);
@@ -131,7 +131,7 @@ bool8 Freelist::allocate_aligned(uint64 size, uint16 alignment, AllocationRefere
 	return alloc;
 }
 
-bool32 Freelist::free(uint64 offset, uint64* pages_freed)
+bool8 Freelist::free(uint64 offset, uint64* pages_freed)
 {
 	int64 node_index = find_allocated_node(this, offset);
 	if (node_index < 0)
@@ -154,7 +154,7 @@ int64 Freelist::get_reserved_size(uint64 offset)
 	return (nodes[node_index].page_count * (int64)page_size);
 }
 
-static bool32 insert_reservation_at(Freelist* freelist, uint64 index, uint32 reservation_page_count, uint16 node_page_offset)
+static bool8 insert_reservation_at(Freelist* freelist, uint64 index, uint32 reservation_page_count, uint16 node_page_offset)
 {
 
 	Freelist::Node* node = &freelist->nodes[index];
@@ -196,12 +196,12 @@ static bool32 insert_reservation_at(Freelist* freelist, uint64 index, uint32 res
 	return true;
 }
 
-static bool32 remove_reservation_at(Freelist* freelist, uint64 index)
+static bool8 remove_reservation_at(Freelist* freelist, uint64 index)
 {
 	Freelist::Node* nodes = freelist->nodes;
 
 	int32 merge_offset = 0;
-	bool32 both_chunks_free = false;
+	bool8 both_chunks_free = false;
 
 	if (index > 0)
 	{
