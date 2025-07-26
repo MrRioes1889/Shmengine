@@ -8,8 +8,8 @@ struct FrameData;
 namespace JobSystem
 {
 
-	typedef bool8 (*FP_job_start)(void*, void*);
-	typedef void (*FP_job_on_complete)(void*);
+	typedef bool8 (*FP_job_start)(uint32 thread_index, void* user_data);
+	typedef void (*FP_job_on_complete)(void* results);
 
 	namespace JobTypeFlags
 	{
@@ -39,11 +39,8 @@ namespace JobSystem
 		FP_job_on_complete on_success;
 		FP_job_on_complete on_failure;
 
-		uint32 params_size;
-		uint32 results_size;
-
-		void* params;
-		void* results;
+		uint32 user_data_size;
+		void* user_data;
 	};
 
 	struct SystemConfig
@@ -60,6 +57,6 @@ namespace JobSystem
 
 	SHMAPI void submit(JobInfo info);
 
-	SHMAPI JobInfo job_create(FP_job_start entry_point, FP_job_on_complete on_success, FP_job_on_complete on_failure, uint32 params_size, uint32 results_size, JobTypeFlags::Value type = JobTypeFlags::General, JobPriority priority = JobPriority::Normal);
+	SHMAPI JobInfo job_create(FP_job_start entry_point, FP_job_on_complete on_success, FP_job_on_complete on_failure, uint32 user_data_size, JobTypeFlags::Value type = JobTypeFlags::General, JobPriority priority = JobPriority::Normal);
 
 }

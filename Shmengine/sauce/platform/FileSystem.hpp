@@ -16,6 +16,7 @@ namespace FileSystem
 
 	struct FileHandle
 	{
+		bool8 is_valid;
 		void* handle;
 	};
 

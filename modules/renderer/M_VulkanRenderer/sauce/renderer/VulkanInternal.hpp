@@ -16,14 +16,14 @@ namespace Renderer::Vulkan
 	void vk_device_query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR surface, VulkanSwapchainSupportInfo* out_support_info);
 	bool8 vk_device_detect_depth_format(VulkanDevice* device);
 
-	void vk_command_buffer_allocate(VkCommandPool pool, bool8 primary, VulkanCommandBuffer* out_buffer);
-	void vk_command_buffer_free(VkCommandPool pool, VulkanCommandBuffer* buffer);
+	void vk_command_buffer_allocate(VulkanCommandPool pool, bool8 primary, VulkanCommandBuffer* out_buffer);
+	void vk_command_buffer_free(VulkanCommandPool pool, VulkanCommandBuffer* buffer);
 	void vk_command_buffer_begin(VulkanCommandBuffer* buffer, bool8 single_use, bool8 renderpass_continue, bool8 simultaneous_use);
 	void vk_command_buffer_end(VulkanCommandBuffer* buffer);
 	void vk_command_buffer_update_submitted(VulkanCommandBuffer* buffer);
 	void vk_command_buffer_reset(VulkanCommandBuffer* buffer);
-	void vk_command_buffer_reserve_and_begin_single_use(VkCommandPool pool, VulkanCommandBuffer* out_buffer);
-	void vk_command_buffer_end_single_use(VkCommandPool pool, VulkanCommandBuffer* buffer, VkQueue queue);
+	void vk_command_buffer_reserve_and_begin_single_use(VulkanCommandPool pool, VulkanCommandBuffer* out_buffer);
+	void vk_command_buffer_end_single_use(VulkanCommandPool pool, VulkanCommandBuffer* buffer, VkQueue queue);
 
 	bool8 vk_pipeline_create(const VulkanPipelineConfig* config, VulkanPipeline* out_pipeline);
 	void vk_pipeline_destroy(VulkanPipeline* pipeline);

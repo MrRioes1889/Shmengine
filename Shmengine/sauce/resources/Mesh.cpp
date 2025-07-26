@@ -182,9 +182,9 @@ static void mesh_load_job_fail(void* params)
     SHMERRORV("Failed to load mesh '%s'.", mesh->name.c_str());
 }
 
-static bool8 mesh_load_job_start(void* params, void* result_data) 
+static bool8 mesh_load_job_start(uint32 thread_index, void* user_data) 
 {
-    MeshLoadParams* load_params = (MeshLoadParams*)params;
+    MeshLoadParams* load_params = (MeshLoadParams*)user_data;
     Mesh* mesh = load_params->out_mesh;
 
     for (uint32 i = 0; i < mesh->geometries.capacity; i++) 
@@ -198,9 +198,6 @@ static bool8 mesh_load_job_start(void* params, void* result_data)
             g->material = MaterialSystem::get_default_material();
     }
 
-    // NOTE: The load params are also used as the result data here, only the mesh_resource field is populated now.
-    Memory::copy_memory(load_params, result_data, sizeof(MeshLoadParams));
-
     return true;
 }
 
@@ -208,8 +205,8 @@ static bool8 mesh_load_async(Mesh* mesh, bool8 reload)
 {
     mesh->generation = Constants::max_u8;
 
-    JobSystem::JobInfo job = JobSystem::job_create(mesh_load_job_start, mesh_load_job_success, mesh_load_job_fail, sizeof(MeshLoadParams), sizeof(MeshLoadParams));
-    MeshLoadParams* params = (MeshLoadParams*)job.params;
+    JobSystem::JobInfo job = JobSystem::job_create(mesh_load_job_start, mesh_load_job_success, mesh_load_job_fail, sizeof(MeshLoadParams));
+    MeshLoadParams* params = (MeshLoadParams*)job.user_data;
     params->out_mesh = mesh;
     params->is_reload = reload;
     JobSystem::submit(job);

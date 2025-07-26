@@ -662,7 +662,11 @@ namespace Renderer::Vulkan
 			context->graphics_command_buffers[i] = {};
 			vk_command_buffer_allocate(context->device.graphics_command_pool, true, &context->graphics_command_buffers[i]);
 		}
-			
+
+		if (context->texture_write_command_buffer.handle)
+			vk_command_buffer_free(context->device.graphics_command_pool, &context->texture_write_command_buffer);
+		vk_command_buffer_allocate(context->device.graphics_command_pool, true, &context->texture_write_command_buffer);
+
 		SHMDEBUG("Command buffers created.");
 	}
 

@@ -49,6 +49,7 @@ namespace FileSystem
 	{
 
 		out_file->handle = 0;
+		out_file->is_valid = false;
 
 		HANDLE file_handle;
 
@@ -78,16 +79,17 @@ namespace FileSystem
 		}
 
 		out_file->handle = file_handle;
+		out_file->is_valid = true;
 
 		return true;
 	}
 
-	void file_close(FileHandle* file)
+	void file_close(FileHandle* file_handle)
 	{		
-
-		CloseHandle(file->handle);
-		*file = {};
-
+		if (file_handle->is_valid)
+			CloseHandle(file_handle->handle);
+		file_handle->handle = 0;
+		file_handle->is_valid = false;
 	}
 
 	Platform::ReturnCode file_copy(const char* source, const char* dest, bool8 overwrite)

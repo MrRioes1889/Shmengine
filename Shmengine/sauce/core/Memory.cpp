@@ -133,18 +133,18 @@ namespace Memory
 
     void track_external_allocation(uint64 size, AllocationTag tag)
     {
-        Threading::mutex_lock(&system_state->allocation_mutex);
+        Threading::mutex_lock(system_state->allocation_mutex);
         system_state->external_allocation_size += size;
         system_state->external_allocation_count++;
-        Threading::mutex_unlock(&system_state->allocation_mutex);
+        Threading::mutex_unlock(system_state->allocation_mutex);
     }
 
     void track_external_free(uint64 size, AllocationTag tag)
     {
-        Threading::mutex_lock(&system_state->allocation_mutex);
+        Threading::mutex_lock(system_state->allocation_mutex);
         system_state->external_allocation_size -= size;
         system_state->external_allocation_count--;
-        Threading::mutex_unlock(&system_state->allocation_mutex);
+        Threading::mutex_unlock(system_state->allocation_mutex);
     }
 
     void* zero_memory(void* block, uint64 size)
@@ -184,7 +184,7 @@ namespace Memory
         }         
         else
         {
-            if (!Threading::mutex_lock(&system_state->allocation_mutex))
+            if (!Threading::mutex_lock(system_state->allocation_mutex))
             {
                 SHMFATAL("Failed obtaining lock for general allocation mutex!");
                 return 0;
@@ -194,7 +194,7 @@ namespace Memory
 
             system_state->allocation_count++;
 
-            Threading::mutex_unlock(&system_state->allocation_mutex);
+            Threading::mutex_unlock(system_state->allocation_mutex);
         }     
 
         zero_memory(ret, size);
@@ -218,7 +218,7 @@ namespace Memory
         }        
         else
         {
-            if (!Threading::mutex_lock(&system_state->allocation_mutex))
+            if (!Threading::mutex_lock(system_state->allocation_mutex))
             {
                 SHMFATAL("Failed obtaining lock for general allocation mutex!");
                 return 0;
@@ -226,7 +226,7 @@ namespace Memory
 
             ret = allocator->reallocate(size, block, &tag, alignment);
 
-            Threading::mutex_unlock(&system_state->allocation_mutex);
+            Threading::mutex_unlock(system_state->allocation_mutex);
         }
             
         return ret;
@@ -242,7 +242,7 @@ namespace Memory
         }          
 
         AllocationTag tag;
-		if (!Threading::mutex_lock(&system_state->allocation_mutex))
+		if (!Threading::mutex_lock(system_state->allocation_mutex))
 		{
 			SHMFATAL("Failed obtaining lock for general allocation mutex!");
 			return;
@@ -252,7 +252,7 @@ namespace Memory
 
 		system_state->allocation_count--;
 
-		Threading::mutex_unlock(&system_state->allocation_mutex);
+		Threading::mutex_unlock(system_state->allocation_mutex);
     }
 
     static void* platform_allocate(uint64 size, uint16 alignment)

@@ -3,6 +3,7 @@
 #include <Defines.hpp>
 #include <core/Assert.hpp>
 #include <core/Identifier.hpp>
+#include <core/Mutex.hpp>
 #include <platform/Platform.hpp>
 #include <containers/Sarray.hpp>
 #include <containers/Buffer.hpp>
@@ -44,6 +45,12 @@ namespace Renderer::Vulkan
 		uint32 present_mode_count;
 	};
 
+	struct VulkanCommandPool
+	{
+		VkCommandPool handle;
+		Threading::Mutex mutex;
+	};
+
 	struct VulkanDevice
 	{
 		VkPhysicalDevice physical_device;
@@ -54,7 +61,7 @@ namespace Renderer::Vulkan
 		VkPhysicalDeviceFeatures features;
 		VkPhysicalDeviceMemoryProperties memory;
 
-		VkCommandPool graphics_command_pool;
+		VulkanCommandPool graphics_command_pool;
 
 		VkQueue graphics_queue;
 		VkQueue present_queue;
@@ -83,12 +90,12 @@ namespace Renderer::Vulkan
 
 	enum class VulkanRenderpassState
 	{
+		NOT_ALLOCATED = 0,
 		READY,
 		RECORDING,
 		IN_RENDER_PASS,
 		RECORDING_ENDED,
 		SUBMITTED,
-		NOT_ALLOCATED
 	};
 
 	struct VulkanRenderpass
@@ -114,12 +121,12 @@ namespace Renderer::Vulkan
 
 	enum class VulkanCommandBufferState
 	{
+		NOT_ALLOCATED = 0,
 		READY,
 		RECORDING,
 		IN_RENDER_PASS,
 		RECORDING_ENDED,
 		SUBMITTED,
-		NOT_ALLOCATED
 	};
 
 	struct VulkanCommandBuffer
@@ -277,10 +284,11 @@ namespace Renderer::Vulkan
 
 		Renderer::RenderTarget world_render_targets[RendererConfig::framebuffer_count];
 
-		Sarray<VulkanCommandBuffer> graphics_command_buffers = {};
+		Sarray<VulkanCommandBuffer> graphics_command_buffers;
+		VulkanCommandBuffer texture_write_command_buffer;
 
-		Sarray<VkSemaphore> image_available_semaphores = {};
-		Sarray<VkSemaphore> queue_complete_semaphores = {};
+		Sarray<VkSemaphore> image_available_semaphores;
+		Sarray<VkSemaphore> queue_complete_semaphores;
 
 		VkFence framebuffer_fences_in_flight[RendererConfig::framebuffer_count];
 		VkFence framebuffer_fences[RendererConfig::framebuffer_count - 1];

@@ -5,13 +5,13 @@ namespace Renderer::Vulkan
 
 	extern VulkanContext* context;
 
-	void vk_command_buffer_allocate(VkCommandPool pool, bool8 primary, VulkanCommandBuffer* out_buffer)
+	void vk_command_buffer_allocate(VulkanCommandPool pool, bool8 primary, VulkanCommandBuffer* out_buffer)
 	{
 
 		*out_buffer = {};
 
 		VkCommandBufferAllocateInfo all_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-		all_info.commandPool = pool;
+		all_info.commandPool = pool.handle;
 		all_info.level = primary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 		all_info.commandBufferCount = 1;
 		all_info.pNext = 0;
@@ -22,16 +22,15 @@ namespace Renderer::Vulkan
 
 	}
 
-	void vk_command_buffer_free(VkCommandPool pool, VulkanCommandBuffer* buffer)
+	void vk_command_buffer_free(VulkanCommandPool pool, VulkanCommandBuffer* buffer)
 	{
-		vkFreeCommandBuffers(context->device.logical_device, pool, 1, &buffer->handle);
+		vkFreeCommandBuffers(context->device.logical_device, pool.handle, 1, &buffer->handle);
 		buffer->handle = 0;
 		buffer->state = VulkanCommandBufferState::NOT_ALLOCATED;
 	}
 
 	void vk_command_buffer_begin(VulkanCommandBuffer* buffer, bool8 single_use, bool8 renderpass_continue, bool8 simultaneous_use)
 	{
-
 		VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		begin_info.flags = 0;
 		if (single_use)
@@ -61,15 +60,14 @@ namespace Renderer::Vulkan
 		buffer->state = VulkanCommandBufferState::READY;
 	}
 
-	void vk_command_buffer_reserve_and_begin_single_use(VkCommandPool pool, VulkanCommandBuffer* out_buffer)
+	void vk_command_buffer_reserve_and_begin_single_use(VulkanCommandPool pool, VulkanCommandBuffer* out_buffer)
 	{
 		vk_command_buffer_allocate(pool, true, out_buffer);
 		vk_command_buffer_begin(out_buffer, true, false, false);
 	}
 
-	void vk_command_buffer_end_single_use(VkCommandPool pool, VulkanCommandBuffer* buffer, VkQueue queue)
+	void vk_command_buffer_end_single_use(VulkanCommandPool pool, VulkanCommandBuffer* buffer, VkQueue queue)
 	{
-
 		vk_command_buffer_end(buffer);
 
 		VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -79,6 +77,5 @@ namespace Renderer::Vulkan
 		VK_CHECK(vkQueueWaitIdle(queue));
 
 		vk_command_buffer_free(pool, buffer);
-
 	}
 }

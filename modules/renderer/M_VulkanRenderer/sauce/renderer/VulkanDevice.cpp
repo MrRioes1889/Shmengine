@@ -107,7 +107,12 @@ namespace Renderer::Vulkan
 		pool_create_info.queueFamilyIndex = context->device.graphics_queue_index;
 		pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-		VK_CHECK(vkCreateCommandPool(context->device.logical_device, &pool_create_info, context->allocator_callbacks, &context->device.graphics_command_pool));
+		VK_CHECK(vkCreateCommandPool(context->device.logical_device, &pool_create_info, context->allocator_callbacks, &context->device.graphics_command_pool.handle));
+		if (!Threading::mutex_create(&context->device.graphics_command_pool.mutex))
+		{
+			SHMERROR("Failed to create mutex for graphics command pool.");
+			return false;
+		}
 		SHMINFO("Graphics command pool created.");
 
 		return true;
@@ -117,14 +122,15 @@ namespace Renderer::Vulkan
 	{
 
 		context->device.graphics_queue = 0;
-		context->device.present_queue = 0;
+		context->device.present_queue = 0;		
 		context->device.transfer_queue = 0;
 
 		SHMDEBUG("Destroying graphics command pool...");
-		if (context->device.graphics_command_pool)
+		if (context->device.graphics_command_pool.handle)
 		{
-			vkDestroyCommandPool(context->device.logical_device, context->device.graphics_command_pool, context->allocator_callbacks);
-			context->device.graphics_command_pool = 0;
+			vkDestroyCommandPool(context->device.logical_device, context->device.graphics_command_pool.handle, context->allocator_callbacks);
+			context->device.graphics_command_pool.handle = 0;
+			Threading::mutex_destroy(&context->device.graphics_command_pool.mutex);
 		}
 
 		SHMDEBUG("Destroying logical device...");

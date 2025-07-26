@@ -83,8 +83,9 @@ namespace Threading
 
 	bool8 mutex_create(Mutex* out_mutex)
 	{
-		out_mutex->internal_data = CreateMutex(0, 0, 0);
-		if (!out_mutex->internal_data) {
+		*out_mutex = (Mutex)CreateMutexA(0, 0, 0);
+		if (!(*out_mutex)) 
+		{
 			SHMERROR("Unable to create mutex.");
 			return false;
 		}
@@ -94,13 +95,13 @@ namespace Threading
 
 	void mutex_destroy(Mutex* mutex)
 	{
-		CloseHandle(mutex->internal_data);
-		mutex->internal_data = 0;
+		CloseHandle(*mutex);
+		*mutex = 0;
 	}
 
-	bool8 mutex_lock(Mutex* mutex)
+	bool8 mutex_lock(Mutex mutex)
 	{
-		DWORD result = WaitForSingleObject(mutex->internal_data, INFINITE);
+		DWORD result = WaitForSingleObject(mutex, INFINITE);
 		switch (result) {
 		case WAIT_OBJECT_0:
 		{
@@ -115,9 +116,9 @@ namespace Threading
 		return true;
 	}
 
-	bool8 mutex_unlock(Mutex* mutex)
+	bool8 mutex_unlock(Mutex mutex)
 	{
-		int32 result = ReleaseMutex(mutex->internal_data);
+		int32 result = ReleaseMutex(mutex);
 		if (!result)
 			SHMERROR("Mutex unlock failed.");
 

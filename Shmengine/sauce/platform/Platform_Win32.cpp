@@ -390,13 +390,15 @@ namespace Platform
         WriteConsoleA(console_handle, message, (DWORD)length, &number_written, 0);
     }
 
-    float64 get_absolute_time() {
+    float64 get_absolute_time() 
+    {
         LARGE_INTEGER now_time;
         QueryPerformanceCounter(&now_time);
         return (float64)now_time.QuadPart * clock_frequency;
     }
 
-    void sleep(uint32 ms) {
+    void sleep(uint32 ms) 
+    {
         Sleep(ms);
     }
 

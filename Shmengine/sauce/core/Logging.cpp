@@ -23,10 +23,8 @@ namespace Log
 
     bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
     {
-
         system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-        //D:/dev/Shmengine/bin/Debug-windows-x86_64/Sandbox/console.log
         char dir[Constants::max_filepath_length];
         CString::copy(Platform::get_root_dir(), dir, Constants::max_filepath_length);
         CString::append(dir, Constants::max_filepath_length, "console.log");
@@ -37,7 +35,6 @@ namespace Log
         }
 
         return true;
-
     }
 
     void system_shutdown(void* state) 
@@ -92,7 +89,8 @@ namespace Log
 
 }
 
-void report_assertion_failure(const char* expression, const char* message, const char* file, int32 line) {
+void report_assertion_failure(const char* expression, const char* message, const char* file, int32 line) 
+{
     Log::log_output(Log::LOG_LEVEL_FATAL, "Assertion Failure: %s, message: '%s', in file: %s, line: %d\n", expression, message, file, line);
 }
 

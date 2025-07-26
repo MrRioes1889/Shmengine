@@ -132,7 +132,7 @@ namespace Renderer::Vulkan
 			barrier.srcAccessMask = 0;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-			source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			source_stage = VK_PIPELINE_STAGE_HOST_BIT;
 			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		}
 		else if (image->layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
@@ -140,7 +140,7 @@ namespace Renderer::Vulkan
 			barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-			source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			source_stage = VK_PIPELINE_STAGE_HOST_BIT;
 			dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		}
 		else if (image->layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -203,7 +203,6 @@ namespace Renderer::Vulkan
 		}
 
 		image->layout = new_layout;
-
 		vkCmdPipelineBarrier(command_buffer->handle, source_stage, dest_stage, 0, 0, 0, 0, 0, 1, &barrier);
 
 	}
@@ -303,7 +302,7 @@ namespace Renderer::Vulkan
 		vk_buffer_load_range_internal(&staging, 0, size, pixels);
 
 		VulkanCommandBuffer temp_buffer;
-		VkCommandPool pool = context->device.graphics_command_pool;
+		VulkanCommandPool pool = context->device.graphics_command_pool;
 		VkQueue queue = context->device.graphics_queue;
 
 		VkImageLayout initial_layout = image->layout;
@@ -332,7 +331,7 @@ namespace Renderer::Vulkan
 		vk_buffer_bind_internal(&read, 0);
 
 		VulkanCommandBuffer temp_buffer;
-		VkCommandPool pool = context->device.graphics_command_pool;
+		VulkanCommandPool pool = context->device.graphics_command_pool;
 		VkQueue queue = context->device.graphics_queue;
 
 		VkImageLayout initial_layout = image->layout;
@@ -366,7 +365,7 @@ namespace Renderer::Vulkan
 		vk_buffer_bind_internal(&read, 0);
 
 		VulkanCommandBuffer temp_buffer;
-		VkCommandPool pool = context->device.graphics_command_pool;
+		VulkanCommandPool pool = context->device.graphics_command_pool;
 		VkQueue queue = context->device.graphics_queue;
 
 		VkImageLayout initial_layout = image->layout;

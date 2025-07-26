@@ -3,6 +3,7 @@
 #include "core/Logging.hpp"
 #include "utility/CString.hpp"
 #include "core/Memory.hpp"
+#include "core/Mutex.hpp"
 #include "containers/Hashtable.hpp"
 #include "containers/Sarray.hpp"
 #include "platform/Platform.hpp"
@@ -18,10 +19,9 @@ namespace TextureSystem
 
 	struct TextureLoadParams
 	{
-		char* resource_name;
+		char resource_name[Constants::max_texture_name_length];
 		Texture* out_texture;
 		Texture temp_texture;
-		TextureResourceData resource;
 	};
 
 	struct TextureReference
@@ -41,12 +41,14 @@ namespace TextureSystem
 		Sarray<Texture> textures;
 		HashtableRH<TextureReference> lookup_table;
 
+		// TODO: Build a Solution that does not block when texture data is uploaded to gpu.
+		Threading::Mutex texture_load_mutex;
 		uint32 textures_loading_count;
 	};	
 
 	static SystemState* system_state = 0;
 	
-	static bool8 load_texture(const char* texture_name, Texture* t);
+	static bool8 load_texture_async(const char* texture_name, Texture* t);
 	static bool8 load_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t);
 	static void destroy_texture(Texture* t);
 
@@ -76,24 +78,31 @@ namespace TextureSystem
 
 		create_default_textures();
 
+		if (!Threading::mutex_create(&system_state->texture_load_mutex))
+		{
+			SHMERROR("Failed to create texture load mutex.");
+			return false;
+		}
+
 		return true;
 	}
 
 	void system_shutdown(void* state)
 	{
-		if (system_state)
+		if (!system_state)
+			return;
+		
+		for (uint32 i = 0; i < system_state->textures.capacity; i++)
 		{
-			for (uint32 i = 0; i < system_state->textures.capacity; i++)
-			{
-				if (system_state->textures[i].id.is_valid())
-					destroy_texture(&system_state->textures[i]);
-			}
-
-			destroy_default_textures();
-			system_state->textures.free_data();
-			system_state->lookup_table.free_data();
-			system_state = 0;
+			if (system_state->textures[i].id.is_valid())
+				destroy_texture(&system_state->textures[i]);
 		}
+
+		destroy_default_textures();
+		system_state->textures.free_data();
+		system_state->lookup_table.free_data();
+		Threading::mutex_destroy(&system_state->texture_load_mutex);
+		system_state = 0;
 	}
 
 	Texture* acquire(const char* name, bool8 auto_unload)
@@ -120,7 +129,7 @@ namespace TextureSystem
 		}
 		Texture* t = &system_state->textures[id];
 
-		if (load && !load_texture(name, t))
+		if (load && !load_texture_async(name, t))
 		{
 			destroy_texture(t);
 			SHMERRORV("Failed to load texture: '%s'", name);
@@ -307,53 +316,27 @@ namespace TextureSystem
 	static void texture_load_on_success(void* params)
 	{
 		TextureLoadParams* texture_params = (TextureLoadParams*)params;
-
-		Texture old;
-		Memory::copy_memory(texture_params->out_texture, &old, sizeof(old));
-		
-		TextureResourceData* resource = (TextureResourceData*)&texture_params->resource;
-		TextureConfig config = ResourceSystem::texture_loader_get_config_from_resource(resource);
-		Renderer::texture_create(config.pixels, &texture_params->temp_texture);
-
-		Memory::copy_memory(&texture_params->temp_texture, texture_params->out_texture, sizeof(*texture_params->out_texture));
-		Renderer::texture_destroy(&old);
-
-		SHMTRACEV("Successfully loaded texture '%s'.", texture_params->resource_name);
-
-		ResourceSystem::texture_loader_unload(resource);
-		Memory::free_memory(texture_params->resource_name);
-
-		system_state->textures_loading_count--;
 	}
 
 	static void texture_load_on_failure(void* params)
 	{
 		TextureLoadParams* texture_params = (TextureLoadParams*)params;
-
-		SHMTRACEV("Failed to load texture '%s'.", texture_params->resource_name);
-
-		ResourceSystem::texture_loader_unload(&texture_params->resource);
-		if (texture_params->resource_name)
-			Memory::free_memory(texture_params->resource_name);
-
-		system_state->textures_loading_count--;
 	}
 
-	static bool8 texture_load_job_start(void* params, void* results)
+	static bool8 texture_load_job_start(uint32 thread_index, void* user_data)
 	{
-		Memory::copy_memory(params, results, sizeof(TextureLoadParams));
-		Memory::zero_memory(params, sizeof(TextureLoadParams));
+		TextureLoadParams* load_params = (TextureLoadParams*)user_data;
+		uint8* pixels = 0;
+		uint64 size = 0;
+		bool8 has_transparency = false;
+		TextureConfig config = {};
+		Texture old = {};
 
-		TextureLoadParams* load_params = (TextureLoadParams*)results;
+		TextureResourceData resource = {};
+		goto_on_fail_log(ResourceSystem::texture_loader_load(load_params->resource_name, true, &resource), failure,
+			"Failed to load image resources for texture '%s'", load_params->resource_name);
 
-		TextureResourceData* resource = &load_params->resource;
-		if (!ResourceSystem::texture_loader_load(load_params->resource_name, true, resource))
-		{
-			SHMERRORV("load_texture - Failed to load image resources for texture '%s'", load_params->resource_name);
-			return false;
-		}
-
-		TextureConfig config = ResourceSystem::texture_loader_get_config_from_resource(resource);
+		config = ResourceSystem::texture_loader_get_config_from_resource(&resource);
 		load_params->temp_texture.channel_count = config.channel_count;
 		load_params->temp_texture.width = config.width;
 		load_params->temp_texture.height = config.height;
@@ -361,9 +344,9 @@ namespace TextureSystem
 
 		load_params->out_texture->flags &= ~TextureFlags::IsLoaded;
 
-		uint8* pixels = config.pixels;
-		uint64 size = load_params->temp_texture.width * load_params->temp_texture.height * load_params->temp_texture.channel_count;
-		bool8 has_transparency = false;
+		pixels = config.pixels;
+		size = load_params->temp_texture.width * load_params->temp_texture.height * load_params->temp_texture.channel_count;
+		has_transparency = false;
 		for (uint64 i = 0; i < size; i += config.channel_count)
 		{
 			uint8 a = pixels[i + 3];
@@ -377,20 +360,34 @@ namespace TextureSystem
 		CString::copy(load_params->resource_name, load_params->temp_texture.name, Constants::max_texture_name_length);
 		load_params->temp_texture.flags = 0;
 		load_params->temp_texture.flags |= has_transparency ? TextureFlags::HasTransparency : 0;
-		
+
+		SHMTRACEV("Loading texture '%s'.", load_params->resource_name);
+		Threading::mutex_lock(system_state->texture_load_mutex);
+		Memory::copy_memory(load_params->out_texture, &old, sizeof(old));
+		Renderer::texture_create(config.pixels, &load_params->temp_texture);
+		Memory::copy_memory(&load_params->temp_texture, load_params->out_texture, sizeof(*load_params->out_texture));
+		Renderer::texture_destroy(&old);
+		Threading::mutex_unlock(system_state->texture_load_mutex);
+
+		SHMTRACEV("Successfully loaded texture '%s'.", load_params->resource_name);
+		ResourceSystem::texture_loader_unload(&resource);
+		system_state->textures_loading_count--;
 		return true;
+	failure:
+		SHMTRACEV("Failed to load texture '%s'.", load_params->resource_name);
+		ResourceSystem::texture_loader_unload(&resource);
+		system_state->textures_loading_count--;
+		return false;
 	}
 
-	static bool8 load_texture(const char* texture_name, Texture* t)
+	static bool8 load_texture_async(const char* texture_name, Texture* t)
 	{	
 		system_state->textures_loading_count++;
-		JobSystem::JobInfo job = JobSystem::job_create(texture_load_job_start, texture_load_on_success, texture_load_on_failure, sizeof(TextureLoadParams), sizeof(TextureLoadParams));
-		TextureLoadParams* params = (TextureLoadParams*)job.params;
+		JobSystem::JobInfo job = JobSystem::job_create(texture_load_job_start, texture_load_on_success, texture_load_on_failure, sizeof(TextureLoadParams));
+		TextureLoadParams* params = (TextureLoadParams*)job.user_data;
 		uint32 name_length = CString::length(texture_name);
-		params->resource_name = (char*)Memory::allocate(name_length + 1, AllocationTag::String);
-		CString::copy(texture_name, params->resource_name, name_length + 1);
+		CString::copy(texture_name, params->resource_name, Constants::max_texture_name_length);
 		params->out_texture = t;
-		params->resource = {};
 		JobSystem::submit(job);
 		return true;
 	}

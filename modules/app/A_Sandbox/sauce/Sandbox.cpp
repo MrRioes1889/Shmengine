@@ -390,7 +390,7 @@ static bool8 application_on_debug_event(uint16 code, void* sender, void* listene
 		choice++;
 		choice %= 3;
 		
-		Mesh* m = scene_get_mesh(&app_state->main_scene, "test_cube1");
+		Mesh* m = scene_get_mesh(&app_state->main_scene, "cube_1");
 		if (!m || !m->geometries.capacity)
 			return false;
 
