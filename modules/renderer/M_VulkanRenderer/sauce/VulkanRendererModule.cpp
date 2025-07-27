@@ -31,7 +31,6 @@ namespace Renderer::Vulkan
 		out_module->on_resized = Vulkan::on_resized;
 
 		out_module->texture_create = Vulkan::vk_texture_create;
-		out_module->texture_create_writable = Vulkan::vk_texture_create_writable;
 		out_module->texture_resize = Vulkan::vk_texture_resize;
 		out_module->texture_write_data = Vulkan::vk_texture_write_data;
 		out_module->texture_read_data = Vulkan::vk_texture_read_data;

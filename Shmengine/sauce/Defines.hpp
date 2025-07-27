@@ -41,6 +41,7 @@ namespace Constants
 	inline constexpr uint32 max_terrain_name_length = 64;
 	inline constexpr uint32 max_buffer_name_length = 64;
 	inline constexpr uint32 max_font_name_length = 64;
+	inline constexpr uint32 max_render_view_name_length = 64;
 
 	inline constexpr uint32 max_terrain_materials_count = 4;
 

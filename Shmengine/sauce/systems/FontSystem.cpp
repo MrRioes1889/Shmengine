@@ -12,7 +12,7 @@ namespace FontSystem
 	struct SystemState
 	{
 		Sarray<FontAtlas> fonts;
-		HashtableRH<FontId> font_lookup;
+		HashtableRH<FontId, Constants::max_font_name_length> font_lookup;
 	};
 
 	static bool8 create_font_data_new(FontConfig* config, FontAtlas* out_font);

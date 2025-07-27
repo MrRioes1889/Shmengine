@@ -471,8 +471,14 @@ namespace Renderer::Vulkan
 		vk_set_scissor(context->scissor_rect);
 	}
 
-	static void _texture_create(Texture* texture, VkFormat image_format)
+	bool8 vk_texture_create(Texture* texture)
 	{
+		VkFormat image_format;
+		if (texture->flags & TextureFlags::IsDepth)
+			image_format = context->device.depth_format;
+		else
+			image_format = VK_FORMAT_R8G8B8A8_UNORM;
+
 		texture->internal_data.init(sizeof(VulkanImage), 0, AllocationTag::Texture);
 		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 
@@ -503,6 +509,7 @@ namespace Renderer::Vulkan
 			image);
 
 		texture->flags |= TextureFlags::IsLoaded;
+		return true;
 	}
 
 	static VkFormat channel_count_to_format(uint32 channel_count, VkFormat default_format) {
@@ -520,53 +527,18 @@ namespace Renderer::Vulkan
 		}
 	}
 
-	void vk_texture_create(const void* pixels, Texture* texture)
-	{
-		
-		uint32 image_size = texture->width * texture->height * texture->channel_count * (texture->type == TextureType::Cube ? 6 : 1);
-		VkFormat image_format;
-
-		if (texture->flags & TextureFlags::IsDepth)
-			image_format = context->device.depth_format;
-		else
-			image_format = VK_FORMAT_R8G8B8A8_UNORM;
-
-		_texture_create(texture, image_format);
-		vk_texture_write_data(texture, 0, image_size, (uint8*)pixels);	
-
-	}
-
-	void vk_texture_create_writable(Texture* texture)
-	{
-		VkFormat image_format;
-		if (texture->flags & TextureFlags::IsDepth)
-			image_format = context->device.depth_format;
-		else
-			image_format = channel_count_to_format(texture->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
-
-		_texture_create(texture, image_format);
-
-	}
-
 	void vk_texture_resize(Texture* texture, uint32 width, uint32 height)
 	{
-
 		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 		if (image)
 		{
 			vk_image_destroy(image);
 
-			VkFormat image_format;
 			texture->width = width;
 			texture->height = height;
-			if (texture->flags & TextureFlags::IsDepth)
-				image_format = context->device.depth_format;
-			else
-				image_format = channel_count_to_format(texture->channel_count, VK_FORMAT_R8G8B8A8_UNORM);
 
-			_texture_create(texture, image_format);
+			vk_texture_create(texture);
 		}		
-
 	}
 
 	bool8 vk_texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
@@ -594,6 +566,8 @@ namespace Renderer::Vulkan
 		VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 		if (image)
 			vk_image_destroy(image);			
+
+		texture->internal_data.free_data();
 	}
 
 	Texture* vk_get_color_attachment(uint32 index)

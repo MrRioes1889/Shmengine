@@ -146,9 +146,7 @@ namespace Renderer::Vulkan
 		else
 		{
 			for (uint32 i = 0; i < out_swapchain->render_textures.capacity; i++)
-			{
 				TextureSystem::resize(&out_swapchain->render_textures[i], swapchain_extent.width, swapchain_extent.height, false);
-			}
 		}
 
 		VkImage swapchain_images[32];

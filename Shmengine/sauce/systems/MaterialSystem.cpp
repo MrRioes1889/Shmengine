@@ -29,7 +29,7 @@ namespace MaterialSystem
 		Material default_ui_material;
 
 		Sarray<Material> materials;
-		HashtableRH<MaterialReference> lookup_table;
+		HashtableRH<MaterialReference, Constants::max_material_name_length> lookup_table;
 	};
 
 	static SystemState* system_state = 0;
@@ -545,7 +545,7 @@ namespace MaterialSystem
 		MaterialReference* ref = system_state->lookup_table.get(name);
 		if (!ref)
 		{
-			SHMWARNV("Tried to release non-existent texture: '%s'", name);
+			SHMWARNV("Tried to release non-existent material: '%s'", name);
 			return MaterialId::invalid_value;
 		}
 		else if (!ref->reference_count)

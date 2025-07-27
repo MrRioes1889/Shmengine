@@ -34,7 +34,7 @@ namespace RenderViewSystem
 	{
 		uint32 views_count;
 		Sarray<RenderView> views;
-		HashtableRH<RenderViewId> lookup_table;
+		HashtableRH<RenderViewId, Constants::max_render_view_name_length> lookup_table;
 
 		RenderViewId default_skybox_view_id;
 		RenderViewId default_world_view_id;

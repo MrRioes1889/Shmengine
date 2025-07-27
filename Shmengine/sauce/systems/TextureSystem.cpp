@@ -21,7 +21,7 @@ namespace TextureSystem
 	{
 		char resource_name[Constants::max_texture_name_length];
 		Texture* out_texture;
-		Texture temp_texture;
+		TextureResourceData resource;
 	};
 
 	struct TextureReference
@@ -39,10 +39,9 @@ namespace TextureSystem
 		Texture default_normal;
 
 		Sarray<Texture> textures;
-		HashtableRH<TextureReference> lookup_table;
+		HashtableRH<TextureReference, Constants::max_texture_name_length> lookup_table;
 
 		// TODO: Build a Solution that does not block when texture data is uploaded to gpu.
-		Threading::Mutex texture_load_mutex;
 		uint32 textures_loading_count;
 	};	
 
@@ -78,12 +77,6 @@ namespace TextureSystem
 
 		create_default_textures();
 
-		if (!Threading::mutex_create(&system_state->texture_load_mutex))
-		{
-			SHMERROR("Failed to create texture load mutex.");
-			return false;
-		}
-
 		return true;
 	}
 
@@ -101,7 +94,6 @@ namespace TextureSystem
 		destroy_default_textures();
 		system_state->textures.free_data();
 		system_state->lookup_table.free_data();
-		Threading::mutex_destroy(&system_state->texture_load_mutex);
 		system_state = 0;
 	}
 
@@ -187,8 +179,7 @@ namespace TextureSystem
 		t->type = TextureType::Plane;
 		t->flags = 0;
 		t->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
-		t->flags |= TextureFlags::IsWritable;
-		Renderer::texture_create_writable(t);
+		Renderer::texture_create(t);
 
 		return t;
 
@@ -231,7 +222,6 @@ namespace TextureSystem
 		t->type = TextureType::Plane;
 		t->flags = 0;
 		t->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
-		t->flags |= TextureFlags::IsWritable;
 		t->flags |= TextureFlags::IsWrapped;
 		t->internal_data.init(internal_data_size, 0, AllocationTag::Texture, internal_data);
 
@@ -247,13 +237,6 @@ namespace TextureSystem
 
 	bool8 resize(Texture* t, uint32 width, uint32 height, bool8 regenerate_internal_data)
 	{
-
-		if (!(t->flags & TextureFlags::IsWritable))
-		{
-			SHMWARNV("resize - Non-writable texture '%s' cannot be resized!", t->name);
-			return false;
-		}
-
 		t->width = width;
 		t->height = height;
 
@@ -263,7 +246,6 @@ namespace TextureSystem
 			return false;
 		}
 		return true;
-
 	}
 
 	void write_to_texture(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
@@ -315,39 +297,51 @@ namespace TextureSystem
 
 	static void texture_load_on_success(void* params)
 	{
-		TextureLoadParams* texture_params = (TextureLoadParams*)params;
+		TextureLoadParams* load_params = (TextureLoadParams*)params;
+		uint32 image_size = load_params->out_texture->width * load_params->out_texture->height * load_params->out_texture->channel_count;
+		TextureConfig config = ResourceSystem::texture_loader_get_config_from_resource(&load_params->resource);
+
+		SHMTRACEV("Loading texture '%s'.", load_params->resource_name);
+		Renderer::texture_create(load_params->out_texture);
+		Renderer::texture_write_data(load_params->out_texture, 0, image_size, config.pixels);
+
+		SHMTRACEV("Successfully loaded texture '%s'.", load_params->resource_name);
+		ResourceSystem::texture_loader_unload(&load_params->resource);
+		system_state->textures_loading_count--;
+
 	}
 
 	static void texture_load_on_failure(void* params)
 	{
-		TextureLoadParams* texture_params = (TextureLoadParams*)params;
+		TextureLoadParams* load_params = (TextureLoadParams*)params;
+		SHMTRACEV("Failed to load texture '%s'.", load_params->resource_name);
+		ResourceSystem::texture_loader_unload(&load_params->resource);
+		system_state->textures_loading_count--;
 	}
 
 	static bool8 texture_load_job_start(uint32 thread_index, void* user_data)
 	{
 		TextureLoadParams* load_params = (TextureLoadParams*)user_data;
 		uint8* pixels = 0;
-		uint64 size = 0;
+		uint32 image_size = 0;
 		bool8 has_transparency = false;
 		TextureConfig config = {};
-		Texture old = {};
 
-		TextureResourceData resource = {};
-		goto_on_fail_log(ResourceSystem::texture_loader_load(load_params->resource_name, true, &resource), failure,
+		goto_on_fail_log(ResourceSystem::texture_loader_load(load_params->resource_name, true, &load_params->resource), failure,
 			"Failed to load image resources for texture '%s'", load_params->resource_name);
 
-		config = ResourceSystem::texture_loader_get_config_from_resource(&resource);
-		load_params->temp_texture.channel_count = config.channel_count;
-		load_params->temp_texture.width = config.width;
-		load_params->temp_texture.height = config.height;
-		load_params->temp_texture.type = TextureType::Plane;
+		config = ResourceSystem::texture_loader_get_config_from_resource(&load_params->resource);
+		load_params->out_texture->channel_count = config.channel_count;
+		load_params->out_texture->width = config.width;
+		load_params->out_texture->height = config.height;
+		load_params->out_texture->type = TextureType::Plane;
 
 		load_params->out_texture->flags &= ~TextureFlags::IsLoaded;
 
 		pixels = config.pixels;
-		size = load_params->temp_texture.width * load_params->temp_texture.height * load_params->temp_texture.channel_count;
+		image_size = load_params->out_texture->width * load_params->out_texture->height * load_params->out_texture->channel_count;
 		has_transparency = false;
-		for (uint64 i = 0; i < size; i += config.channel_count)
+		for (uint64 i = 0; i < image_size; i += config.channel_count)
 		{
 			uint8 a = pixels[i + 3];
 			if (a < 255)
@@ -357,26 +351,12 @@ namespace TextureSystem
 			}
 		}
 
-		CString::copy(load_params->resource_name, load_params->temp_texture.name, Constants::max_texture_name_length);
-		load_params->temp_texture.flags = 0;
-		load_params->temp_texture.flags |= has_transparency ? TextureFlags::HasTransparency : 0;
+		CString::copy(load_params->resource_name, load_params->out_texture->name, Constants::max_texture_name_length);
+		load_params->out_texture->flags = 0;
+		load_params->out_texture->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
 
-		SHMTRACEV("Loading texture '%s'.", load_params->resource_name);
-		Threading::mutex_lock(system_state->texture_load_mutex);
-		Memory::copy_memory(load_params->out_texture, &old, sizeof(old));
-		Renderer::texture_create(config.pixels, &load_params->temp_texture);
-		Memory::copy_memory(&load_params->temp_texture, load_params->out_texture, sizeof(*load_params->out_texture));
-		Renderer::texture_destroy(&old);
-		Threading::mutex_unlock(system_state->texture_load_mutex);
-
-		SHMTRACEV("Successfully loaded texture '%s'.", load_params->resource_name);
-		ResourceSystem::texture_loader_unload(&resource);
-		system_state->textures_loading_count--;
 		return true;
 	failure:
-		SHMTRACEV("Failed to load texture '%s'.", load_params->resource_name);
-		ResourceSystem::texture_loader_unload(&resource);
-		system_state->textures_loading_count--;
 		return false;
 	}
 
@@ -388,6 +368,7 @@ namespace TextureSystem
 		uint32 name_length = CString::length(texture_name);
 		CString::copy(texture_name, params->resource_name, Constants::max_texture_name_length);
 		params->out_texture = t;
+		params->resource = {};
 		JobSystem::submit(job);
 		return true;
 	}
@@ -395,8 +376,8 @@ namespace TextureSystem
 	static bool8 load_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t)
 	{
 
-		Buffer pixels = {};
-		uint64 image_size = 0;
+		Sarray<uint8> pixels = {};
+		uint32 image_size = 0;
 
 		for (uint32 i = 0; i < 6; i++)
 		{
@@ -437,8 +418,8 @@ namespace TextureSystem
 
 		}
 
-		Renderer::texture_create(pixels.data, t);
-		t->flags |= TextureFlags::IsLoaded;
+		Renderer::texture_create(t);
+		Renderer::texture_write_data(t, 0, pixels.capacity, pixels.data);
 		pixels.free_data();
 		return true;
 
@@ -488,7 +469,8 @@ namespace TextureSystem
 		system_state->default_texture.type = TextureType::Plane;
 		system_state->default_texture.flags = 0;
 
-		Renderer::texture_create(pixels, &system_state->default_texture);
+		Renderer::texture_create(&system_state->default_texture);
+		Renderer::texture_write_data(&system_state->default_texture, 0, sizeof(pixels), pixels);
 
 		// Diffuse texture.
 		SHMTRACE("Creating default diffuse texture...");
@@ -501,7 +483,8 @@ namespace TextureSystem
 		system_state->default_diffuse.channel_count = 4;
 		system_state->default_diffuse.type = TextureType::Plane;
 		system_state->default_diffuse.flags = 0;
-		Renderer::texture_create(diff_pixels, &system_state->default_diffuse);
+		Renderer::texture_create(&system_state->default_diffuse);
+		Renderer::texture_write_data(&system_state->default_diffuse, 0, sizeof(diff_pixels), diff_pixels);
 
 		// Specular texture.
 		SHMTRACE("Creating default specular texture...");
@@ -515,7 +498,8 @@ namespace TextureSystem
 		system_state->default_specular.channel_count = 4;
 		system_state->default_specular.type = TextureType::Plane;
 		system_state->default_specular.flags = 0;
-		Renderer::texture_create(spec_pixels, &system_state->default_specular);
+		Renderer::texture_create(&system_state->default_specular);
+		Renderer::texture_write_data(&system_state->default_specular, 0, sizeof(spec_pixels), spec_pixels);
 
 		// Normal texture
 		SHMTRACE("Creating default normal texture...");
@@ -542,7 +526,8 @@ namespace TextureSystem
 		system_state->default_normal.channel_count = 4;
 		system_state->default_normal.type = TextureType::Plane;
 		system_state->default_normal.flags = 0;
-		Renderer::texture_create(normal_pixels, &system_state->default_normal);
+		Renderer::texture_create(&system_state->default_normal);
+		Renderer::texture_write_data(&system_state->default_normal, 0, sizeof(normal_pixels), normal_pixels);
 
 	}
 

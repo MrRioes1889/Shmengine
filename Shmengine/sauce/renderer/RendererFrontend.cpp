@@ -286,14 +286,9 @@ namespace Renderer
 		return system_state->module.renderpass_end(pass);
 	}
 
-	void texture_create(const void* pixels, Texture* texture)
+	bool8 texture_create(Texture* texture)
 	{
-		system_state->module.texture_create(pixels, texture);
-	}
-
-	void texture_create_writable(Texture* texture)
-	{
-		system_state->module.texture_create_writable(texture);
+		 return system_state->module.texture_create(texture);
 	}
 
 	void texture_resize(Texture* texture, uint32 width, uint32 height)

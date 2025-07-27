@@ -8,7 +8,7 @@
 
 #include "optick.h"
 
-#define MT_ENABLED 1
+#define MT_ENABLED 0
 
 namespace JobSystem
 {
@@ -207,23 +207,14 @@ namespace JobSystem
 		Threading::mutex_unlock(queue_mutex);
 		//SHMTRACE("Job queued.");
 #else
-		bool8 result = info.entry_point(info.params, info.results);
-		if (result)
-			info.on_success(info.results);
-		else
-			info.on_failure(info.results);
+		bool8 result = info.entry_point(0, info.user_data);
 
-		if (info.params)
-		{
-			Memory::free_memory(info.params);
-			info.params = 0;
-		}
-		if (info.results)
-		{
-			Memory::free_memory(info.results);
-			info.results = 0;
-		}
+		if (result && info.on_success)
+			info.on_success(info.user_data);
+		else if (!result && info.on_failure)
+			info.on_failure(info.user_data);
 
+		Memory::free_memory(info.user_data);
 #endif
 
 	}

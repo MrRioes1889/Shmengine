@@ -11,12 +11,10 @@ namespace TextureFlags
 	enum : uint8
 	{
 		HasTransparency = 1 << 0,
-		IsWritable = 1 << 1,
-		IsReadable = 1 << 2,
-		IsWrapped = 1 << 3,
-		FlipY = 1 << 4,
-		IsDepth = 1 << 5,
-		IsLoaded = 1 << 6
+		IsWrapped = 1 << 1,
+		FlipY = 1 << 2,
+		IsDepth = 1 << 3,
+		IsLoaded = 1 << 4
 	};
 	typedef uint8 Value;
 }

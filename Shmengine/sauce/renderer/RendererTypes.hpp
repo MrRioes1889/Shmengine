@@ -363,8 +363,7 @@ namespace Renderer
 		void (*set_scissor)(Math::Rect2Di rect);
 		void (*reset_scissor)();
 
-		void (*texture_create)(const void* pixels, Texture* texture);
-		void (*texture_create_writable)(Texture* texture);
+		bool8 (*texture_create)(Texture* texture);
 		void (*texture_resize)(Texture* texture, uint32 width, uint32 height);
 		bool8(*texture_write_data)(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
 		bool8(*texture_read_data)(Texture* t, uint32 offset, uint32 size, void* out_memory);

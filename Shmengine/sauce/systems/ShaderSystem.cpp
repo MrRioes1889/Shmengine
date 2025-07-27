@@ -17,7 +17,7 @@ namespace ShaderSystem
 		uint16 max_global_textures;
 		uint16 max_instance_textures;
 
-		HashtableRH<ShaderId> lookup_table;
+		HashtableRH<ShaderId, Constants::max_shader_name_length> lookup_table;
 		Sarray<Shader> shaders;
 		TextureMap default_texture_map;
 

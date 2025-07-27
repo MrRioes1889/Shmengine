@@ -51,8 +51,7 @@ namespace Renderer
 	SHMAPI bool8 renderpass_begin(RenderPass* pass, RenderTarget* target);
 	SHMAPI bool8 renderpass_end(RenderPass* pass);
 
-	SHMAPI void texture_create(const void* pixels, Texture* texture);
-	SHMAPI void texture_create_writable(Texture * texture);
+	SHMAPI bool8 texture_create(Texture* texture);
 	SHMAPI void texture_resize(Texture* texture, uint32 width, uint32 height);
 	SHMAPI bool8 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
 	SHMAPI bool8 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory);

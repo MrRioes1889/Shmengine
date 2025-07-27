@@ -133,13 +133,13 @@ namespace HashtableCHFlag
 }
 
 // Hashtable using a coalesced hashing scheme (colliding keys stored in same array with offsets)
-template <typename ObjectT>
+template <typename ObjectT, uint32 key_buffer_size>
 struct HashtableCH
 {
 	typedef Id32 NodeIndex;
 	struct KeyNode
 	{
-		const char* key;
+		char key_string[key_buffer_size];
 		NodeIndex next_index;
 	};
 
@@ -274,7 +274,7 @@ private:
 					object_arr.resize(key_arr.capacity);
 				}
 
-				if (!key_arr[insert_index].key)
+				if (!key_arr[insert_index].key_string[0])
 					break;
 			}
 
@@ -282,7 +282,7 @@ private:
 			new_node = &key_arr[insert_index];
 		}
 
-		new_node->key = key;
+		CString::copy(key, new_node->key, key_buffer_size);
 		return insert_index;
 	}
 
@@ -296,7 +296,7 @@ private:
 			node->next_index = 0;
 		}
 
-		node->key = 0;
+		node->key_string[0] = 0;
 		object_arr[index].~ObjectT();
 	}
 };
@@ -312,14 +312,14 @@ namespace HashtableRHFlag
 }
 
 // Hashtable using a "Robin Hood" hashing scheme
-template <typename ObjectT>
+template <typename ObjectT, uint32 key_buffer_size>
 struct HashtableRH
 {
 	typedef Id32 NodeIndex;
 	struct KeyNode
 	{
 		uint16 psl;
-		const char* key;
+		char key_string[key_buffer_size];
 	};
 
 	HashtableRH(const HashtableRH& other) = delete;
@@ -419,13 +419,13 @@ private:
 		uint16 lookup_psl = 0;
 		NodeIndex index = hash;
 
-		for (;; index = index < key_arr.capacity - 1 ? index + 1 : 0, lookup_psl++)
+		for (;; index = (index + 1) % key_arr.capacity, lookup_psl++)
 		{
 			KeyNode* node = &key_arr[index];
 			if (lookup_psl > node->psl)
 				break;
 
-			if (node->key && CString::equal(key, node->key))
+			if (node->key_string[0] && CString::equal(key, node->key_string))
 				return index;
 		}
 
@@ -434,15 +434,16 @@ private:
 	
 	SHMINLINE void swap_nodes(NodeIndex insert_index, KeyNode* key_node, ObjectT* object_node)
 	{
-		KeyNode tmp_key = *key_node;
-		*key_node = key_arr[insert_index];
-		key_arr[insert_index] = tmp_key;
+		KeyNode tmp_key;
+		Memory::copy_memory(key_node, &tmp_key, sizeof(key_arr[0]));
+		Memory::copy_memory(&key_arr[insert_index], key_node, sizeof(key_arr[0]));
+		Memory::copy_memory(&tmp_key, &key_arr[insert_index], sizeof(key_arr[0]));
 
-		// NOTE: Using generic buffer and memcopies to avoid unnecessary constructor calls
+		// NOTE: Using generic buffer and memcopies to avoid unnecessary constructor/destructor calls
 		char tmp[sizeof(ObjectT) + 1] = {};
-		Memory::copy_memory(object_node, tmp, sizeof(ObjectT));
-		Memory::copy_memory(&object_arr[insert_index], object_node, sizeof(ObjectT));
-		Memory::copy_memory(tmp, &object_arr[insert_index], sizeof(ObjectT));
+		Memory::copy_memory(object_node, tmp, sizeof(object_arr[0]));
+		Memory::copy_memory(&object_arr[insert_index], object_node, sizeof(object_arr[0]));
+		Memory::copy_memory(tmp, &object_arr[insert_index], sizeof(object_arr[0]));
 	}
 
 	NodeIndex insert(const char* key, NodeIndex hash)
@@ -451,7 +452,7 @@ private:
 			return NodeIndex::invalid_value;
 
 		KeyNode insert_key_node = {};
-		insert_key_node.key = key;
+		CString::copy(key, insert_key_node.key_string, key_buffer_size);
 		insert_key_node.psl = 0;
 
 		ObjectT insert_object = {};
@@ -462,9 +463,9 @@ private:
 		{
 			KeyNode* node = &key_arr[index];
 
-			if (!node->key)
+			if (!node->key_string[0])
 			{
-				*node = insert_key_node;
+				Memory::copy_memory(&insert_key_node, node, sizeof(key_arr[0]));
 				Memory::copy_memory(&insert_object, &object_arr[index], sizeof(object_arr[0]));
 				if (!first_insert_index.is_valid())
 					first_insert_index = index;
@@ -486,7 +487,7 @@ private:
 	{
 		object_arr[remove_index].~ObjectT();
 		key_arr[remove_index].psl = 0;
-		key_arr[remove_index].key = 0;
+		key_arr[remove_index].key_string[0] = 0;
 
 		uint32 backshift_count = 0;
 		uint32 backshift_start = (remove_index + 1) % key_arr.capacity;
@@ -520,7 +521,7 @@ private:
 
 		Memory::zero_memory(&object_arr[clear_index], sizeof(object_arr[0]));
 		key_arr[clear_index].psl = 0;
-		key_arr[clear_index].key = 0;
+		key_arr[clear_index].key_string[0] = 0;
 		key_count--;
 	}
 };

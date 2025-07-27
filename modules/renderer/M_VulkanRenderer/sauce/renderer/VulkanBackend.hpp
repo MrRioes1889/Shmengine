@@ -38,8 +38,7 @@ namespace Renderer::Vulkan
 	bool8 vk_renderpass_begin(RenderPass* renderpass, RenderTarget* render_target);
 	bool8 vk_renderpass_end(RenderPass* renderpass);
 
-	void vk_texture_create(const void* pixels, Texture* texture);
-	void vk_texture_create_writable(Texture* texture);
+	bool8 vk_texture_create(Texture* texture);
 	void vk_texture_resize(Texture* texture, uint32 width, uint32 height);
 	bool8 vk_texture_write_data(Texture* texture, uint32 offset, uint32 size, const uint8* pixels);
 	bool8 vk_texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory);

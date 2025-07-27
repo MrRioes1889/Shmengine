@@ -370,13 +370,11 @@ bool8 render_view_pick_regenerate_attachment_target(const RenderView* self, uint
 	attachment->texture->width = width;
 	attachment->texture->height = height;
 	attachment->texture->channel_count = 4;
-	attachment->texture->flags |= TextureFlags::IsWritable | TextureFlags::IsReadable;
 	attachment->texture->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
 	if (attachment->type == Renderer::RenderTargetAttachmentType::DEPTH)
 		attachment->texture->flags |= TextureFlags::IsDepth;
 
-	Renderer::texture_create_writable(attachment->texture);
-	attachment->texture->flags |= TextureFlags::IsLoaded;
+	Renderer::texture_create(attachment->texture);
 
 	return true;
 }
