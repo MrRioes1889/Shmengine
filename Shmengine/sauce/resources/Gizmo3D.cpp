@@ -124,7 +124,7 @@ void gizmo3D_set_mode(Gizmo3D* gizmo, GizmoMode mode)
 static void update_vertices(Gizmo3D* gizmo)
 {
 
-	SarrayRef<byte, Renderer::VertexColor3D> vertices(&gizmo->geometry.vertices);
+	SarrayRef<Renderer::VertexColor3D> vertices(&gizmo->geometry.vertices);
 	Math::Extents3D extents = gizmo->geometry.extents;
 
 	uint32 vertex_count = 0;

@@ -191,6 +191,7 @@ static void regenerate_geometry(UIText* ui_text, const FontAtlas* atlas)
     float32 x = 0;
     float32 y = 0;
     uint32 quad_count = 0;
+    SarrayRef<Renderer::Vertex2D> vertices(&geometry->vertices);
     for (uint32 c = 0; c < ui_text->text.len(); c++) 
     {
         char codepoint = ui_text->text[c];
@@ -234,10 +235,10 @@ static void regenerate_geometry(UIText* ui_text, const FontAtlas* atlas)
 		Renderer::Vertex2D p2 = { {maxx, maxy}, {tmaxx, tmaxy} };
 		Renderer::Vertex2D p3 = { {minx, maxy}, {tminx, tmaxy} };
 
-		geometry->vertices.get_as<Renderer::Vertex2D>((quad_count * 4) + 0) = p0;  // 0    3
-		geometry->vertices.get_as<Renderer::Vertex2D>((quad_count * 4) + 1) = p2;  //
-		geometry->vertices.get_as<Renderer::Vertex2D>((quad_count * 4) + 2) = p3;  //
-		geometry->vertices.get_as<Renderer::Vertex2D>((quad_count * 4) + 3) = p1;  // 2    1
+		vertices[(quad_count * 4) + 0] = p0;  // 0    3
+		vertices[(quad_count * 4) + 1] = p2;  //
+		vertices[(quad_count * 4) + 2] = p3;  //
+		vertices[(quad_count * 4) + 3] = p1;  // 2    1
 
 		int32 kerning = 0;
 		x += glyph->x_advance + kerning;

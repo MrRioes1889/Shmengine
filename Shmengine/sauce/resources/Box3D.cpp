@@ -129,7 +129,7 @@ void box3D_set_color(Box3D* box, Math::Vec4f color)
 static void update_vertices(Box3D* box)
 {
 
-	SarrayRef<byte, Renderer::VertexColor3D> vertices(&box->geometry.vertices);
+	SarrayRef<Renderer::VertexColor3D> vertices(&box->geometry.vertices);
 	Math::Extents3D extents = box->geometry.extents;
 
 	{

@@ -125,10 +125,11 @@ void line3D_set_color(Line3D* line, Math::Vec4f color)
 
 static void update_vertices(Line3D* line)
 {
-	Renderer::VertexColor3D& v0 = line->geometry.vertices.get_as<Renderer::VertexColor3D>(0);
+	SarrayRef<Renderer::VertexColor3D> vertices(&line->geometry.vertices);
+	Renderer::VertexColor3D& v0 = vertices[0];
 	v0.position = line->point0;
 	v0.color = line->color;
-	Renderer::VertexColor3D& v1 = line->geometry.vertices.get_as<Renderer::VertexColor3D>(1);
+	Renderer::VertexColor3D& v1 = vertices[1];
 	v1.position = line->point1;
 	v1.color = line->color;
 }

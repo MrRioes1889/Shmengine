@@ -81,22 +81,6 @@ struct Sarray
 		return data[index];
 	}
 
-	template<typename SubT>
-	SHMINLINE SubT& get_as(uint32 index)
-	{
-		uint32 sub_t_max_count = (sizeof(T) * capacity) / sizeof(SubT);
-		SHMASSERT_MSG(index + 1 <= sub_t_max_count, "Index does not lie within bounds of Sarray.");
-		return ((SubT*)data)[index];
-	}
-
-	template<typename SubT>
-	SHMINLINE const SubT& get_as(uint32 index) const
-	{
-		uint32 sub_t_max_count = (sizeof(T) * capacity) / sizeof(SubT);
-		SHMASSERT_MSG(index + 1 <= sub_t_max_count, "Index does not lie within bounds of Sarray.");
-		return ((SubT*)data)[index];
-	}
-
 	SHMINLINE uint64 size() const
 	{
 		return capacity * sizeof(T);
@@ -248,28 +232,36 @@ SHMINLINE void Sarray<T>::copy_memory(const void* source, uint32 copy_count, uin
 	Memory::copy_memory(source, dest, copy_count * sizeof(T));
 }
 
-template <typename Src, typename Dst>
+template <typename DstType>
 struct SarrayRef
 {
 	SarrayRef() = delete;
-	SarrayRef(const Sarray<Src>* arr)
+	template <typename SrcType>
+	SarrayRef(const Sarray<SrcType>* arr)
 	{
-		capacity = (uint32)(arr->size() / sizeof(Dst));
-		data = (Dst*)arr->data;
+		capacity = (uint32)(arr->size() / sizeof(DstType));
+		data = (DstType*)arr->data;
 	}
 
-	SHMINLINE Dst& operator[](uint32 index)
+	SarrayRef(void* data, uint64 buffer_size)
+	{
+		capacity = (uint32)(buffer_size / sizeof(DstType));
+		data = (DstType*)data;
+	}
+
+	SHMINLINE DstType& operator[](uint32 index)
 	{
 		SHMASSERT_MSG(index + 1 <= capacity, "Index does not lie within bounds of Sarray.");
 		return data[index];
 	}
 
-	SHMINLINE const Dst& operator[](uint32 index) const
+	SHMINLINE const DstType& operator[](uint32 index) const
 	{
 		SHMASSERT_MSG(index + 1 <= capacity, "Index does not lie within bounds of Sarray.");
 		return data[index];
 	}
 
-	Dst* data;
+	DstType* data;
 	uint32 capacity;
 };
+

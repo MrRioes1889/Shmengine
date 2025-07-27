@@ -124,11 +124,12 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 	geometry_config.index_count = out_terrain->tile_count_x * out_terrain->tile_count_z * 6;
 	geometry_config.indices.init(geometry_config.index_count, 0);
 
+	SarrayRef<TerrainVertex> vertices(&geometry_config.vertices);
 	for (uint32 z = 0, i = 0; z < out_terrain->tile_count_z + 1; z++)
 	{
 		for (uint32 x = 0; x < out_terrain->tile_count_x + 1; x++, i++)
 		{
-			TerrainVertex* v = &geometry_config.vertices.get_as<TerrainVertex>(i);
+			TerrainVertex* v = &vertices[i];
 			v->position.x = x * out_terrain->tile_scale_x + geometry_config.extents.min.x;		
 			v->position.y = out_terrain->vertex_infos[i].height * out_terrain->scale_y + geometry_config.extents.min.y;
 			v->position.z = z * out_terrain->tile_scale_z + geometry_config.extents.min.z;

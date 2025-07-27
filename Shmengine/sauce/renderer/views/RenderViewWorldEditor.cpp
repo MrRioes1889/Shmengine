@@ -87,7 +87,7 @@ bool8 render_view_world_editor_on_create(RenderView* self)
 	grid_geometry_config.vertex_size = sizeof(VertexCoordinateGrid);
 	grid_geometry_config.vertex_count = 6;
 	grid_geometry_config.vertices.init(grid_geometry_config.vertex_size * grid_geometry_config.vertex_count, 0);
-	SarrayRef<byte, VertexCoordinateGrid> grid_vertices(&grid_geometry_config.vertices);
+	SarrayRef<VertexCoordinateGrid> grid_vertices(&grid_geometry_config.vertices);
 	for (uint32 i = 0; i < grid_vertices.capacity; i++)
 		grid_vertices[i].index = i;
 
