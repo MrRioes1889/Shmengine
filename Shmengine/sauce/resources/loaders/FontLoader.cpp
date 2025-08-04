@@ -103,12 +103,12 @@ namespace ResourceSystem
             String shmbmf_filepath(Constants::max_filepath_length);
             shmbmf_filepath = full_filepath_wo_extension;
             shmbmf_filepath.append(".shmbmf");
-            goto_on_fail(import_fnt_file(&f, name, shmbmf_filepath.c_str(), out_resource), failure);
+            goto_if(!import_fnt_file(&f, name, shmbmf_filepath.c_str(), out_resource), fail);
             break;
         }
         case FontFileType::SHMBMF:
         {
-            goto_on_fail(load_shmbmf_file(&f, full_filepath.c_str(), out_resource), failure);
+            goto_if(!load_shmbmf_file(&f, full_filepath.c_str(), out_resource), fail);
             break;
         }
         case FontFileType::TTF:
@@ -116,8 +116,8 @@ namespace ResourceSystem
             String ttf_filepath(Constants::max_filepath_length);
             ttf_filepath = full_filepath_wo_extension;
             ttf_filepath.append(".shmttf");
-            goto_on_fail(import_ttf_file(&f, name, ttf_filepath.c_str(), &binary_buffer), failure);
-            goto_on_fail_log(parse_ttf_binary_data(name, font_size, &binary_buffer, out_resource), failure, "Failed parse binary data for ttf file '%s'!", full_filepath.c_str());
+            goto_if(!import_ttf_file(&f, name, ttf_filepath.c_str(), &binary_buffer), fail);
+            goto_if_log(!parse_ttf_binary_data(name, font_size, &binary_buffer, out_resource), fail, "Failed parse binary data for ttf file '%s'!", full_filepath.c_str());
             break;
         }
         default:
@@ -126,12 +126,12 @@ namespace ResourceSystem
         }
         }
 
-        goto_on_fail_log(out_resource->font_size == font_size, failure, "Resource font size does not match expected font size!");
+        goto_if_log(out_resource->font_size != font_size, fail, "Resource font size does not match expected font size!");
         FileSystem::file_close(&f);
         binary_buffer.free_data();
         return true;
 
-    failure:
+    fail:
         FileSystem::file_close(&f);
         binary_buffer.free_data();
         font_loader_unload(out_resource);

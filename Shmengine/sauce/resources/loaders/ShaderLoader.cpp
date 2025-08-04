@@ -410,10 +410,11 @@ namespace ResourceSystem
         resource->uniforms.free_data();
     }
 
-    ShaderConfig shader_loader_get_config_from_resource(ShaderResourceData* resource)
+    ShaderConfig shader_loader_get_config_from_resource(ShaderResourceData* resource, Renderer::RenderPass* renderpass)
     {
         ShaderConfig config = {};
         config.name = resource->name;
+        config.renderpass = renderpass;
         config.cull_mode = resource->cull_mode;
         config.topologies = resource->topologies;
         config.depth_test = resource->depth_test;

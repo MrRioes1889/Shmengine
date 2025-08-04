@@ -22,5 +22,5 @@ namespace ResourceSystem
 	bool8 shader_loader_load(const char* name, ShaderResourceData* out_resource);
 	void shader_loader_unload(ShaderResourceData* resource);
 
-	ShaderConfig shader_loader_get_config_from_resource(ShaderResourceData* resource);
+	ShaderConfig shader_loader_get_config_from_resource(ShaderResourceData* resource, Renderer::RenderPass* renderpass);
 }

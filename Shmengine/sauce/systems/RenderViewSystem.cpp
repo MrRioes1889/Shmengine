@@ -7,7 +7,7 @@
 #include "platform/Platform.hpp"
 #include "renderer/Camera.hpp"
 #include "utility/CString.hpp"
-#include "containers/Hashtable.hpp"
+#include "containers/LinearStorage.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "systems/TextureSystem.hpp"
 #include "optick.h"
@@ -32,9 +32,7 @@ namespace RenderViewSystem
 
 	struct SystemState
 	{
-		uint32 views_count;
-		Sarray<RenderView> views;
-		HashtableRH<RenderViewId, Constants::max_render_view_name_length> lookup_table;
+		LinearHashedStorage<RenderView, RenderViewId, Constants::max_render_view_name_length> view_storage;
 
 		RenderViewId default_skybox_view_id;
 		RenderViewId default_world_view_id;
@@ -45,7 +43,11 @@ namespace RenderViewSystem
 		Camera default_world_camera;
 	};
 
+	static bool8 _create_view(const RenderViewConfig* config, RenderView* out_view);
+	static void _destroy_view(RenderView* view);
+
 	static bool8 create_default_render_views();
+	static void regenerate_render_targets(RenderView* view);
 	static bool8 on_event(uint16 code, void* sender, void* listener_inst, EventData data);
 
 	static SystemState* system_state = 0;
@@ -55,16 +57,9 @@ namespace RenderViewSystem
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		uint64 view_array_size = system_state->views.get_external_size_requirement(sys_config->max_view_count);
-		void* view_array_data = allocator_callback(allocator, view_array_size);
-		system_state->views.init(sys_config->max_view_count, 0, AllocationTag::Array, view_array_data);
-
-		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_view_count);
-		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup_table.init(sys_config->max_view_count, HashtableRHFlag::ExternalMemory, AllocationTag::Unknown, hashtable_data);
-
-		for (uint32 i = 0; i < system_state->views.capacity; i++)
-			system_state->views[i].id.invalidate();
+		uint64 view_storage_data_size = system_state->view_storage.get_external_size_requirement(sys_config->max_view_count);
+		void* view_storage_data = allocator_callback(allocator, view_storage_data_size);
+		system_state->view_storage.init(sys_config->max_view_count, AllocationTag::Renderer, view_storage_data);
 
 		system_state->default_pick_view_id.invalidate();
 		system_state->default_skybox_view_id.invalidate();
@@ -74,7 +69,6 @@ namespace RenderViewSystem
 
 		system_state->default_world_camera = Camera();
 
-		system_state->views_count = 0;
 		Event::event_register(SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, 0, on_event);
 
 		create_default_render_views();
@@ -84,89 +78,97 @@ namespace RenderViewSystem
 
 	void system_shutdown(void* state)
 	{
-		for (uint16 i = 0; i < system_state->views.capacity; i++)
-		{
-			if (system_state->views[i].id.is_valid())
-				destroy_view(i);
-		}
-
 		Event::event_unregister(SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED, 0, on_event);
-		system_state->lookup_table.free_data();
-		system_state->views.free_data();
-		system_state = 0;
+
+		auto iter = system_state->view_storage.get_iterator();
+		while (RenderView* view = iter.get_next())
+		{
+			RenderViewId view_id;
+			system_state->view_storage.release(view->name.c_str(), &view_id, &view);
+			_destroy_view(view);
+			system_state->view_storage.verify_write(view_id);
+		}
+		system_state->view_storage.destroy();
 	}
 
 	bool8 create_view(const RenderViewConfig* config)
 	{
-		if (system_state->lookup_table.get(config->name)) 
+        RenderViewId id;
+        RenderView* view;
+
+        StorageReturnCode ret_code = system_state->view_storage.acquire(config->name, &id, &view);
+		switch (ret_code)
 		{
-			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", config->name);
+		case StorageReturnCode::OutOfMemory:
+		{
+			SHMERROR("Failed to add view to render view system: Out of memory!");
 			return false;
 		}
-
-		RenderViewId ref_id = RenderViewId::invalid_value;
-		for (uint16 i = 0; i < (uint16)system_state->views.capacity; i++) {
-			if (!system_state->views[i].id.is_valid()) {
-				ref_id = i;
-				break;
-			}
-		}
-
-		if (!ref_id.is_valid()) {
-			SHMERROR("RenderViewSystem::create - No available space for a new view. Change system config to account for more.");
-			return false;
-		}
-
-		RenderView* view = &system_state->views[ref_id];
-		view->id = ref_id;
-
-		view->name = config->name;
-		view->custom_shader_name = config->custom_shader_name;
-		view->width = config->width;
-		view->height = config->height;
-		view->enabled = true;
-
-		view->on_build_packet = config->on_build_packet;
-		view->on_end_frame = config->on_end_frame;
-		view->on_create = config->on_create;
-		view->on_render = config->on_render;
-		view->on_resize = config->on_resize;
-		view->on_destroy = config->on_destroy;
-		view->on_regenerate_attachment_target = config->on_regenerate_attachment_target;
-
-		view->renderpasses.init(config->renderpass_count, 0, AllocationTag::Renderer);
-		for (uint32 pass_i = 0; pass_i < view->renderpasses.capacity; pass_i++)
+		case StorageReturnCode::AlreadyExisted:
 		{
-			if (!Renderer::renderpass_create(&config->renderpass_configs[pass_i], &view->renderpasses[pass_i]))
+			SHMWARNV("Render view named '%s' already exists", config->name);
+            return true;
+		}
+		}
+
+		goto_if(!_create_view(config, view), fail);
+
+        system_state->view_storage.verify_write(id);
+        return true;
+
+    fail:
+		_destroy_view(view);
+		system_state->view_storage.revert_write(id);
+		SHMERRORV("Failed to create_view '%s'.", config->name);
+		return false;
+	}
+
+	static bool8 _create_view(const RenderViewConfig* config, RenderView* out_view)
+	{
+		out_view->name = config->name;
+		out_view->custom_shader_name = config->custom_shader_name;
+		out_view->width = config->width;
+		out_view->height = config->height;
+		out_view->enabled = true;
+
+		out_view->on_build_packet = config->on_build_packet;
+		out_view->on_end_frame = config->on_end_frame;
+		out_view->on_create = config->on_create;
+		out_view->on_render = config->on_render;
+		out_view->on_resize = config->on_resize;
+		out_view->on_destroy = config->on_destroy;
+		out_view->on_regenerate_attachment_target = config->on_regenerate_attachment_target;
+
+		out_view->renderpasses.init(config->renderpass_count, 0, AllocationTag::Renderer);
+		for (uint32 pass_i = 0; pass_i < out_view->renderpasses.capacity; pass_i++)
+		{
+			if (!Renderer::renderpass_create(&config->renderpass_configs[pass_i], &out_view->renderpasses[pass_i]))
 			{
-				destroy_view(view->id);
 				SHMERROR("Failed to create renderpass!");
 				return false;
 			}
 		}
 
-		view->geometries.init(1, 0, AllocationTag::Renderer);
-		view->instances.init(1, 0, AllocationTag::Renderer);
-		view->objects.init(1, 0, AllocationTag::Renderer);
-
-		if (!view->on_create(view))
-		{
-			destroy_view(view->id);
-			SHMERROR("Failed to perform view's on_register function.");
-			return false;
-		}
-
-		system_state->lookup_table.set_value(view->name.c_str(), ref_id);
-		system_state->views_count++;
-		//regenerate_render_targets(ref_id);
-
-		return true;
+		out_view->geometries.init(1, 0, AllocationTag::Renderer);
+		out_view->instances.init(1, 0, AllocationTag::Renderer);
+		out_view->objects.init(1, 0, AllocationTag::Renderer);
+		
+		return out_view->on_create(out_view);
 	}
 
 	void destroy_view(RenderViewId view_id)
 	{
-		RenderView* view = &system_state->views[view_id];
-		system_state->lookup_table.remove_entry(view->name.c_str());
+		RenderView* view = system_state->view_storage.get_object(view_id);
+		if (!view)
+			return;
+
+		system_state->view_storage.release(view->name.c_str(), &view_id, &view);
+		_destroy_view(view);
+		system_state->view_storage.verify_write(view_id);
+	}
+
+	static void _destroy_view(RenderView* view)
+	{
 		view->on_destroy(view);
 
 		for (uint32 pass_i = 0; pass_i < view->renderpasses.capacity; pass_i++)
@@ -178,27 +180,16 @@ namespace RenderViewSystem
 		view->internal_data.free_data();
 		view->renderpasses.free_data();
 		view->name.free_data();
-
-		view->id.invalidate();
-		system_state->views_count--;
 	}
 
 	RenderView* get(const char* name)
 	{
-		RenderViewId* view_id = system_state->lookup_table.get(name);
-		if (!view_id || !system_state->views[*view_id].id.is_valid())
-			return 0;
-
-		return &system_state->views[*view_id];
+		return system_state->view_storage.get_object(name);
 	}
 
 	RenderViewId get_id(const char* name)
 	{
-		RenderViewId* view_id = system_state->lookup_table.get(name);
-		if (!view_id || !system_state->views[*view_id].id.is_valid())
-			return RenderViewId::invalid_value;
-
-		return *view_id;
+		return system_state->view_storage.get_id(name);
 	}
 
 	Camera* get_bound_world_camera()
@@ -209,8 +200,8 @@ namespace RenderViewSystem
 	bool8 build_packet(RenderViewId view_id, FrameData* frame_data, const RenderViewPacketData* packet_data)
 	{
 		OPTICK_EVENT();
-		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
+		RenderView* view = system_state->view_storage.get_object(view_id);
+		if (!view)
 			return false;
 
 		return view->on_build_packet(view, frame_data, packet_data);
@@ -218,107 +209,34 @@ namespace RenderViewSystem
 
 	void on_window_resize(uint32 width, uint32 height)
 	{
-		for (uint32 i = 0; i < system_state->views.capacity; ++i) 
-		{
-			if (!system_state->views[i].id.is_valid())
-				break;
-
-			system_state->views[i].on_resize(&system_state->views[i], width, height);
-		}
+		auto iter = system_state->view_storage.get_iterator();
+		while (RenderView* view = iter.get_next())
+			view->on_resize(view, width, height);
 	}
 
 	bool8 on_render(FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 	{
 		OPTICK_EVENT();
-		for (uint32 i = 0; i < system_state->views.capacity; ++i) 
-		{
-			if (!system_state->views[i].id.is_valid())
-				break;
-
-			system_state->views[i].on_render(&system_state->views[i], frame_data, frame_number, render_target_index);
-		}
+		auto iter = system_state->view_storage.get_iterator();
+		while (RenderView* view = iter.get_next())
+			view->on_render(view, frame_data, frame_number, render_target_index);
 
 		return true;
 	}
 
 	void on_end_frame()
 	{
-		for (uint32 i = 0; i < system_state->views.capacity; ++i) 
+		auto iter = system_state->view_storage.get_iterator();
+		while (RenderView* view = iter.get_next())
 		{
-			RenderView* view = &system_state->views[i];
-			if (!view->id.is_valid())
-				break;
-
 			view->geometries.clear();
 			view->instances.clear();
 			view->objects.clear();
 			view->on_end_frame(view);
+
 		}
 	}
 
-	void regenerate_render_targets(RenderViewId view_id)
-	{
-		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
-			return;
-
-		for (uint32 p = 0; p < view->renderpasses.capacity; p++)
-		{
-			Renderer::RenderPass* pass = &view->renderpasses[p];
-
-			for (uint32 rt = 0; rt < pass->render_targets.capacity; rt++)
-			{
-				Renderer::RenderTarget* target = &pass->render_targets[rt];
-
-				Renderer::render_target_destroy(target, false);
-
-				for (uint32 att = 0; att < target->attachments.capacity; att++) 
-				{
-					Renderer::RenderTargetAttachment* attachment = &target->attachments[att];
-					if (attachment->source == Renderer::RenderTargetAttachmentSource::DEFAULT) 
-					{
-						if (attachment->type == Renderer::RenderTargetAttachmentType::COLOR) 
-						{
-							attachment->texture = Renderer::get_window_attachment(rt);
-						}
-						else if (attachment->type == Renderer::RenderTargetAttachmentType::DEPTH) 
-						{
-							attachment->texture = Renderer::get_depth_attachment(rt);
-						}
-						else 
-						{
-							SHMFATAL("Unsupported attachment type.");
-							continue;
-						}
-					}
-					else if (attachment->source == Renderer::RenderTargetAttachmentSource::VIEW) 
-					{
-						if (!view->on_regenerate_attachment_target) 
-						{
-							SHMFATAL("View configured as source for an attachment whose view does not support this operation.");
-							continue;
-						}
-	
-						if (!view->on_regenerate_attachment_target(view, p, attachment)) 
-						{
-							SHMERROR("View failed to regenerate attachment target for attachment type.");
-						}
-					}
-				}
-
-				Renderer::render_target_create(
-					target->attachments.capacity,
-					target->attachments.data, 
-					pass, 
-					target->attachments[0].texture->width, 
-					target->attachments[0].texture->height,
-					&pass->render_targets[rt]);
-
-			}
-
-		}
-
-	}
 
 	static void material_get_instance_render_data(Material* material, FrameData* frame_data, ShaderId shader_id, RenderViewInstanceData* out_instance_data)
 	{
@@ -344,8 +262,8 @@ namespace RenderViewSystem
 		if (!shader_id.is_valid())
 			shader_id = ShaderSystem::get_material_phong_shader_id();
 
-		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
+		RenderView* view = system_state->view_storage.get_object(view_id);
+		if (!view)
 			return false;
 
 		RenderViewPacketData packet_data = {};
@@ -419,8 +337,8 @@ namespace RenderViewSystem
 		if (!shader_id.is_valid())
 			shader_id = ShaderSystem::get_skybox_shader_id();
 
-		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
+		RenderView* view = system_state->view_storage.get_object(view_id);
+		if (!view)
 			return false;
 
 		RenderViewPacketData packet_data = {};
@@ -470,8 +388,8 @@ namespace RenderViewSystem
 		if (!shader_id.is_valid())
 			shader_id = ShaderSystem::get_terrain_shader_id();
 
-		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
+		RenderView* view = system_state->view_storage.get_object(view_id);
+		if (!view)
 			return false;
 
 		RenderViewPacketData packet_data = {};
@@ -527,8 +445,8 @@ namespace RenderViewSystem
 		if (!shader_id.is_valid())
 			shader_id = ShaderSystem::get_ui_shader_id();
 
-		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
+		RenderView* view = system_state->view_storage.get_object(view_id);
+		if (!view)
 			return false;
 
 		RenderViewPacketData packet_data = {};
@@ -569,8 +487,8 @@ namespace RenderViewSystem
 		if (!shader_id.is_valid())
 			shader_id = ShaderSystem::get_color3D_shader_id();
 
-		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
+		RenderView* view = system_state->view_storage.get_object(view_id);
+		if (!view)
 			return false;
 
 		RenderViewPacketData packet_data = {};
@@ -614,8 +532,8 @@ namespace RenderViewSystem
 		if (!shader_id.is_valid())
 			shader_id = ShaderSystem::get_color3D_shader_id();
 
-		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
+		RenderView* view = system_state->view_storage.get_object(view_id);
+		if (!view)
 			return false;
 
 		RenderViewPacketData packet_data = {};
@@ -654,8 +572,8 @@ namespace RenderViewSystem
 		if (!shader_id.is_valid())
 			shader_id = ShaderSystem::get_color3D_shader_id();
 
-		RenderView* view = &system_state->views[view_id];
-		if (!view->id.is_valid())
+		RenderView* view = system_state->view_storage.get_object(view_id);
+		if (!view)
 			return false;
 
 		RenderViewPacketData packet_data = {};
@@ -687,7 +605,7 @@ namespace RenderViewSystem
 		geo_render_data->has_transparency = 0;
 		packet_data.geometries_pushed_count++;
 
-		return RenderViewSystem::build_packet(view->id, frame_data, &packet_data);
+		return RenderViewSystem::build_packet(view_id, frame_data, &packet_data);
 	}
 
 	static bool8 create_default_render_views()
@@ -964,19 +882,71 @@ namespace RenderViewSystem
 		return true;
 	}
 
+	static void regenerate_render_targets(RenderView* view)
+	{
+		for (uint32 p = 0; p < view->renderpasses.capacity; p++)
+		{
+			Renderer::RenderPass* pass = &view->renderpasses[p];
+
+			for (uint32 rt = 0; rt < pass->render_targets.capacity; rt++)
+			{
+				Renderer::RenderTarget* target = &pass->render_targets[rt];
+
+				Renderer::render_target_destroy(target, false);
+
+				for (uint32 att = 0; att < target->attachments.capacity; att++) 
+				{
+					Renderer::RenderTargetAttachment* attachment = &target->attachments[att];
+					if (attachment->source == Renderer::RenderTargetAttachmentSource::DEFAULT) 
+					{
+						if (attachment->type == Renderer::RenderTargetAttachmentType::COLOR) 
+						{
+							attachment->texture = Renderer::get_window_attachment(rt);
+						}
+						else if (attachment->type == Renderer::RenderTargetAttachmentType::DEPTH) 
+						{
+							attachment->texture = Renderer::get_depth_attachment(rt);
+						}
+						else 
+						{
+							SHMFATAL("Unsupported attachment type.");
+							continue;
+						}
+					}
+					else if (attachment->source == Renderer::RenderTargetAttachmentSource::VIEW) 
+					{
+						if (!view->on_regenerate_attachment_target) 
+						{
+							SHMFATAL("View configured as source for an attachment whose view does not support this operation.");
+							continue;
+						}
+	
+						if (!view->on_regenerate_attachment_target(view, p, attachment)) 
+							SHMERROR("View failed to regenerate attachment target for attachment type.");
+					}
+				}
+
+				Renderer::render_target_create(
+					target->attachments.capacity,
+					target->attachments.data, 
+					pass, 
+					target->attachments[0].texture->width, 
+					target->attachments[0].texture->height,
+					&pass->render_targets[rt]);
+
+			}
+		}
+	}
+
 	static bool8 on_event(uint16 code, void* sender, void* listener_inst, EventData data)
 	{
 		switch (code)
 		{
 		case SystemEventCode::DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
 		{
-			for (uint32 i = 0; i < system_state->views.capacity; ++i) 
-			{
-				if (!system_state->views[i].id.is_valid())
-					break;
-
-				regenerate_render_targets(system_state->views[i].id);
-			}
+			auto iter = system_state->view_storage.get_iterator();
+			while (RenderView* view = iter.get_next())
+				regenerate_render_targets(view);
 		}
 		}
 

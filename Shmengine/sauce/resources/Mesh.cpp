@@ -33,7 +33,7 @@ bool8 mesh_init(MeshConfig* config, Mesh* out_mesh)
     {
         MeshGeometry* g = &out_mesh->geometries[i];
         CString::copy(config->g_configs[i].material_name, g->material_name, Constants::max_material_name_length);
-        g->g_id = GeometrySystem::acquire_from_config(config->g_configs[i].data_config, true);
+        g->g_id = GeometrySystem::create_geometry(config->g_configs[i].data_config, true);
         g->material = 0;
 
         GeometryData* g_data = GeometrySystem::get_geometry_data(g->g_id);

@@ -23,8 +23,8 @@ namespace GeometrySystem
 	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI GeometryId acquire_by_id(GeometryId id);
-	SHMAPI GeometryId acquire_from_config(GeometryConfig* config, bool8 auto_unload);
+	SHMAPI GeometryId create_geometry(GeometryConfig* config, bool8 auto_destroy);
+	SHMAPI GeometryId acquire_reference(GeometryId id);
 	SHMAPI GeometryData* get_geometry_data(GeometryId id);
 	SHMAPI void release(GeometryId id);
 	SHMAPI uint32 get_ref_count(GeometryId id);

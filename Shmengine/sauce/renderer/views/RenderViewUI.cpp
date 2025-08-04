@@ -17,7 +17,7 @@
 #include <optick.h>
 
 struct RenderViewUIInternalData {
-	Shader* ui_shader;
+	ShaderId ui_shader_id;
 	UIShaderUniformLocations ui_shader_u_locations;
 
 	float32 near_clip;
@@ -44,13 +44,13 @@ bool8 render_view_ui_on_create(RenderView* self)
 		return false;
 	}
 	
-	internal_data->ui_shader = ShaderSystem::get_shader(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
+	internal_data->ui_shader_id = ShaderSystem::get_shader_id(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
 
-	internal_data->ui_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->ui_shader, "projection");
-	internal_data->ui_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->ui_shader, "view");
-	internal_data->ui_shader_u_locations.diffuse_texture = ShaderSystem::get_uniform_index(internal_data->ui_shader, "diffuse_texture");
-	internal_data->ui_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->ui_shader, "model");
-	internal_data->ui_shader_u_locations.properties = ShaderSystem::get_uniform_index(internal_data->ui_shader, "properties");
+	internal_data->ui_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "projection");
+	internal_data->ui_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "view");
+	internal_data->ui_shader_u_locations.diffuse_texture = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "diffuse_texture");
+	internal_data->ui_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "model");
+	internal_data->ui_shader_u_locations.properties = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "properties");
 
 	internal_data->near_clip = -100.0f;
 	internal_data->far_clip = 100.0f;
@@ -97,28 +97,24 @@ void render_view_ui_on_end_frame(RenderView* self)
 
 static bool8 set_globals_ui(RenderViewUIInternalData* internal_data)
 {
-
-	ShaderSystem::bind_shader(internal_data->ui_shader->id);
+	ShaderSystem::bind_shader(internal_data->ui_shader_id);
 	ShaderSystem::bind_globals();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.projection, &internal_data->projection_matrix));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.view, &internal_data->view_matrix));
 
-	return Renderer::shader_apply_globals(internal_data->ui_shader);
-
+	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->ui_shader_id));
 }
 
 static bool8 set_instance_ui(RenderViewUIInternalData* internal_data, RenderViewInstanceData instance)
 {
-
-	ShaderSystem::bind_shader(internal_data->ui_shader->id);
+	ShaderSystem::bind_shader(internal_data->ui_shader_id);
 	ShaderSystem::bind_instance(instance.shader_instance_id);
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.properties, instance.instance_properties));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.diffuse_texture, instance.texture_maps[0]));
 
-	return Renderer::shader_apply_instance(internal_data->ui_shader);
-
+	return Renderer::shader_apply_instance(ShaderSystem::get_shader(internal_data->ui_shader_id));
 }
 
 static bool8 set_locals_ui(RenderViewUIInternalData* internal_data, Math::Mat4* model)
@@ -146,7 +142,7 @@ bool8 render_view_ui_on_render(RenderView* self, FrameData* frame_data, uint32 f
 			continue;
 
 		bool8 instance_set = true;
-		if (instance_data->shader_id == internal_data->ui_shader->id)
+		if (instance_data->shader_id == internal_data->ui_shader_id)
 			instance_set = set_instance_ui(internal_data, *instance_data);
 		else
 			SHMERROR("Unknown shader for applying instance.");

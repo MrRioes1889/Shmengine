@@ -63,7 +63,7 @@ namespace Renderer
 
 	SHMAPI void geometry_draw(GeometryData* geometry);
 
-	SHMAPI bool8 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
+	SHMAPI bool8 shader_create(const ShaderConfig* config, Shader* shader);
 	SHMAPI void shader_destroy(Shader* shader);
 
 	bool8 shader_init(Shader* shader);

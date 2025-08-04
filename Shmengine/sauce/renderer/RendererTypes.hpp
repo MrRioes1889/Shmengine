@@ -10,7 +10,6 @@
 #include "memory/Freelist.hpp"
 #include "utility/Math.hpp"
 
-struct RenderView;
 struct UIText;
 struct Skybox;
 struct FrameData;
@@ -76,13 +75,13 @@ struct GeometryConfig
 
 struct GeometryData
 {
-	bool8 loaded;
-
 	char name[Constants::max_geometry_name_length];
 
 	Math::Vec3f center;
 	Math::Extents3D extents;
 	
+	bool8 loaded;
+
 	uint32 vertex_size;
 	uint32 vertex_count;
 	uint32 index_count;
@@ -370,7 +369,7 @@ namespace Renderer
 		bool8(*texture_read_pixel)(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 		void (*texture_destroy)(Texture* texture);
 
-		bool8(*shader_create)(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
+		bool8(*shader_create)(const ShaderConfig* config, Shader* shader);
 		void (*shader_destroy)(Shader* shader);
 		bool8(*shader_init)(Shader* shader);
 		bool8(*shader_use)(Shader* shader);

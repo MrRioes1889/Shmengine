@@ -20,7 +20,7 @@ struct MaterialResourceData
 	char shader_name[Constants::max_shader_name_length];
 
 	MaterialType type;
-	bool8 auto_unload;
+	bool8 auto_destroy;
 
     Darray<MaterialProperty> properties;
 	Darray<TextureMapResourceData> maps;

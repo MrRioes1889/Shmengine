@@ -94,9 +94,12 @@ struct ShaderStageConfig
 struct ShaderConfig
 {
 	const char* name;
+	Renderer::RenderPass* renderpass;
 
 	Renderer::RenderCullMode cull_mode;
 	Renderer::RenderTopologyTypeFlags::Value topologies;
+	bool8 depth_test;
+	bool8 depth_write;
 
 	uint32 stages_count;
 	uint32 attributes_count;
@@ -105,9 +108,6 @@ struct ShaderConfig
 	ShaderAttributeConfig* attributes;
 	ShaderUniformConfig* uniforms;
 	ShaderStageConfig* stages;
-
-	bool8 depth_test;
-	bool8 depth_write;
 };
 
 typedef Id16 ShaderUniformId;
@@ -153,13 +153,12 @@ typedef Id16 ShaderId;
 
 struct Shader
 {
-	ShaderId id;
+	String name;
+
 	ShaderFlags::Value shader_flags;
 	ShaderState state;
 	Renderer::RenderTopologyTypeFlags::Value topologies;
 	ShaderScope bound_scope;
-
-	String name;
 
 	uint8 global_uniform_count;
 	uint8 global_uniform_sampler_count;
@@ -282,7 +281,7 @@ namespace ShaderSystem
 	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI bool8 create_shader(const Renderer::RenderPass* renderpass,const ShaderConfig* config);
+	SHMAPI bool8 create_shader(ShaderConfig* config);
 	SHMAPI bool8 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass);
 
 	SHMAPI void destroy_shader(ShaderId shader_id);
@@ -298,7 +297,7 @@ namespace ShaderSystem
 	SHMAPI bool8 use_shader(ShaderId shader_id);
 	SHMAPI bool8 use_shader(const char* shader_name);
 
-	SHMAPI ShaderUniformId get_uniform_index(Shader* shader, const char* uniform_name);
+	SHMAPI ShaderUniformId get_uniform_index(ShaderId shader_id, const char* uniform_name);
 
 	SHMAPI bool8 set_uniform(const char* uniform_name, const void* value);
 	SHMAPI bool8 set_uniform(ShaderUniformId index, const void* value);

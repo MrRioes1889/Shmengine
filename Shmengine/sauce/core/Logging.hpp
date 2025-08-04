@@ -84,8 +84,4 @@ namespace Log
 #define SHMTRACE(message)
 #endif
 
-#define goto_on_fail_log(condition, tagname, message, ...) if(!(condition)) \
-{\
-    SHMERRORV(message, ##__VA_ARGS__);\
-    goto tagname;\
-}
+#define goto_if_log(condition, tagname, message, ...) if(condition) { SHMERRORV(message, ##__VA_ARGS__); goto tagname; }

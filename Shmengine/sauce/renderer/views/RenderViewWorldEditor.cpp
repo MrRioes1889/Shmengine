@@ -29,10 +29,10 @@ struct CoordinateGrid
 };
 
 struct RenderViewWorldInternalData {
-	Shader* color3D_shader;
+	ShaderId color3D_shader_id;
 	Color3DShaderUniformLocations color3D_shader_u_locations;
 
-	Shader* coordinate_grid_shader;
+	ShaderId coordinate_grid_shader_id;
 	CoordinateGridShaderUniformLocations coordinate_grid_shader_u_locations;
 
 	float32 near_clip;
@@ -65,17 +65,17 @@ bool8 render_view_world_editor_on_create(RenderView* self)
 		return false;
 	}
 
-	internal_data->color3D_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_color3D);
-	internal_data->coordinate_grid_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_coordinate_grid);
+	internal_data->color3D_shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_color3D);
+	internal_data->coordinate_grid_shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_coordinate_grid);
 
-	internal_data->color3D_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "projection");
-	internal_data->color3D_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "view");
-	internal_data->color3D_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->color3D_shader, "model");
+	internal_data->color3D_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->color3D_shader_id, "projection");
+	internal_data->color3D_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->color3D_shader_id, "view");
+	internal_data->color3D_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->color3D_shader_id, "model");
 
-	internal_data->coordinate_grid_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "projection");
-	internal_data->coordinate_grid_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "view");
-	internal_data->coordinate_grid_shader_u_locations.near = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "near");
-	internal_data->coordinate_grid_shader_u_locations.far = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader, "far");
+	internal_data->coordinate_grid_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "projection");
+	internal_data->coordinate_grid_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "view");
+	internal_data->coordinate_grid_shader_u_locations.near = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "near");
+	internal_data->coordinate_grid_shader_u_locations.far = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "far");
 
 	internal_data->near_clip = 0.1f;
 	internal_data->far_clip = 4000.0f;
@@ -127,13 +127,13 @@ void render_view_world_editor_on_resize(RenderView* self, uint32 width, uint32 h
 
 static bool8 set_globals_color3D(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
-	ShaderSystem::bind_shader(internal_data->color3D_shader->id);
+	ShaderSystem::bind_shader(internal_data->color3D_shader_id);
 	ShaderSystem::bind_globals();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.projection, &internal_data->projection_matrix));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.view, &camera->get_view()));
 
-	return Renderer::shader_apply_globals(internal_data->color3D_shader);
+	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->color3D_shader_id));
 }
 
 static bool8 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
@@ -144,7 +144,7 @@ static bool8 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math
 
 static bool8 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
-	ShaderSystem::bind_shader(internal_data->coordinate_grid_shader->id);
+	ShaderSystem::bind_shader(internal_data->coordinate_grid_shader_id);
 	ShaderSystem::bind_globals();
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.projection, &internal_data->projection_matrix));
@@ -152,7 +152,7 @@ static bool8 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_d
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.near, &internal_data->near_clip));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.far, &internal_data->far_clip));
 
-	return Renderer::shader_apply_globals(internal_data->coordinate_grid_shader);
+	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->coordinate_grid_shader_id));
 }
 
 bool8 render_view_world_editor_on_build_packet(RenderView* self, FrameData* frame_data, const RenderViewPacketData* packet_data)
@@ -220,7 +220,7 @@ bool8 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data
 		if (render_data->object_index != Constants::max_u32)
 		{
 			Math::Mat4* model = &self->objects[render_data->object_index].model;
-			if (shader_id == internal_data->color3D_shader->id)
+			if (shader_id == internal_data->color3D_shader_id)
 				set_locals_color3D(internal_data, model);
 		}
 
@@ -228,7 +228,7 @@ bool8 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data
 	}
 
 	// NOTE: Drawing coordinate grid separately
-	ShaderSystem::use_shader(internal_data->coordinate_grid_shader->id);
+	ShaderSystem::use_shader(internal_data->coordinate_grid_shader_id);
 	ShaderSystem::bind_globals();
 
 	//Renderer::geometry_draw(&internal_data->coordinate_grid.geometry);

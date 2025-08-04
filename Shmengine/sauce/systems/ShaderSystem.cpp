@@ -2,6 +2,7 @@
 
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
+#include "containers/LinearStorage.hpp"
 
 #include "renderer/RendererFrontend.hpp"
 #include "MaterialSystem.hpp"
@@ -17,8 +18,7 @@ namespace ShaderSystem
 		uint16 max_global_textures;
 		uint16 max_instance_textures;
 
-		HashtableRH<ShaderId, Constants::max_shader_name_length> lookup_table;
-		Sarray<Shader> shaders;
+		LinearHashedStorage<Shader, ShaderId, Constants::max_shader_name_length> shader_storage;
 		TextureMap default_texture_map;
 
 		ShaderId bound_shader_id;
@@ -31,12 +31,15 @@ namespace ShaderSystem
 
 	static SystemState* system_state = 0;
 
-	static bool8 add_attribute(Shader* shader, const ShaderAttributeConfig* config);
-	static bool8 add_sampler(Shader* shader, const ShaderUniformConfig* config);
-	static bool8 add_uniform(Shader* shader, const ShaderUniformConfig* config);
-	static bool8 add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool8 is_sampler);
+	static bool8 _create_shader(ShaderConfig* config, Shader* shader);
+	static void _destroy_shader(Shader* shader);
 
-	static bool8 create_default_texture_map();
+	static bool8 _add_attribute(Shader* shader, const ShaderAttributeConfig* config);
+	static bool8 _add_sampler(Shader* shader, const ShaderUniformConfig* config);
+	static bool8 _add_uniform(Shader* shader, const ShaderUniformConfig* config);
+	static bool8 _add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool8 is_sampler);
+
+	static bool8 _create_default_texture_map();
 
 	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
@@ -58,16 +61,9 @@ namespace ShaderSystem
 		system_state->skybox_shader_id.invalidate();
 		system_state->color3D_shader_id.invalidate();
 
-		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_shader_count);
-		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup_table.init(sys_config->max_shader_count, HashtableRHFlag::ExternalMemory, AllocationTag::Unknown, hashtable_data);
-
-		uint64 shader_array_size = sizeof(Shader) * sys_config->max_shader_count;
-		void* shader_array = allocator_callback(allocator, shader_array_size);
-		system_state->shaders.init(sys_config->max_shader_count, SarrayFlags::ExternalMemory, AllocationTag::Unknown, shader_array);
-
-		for (uint32 i = 0; i < system_state->shaders.capacity; i++)
-			system_state->shaders[i].id.invalidate();
+		uint64 shader_storage_size = system_state->shader_storage.get_external_size_requirement(sys_config->max_shader_count);
+		void* shader_storage_data = allocator_callback(allocator, shader_storage_size);
+		system_state->shader_storage.init(sys_config->max_shader_count, AllocationTag::Array, shader_storage_data);
 
 		return true;
 
@@ -78,92 +74,60 @@ namespace ShaderSystem
 		if (!system_state)
 			return;
 
-		for (uint32 i = 0; i < system_state->shaders.capacity; i++)
+		auto iter = system_state->shader_storage.get_iterator();
+		while (Shader* shader = iter.get_next())
 		{
-			if (system_state->shaders[i].id.is_valid())
-				destroy_shader(system_state->shaders[i].id);
+			ShaderId id;
+			system_state->shader_storage.release(shader->name.c_str(), &id, &shader);
+			_destroy_shader(shader);
+			system_state->shader_storage.verify_write(id);
 		}
+		system_state->shader_storage.destroy();
 
 		Renderer::texture_map_release_resources(&system_state->default_texture_map);
-		system_state->lookup_table.free_data();
-		system_state->shaders.free_data();
 
 		system_state = 0;
 	}
 
-	bool8 create_shader(const Renderer::RenderPass* renderpass, const ShaderConfig* config)
+	bool8 create_shader(ShaderConfig* config)
 	{
-		using namespace Renderer;
+        ShaderId id;
+        Shader* shader;
 
-		if (system_state->lookup_table.get(config->name)) 
+        StorageReturnCode ret_code = system_state->shader_storage.acquire(config->name, &id, &shader);
+		switch (ret_code)
 		{
-			SHMERRORV("RenderViewSystem::create - A view named '%s' already exists or caused a hash table collision. A new one will not be created.", config->name);
+		case StorageReturnCode::OutOfMemory:
+		{
+			SHMERROR("Failed to create shader: Out of memory!");
 			return false;
 		}
-
-		ShaderId ref_id = {};
-		for (Id16 i = 0; i < system_state->shaders.capacity; i++)
+		case StorageReturnCode::AlreadyExisted:
 		{
-			if (!system_state->shaders[i].id.is_valid())
-			{
-				ref_id = i;
-				break;
-			}
+			SHMWARNV("Shader named '%s' already exists!", config->name);
+            return true;
+		}
 		}
 
-		if (!ref_id.is_valid())
-		{
-			SHMERROR("shader_create - Unable to find free slot for new shader");
-			return false;
-		}
-
-		Shader* shader = &system_state->shaders[ref_id];
-		Memory::zero_memory(shader, sizeof(Shader));
-		shader->id = ref_id;
-		shader->state = ShaderState::Uninitialized;
-
-		if (!Renderer::shader_create(shader, config, renderpass))
-		{
-			destroy_shader(shader->id);
-			SHMERROR("shader_create - Error creating shader.");
-			return false;
-		}
-
-		shader->state = ShaderState::Initializing;
-		for (uint32 i = 0; i < config->attributes_count; i++)
-			add_attribute(shader, &config->attributes[i]);
-
-		for (uint32 i = 0; i < config->uniforms_count; i++)
-		{
-			if (config->uniforms[i].type == ShaderUniformType::Sampler)
-				add_sampler(shader, &config->uniforms[i]);
-			else
-				add_uniform(shader, &config->uniforms[i]);
-		}
-
-		if (!Renderer::shader_init(shader))
-		{
-			destroy_shader(shader->id);
-			SHMERRORV("Error initializing shader '%s'.", shader->name.c_str());
-			return false;
-		}
-
-		shader->state = ShaderState::Initialized;
-		system_state->lookup_table.set_value(shader->name.c_str(), shader->id);
+		goto_if(!_create_shader(config, shader), fail);
 
 		if (!system_state->material_shader_id.is_valid() && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_material_phong))
-			system_state->material_shader_id = shader->id;
+			system_state->material_shader_id = id;
 		else if (!system_state->terrain_shader_id.is_valid() && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_terrain))
-			system_state->terrain_shader_id = shader->id;
+			system_state->terrain_shader_id = id;
 		else if (!system_state->ui_shader_id.is_valid() && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_ui))
-			system_state->ui_shader_id = shader->id;
+			system_state->ui_shader_id = id;
 		else if (!system_state->skybox_shader_id.is_valid() && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_skybox))
-			system_state->skybox_shader_id = shader->id;
+			system_state->skybox_shader_id = id;
 		else if (!system_state->color3D_shader_id.is_valid() && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_color3D))
-			system_state->color3D_shader_id = shader->id;
+			system_state->color3D_shader_id = id;
+        system_state->shader_storage.verify_write(id);
+        return true;
 
-		return true;
-
+    fail:
+		system_state->shader_storage.revert_write(id);
+		SHMERRORV("Failed to create shader '%s'.", config->name);
+		return false;
 	}
 
 	bool8 create_shader_from_resource(const char* resource_name, Renderer::RenderPass* renderpass)
@@ -175,8 +139,8 @@ namespace ShaderSystem
 			return false;
 		}
 
-		ShaderConfig config = ResourceSystem::shader_loader_get_config_from_resource(&resource);
-		if (!ShaderSystem::create_shader(renderpass, &config))
+		ShaderConfig config = ResourceSystem::shader_loader_get_config_from_resource(&resource, renderpass);
+		if (!ShaderSystem::create_shader(&config))
 		{
 			SHMERROR("Failed to create world pick shader.");
 			ResourceSystem::shader_loader_unload(&resource);
@@ -187,51 +151,67 @@ namespace ShaderSystem
 		return true;
 	}
 
+	static bool8 _create_shader(ShaderConfig* config, Shader* out_shader)
+	{
+		goto_if_log(!Renderer::shader_create(config, out_shader), fail, "Error creating shader.");
+
+		out_shader->state = ShaderState::Initializing;
+		for (uint32 i = 0; i < config->attributes_count; i++)
+			_add_attribute(out_shader, &config->attributes[i]);
+
+		for (uint32 i = 0; i < config->uniforms_count; i++)
+		{
+			if (config->uniforms[i].type == ShaderUniformType::Sampler)
+				_add_sampler(out_shader, &config->uniforms[i]);
+			else
+				_add_uniform(out_shader, &config->uniforms[i]);
+		}
+
+		goto_if_log(!Renderer::shader_init(out_shader), fail, "Error initializing shader '%s'.", out_shader->name.c_str());
+
+		return true;
+
+	fail:
+		_destroy_shader(out_shader);
+		return false;
+	}
+
 	ShaderId get_shader_id(const char* shader_name)
 	{
-		ShaderId* shader_id = system_state->lookup_table.get(shader_name);
-		if (!shader_id || !system_state->shaders[*shader_id].id.is_valid())
-			return ShaderId::invalid_value;
-
-		return *shader_id;
+		return system_state->shader_storage.get_id(shader_name);
 	}
 
 	Shader* get_shader(ShaderId shader_id)
 	{
-		if (shader_id >= system_state->shaders.capacity || !system_state->shaders[shader_id].id.is_valid())
-			return 0;
-
-		return &system_state->shaders[shader_id];
+		return system_state->shader_storage.get_object(shader_id);
 	}
 
 	Shader* get_shader(const char* shader_name)
 	{
-		ShaderId* shader_id = system_state->lookup_table.get(shader_name);
-		if (!shader_id || !system_state->shaders[*shader_id].id.is_valid())
-			return 0;
-
-		return &system_state->shaders[*shader_id];
+		return system_state->shader_storage.get_object(shader_name);
 	}
 
 	void destroy_shader(ShaderId shader_id)
 	{
-		Shader* shader = &system_state->shaders[shader_id];
-		if (!shader->id.is_valid())
+		Shader* shader = system_state->shader_storage.get_object(shader_id);
+		if (!shader)
 			return;
 
-		system_state->lookup_table.remove_entry(shader->name.c_str());
-
-		Renderer::shader_destroy(shader);
-		if (system_state->bound_shader_id == shader->id)
+		system_state->shader_storage.release(shader->name.c_str(), &shader_id, &shader);
+		_destroy_shader(shader);
+		if (system_state->bound_shader_id == shader_id)
 			system_state->bound_shader_id.invalidate();
-		shader->id.invalidate();
-		shader->name.free_data();
-		shader->state = ShaderState::Uninitialized;
+		system_state->shader_storage.verify_write(shader_id);
 	}
 
 	void destroy_shader(const char* shader_name)
 	{
 		destroy_shader(get_shader_id(shader_name));
+	}
+
+	static void _destroy_shader(Shader* shader)
+	{
+		Renderer::shader_destroy(shader);
 	}
 
 	void bind_shader(ShaderId shader_id)
@@ -261,8 +241,15 @@ namespace ShaderSystem
 		return use_shader(shader_id);
 	}
 
-	ShaderUniformId get_uniform_index(Shader* shader, const char* uniform_name)
+	ShaderUniformId get_uniform_index(ShaderId shader_id, const char* uniform_name)
 	{
+		Shader* shader = system_state->shader_storage.get_object(shader_id);
+		if (!shader)
+		{
+			SHMERROR("Could not get uniform index. Invalid shader id.");
+			return ShaderUniformId::invalid_value;
+		}
+
 		ShaderUniformId index = shader->uniform_lookup.get_value(uniform_name);
 		if (!index.is_valid())
 		{
@@ -277,7 +264,7 @@ namespace ShaderSystem
 	{
 		using namespace Renderer;
 
-		Shader* shader = &system_state->shaders[system_state->bound_shader_id];
+		Shader* shader = system_state->shader_storage.get_object(system_state->bound_shader_id);
 		ShaderUniform* uniform = &shader->uniforms[index];
 		if (shader->bound_scope != uniform->scope) {
 			if (uniform->scope == ShaderScope::Global) {
@@ -303,20 +290,19 @@ namespace ShaderSystem
 			return false;
 		}
 
-		Shader* shader = &system_state->shaders[system_state->bound_shader_id];
-		ShaderUniformId index = get_uniform_index(shader, uniform_name);
+		ShaderUniformId index = get_uniform_index(system_state->bound_shader_id, uniform_name);
 		return set_uniform(index, value);
 	}
 
 	bool8 bind_globals()
 	{
-		Shader* shader = &system_state->shaders[system_state->bound_shader_id];
+		Shader* shader = system_state->shader_storage.get_object(system_state->bound_shader_id);
 		return Renderer::shader_bind_globals(shader);
 	}
 
 	bool8 bind_instance(uint32 instance_id)
 	{
-		Shader* shader = &system_state->shaders[system_state->bound_shader_id];
+		Shader* shader = system_state->shader_storage.get_object(system_state->bound_shader_id);
 		shader->bound_instance_id = instance_id;
 		return Renderer::shader_bind_instance(shader, instance_id);
 	}
@@ -346,7 +332,7 @@ namespace ShaderSystem
 		return system_state->color3D_shader_id;
 	}
 
-	static bool8 add_attribute(Shader* shader, const ShaderAttributeConfig* config)
+	static bool8 _add_attribute(Shader* shader, const ShaderAttributeConfig* config)
 	{
 		using namespace Renderer;
 
@@ -395,7 +381,7 @@ namespace ShaderSystem
 		return true;
 	}
 
-	static bool8 add_sampler(Shader* shader, const ShaderUniformConfig* config)
+	static bool8 _add_sampler(Shader* shader, const ShaderUniformConfig* config)
 	{
 		using namespace Renderer;
 
@@ -419,7 +405,7 @@ namespace ShaderSystem
 			location = shader->global_texture_maps.count;
 
 			if (!system_state->default_texture_map.internal_data)
-				create_default_texture_map();
+				_create_default_texture_map();
 
 			shader->global_texture_maps.push(&system_state->default_texture_map);
 		}
@@ -438,15 +424,15 @@ namespace ShaderSystem
 		// hashtable entry's 'location' field value directly, and is then set to the index of the uniform array.
 		// This allows location lookups for samplers as if they were uniforms as well (since technically they are).
 		// TODO: might need to store this elsewhere
-		return add_uniform(shader, config->name, 0, config->type, config->scope, location, true);
+		return _add_uniform(shader, config->name, 0, config->type, config->scope, location, true);
 	}
 
-	static bool8 add_uniform(Shader* shader, const ShaderUniformConfig* config)
+	static bool8 _add_uniform(Shader* shader, const ShaderUniformConfig* config)
 	{
-		return add_uniform(shader, config->name, config->size, config->type, config->scope, 0, false);
+		return _add_uniform(shader, config->name, config->size, config->type, config->scope, 0, false);
 	}
 
-	static bool8 add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool8 is_sampler)
+	static bool8 _add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool8 is_sampler)
 	{
 		using namespace Renderer;
 
@@ -502,7 +488,7 @@ namespace ShaderSystem
 		return true;
 	}
 
-	static bool8 create_default_texture_map()
+	static bool8 _create_default_texture_map()
 	{
 		system_state->default_texture_map.filter_magnify = TextureFilter::LINEAR;
 		system_state->default_texture_map.filter_minify = TextureFilter::LINEAR;

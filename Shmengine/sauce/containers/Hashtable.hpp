@@ -25,7 +25,7 @@ SHMINLINE uint32 hash_key(const char* key, uint32 hash_limit)
 	return (uint32)hash;
 }
 
-namespace HashtableOAFlag
+namespace HashtableOAFlags
 {
 	enum : uint8
 	{
@@ -43,26 +43,26 @@ struct HashtableOA
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * sizeof(ObjectT); }
 
-	SHMINLINE HashtableOA(uint32 count, HashtableOAFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict)
+	SHMINLINE HashtableOA(uint32 count, HashtableOAFlags::Value creation_flags, AllocationTag tag = AllocationTag::Dict)
 	{
 		init(count, creation_flags, tag);
 	}
 
-	SHMINLINE HashtableOA(uint32 count, HashtableOAFlag::Value creation_flags, void* memory)
+	SHMINLINE HashtableOA(uint32 count, HashtableOAFlags::Value creation_flags, void* memory)
 	{
 		init(count, creation_flags, AllocationTag::Dict, memory);
 	}
 
-	SHMINLINE void init(uint32 count, HashtableOAFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
+	SHMINLINE void init(uint32 count, HashtableOAFlags::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
 		SHMASSERT_MSG(count, "Element count cannot be null!");
 
 		flags = creation_flags;
 
 		if (memory)
-			flags |= HashtableOAFlag::ExternalMemory;
+			flags |= HashtableOAFlags::ExternalMemory;
 		else
-			flags &= ~HashtableOAFlag::ExternalMemory;
+			flags &= ~HashtableOAFlags::ExternalMemory;
 
 		buffer.init(count, 0, tag, memory);
 	}
@@ -117,13 +117,13 @@ struct HashtableOA
 
 private:
 
-	HashtableOAFlag::Value flags;
+	HashtableOAFlags::Value flags;
 	Sarray<ObjectT> buffer;
 	
 };
 
 
-namespace HashtableCHFlag
+namespace HashtableCHFlags
 {
 	enum : uint8
 	{
@@ -149,12 +149,12 @@ struct HashtableCH
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 hashed_count, uint32 collision_buffer_count) { return (hashed_count + collision_buffer_count) * (sizeof(ObjectT) + sizeof(KeyNode)); }
 
-	SHMINLINE HashtableCH(uint32 count, uint32 collision_buffer_count, HashtableCHFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
+	SHMINLINE HashtableCH(uint32 count, uint32 collision_buffer_count, HashtableCHFlags::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
 		init(count, collision_buffer_count, creation_flags, tag, memory);
 	}
 
-	SHMINLINE void init(uint32 count, uint32 collision_buffer_count, HashtableCHFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
+	SHMINLINE void init(uint32 count, uint32 collision_buffer_count, HashtableCHFlags::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
 		SHMASSERT_MSG(count, "Element count cannot be null!");
 
@@ -164,20 +164,23 @@ struct HashtableCH
 		uint32 total_count = count + collision_buffer_count;
 		if (memory)
 		{
-			flags |= HashtableCHFlag::ExternalMemory;
-			key_arr.init(total_count, 0, tag, memory);
-			object_arr.init(total_count, 0, tag, PTR_BYTES_OFFSET(memory, key_arr.capacity * sizeof(key_arr[0])));
+			flags |= HashtableCHFlags::ExternalMemory;
 		}
 		else
 		{
-			flags &= ~HashtableCHFlag::ExternalMemory;
-			key_arr.init(total_count, 0, tag);
-			object_arr.init(total_count, 0, tag);
+			flags &= ~HashtableCHFlags::ExternalMemory;
+			memory = Memory::allocate(get_external_size_requirement(total_count), tag);
 		}
+
+		object_arr.init(total_count, 0, tag, memory);
+		key_arr.init(total_count, 0, tag, PTR_BYTES_OFFSET(memory, object_arr.size()));
 	}
 
-	SHMINLINE void free_data()
+	SHMINLINE void destroy()
 	{
+		if (object_arr.data && !(flags & HashtableCHFlags::ExternalMemory))
+			Memory::free_memory(object_arr.data);
+
 		key_arr.free_data();
 		object_arr.free_data();
 		hashed_capacity = 0;
@@ -185,7 +188,7 @@ struct HashtableCH
 
 	SHMINLINE ~HashtableCH()
 	{
-		free_data();
+		destroy();
 	}
 
 	SHMINLINE ObjectT* set_value(const char* key, const ObjectT& value)
@@ -230,7 +233,7 @@ struct HashtableCH
 
 private:
 
-	HashtableCHFlag::Value flags;
+	HashtableCHFlags::Value flags;
 	uint32 hashed_capacity;
 	Sarray<KeyNode> key_arr;
 	Sarray<ObjectT> object_arr;
@@ -267,7 +270,7 @@ private:
 			{
 				if (insert_index >= key_arr.capacity)
 				{
-					if (flags & HashtableCHFlag::ExternalMemory || insert_index >= NodeIndex::invalid_value)
+					if (flags & HashtableCHFlags::ExternalMemory || insert_index >= NodeIndex::invalid_value)
 						return NodeIndex::invalid_value;
 
 					key_arr.resize(SHMIN((uint32)(key_arr.capacity * 1.5f), (uint32)NodeIndex::invalid_value));
@@ -302,7 +305,7 @@ private:
 };
 
 
-namespace HashtableRHFlag
+namespace HashtableRHFlags
 {
 	enum : uint8
 	{
@@ -328,12 +331,12 @@ struct HashtableRH
 
 	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * (sizeof(KeyNode) + sizeof(ObjectT)); }
 
-	SHMINLINE HashtableRH(uint32 count, HashtableRHFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
+	SHMINLINE HashtableRH(uint32 count, HashtableRHFlags::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
-		init(count, creation_flags, tag);
+		init(count, creation_flags, tag, memory);
 	}
 
-	void init(uint32 count, HashtableRHFlag::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
+	void init(uint32 count, HashtableRHFlags::Value creation_flags, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
 		SHMASSERT_MSG(count, "Element count cannot be null!");
 
@@ -342,20 +345,23 @@ struct HashtableRH
 
 		if (memory)
 		{
-			flags |= HashtableRHFlag::ExternalMemory;
-			key_arr.init(count, 0, tag, memory);
-			object_arr.init(count, 0, tag, PTR_BYTES_OFFSET(memory, key_arr.capacity * sizeof(key_arr[0])));
+			flags |= HashtableRHFlags::ExternalMemory;
 		}
 		else
 		{
-			flags &= ~HashtableRHFlag::ExternalMemory;
-			key_arr.init(count, 0, tag);
-			object_arr.init(count, 0, tag);
+			flags &= ~HashtableRHFlags::ExternalMemory;
+			memory = Memory::allocate(get_external_size_requirement(count), tag);
 		}
+
+		object_arr.init(count, 0, tag, memory);
+		key_arr.init(count, 0, tag, PTR_BYTES_OFFSET(memory, object_arr.size()));
 	}
 
-	void free_data()
+	void destroy()
 	{
+		if (object_arr.data && !(flags & HashtableRHFlags::ExternalMemory))
+			Memory::free_memory(object_arr.data);
+
 		key_arr.free_data();
 		object_arr.free_data();
 		key_count = 0;
@@ -363,7 +369,7 @@ struct HashtableRH
 
 	SHMINLINE ~HashtableRH()
 	{
-		free_data();
+		destroy();
 	}
 
 	SHMINLINE ObjectT* set_value(const char* key, const ObjectT& value)
@@ -406,9 +412,12 @@ struct HashtableRH
 		return node_index.is_valid() ? &object_arr[node_index] : 0;
 	}
 
+	SHMINLINE bool8 is_full() { return key_count >= key_arr.capacity; }
+	SHMINLINE uint32 get_key_count() { return key_count; }
+
 private:
 
-	HashtableRHFlag::Value flags;
+	HashtableRHFlags::Value flags;
 	uint32 key_count;
 	NodeIndex hash_cache;
 	Sarray<KeyNode> key_arr;
@@ -448,7 +457,7 @@ private:
 
 	NodeIndex insert(const char* key, NodeIndex hash)
 	{
-		if (key_count == key_arr.capacity)
+		if (key_count >= key_arr.capacity)
 			return NodeIndex::invalid_value;
 
 		KeyNode insert_key_node = {};

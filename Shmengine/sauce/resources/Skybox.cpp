@@ -27,7 +27,7 @@ bool8 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 
 	GeometryConfig skybox_cube_config = {};
 	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), &skybox_cube_config);
-	out_skybox->geometry_id = GeometrySystem::acquire_from_config(&skybox_cube_config, true);
+	out_skybox->geometry_id = GeometrySystem::create_geometry(&skybox_cube_config, true);
 
 	out_skybox->state = ResourceState::Initialized;
 

@@ -20,7 +20,7 @@ namespace Renderer::Vulkan
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
 
-	bool8 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
+	bool8 vk_shader_create(const ShaderConfig* config, Shader* shader)
 	{
 
 		if (shader->internal_data)
@@ -55,7 +55,7 @@ namespace Renderer::Vulkan
 		}
 
 		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
-		v_shader->renderpass = (VulkanRenderpass*)renderpass->internal_data.data;
+		v_shader->renderpass = (VulkanRenderpass*)config->renderpass->internal_data.data;
 		v_shader->config.max_descriptor_set_count = RendererConfig::shader_max_instances;
 
 		v_shader->config.stage_count = 0;

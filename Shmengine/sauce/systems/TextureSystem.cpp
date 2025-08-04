@@ -28,7 +28,7 @@ namespace TextureSystem
 	{
 		TextureId id;
 		uint16 reference_count;
-		bool8 auto_unload;
+		bool8 auto_destroy;
 	};
 
 	struct SystemState
@@ -54,7 +54,7 @@ namespace TextureSystem
 	static void create_default_textures();
 	static void destroy_default_textures();
 
-	static bool8 add_reference(const char* name, bool8 auto_unload, TextureId* out_texture_id, bool8* out_load);
+	static bool8 add_reference(const char* name, bool8 auto_destroy, TextureId* out_texture_id, bool8* out_load);
 	static TextureId remove_reference(const char* name);
 
 	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
@@ -70,7 +70,7 @@ namespace TextureSystem
 
 		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_texture_count);
 		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup_table.init(sys_config->max_texture_count, HashtableOAFlag::ExternalMemory, AllocationTag::Dict, hashtable_data);
+		system_state->lookup_table.init(sys_config->max_texture_count, HashtableRHFlags::ExternalMemory, AllocationTag::Dict, hashtable_data);
 
 		for (uint32 i = 0; i < sys_config->max_texture_count; i++)
 			system_state->textures[i].id.invalidate();
@@ -93,11 +93,11 @@ namespace TextureSystem
 
 		destroy_default_textures();
 		system_state->textures.free_data();
-		system_state->lookup_table.free_data();
+		system_state->lookup_table.destroy();
 		system_state = 0;
 	}
 
-	Texture* acquire(const char* name, bool8 auto_unload)
+	Texture* acquire(const char* name, bool8 auto_destroy)
 	{
 		
 		if (CString::equal_i(name, SystemConfig::default_name))
@@ -114,7 +114,7 @@ namespace TextureSystem
 
 		TextureId id = TextureId::invalid_value;
 		bool8 load = false;
-		if (!add_reference(name, auto_unload, &id, &load))
+		if (!add_reference(name, auto_destroy, &id, &load))
 		{
 			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
 			return 0;
@@ -131,11 +131,11 @@ namespace TextureSystem
 		return t;
 	}
 
-	Texture* acquire_cube(const char* name, bool8 auto_unload)
+	Texture* acquire_cube(const char* name, bool8 auto_destroy)
 	{
 		TextureId id = TextureId::invalid_value;
 		bool8 load = false;
-		if (!add_reference(name, auto_unload, &id, &load))
+		if (!add_reference(name, auto_destroy, &id, &load))
 		{
 			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
 			return 0;
@@ -327,7 +327,7 @@ namespace TextureSystem
 		bool8 has_transparency = false;
 		TextureConfig config = {};
 
-		goto_on_fail_log(ResourceSystem::texture_loader_load(load_params->resource_name, true, &load_params->resource), failure,
+		goto_if_log(!ResourceSystem::texture_loader_load(load_params->resource_name, true, &load_params->resource), fail,
 			"Failed to load image resources for texture '%s'", load_params->resource_name);
 
 		config = ResourceSystem::texture_loader_get_config_from_resource(&load_params->resource);
@@ -356,7 +356,7 @@ namespace TextureSystem
 		load_params->out_texture->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
 
 		return true;
-	failure:
+	fail:
 		return false;
 	}
 
@@ -552,7 +552,7 @@ namespace TextureSystem
 		t->name[0] = 0;
 	}
 
-	static bool8 add_reference(const char* name, bool8 auto_unload, TextureId* out_texture_id, bool8* out_load)
+	static bool8 add_reference(const char* name, bool8 auto_destroy, TextureId* out_texture_id, bool8* out_load)
 	{
 		*out_texture_id = TextureId::invalid_value;
 		*out_load = false;
@@ -584,7 +584,7 @@ namespace TextureSystem
 
 		t->id = new_id;
 		CString::copy(name, t->name, Constants::max_texture_name_length);
-		TextureReference new_ref = { .id = new_id, .reference_count = 1, .auto_unload = auto_unload };
+		TextureReference new_ref = { .id = new_id, .reference_count = 1, .auto_destroy = auto_destroy };
 		ref = system_state->lookup_table.set_value(t->name, new_ref);
 		*out_texture_id = ref->id;
 		*out_load = true;
@@ -607,7 +607,7 @@ namespace TextureSystem
 		}
 
 		ref->reference_count--;
-		if (ref->reference_count == 0 && ref->auto_unload)
+		if (ref->reference_count == 0 && ref->auto_destroy)
 		{
 			return ref->id;
 		}

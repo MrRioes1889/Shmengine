@@ -62,8 +62,8 @@ namespace TextureSystem
 	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI Texture* acquire(const char* name, bool8 auto_unload);
-	SHMAPI Texture* acquire_cube(const char* name, bool8 auto_unload);
+	SHMAPI Texture* acquire(const char* name, bool8 auto_destroy);
+	SHMAPI Texture* acquire_cube(const char* name, bool8 auto_destroy);
 	SHMAPI Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint8 channel_count, bool8 has_transparency);
 
 	SHMAPI bool8 wrap_internal(const char* name, uint32 width, uint32 height, uint8 channel_count, bool8 has_transparency, bool8 is_writable, bool8 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture);

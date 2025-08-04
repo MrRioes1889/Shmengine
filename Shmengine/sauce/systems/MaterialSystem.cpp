@@ -10,17 +10,16 @@
 #include "systems/TextureSystem.hpp"
 #include "resources/loaders/MaterialLoader.hpp"
 #include "systems/ShaderSystem.hpp"
-#include "containers/Sarray.hpp"
+#include "containers/LinearStorage.hpp"
 
 
 namespace MaterialSystem
 {
 
-	struct MaterialReference
+	struct ReferenceCounter
 	{
-		MaterialId id;
 		uint16 reference_count;
-		bool8 auto_unload;
+		bool8 auto_destroy;
 	};
 
 	struct SystemState
@@ -28,44 +27,36 @@ namespace MaterialSystem
 		Material default_material;
 		Material default_ui_material;
 
-		Sarray<Material> materials;
-		HashtableRH<MaterialReference, Constants::max_material_name_length> lookup_table;
+		Sarray<ReferenceCounter> material_ref_counters;
+		LinearHashedStorage<Material, MaterialId, Constants::max_material_name_length> material_storage;
 	};
 
 	static SystemState* system_state = 0;
 
-	static bool8 load_material_from_resource(const char* name, Material* m);
-	static bool8 load_material(const MaterialConfig* config, Material* m);
-	static void destroy_material(Material* m);
+	static bool8 _create_material_from_resource(const char* name, Material* m);
+	static bool8 _create_material(const MaterialConfig* config, Material* m);
+	static void _destroy_material(Material* m);
 
-	static bool8 create_default_material();
-	static bool8 create_default_ui_material();
+	static bool8 _create_default_material();
+	static bool8 _create_default_ui_material();
 
-	static bool8 add_reference(const char* name, bool8 auto_unload, MaterialId* out_material_id, bool8* out_load);
-	static MaterialId remove_reference(const char* name);
-    static bool8 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture);
+    static bool8 _assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture);
 
     bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config) {
 
         SystemConfig* sys_config = (SystemConfig*)config;
         system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-        uint64 material_array_size = system_state->materials.get_external_size_requirement(sys_config->max_material_count);
-        void* material_array_data = allocator_callback(allocator, material_array_size);
-        system_state->materials.init(sys_config->max_material_count, 0, AllocationTag::Array, material_array_data);
+        uint64 material_ref_counter_array_size = system_state->material_ref_counters.get_external_size_requirement(sys_config->max_material_count);
+        void* material_ref_counter_array_data = allocator_callback(allocator, material_ref_counter_array_size);
+        system_state->material_ref_counters.init(sys_config->max_material_count, 0, AllocationTag::Array, material_ref_counter_array_data);
 
-        uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_material_count);
-        void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-        system_state->lookup_table.init(sys_config->max_material_count, HashtableRHFlag::ExternalMemory, AllocationTag::Dict, hashtable_data);
+        uint64 storage_data_size = system_state->material_storage.get_external_size_requirement(sys_config->max_material_count);
+        void* storage_data = allocator_callback(allocator, storage_data_size);
+        system_state->material_storage.init(sys_config->max_material_count, AllocationTag::Array, storage_data);
 
-        // Invalidate all materials in the array.
-        for (uint32 i = 0; i < system_state->materials.capacity; ++i) {
-            system_state->materials[i].id.invalidate();
-            system_state->materials[i].shader_instance_id = Constants::max_u32;
-        }
-
-        create_default_material();
-        create_default_ui_material();
+        _create_default_material();
+        _create_default_ui_material();
 
         return true;
 
@@ -77,22 +68,25 @@ namespace MaterialSystem
         if (!system_state)
             return;
 
-        // Invalidate all materials in the array.
-        for (uint32 i = 0; i < system_state->materials.capacity; ++i) 
-        {
-            if (system_state->materials[i].id.is_valid()) 
-                destroy_material(&system_state->materials[i]);
-        }
+		auto iter = system_state->material_storage.get_iterator();
+		while (Material* material = iter.get_next())
+		{
+			MaterialId material_id;
+			system_state->material_storage.release(material->name, &material_id, &material);
+			_destroy_material(material);
+			system_state->material_storage.verify_write(material_id);
+		}
+		system_state->material_storage.destroy();
 
         // Destroy the default materials.
-		destroy_material(&system_state->default_ui_material);
-		destroy_material(&system_state->default_material);
+		_destroy_material(&system_state->default_ui_material);
+		_destroy_material(&system_state->default_material);
 
         system_state = 0;
 
     }
 
-    static Material* acquire_(const MaterialConfig* config, const char* name, bool8 auto_unload)
+    static Material* _acquire(const MaterialConfig* config, const char* name, bool8 auto_destroy)
     {
         if (CString::equal_i(name, SystemConfig::default_name))
             return &system_state->default_material;    
@@ -103,44 +97,51 @@ namespace MaterialSystem
         if (CString::equal_i(name, SystemConfig::default_terrain_name))
             return &system_state->default_material;
 
-        MaterialId id = MaterialId::invalid_value;
-        bool8 load = false;
-        Material* m = 0;
+        MaterialId id;
+        Material* m;
 
-        if (!add_reference(name, auto_unload, &id, &load))
-        {
-            SHMERRORV("Failed to add reference to material system.");
-            return 0;
-        }
-		m = &system_state->materials[id];
-
-        bool8 loaded = true;
-        if (load)
-        {
-            if (config)
-                loaded = load_material(config, m);
-            else
-                loaded = load_material_from_resource(name, m);
-        }
-
-		if (!loaded) 
+        StorageReturnCode ret_code = system_state->material_storage.acquire(name, &id, &m);
+		switch (ret_code)
 		{
-			destroy_material(m);
-			SHMERRORV("Failed to load material '%s'.", config->name);
+		case StorageReturnCode::OutOfMemory:
+		{
+			SHMERROR("Failed to create material: Out of memory!");
 			return 0;
 		}
+		case StorageReturnCode::AlreadyExisted:
+		{
+            system_state->material_ref_counters[id].reference_count++;
+            return system_state->material_storage.get_object(id);
+		}
+		}
 
+        if (config)
+        {
+			goto_if(!_create_material(config, m), fail);
+		}
+        else
+        {
+			goto_if(!_create_material_from_resource(name, m), fail);
+        }
+
+        system_state->material_ref_counters[id] = { 1, auto_destroy };
+        system_state->material_storage.verify_write(id);
         return m;
+
+    fail:
+		system_state->material_storage.revert_write(id);
+		SHMERRORV("Failed to load material '%s'.", config->name);
+		return 0;
     }
 
-    Material* acquire(const char* name, bool8 auto_unload) 
+    Material* acquire(const char* name, bool8 auto_destroy) 
     {
-        return acquire_(0, name, auto_unload);
+        return _acquire(0, name, auto_destroy);
     }
 
-    Material* acquire(const MaterialConfig* config, bool8 auto_unload) 
+    Material* acquire(const MaterialConfig* config, bool8 auto_destroy) 
     {
-        return acquire_(config, config->name, auto_unload);
+        return _acquire(config, config->name, auto_destroy);
     }
 
     void release(const char* name) {
@@ -150,31 +151,24 @@ namespace MaterialSystem
             CString::equal_i(name, SystemConfig::default_terrain_name))
             return;
 
-		MaterialId destroy_id = remove_reference(name);
-		if (destroy_id.is_valid())
+		MaterialId id = system_state->material_storage.get_id(name);
+        if (!id.is_valid())
+            return;
+
+        ReferenceCounter* ref_counter = &system_state->material_ref_counters[id];
+        if (ref_counter->reference_count > 0)
+			ref_counter->reference_count--;
+
+        if (ref_counter->reference_count == 0 && ref_counter->auto_destroy)
 		{
-			Material* m = &system_state->materials[destroy_id];
-			destroy_material(m);
+            Material* m;
+            system_state->material_storage.release(name, &id, &m);
+			_destroy_material(m);
+            system_state->material_storage.verify_write(id);
 		}
     }
 
-    void dump_system_stats()
-    {
-        for (uint32 i = 0; i < system_state->materials.capacity; i++) 
-        {
-            Material* m = &system_state->materials[i];
-            if (!m->id.is_valid())
-                continue;
-
-            const MaterialReference* r = system_state->lookup_table.get(m->name);
-            if (r) {
-				SHMTRACEV("Material name: %s", m->name);
-				SHMTRACEV("Material ref (handle/refCount): (%u/%u)", r->id, r->reference_count);
-            }
-        }
-    }
-
-    static bool8 assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture)
+    static bool8 _assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture)
     {
         map->filter_minify = config->filter_min;
         map->filter_magnify = config->filter_mag;
@@ -205,7 +199,7 @@ namespace MaterialSystem
         return true;
     }
 
-    static bool8 load_material_from_resource(const char* name, Material* m)
+    static bool8 _create_material_from_resource(const char* name, Material* m)
     {
         MaterialResourceData resource;
         if (!ResourceSystem::material_loader_load(name, &resource))
@@ -238,19 +232,24 @@ namespace MaterialSystem
         config.maps = map_configs.data;
 
         // Now acquire from loaded config.
-        bool8 success = load_material(&config, m);
+        bool8 success = _create_material(&config, m);
 
         map_configs.free_data();
         ResourceSystem::material_loader_unload(&resource);
         return success;
     }
 
-    static bool8 load_material(const MaterialConfig* config, Material* m)
+    static bool8 _create_material(const MaterialConfig* config, Material* m)
     {
+        Shader* shader = 0;
+        CString::copy(config->name, m->name, Constants::max_material_name_length);
+        m->shader_instance_id = Constants::max_u32;
         m->shader_id = ShaderSystem::get_shader_id(config->shader_name);
         m->type = config->type;
 
-        if (m->type == MaterialType::PHONG)
+        switch (m->type)
+        {
+        case MaterialType::PHONG:
         {
             m->properties_size = sizeof(MaterialPhongProperties);
             m->properties = Memory::allocate(m->properties_size, AllocationTag::MaterialInstance);
@@ -278,20 +277,17 @@ namespace MaterialSystem
             {
                 if (CString::equal_i(config->maps[i].name, "diffuse"))
                 {
-                    if (!assign_map(&m->maps[0], &config->maps[i], m->name, TextureSystem::get_default_diffuse_texture()))
-                        return false;
+                    goto_if(!_assign_map(&m->maps[0], &config->maps[i], m->name, TextureSystem::get_default_diffuse_texture()), fail)
                     diffuse_assigned = true;
                 }
                 else if (CString::equal_i(config->maps[i].name, "specular"))
                 {
-                    if (!assign_map(&m->maps[1], &config->maps[i], m->name, TextureSystem::get_default_specular_texture()))
-                        return false;
+                    goto_if(!_assign_map(&m->maps[1], &config->maps[i], m->name, TextureSystem::get_default_specular_texture()), fail);
                     specular_assigned = true;
                 }
                 else if (CString::equal_i(config->maps[i].name, "normal"))
                 {
-                    if (!assign_map(&m->maps[2], &config->maps[i], m->name, TextureSystem::get_default_normal_texture()))
-                        return false;
+                    goto_if(!_assign_map(&m->maps[2], &config->maps[i], m->name, TextureSystem::get_default_normal_texture()), fail);
                     normal_assigned = true;
                 }
             }
@@ -301,26 +297,26 @@ namespace MaterialSystem
             default_map_config.repeat_u = default_map_config.repeat_v = default_map_config.repeat_w = TextureRepeat::MIRRORED_REPEAT;
             default_map_config.texture_name = 0;
 
-            if (!diffuse_assigned) {              
+            if (!diffuse_assigned) 
+            {              
                 default_map_config.name = "diffuse";
-                if (!assign_map(&m->maps[0], &default_map_config, m->name, TextureSystem::get_default_diffuse_texture())) {
-                    return false;
-                }
+                goto_if(!_assign_map(&m->maps[0], &default_map_config, m->name, TextureSystem::get_default_diffuse_texture()), fail);
             }
-            if (!specular_assigned) {
+            if (!specular_assigned) 
+            {
                 default_map_config.name = "specular";
-                if (!assign_map(&m->maps[1], &default_map_config, m->name, TextureSystem::get_default_specular_texture())) {
-                    return false;
-                }
+                goto_if(!_assign_map(&m->maps[1], &default_map_config, m->name, TextureSystem::get_default_specular_texture()), fail);
             }
-            if (!normal_assigned) {
+            if (!normal_assigned) 
+            {
                 default_map_config.name = "normal";
-                if (!assign_map(&m->maps[2], &default_map_config, m->name, TextureSystem::get_default_normal_texture())) {
-                    return false;
-                }
+                goto_if(!_assign_map(&m->maps[2], &default_map_config, m->name, TextureSystem::get_default_normal_texture()), fail);
             }
+
+            shader = ShaderSystem::get_shader(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_material_phong);
+            break;
         }
-        else if (m->type == MaterialType::UI)
+        case MaterialType::UI:
         {
             m->properties_size = sizeof(MaterialUIProperties);
             m->properties = Memory::allocate(m->properties_size, AllocationTag::MaterialInstance);
@@ -338,61 +334,36 @@ namespace MaterialSystem
 
             m->maps.init(1, 0);
 
-            if (!assign_map(&m->maps[0], &config->maps[0], m->name, TextureSystem::get_default_diffuse_texture())) {
-                return false;
-            }
-        }
-        else
-        {
-            SHMERROR("Failed to load material. Type either unknown or not supported yet!");
-            return false;
-        }
-
-        Shader* shader = 0;
-        if (m->type == MaterialType::PHONG)
-        {
-            shader = ShaderSystem::get_shader(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_material_phong);
-        }
-        if (m->type == MaterialType::UI)
-        {
+            goto_if(!_assign_map(&m->maps[0], &config->maps[0], m->name, TextureSystem::get_default_diffuse_texture()), fail);
             shader = ShaderSystem::get_shader(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
+            break;
         }
-        if (m->type == MaterialType::CUSTOM)
+        case MaterialType::CUSTOM:
         {
-            if (!*config->shader_name)
-            {
-                SHMERROR("Failed to load shader. Shader name is required for custom materials!");
-                return false;
-            }
-
+            goto_if_log(!config->shader_name[0], fail, "Failed to load shader. Shader name is required for custom materials!");
             shader = ShaderSystem::get_shader(config->shader_name);
+            break;
         }
-        else
+        default:
         {
-            if (!*config->shader_name)
-            {
-                SHMERROR("Failed to load material. Type either unknown or not supported yet!");
-                return false;
-            }
+			goto_if_log(true, fail, "Failed to load material. Type either unknown or not supported yet!");
+            break;
+        }
         }
 
-        if (!shader)
-        {
-            SHMERROR("Failed to load material. No valid shader found!");
-            return false;
-        }
+        goto_if_log(!shader, fail, "No valid shader for material found!");
+        goto_if_log(!Renderer::shader_acquire_instance_resources(shader, m->maps.capacity, &m->shader_instance_id), fail, "Failed to acquire renderer resources for material.");
 
-        bool8 res = Renderer::shader_acquire_instance_resources(shader, m->maps.capacity, &m->shader_instance_id);
-        if (!res)
-            SHMERRORV("Failed to acquire renderer resources for material '%s'.", m->name);
+        return true;
 
-        return res;
+    fail:
+        SHMERRORV("Failed to create material '%s'.", m->name);
+        _destroy_material(m);
+        return false;
     }
 
-    static void destroy_material(Material* m)
+    static void _destroy_material(Material* m)
     {
-        system_state->lookup_table.remove_entry(m->name);
-
         // Release texture references.
         for (uint32 i = 0; i < m->maps.capacity; i++)
         {
@@ -426,7 +397,7 @@ namespace MaterialSystem
         return &system_state->default_ui_material;
     }
     
-    static bool8 create_default_material() {
+    static bool8 _create_default_material() {
 
         Material* mat = &system_state->default_material;
 
@@ -452,19 +423,19 @@ namespace MaterialSystem
             mat->maps[i].texture = default_textures[i % 3];
         }
 
-        Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_material_phong);
+        mat->shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_material_phong);
+        Shader* s = ShaderSystem::get_shader(mat->shader_id);
         if (!Renderer::shader_acquire_instance_resources(s, maps_count, &mat->shader_instance_id))
         {
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;
         }
 
-        mat->shader_id = s->id;
 
         return true;
     }
 
-    static bool8 create_default_ui_material() {
+    static bool8 _create_default_ui_material() {
 
         Material* mat = &system_state->default_ui_material;
 
@@ -488,78 +459,16 @@ namespace MaterialSystem
             mat->maps[i].texture = TextureSystem::get_default_texture();
         }
 
-        Shader* s = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
+        mat->shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_ui);
+        Shader* s = ShaderSystem::get_shader(mat->shader_id);
         if (!Renderer::shader_acquire_instance_resources(s, maps_count, &mat->shader_instance_id))
         {
             SHMFATAL("Failed to acquire renderer resources for default texture. Application cannot continue.");
             return false;
         }
 
-        mat->shader_id = s->id;
 
         return true;
     }
 
-	static bool8 add_reference(const char* name, bool8 auto_unload, MaterialId* out_material_id, bool8* out_load)
-	{
-		*out_material_id = MaterialId::invalid_value;
-		*out_load = false;
-		MaterialReference* ref = system_state->lookup_table.get(name);
-		if (ref)
-		{
-			ref->reference_count++;
-			*out_material_id = ref->id;
-			return true;
-		}
-
-		MaterialId new_id = MaterialId::invalid_value;
-		for (uint16 i = 0; i < system_state->materials.capacity; i++)
-		{
-			if (!system_state->materials[i].id.is_valid())
-			{
-				new_id = i;
-				break;
-			}
-		}
-
-		if (!new_id.is_valid())
-		{
-			SHMFATAL("Could not acquire new texture to texture system since no free slots are left!");
-			return false;
-		}
-
-		Material* m = &system_state->materials[new_id];
-
-		m->id = new_id;
-        CString::copy(name, m->name, Constants::max_material_name_length);
-		MaterialReference new_ref = { .id = new_id, .reference_count = 1, .auto_unload = auto_unload };
-		ref = system_state->lookup_table.set_value(m->name, new_ref);
-		*out_material_id = ref->id;
-        *out_load = true;
-
-		return true;
-	}
-
-	static MaterialId remove_reference(const char* name)
-	{
-		MaterialReference* ref = system_state->lookup_table.get(name);
-		if (!ref)
-		{
-			SHMWARNV("Tried to release non-existent material: '%s'", name);
-			return MaterialId::invalid_value;
-		}
-		else if (!ref->reference_count)
-		{
-			SHMWARN("Tried to release a texture where autorelease=false, but references was already 0.");
-			return MaterialId::invalid_value;
-		}
-
-		ref->reference_count--;
-		if (ref->reference_count == 0 && ref->auto_unload)
-		{
-			return ref->id;
-		}
-
-		return MaterialId::invalid_value;
-	}
 }

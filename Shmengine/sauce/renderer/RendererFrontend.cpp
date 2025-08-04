@@ -392,9 +392,9 @@ namespace Renderer
 			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_alloc_ref.byte_offset, geometry->index_count, false);
 	}
 
-	bool8 shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass)
+	bool8 shader_create(const ShaderConfig* config, Shader* shader)
 	{
-
+		shader->state = ShaderState::Uninitialized;
 		shader->name = config->name;
 		shader->bound_instance_id = Constants::max_u32;
 		shader->last_update_frame_number = Constants::max_u8;
@@ -456,13 +456,15 @@ namespace Renderer
 			}
 		}
 
-		return system_state->module.shader_create(shader, config, renderpass);
+		return system_state->module.shader_create(config, shader);
 	}
 
 	void shader_destroy(Shader* s) 
 	{
 		renderbuffer_destroy(&s->uniform_buffer);
 		system_state->module.shader_destroy(s);
+		s->name.free_data();
+		s->state = ShaderState::Uninitialized;
 		s->~Shader();
 	}
 

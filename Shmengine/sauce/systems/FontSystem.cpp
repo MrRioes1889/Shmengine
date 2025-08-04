@@ -1,6 +1,7 @@
 #include "FontSystem.hpp"
 
 #include "systems/TextureSystem.hpp"
+#include "containers/LinearStorage.hpp"
 #include "resources/UIText.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "resources/loaders/FontLoader.hpp"
@@ -11,12 +12,11 @@ namespace FontSystem
 {
 	struct SystemState
 	{
-		Sarray<FontAtlas> fonts;
-		HashtableRH<FontId, Constants::max_font_name_length> font_lookup;
+		LinearHashedStorage<FontAtlas, FontId, Constants::max_font_name_length> font_storage;
 	};
 
-	static bool8 create_font_data_new(FontConfig* config, FontAtlas* out_font);
-	static void destroy_font_data(FontAtlas* font);
+	static bool8 _create_font(FontConfig* config, FontAtlas* out_font);
+	static void _destroy_font(FontAtlas* font);
 
 	static SystemState* system_state = 0;
 
@@ -25,89 +25,80 @@ namespace FontSystem
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
-		uint64 font_array_size = system_state->fonts.get_external_size_requirement(sys_config->max_font_count);
-		void* font_array_data = allocator_callback(allocator, font_array_size);
-		system_state->fonts.init(sys_config->max_font_count, 0, AllocationTag::Font, font_array_data);
-
-		uint64 hashtable_data_size = system_state->font_lookup.get_external_size_requirement(sys_config->max_font_count);
-		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->font_lookup.init(sys_config->max_font_count, HashtableOAFlag::ExternalMemory, AllocationTag::Unknown, hashtable_data);
+		uint64 font_storage_size = system_state->font_storage.get_external_size_requirement(sys_config->max_font_count);
+		void* font_storage_data = allocator_callback(allocator, font_storage_size);
+		system_state->font_storage.init(sys_config->max_font_count, AllocationTag::Font, font_storage_data);
 
 		return true;
 	}
 
 	void system_shutdown(void* state)
 	{
-		for (uint16 i = 0; i < system_state->fonts.capacity; i++)
+		auto iter = system_state->font_storage.get_iterator();
+		while (FontAtlas* font = iter.get_next())
 		{
-			if (system_state->fonts[i].type == FontType::None)
-				continue;
-
-			FontAtlas* font = &system_state->fonts[i];
-			destroy_font_data(font);
+			FontId font_id;
+			system_state->font_storage.release(font->name, &font_id, &font);
+			_destroy_font(font);
+			system_state->font_storage.verify_write(font_id);
 		}
+		system_state->font_storage.destroy();
 	}
 
 	bool8 load_font(const char* name, const char* resource_name, uint16 font_size)
 	{
-		FontId id = FontId::invalid_value;
-		if (system_state->font_lookup.get(name))
+		FontId id;
+		FontAtlas* font;
+		FontResourceData resource;
+		FontConfig config;
+
+		StorageReturnCode ret_code = system_state->font_storage.acquire(name, &id, &font);
+		switch (ret_code)
 		{
-			SHMWARNV("load_truetype_font - Font named '%s' already exists!", name);
+		case StorageReturnCode::OutOfMemory:
+		{
+			SHMERROR("No space to allocate font left!");
+			return false;
+		}
+		case StorageReturnCode::AlreadyExisted:
+		{
+			SHMWARNV("Font named '%s' already exists!", name);
 			return true;
 		}
-
-		for (uint16 i = 0; i < system_state->fonts.capacity; i++)
-		{
-			if (system_state->fonts[i].type == FontType::None)
-			{
-				id = i;
-				break;
-			}
 		}
 
-		if (!id.is_valid())
-		{
-			SHMERROR("load_truetype_font - No space left to allocate bitmap font!");
-			return false;
-		}
+		resource = {};
+		goto_if_log(!ResourceSystem::font_loader_load(resource_name, font_size, &resource), fail, "Failed to load font resource");
 
-		FontResourceData resource = {};
-		if (!ResourceSystem::font_loader_load(resource_name, font_size, &resource))
-		{
-			SHMERROR("load_truetype_font - Failed to load resource!");
-			return false;
-		}	
-
-		FontConfig config = ResourceSystem::font_loader_get_config_from_resource(&resource);
+		config = ResourceSystem::font_loader_get_config_from_resource(&resource);
 		config.name = name;
-		FontAtlas* font = &system_state->fonts[id];
 
-		if (create_font_data_new(&config, font))
-			system_state->font_lookup.set_value(font->name, id);
+		goto_if_log(!_create_font(&config, font), fail, "Failed to create font object");
 
+		system_state->font_storage.verify_write(id);
 		ResourceSystem::font_loader_unload(&resource);
 		return true;
+
+	fail:
+		system_state->font_storage.revert_write(id);
+		return false;
 	}
 
 	FontId acquire(const char* font_name)
 	{
-		FontId* id = system_state->font_lookup.get(font_name);
-		if (!id)
-			return FontId::invalid_value;
-
-		return *id;
+		return system_state->font_storage.get_id(font_name);
 	}
 	
     FontAtlas* get_atlas(FontId id, uint16 font_size)
-	{
-		if (!id.is_valid() || system_state->fonts[id].type == FontType::None || system_state->fonts[id].font_size != font_size)
+	{	
+		FontAtlas* atlas = system_state->font_storage.get_object(id);
+		if (atlas->font_size != font_size)
 			return 0;
 
-		return &system_state->fonts[id];
+		return atlas;
 	}
 
-	static bool8 create_font_data_new(FontConfig* config, FontAtlas* out_font)
+	static bool8 _create_font(FontConfig* config, FontAtlas* out_font)
 	{
 		CString::copy(config->name, out_font->name, Constants::max_font_name_length);
 		
@@ -154,20 +145,20 @@ namespace FontSystem
 			if (out_font->map.texture)
 				TextureSystem::write_to_texture(out_font->map.texture, 0, config->texture_buffer_size, (uint8*)config->texture_buffer);
 		}
-		goto_on_fail_log(out_font->map.texture, failure, "Unable to acquire texture for font atlas.");
+		goto_if_log(!out_font->map.texture, fail, "Unable to acquire texture for font atlas.");
 
 		out_font->map.filter_magnify = out_font->map.filter_minify = TextureFilter::LINEAR;
 		out_font->map.repeat_u = out_font->map.repeat_v = out_font->map.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
-		goto_on_fail_log(Renderer::texture_map_acquire_resources(&out_font->map), failure, "Unable to acquire resources for font atlas texture map.");
+		goto_if_log(!Renderer::texture_map_acquire_resources(&out_font->map), fail, "Unable to acquire resources for font atlas texture map.");
 
 		return true;
 
-	failure:
-		destroy_font_data(out_font);
+	fail:
+		_destroy_font(out_font);
 		return false;
 	}
 
-	static void destroy_font_data(FontAtlas* font)
+	static void _destroy_font(FontAtlas* font)
 	{
 		Renderer::texture_map_release_resources(&font->map);
 

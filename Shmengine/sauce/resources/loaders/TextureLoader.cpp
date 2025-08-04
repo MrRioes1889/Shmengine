@@ -53,21 +53,21 @@ namespace ResourceSystem
 			}
 		}
 
-		goto_on_fail_log(found, failure, "Image resource loader failed to find file '%s' with any valid extensions.", full_filepath_tmp);
+		goto_if_log(!found, fail, "Image resource loader failed to find file '%s' with any valid extensions.", full_filepath_tmp);
 		CString::copy(full_filepath_tmp,full_filepath, Constants::max_filepath_length);
 
-		goto_on_fail_log(FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f), failure, "Unable to read file: %s.", full_filepath);
+		goto_if_log(!FileSystem::file_open(full_filepath, FileMode::FILE_MODE_READ, &f), fail, "Unable to read file: %s.", full_filepath);
 
 		file_size = FileSystem::get_file_size32(&f);
-		goto_on_fail_log(FileSystem::get_file_size32(&f), failure, "Unable to get size of file: %s.", full_filepath);
+		goto_if_log(!FileSystem::get_file_size32(&f), fail, "Unable to get size of file: %s.", full_filepath);
 
 		file_data.init(file_size, 0, AllocationTag::Resource);
 		bytes_read = 0;
-		goto_on_fail_log(FileSystem::read_all_bytes(&f, file_data.data, (uint32)file_data.size, &bytes_read), failure, "Unable to read file: %s.", full_filepath);
+		goto_if_log(!FileSystem::read_all_bytes(&f, file_data.data, (uint32)file_data.size, &bytes_read), fail, "Unable to read file: %s.", full_filepath);
 
 		FileSystem::file_close(&f);
 		pixels_data = stbi_load_from_memory((stbi_uc*)file_data.data, (int)file_data.size, &width, &height, &channel_count, required_channel_count);
-		goto_on_fail_log(pixels_data, failure, "Image resource loader failed to load file '%s'.", full_filepath);
+		goto_if_log(!pixels_data, fail, "Image resource loader failed to load file '%s'.", full_filepath);
 
 		out_resource->width = width;
 		out_resource->height = height;
@@ -79,7 +79,7 @@ namespace ResourceSystem
 		file_data.free_data();
 		return true;
 
-	failure:
+	fail:
 		FileSystem::file_close(&f);
 		file_data.free_data();
 		texture_loader_unload(out_resource);

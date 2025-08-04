@@ -45,7 +45,7 @@ namespace Renderer::Vulkan
 	bool8 vk_texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 	void vk_texture_destroy(Texture* texture);
 
-	bool8 vk_shader_create(Shader* shader, const ShaderConfig* config, const RenderPass* renderpass);
+	bool8 vk_shader_create(const ShaderConfig* config, Shader* shader);
 	void vk_shader_destroy(Shader* shader);
 
 	bool8 vk_shader_init(Shader* shader);

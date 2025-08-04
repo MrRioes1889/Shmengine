@@ -81,7 +81,7 @@ namespace Constants
 #define STATIC_ASSERT static_assert
 #endif
 
-#define goto_on_fail(condition, tagname) if(!(condition)) goto tagname;
+#define goto_if(condition, tagname) if(condition) goto tagname;
 
 inline constexpr uint64 kibibytes(uint64 x) { return x * 1024ULL; }
 inline constexpr uint64 mebibytes(uint64 x) { return kibibytes(x) * 1024ULL; }

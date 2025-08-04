@@ -50,6 +50,7 @@ struct RenderViewGeometryData
 	GeometryData* geometry_data;
 };
 
+struct RenderView;
 typedef bool8(*FP_on_create)(RenderView* self);
 typedef void (*FP_on_destroy)(RenderView* self);
 typedef void (*FP_on_resize)(RenderView* self, uint32 width, uint32 height);
@@ -82,7 +83,6 @@ typedef Id16 RenderViewId;
 
 struct RenderView
 {
-	RenderViewId id;
 	uint16 width;
 	uint16 height;
 	bool8 enabled;
@@ -133,8 +133,6 @@ namespace RenderViewSystem
 	void on_window_resize(uint32 width, uint32 height);
 	bool8 on_render(FrameData* frame_data, uint32 frame_number, uint64 render_target_index);
 	void on_end_frame();
-
-	SHMAPI void regenerate_render_targets(RenderViewId view_id);
 
 	SHMAPI uint32 mesh_draw(Mesh* mesh, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
 	SHMAPI uint32 meshes_draw(Mesh* meshes, uint32 mesh_count, LightingInfo lighting, FrameData* frame_data, const Math::Frustum* frustum, RenderViewId view_id = RenderViewId::invalid_value, ShaderId shader_id = ShaderId::invalid_value);
