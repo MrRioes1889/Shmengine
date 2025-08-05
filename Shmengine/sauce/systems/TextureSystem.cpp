@@ -4,8 +4,7 @@
 #include "utility/CString.hpp"
 #include "core/Memory.hpp"
 #include "core/Mutex.hpp"
-#include "containers/Hashtable.hpp"
-#include "containers/Sarray.hpp"
+#include "containers/LinearStorage.hpp"
 #include "platform/Platform.hpp"
 
 #include "renderer/RendererFrontend.hpp"
@@ -24,9 +23,8 @@ namespace TextureSystem
 		TextureResourceData resource;
 	};
 
-	struct TextureReference
+	struct ReferenceCounter
 	{
-		TextureId id;
 		uint16 reference_count;
 		bool8 auto_destroy;
 	};
@@ -38,8 +36,8 @@ namespace TextureSystem
 		Texture default_specular;
 		Texture default_normal;
 
-		Sarray<Texture> textures;
-		HashtableRH<TextureReference, Constants::max_texture_name_length> lookup_table;
+		Sarray<ReferenceCounter> texture_ref_counters;
+		LinearHashedStorage<Texture, TextureId, Constants::max_texture_name_length> texture_storage;
 
 		// TODO: Build a Solution that does not block when texture data is uploaded to gpu.
 		uint32 textures_loading_count;
@@ -47,15 +45,12 @@ namespace TextureSystem
 
 	static SystemState* system_state = 0;
 	
-	static bool8 load_texture_async(const char* texture_name, Texture* t);
-	static bool8 load_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t);
-	static void destroy_texture(Texture* t);
+	static bool8 _create_texture_async(const char* texture_name, Texture* t);
+	static bool8 _create_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t);
+	static void _destroy_texture(Texture* t);
 
-	static void create_default_textures();
-	static void destroy_default_textures();
-
-	static bool8 add_reference(const char* name, bool8 auto_destroy, TextureId* out_texture_id, bool8* out_load);
-	static TextureId remove_reference(const char* name);
+	static void _create_default_textures();
+	static void _destroy_default_textures();
 
 	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config)
 	{
@@ -64,18 +59,15 @@ namespace TextureSystem
 
 		system_state->textures_loading_count = 0;
 
-		uint64 texture_array_size = system_state->textures.get_external_size_requirement(sys_config->max_texture_count);
-		void* texture_array_data = allocator_callback(allocator, texture_array_size);
-		system_state->textures.init(sys_config->max_texture_count, 0, AllocationTag::Array, texture_array_data);
+		uint64 ref_counter_array_size = system_state->texture_ref_counters.get_external_size_requirement(sys_config->max_texture_count);
+		void* ref_counter_array_data = allocator_callback(allocator, ref_counter_array_size);
+		system_state->texture_ref_counters.init(sys_config->max_texture_count, 0, AllocationTag::Array, ref_counter_array_data);
 
-		uint64 hashtable_data_size = system_state->lookup_table.get_external_size_requirement(sys_config->max_texture_count);
-		void* hashtable_data = allocator_callback(allocator, hashtable_data_size);
-		system_state->lookup_table.init(sys_config->max_texture_count, HashtableRHFlags::ExternalMemory, AllocationTag::Dict, hashtable_data);
+		uint64 storage_data_size = system_state->texture_storage.get_external_size_requirement(sys_config->max_texture_count);
+		void* storage_data = allocator_callback(allocator, storage_data_size);
+		system_state->texture_storage.init(sys_config->max_texture_count, AllocationTag::Dict, storage_data);
 
-		for (uint32 i = 0; i < sys_config->max_texture_count; i++)
-			system_state->textures[i].id.invalidate();
-
-		create_default_textures();
+		_create_default_textures();
 
 		return true;
 	}
@@ -85,136 +77,145 @@ namespace TextureSystem
 		if (!system_state)
 			return;
 		
-		for (uint32 i = 0; i < system_state->textures.capacity; i++)
+		auto iter = system_state->texture_storage.get_iterator();
+		while (Texture* texture = iter.get_next())
 		{
-			if (system_state->textures[i].id.is_valid())
-				destroy_texture(&system_state->textures[i]);
+			TextureId id;
+			system_state->texture_storage.release(texture->name, &id, &texture);
+			_destroy_texture(texture);
+			system_state->texture_storage.verify_write(id);
 		}
+		system_state->texture_storage.destroy();
 
-		destroy_default_textures();
-		system_state->textures.free_data();
-		system_state->lookup_table.destroy();
+		_destroy_default_textures();
 		system_state = 0;
 	}
 
-	Texture* acquire(const char* name, bool8 auto_destroy)
+	Texture* acquire(const char* name, TextureType type, bool8 auto_destroy)
 	{
-		
-		if (CString::equal_i(name, SystemConfig::default_name))
-			return &system_state->default_texture;
+        TextureId id;
+        Texture* texture;
 
-		if (CString::equal_i(name, SystemConfig::default_diffuse_name))
-			return &system_state->default_diffuse;
-
-		if (CString::equal_i(name, SystemConfig::default_specular_name))
-			return &system_state->default_specular;
-
-		if (CString::equal_i(name, SystemConfig::default_normal_name))
-			return &system_state->default_normal;
-
-		TextureId id = TextureId::invalid_value;
-		bool8 load = false;
-		if (!add_reference(name, auto_destroy, &id, &load))
+        StorageReturnCode ret_code = system_state->texture_storage.acquire(name, &id, &texture);
+		switch (ret_code)
 		{
-			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
+		case StorageReturnCode::OutOfMemory:
+		{
+			SHMERROR("Failed to create texture: Out of memory!");
 			return 0;
 		}
-		Texture* t = &system_state->textures[id];
-
-		if (load && !load_texture_async(name, t))
+		case StorageReturnCode::AlreadyExisted:
 		{
-			destroy_texture(t);
-			SHMERRORV("Failed to load texture: '%s'", name);
-			return 0;
-		}		
-
-		return t;
-	}
-
-	Texture* acquire_cube(const char* name, bool8 auto_destroy)
-	{
-		TextureId id = TextureId::invalid_value;
-		bool8 load = false;
-		if (!add_reference(name, auto_destroy, &id, &load))
-		{
-			SHMERRORV("acquire - failed to obtain new id for texture: '%s'.", name);
-			return 0;
+            system_state->texture_ref_counters[id].reference_count++;
+            return system_state->texture_storage.get_object(id);
 		}
-		Texture* t = &system_state->textures[id];
-
-		char texture_names[6][Constants::max_texture_name_length];
-		CString::safe_print_s<const char*>(texture_names[0], Constants::max_texture_name_length, "%s_r", name);
-		CString::safe_print_s<const char*>(texture_names[1], Constants::max_texture_name_length, "%s_l", name);
-		CString::safe_print_s<const char*>(texture_names[2], Constants::max_texture_name_length, "%s_u", name);
-		CString::safe_print_s<const char*>(texture_names[3], Constants::max_texture_name_length, "%s_d", name);
-		CString::safe_print_s<const char*>(texture_names[4], Constants::max_texture_name_length, "%s_f", name);
-		CString::safe_print_s<const char*>(texture_names[5], Constants::max_texture_name_length, "%s_b", name);
-
-		if (!load_cube_textures(name, texture_names, t))
-		{
-			destroy_texture(t);
-			SHMERRORV("Failed to load texture: '%s'", name);
-			return 0;
 		}
 
-		return t;
+		switch (type)
+		{
+		case TextureType::Plane:
+		{
+			goto_if_log(!_create_texture_async(name, texture), fail, "Failed to create texture.");
+			break;
+		}
+		case TextureType::Cube:
+		{
+			char texture_names[6][Constants::max_texture_name_length];
+			CString::safe_print_s<const char*>(texture_names[0], Constants::max_texture_name_length, "%s_r", name);
+			CString::safe_print_s<const char*>(texture_names[1], Constants::max_texture_name_length, "%s_l", name);
+			CString::safe_print_s<const char*>(texture_names[2], Constants::max_texture_name_length, "%s_u", name);
+			CString::safe_print_s<const char*>(texture_names[3], Constants::max_texture_name_length, "%s_d", name);
+			CString::safe_print_s<const char*>(texture_names[4], Constants::max_texture_name_length, "%s_f", name);
+			CString::safe_print_s<const char*>(texture_names[5], Constants::max_texture_name_length, "%s_b", name);
+
+			goto_if_log(!_create_cube_textures(name, texture_names, texture), fail, "Failed to create cube texture");
+			break;
+		}
+		default:
+		{
+			goto_if_log(true, fail, "Failed to create texture: Unknown type");
+			break;
+		}
+		}
+
+        system_state->texture_ref_counters[id] = { 1, auto_destroy };
+        system_state->texture_storage.verify_write(id);
+        return texture;
+
+    fail:
+		system_state->texture_storage.revert_write(id);
+		SHMERRORV("Failed to create texture '%s'.", name);
+		return 0;
 	}
 
 	Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint8 channel_count, bool8 has_transparency)
 	{
-		TextureId id = TextureId::invalid_value;
-		bool8 load = false;
-		if (!add_reference(name, false, &id, &load))
+        TextureId id;
+        Texture* texture;
+
+        StorageReturnCode ret_code = system_state->texture_storage.acquire(name, &id, &texture);
+		switch (ret_code)
 		{
-			SHMERRORV("acquire_writable - failed to obtain new id for texture: '%s'.", name);
+		case StorageReturnCode::OutOfMemory:
+		{
+			SHMERROR("Failed to create texture: Out of memory!");
 			return 0;
 		}
+		case StorageReturnCode::AlreadyExisted:
+		{
+            system_state->texture_ref_counters[id].reference_count++;
+            return system_state->texture_storage.get_object(id);
+		}
+		}
 
-		Texture* t = &system_state->textures[id];
-		t->id = id;
-		CString::copy(name, t->name, Constants::max_texture_name_length);
-		t->width = width;
-		t->height = height;
-		t->channel_count = channel_count;
-		t->type = TextureType::Plane;
-		t->flags = 0;
-		t->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
-		Renderer::texture_create(t);
+		CString::copy(name, texture->name, Constants::max_texture_name_length);
+		texture->width = width;
+		texture->height = height;
+		texture->channel_count = channel_count;
+		texture->type = TextureType::Plane;
+		texture->flags = 0;
+		texture->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
+		goto_if(!Renderer::texture_create(texture), fail);
 
-		return t;
+        system_state->texture_ref_counters[id] = { 1, true };
+        system_state->texture_storage.verify_write(id);
+        return texture;
+
+    fail:
+		system_state->texture_storage.revert_write(id);
+		SHMERRORV("Failed to create texture '%s'.", name);
+		return 0;
 
 	}
 
 	bool8 wrap_internal(const char* name, uint32 width, uint32 height, uint8 channel_count, bool8 has_transparency, bool8 is_writable, bool8 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture)
 	{
-
 		TextureId id = TextureId::invalid_value;
-		bool8 load = false;
 		Texture* t = 0;
 
 		if (register_texture)
 		{
-
-			if (!add_reference(name, false, &id, &load))
+			StorageReturnCode ret_code = system_state->texture_storage.acquire(name, &id, &t);
+			switch (ret_code)
 			{
-				SHMERRORV("wrap_internal - failed to obtain new id for texture: '%s'.", name);
+			case StorageReturnCode::OutOfMemory:
+			{
+				SHMERROR("Failed to wrap texture: Out of memory!");
 				return false;
 			}
-
-			t = &system_state->textures[id];
+			case StorageReturnCode::AlreadyExisted:
+			{
+				SHMERRORV("Failed to wrap texture: Texture named '%s' already exists!", name);
+				return false;
+			}
+			}
 		}
 		else
 		{
-			// TODO: Think about whether this is necessary
-			if (out_texture)
-				t = out_texture;
-			else
-				t = (Texture*)Memory::allocate(sizeof(Texture), AllocationTag::Texture);
-
+			t = out_texture;
 			SHMTRACEV("wrap_internal created texture '%s', but not registering, resulting in an allocation. It is up to the caller to free this memory.", name);
 		}
 
-		t->id = id;
 		CString::copy(name, t->name, Constants::max_texture_name_length);
 		t->width = width;
 		t->height = height;
@@ -225,8 +226,12 @@ namespace TextureSystem
 		t->flags |= TextureFlags::IsWrapped;
 		t->internal_data.init(internal_data_size, 0, AllocationTag::Texture, internal_data);
 
+		if (register_texture)
+		{
+			system_state->texture_ref_counters[id] = { 1, true };
+			system_state->texture_storage.verify_write(id);
+		}
 		return true;
-
 	}
 
 	bool8 set_internal(Texture* t, void* internal_data, uint64 internal_data_size)
@@ -255,20 +260,21 @@ namespace TextureSystem
 
 	void release(const char* name)
 	{
+		TextureId id = system_state->texture_storage.get_id(name);
+        if (!id.is_valid())
+            return;
 
-		if (CString::equal_i(name, SystemConfig::default_name) ||
-			CString::equal_i(name, SystemConfig::default_diffuse_name) || 
-			CString::equal_i(name, SystemConfig::default_specular_name) || 
-			CString::equal_i(name, SystemConfig::default_normal_name))
-			return;
+        ReferenceCounter* ref_counter = &system_state->texture_ref_counters[id];
+        if (ref_counter->reference_count > 0)
+			ref_counter->reference_count--;
 
-		TextureId destroy_id = remove_reference(name);
-		if (destroy_id.is_valid())
+        if (ref_counter->reference_count == 0 && ref_counter->auto_destroy)
 		{
-			Texture* t = &system_state->textures[destroy_id];
-			destroy_texture(t);
+            Texture* texture;
+            system_state->texture_storage.release(name, &id, &texture);
+			_destroy_texture(texture);
+            system_state->texture_storage.verify_write(id);
 		}
-
 	}
 
 	Texture* get_default_texture()
@@ -324,13 +330,13 @@ namespace TextureSystem
 		TextureLoadParams* load_params = (TextureLoadParams*)user_data;
 		uint8* pixels = 0;
 		uint32 image_size = 0;
-		bool8 has_transparency = false;
 		TextureConfig config = {};
 
 		goto_if_log(!ResourceSystem::texture_loader_load(load_params->resource_name, true, &load_params->resource), fail,
 			"Failed to load image resources for texture '%s'", load_params->resource_name);
 
 		config = ResourceSystem::texture_loader_get_config_from_resource(&load_params->resource);
+		CString::copy(load_params->resource_name, load_params->out_texture->name, Constants::max_texture_name_length);
 		load_params->out_texture->channel_count = config.channel_count;
 		load_params->out_texture->width = config.width;
 		load_params->out_texture->height = config.height;
@@ -340,27 +346,27 @@ namespace TextureSystem
 
 		pixels = config.pixels;
 		image_size = load_params->out_texture->width * load_params->out_texture->height * load_params->out_texture->channel_count;
-		has_transparency = false;
+		config.has_transparency = false;
 		for (uint64 i = 0; i < image_size; i += config.channel_count)
 		{
 			uint8 a = pixels[i + 3];
 			if (a < 255)
 			{
-				has_transparency = true;
+				config.has_transparency = true;
 				break;
 			}
 		}
 
 		CString::copy(load_params->resource_name, load_params->out_texture->name, Constants::max_texture_name_length);
 		load_params->out_texture->flags = 0;
-		load_params->out_texture->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
+		load_params->out_texture->flags |= config.has_transparency ? TextureFlags::HasTransparency : 0;
 
 		return true;
 	fail:
 		return false;
 	}
 
-	static bool8 load_texture_async(const char* texture_name, Texture* t)
+	static bool8 _create_texture_async(const char* texture_name, Texture* t)
 	{	
 		system_state->textures_loading_count++;
 		JobSystem::JobInfo job = JobSystem::job_create(texture_load_job_start, texture_load_on_success, texture_load_on_failure, sizeof(TextureLoadParams));
@@ -373,9 +379,8 @@ namespace TextureSystem
 		return true;
 	}
 
-	static bool8 load_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t)
+	static bool8 _create_cube_textures(const char* name, const char texture_names[6][Constants::max_texture_name_length], Texture* t)
 	{
-
 		Sarray<uint8> pixels = {};
 		uint32 image_size = 0;
 
@@ -391,6 +396,7 @@ namespace TextureSystem
 
 			if (!pixels.data)
 			{
+				CString::copy(name, t->name, Constants::max_texture_name_length);
 				t->channel_count = config.channel_count;
 				t->width = config.width;
 				t->height = config.height;
@@ -425,7 +431,7 @@ namespace TextureSystem
 
 	}
 
-	static void create_default_textures()
+	static void _create_default_textures()
 	{
 
 		SHMTRACE("Creating default texture...");
@@ -465,7 +471,6 @@ namespace TextureSystem
 		system_state->default_texture.width = tex_dim;
 		system_state->default_texture.height = tex_dim;
 		system_state->default_texture.channel_count = 4;
-		system_state->default_texture.id.invalidate();
 		system_state->default_texture.type = TextureType::Plane;
 		system_state->default_texture.flags = 0;
 
@@ -477,7 +482,6 @@ namespace TextureSystem
 		uint8 diff_pixels[16 * 16 * 4];
 		Memory::set_memory(diff_pixels, 0xFF, sizeof(diff_pixels));
 		CString::copy(SystemConfig::default_diffuse_name, system_state->default_diffuse.name, Constants::max_texture_name_length);
-		system_state->default_diffuse.id.invalidate();
 		system_state->default_diffuse.width = 16;
 		system_state->default_diffuse.height = 16;
 		system_state->default_diffuse.channel_count = 4;
@@ -492,7 +496,6 @@ namespace TextureSystem
 		// Default spec map is black (no specular)
 		Memory::zero_memory(spec_pixels, sizeof(spec_pixels));
 		CString::copy(SystemConfig::default_specular_name, system_state->default_specular.name, Constants::max_texture_name_length);
-		system_state->default_specular.id.invalidate();
 		system_state->default_specular.width = 16;
 		system_state->default_specular.height = 16;
 		system_state->default_specular.channel_count = 4;
@@ -520,7 +523,6 @@ namespace TextureSystem
 		}
 
 		CString::copy(SystemConfig::default_normal_name, system_state->default_normal.name, Constants::max_texture_name_length);
-		system_state->default_normal.id.invalidate();
 		system_state->default_normal.width = 16;
 		system_state->default_normal.height = 16;
 		system_state->default_normal.channel_count = 4;
@@ -531,87 +533,22 @@ namespace TextureSystem
 
 	}
 
-	static void destroy_default_textures()
+	static void _destroy_default_textures()
 	{
 		if (system_state)
 		{
-			destroy_texture(&system_state->default_texture);
-			destroy_texture(&system_state->default_diffuse);
-			destroy_texture(&system_state->default_specular);
-			destroy_texture(&system_state->default_normal);
+			_destroy_texture(&system_state->default_texture);
+			_destroy_texture(&system_state->default_diffuse);
+			_destroy_texture(&system_state->default_specular);
+			_destroy_texture(&system_state->default_normal);
 		}
 	}
 
-	static void destroy_texture(Texture* t)
+	static void _destroy_texture(Texture* t)
 	{
-		system_state->lookup_table.remove_entry(t->name);
 		Renderer::texture_destroy(t);
 
-		t->id.invalidate();
 		t->flags = 0;
 		t->name[0] = 0;
-	}
-
-	static bool8 add_reference(const char* name, bool8 auto_destroy, TextureId* out_texture_id, bool8* out_load)
-	{
-		*out_texture_id = TextureId::invalid_value;
-		*out_load = false;
-		TextureReference* ref = system_state->lookup_table.get(name);
-		if (ref)
-		{
-			ref->reference_count++;
-			*out_texture_id = ref->id;
-			return true;
-		}
-
-		TextureId new_id = TextureId::invalid_value;
-		for (uint16 i = 0; i < system_state->textures.capacity; i++)
-		{
-			if (!system_state->textures[i].id.is_valid())
-			{
-				new_id = i;
-				break;
-			}
-		}
-
-		if (!new_id.is_valid())
-		{
-			SHMFATAL("Could not acquire new texture to texture system since no free slots are left!");
-			return false;
-		}
-
-		Texture* t = &system_state->textures[new_id];
-
-		t->id = new_id;
-		CString::copy(name, t->name, Constants::max_texture_name_length);
-		TextureReference new_ref = { .id = new_id, .reference_count = 1, .auto_destroy = auto_destroy };
-		ref = system_state->lookup_table.set_value(t->name, new_ref);
-		*out_texture_id = ref->id;
-		*out_load = true;
-
-		return true;
-	}
-
-	static TextureId remove_reference(const char* name)
-	{
-		TextureReference* ref = system_state->lookup_table.get(name);
-		if (!ref)
-		{
-			SHMWARNV("Tried to release non-existent texture: '%s'", name);
-			return TextureId::invalid_value;
-		}
-		else if (!ref->reference_count)
-		{
-			SHMWARN("Tried to release a texture where autorelease=false, but references was already 0.");
-			return TextureId::invalid_value;
-		}
-
-		ref->reference_count--;
-		if (ref->reference_count == 0 && ref->auto_destroy)
-		{
-			return ref->id;
-		}
-
-		return TextureId::invalid_value;
 	}
 }

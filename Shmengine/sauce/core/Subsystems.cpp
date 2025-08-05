@@ -260,7 +260,7 @@ namespace SubsystemManager
 		}
 
 		TextureSystem::SystemConfig texture_sys_config;
-		texture_sys_config.max_texture_count = 0x10000;
+		texture_sys_config.max_texture_count = 512;
 
 		if (!register_system(SubsystemType::TEXTURE_SYSTEM, TextureSystem::system_init, TextureSystem::system_shutdown, 0, &texture_sys_config))
 		{

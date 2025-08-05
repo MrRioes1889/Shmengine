@@ -88,15 +88,6 @@ namespace MaterialSystem
 
     static Material* _acquire(const MaterialConfig* config, const char* name, bool8 auto_destroy)
     {
-        if (CString::equal_i(name, SystemConfig::default_name))
-            return &system_state->default_material;    
-
-        if (CString::equal_i(name, SystemConfig::default_ui_name))
-            return &system_state->default_material;
-
-        if (CString::equal_i(name, SystemConfig::default_terrain_name))
-            return &system_state->default_material;
-
         MaterialId id;
         Material* m;
 
@@ -144,13 +135,8 @@ namespace MaterialSystem
         return _acquire(config, config->name, auto_destroy);
     }
 
-    void release(const char* name) {
-        // Ignore release requests for the default material.
-        if (CString::equal_i(name, SystemConfig::default_name) || 
-            CString::equal_i(name, SystemConfig::default_ui_name) || 
-            CString::equal_i(name, SystemConfig::default_terrain_name))
-            return;
-
+    void release(const char* name) 
+    {
 		MaterialId id = system_state->material_storage.get_id(name);
         if (!id.is_valid())
             return;
@@ -178,7 +164,7 @@ namespace MaterialSystem
 
         if (config->texture_name && config->texture_name[0])
         {
-            map->texture = TextureSystem::acquire(config->texture_name, true);
+            map->texture = TextureSystem::acquire(config->texture_name, TextureType::Plane, true);
             if (!map->texture)
             {
                 SHMWARNV("Unable to acquire texture '%s'.", config->texture_name);

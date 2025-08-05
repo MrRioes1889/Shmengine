@@ -57,7 +57,7 @@ bool8 skybox_load(Skybox* skybox)
 	skybox->state = ResourceState::Loading;
 	skybox->unique_id = identifier_acquire_new_id(skybox);
 
-	skybox->cubemap.texture = TextureSystem::acquire_cube(skybox->cubemap_name.c_str(), true);
+	skybox->cubemap.texture = TextureSystem::acquire(skybox->cubemap_name.c_str(), TextureType::Cube, true);
 	if (!Renderer::texture_map_acquire_resources(&skybox->cubemap))
 	{
 		SHMFATAL("Failed to acquire renderer resources for skybox cube map!");

@@ -135,7 +135,7 @@ namespace FontSystem
 
 		if (config->texture_name)
 		{
-			out_font->map.texture = TextureSystem::acquire(config->texture_name, true);
+			out_font->map.texture = TextureSystem::acquire(config->texture_name, TextureType::Plane, true);
 		}
 		else if (config->texture_buffer && config->texture_buffer_size)
 		{

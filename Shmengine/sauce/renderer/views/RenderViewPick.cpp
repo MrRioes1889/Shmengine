@@ -364,7 +364,6 @@ bool8 render_view_pick_regenerate_attachment_target(const RenderView* self, uint
 	uint32 height = self->renderpasses[pass_index].dim.height;
 	bool8 has_transparency = false;
 
-	attachment->texture->id.invalidate();
 	attachment->texture->type = TextureType::Plane;
 	CString::copy(texture_name, attachment->texture->name, Constants::max_texture_name_length);
 	attachment->texture->width = width;
