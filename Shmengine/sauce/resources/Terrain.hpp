@@ -51,7 +51,7 @@ struct Terrain
 	struct SubMaterial
 	{
 		char name[Constants::max_material_name_length];
-		Material* mat;
+		MaterialId material_id;
 	};
 
 	String name;	

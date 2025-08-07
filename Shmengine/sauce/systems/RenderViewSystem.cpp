@@ -86,7 +86,6 @@ namespace RenderViewSystem
 			RenderViewId view_id;
 			system_state->view_storage.release(view->name.c_str(), &view_id, &view);
 			_destroy_view(view);
-			system_state->view_storage.verify_write(view_id);
 		}
 		system_state->view_storage.destroy();
 	}
@@ -96,29 +95,25 @@ namespace RenderViewSystem
         RenderViewId id;
         RenderView* view;
 
-        StorageReturnCode ret_code = system_state->view_storage.acquire(config->name, &id, &view);
-		switch (ret_code)
-		{
-		case StorageReturnCode::OutOfMemory:
+        system_state->view_storage.acquire(config->name, &id, &view);
+		if (!id.is_valid())
 		{
 			SHMERROR("Failed to add view to render view system: Out of memory!");
 			return false;
 		}
-		case StorageReturnCode::AlreadyExisted:
+		else if (!view)
 		{
 			SHMWARNV("Render view named '%s' already exists", config->name);
             return true;
 		}
-		}
 
 		goto_if(!_create_view(config, view), fail);
 
-        system_state->view_storage.verify_write(id);
         return true;
 
     fail:
 		_destroy_view(view);
-		system_state->view_storage.revert_write(id);
+		system_state->view_storage.release(config->name, &id, &view);
 		SHMERRORV("Failed to create_view '%s'.", config->name);
 		return false;
 	}
@@ -164,7 +159,6 @@ namespace RenderViewSystem
 
 		system_state->view_storage.release(view->name.c_str(), &view_id, &view);
 		_destroy_view(view);
-		system_state->view_storage.verify_write(view_id);
 	}
 
 	static void _destroy_view(RenderView* view)
@@ -299,16 +293,20 @@ namespace RenderViewSystem
 
 				if (in_frustum)
 				{
+					Material* material = MaterialSystem::get_material(g->material_id);
+					if (!material)
+						material = MaterialSystem::get_default_material();
+
 					RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
 					geo_render_data->object_index = view->objects.count - 1;
-					geo_render_data->shader_instance_id = g->material->shader_instance_id;
+					geo_render_data->shader_instance_id = material->shader_instance_id;
 					geo_render_data->shader_id = shader_id;
 					geo_render_data->geometry_data = GeometrySystem::get_geometry_data(g->g_id);
-					geo_render_data->has_transparency = (g->material->maps[0].texture->flags & TextureFlags::HasTransparency);
+					geo_render_data->has_transparency = (material->maps[0].texture->flags & TextureFlags::HasTransparency);
 					packet_data.geometries_pushed_count++;
 
 					RenderViewInstanceData* inst_render_data = &view->instances[view->instances.emplace()];
-					material_get_instance_render_data(g->material, frame_data, shader_id, inst_render_data);
+					material_get_instance_render_data(material, frame_data, shader_id, inst_render_data);
 					packet_data.instances_pushed_count++;
 				}
 			}
@@ -369,9 +367,13 @@ namespace RenderViewSystem
 		out_instance_data->texture_maps = (TextureMap**)frame_data->frame_allocator.allocate(sizeof(TextureMap*) * out_instance_data->texture_maps_count);
 		for (uint32 mat_i = 0; mat_i < terrain->materials.count; mat_i++)
 		{
-			out_instance_data->texture_maps[mat_i * 3] = &terrain->materials[mat_i].mat->maps[0];
-			out_instance_data->texture_maps[mat_i * 3 + 1] = &terrain->materials[mat_i].mat->maps[1];
-			out_instance_data->texture_maps[mat_i * 3 + 2] = &terrain->materials[mat_i].mat->maps[2];
+			Material* material = MaterialSystem::get_material(terrain->materials[mat_i].material_id);
+			if (!material)
+				material = MaterialSystem::get_default_material();
+
+			out_instance_data->texture_maps[mat_i * 3] = &material->maps[0];
+			out_instance_data->texture_maps[mat_i * 3 + 1] = &material->maps[1];
+			out_instance_data->texture_maps[mat_i * 3 + 2] = &material->maps[2];
 		}
 		out_instance_data->shader_instance_id = terrain->shader_instance_id;
 	}

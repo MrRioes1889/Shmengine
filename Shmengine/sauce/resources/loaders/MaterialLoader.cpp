@@ -584,6 +584,35 @@ namespace ResourceSystem
 
     }
 
+    MaterialConfig material_loader_get_config_from_resource(MaterialResourceData* resource)
+    {
+        resource->map_configs.free_data();
+		resource->map_configs.init(resource->maps.count, 0);
+
+        MaterialConfig config = {};
+        config.name = resource->name;
+        config.shader_name = resource->shader_name;
+        config.type = resource->type;
+        config.properties_count = resource->properties.count;
+        config.properties = resource->properties.data;
+
+        for (uint32 i = 0; i < resource->map_configs.capacity; i++)
+        {
+            resource->map_configs[i].name = resource->maps[i].name;
+            resource->map_configs[i].texture_name = resource->maps[i].texture_name;
+            resource->map_configs[i].filter_min = resource->maps[i].filter_min;
+            resource->map_configs[i].filter_mag = resource->maps[i].filter_mag;
+            resource->map_configs[i].repeat_u = resource->maps[i].repeat_u;
+            resource->map_configs[i].repeat_v = resource->maps[i].repeat_v;
+            resource->map_configs[i].repeat_w = resource->maps[i].repeat_w;
+        }
+
+        config.maps_count = resource->map_configs.capacity;
+        config.maps = resource->map_configs.data;
+
+        return config;
+    }
+
     // TODO: Move this function to a proper place and look for dynamic directory
     static bool8 write_shmt_file(MaterialResourceData* resource)
     {
@@ -785,6 +814,7 @@ namespace ResourceSystem
 	{
         resource->properties.free_data();
         resource->maps.free_data();
+        resource->map_configs.free_data();
 	}
 
 }

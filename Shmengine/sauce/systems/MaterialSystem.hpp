@@ -212,10 +212,15 @@ namespace MaterialSystem
 	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);
 
-	SHMAPI Material* acquire(const char* name, bool8 auto_destroy);
-	SHMAPI Material* acquire(const MaterialConfig* config, bool8 auto_destroy);
+	SHMAPI bool8 load_from_resource(const char* name, const char* resource_name, bool8 auto_destroy);
+	SHMAPI bool8 load_from_config(const MaterialConfig* config, bool8 auto_destroy);
 
-	SHMAPI void release(const char* name);
+	SHMAPI MaterialId acquire_reference(const char* name);
+	SHMAPI MaterialId acquire_reference(MaterialId id);
+	SHMAPI void release_reference(const char* name);
+	SHMAPI void release_reference(MaterialId id);
+
+	SHMAPI Material* get_material(MaterialId id);
 
 	SHMAPI Material* get_default_material();
 	SHMAPI Material* get_default_ui_material();

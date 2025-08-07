@@ -83,7 +83,6 @@ namespace TextureSystem
 			TextureId id;
 			system_state->texture_storage.release(texture->name, &id, &texture);
 			_destroy_texture(texture);
-			system_state->texture_storage.verify_write(id);
 		}
 		system_state->texture_storage.destroy();
 
@@ -96,19 +95,16 @@ namespace TextureSystem
         TextureId id;
         Texture* texture;
 
-        StorageReturnCode ret_code = system_state->texture_storage.acquire(name, &id, &texture);
-		switch (ret_code)
-		{
-		case StorageReturnCode::OutOfMemory:
+        system_state->texture_storage.acquire(name, &id, &texture);
+		if (!id.is_valid())
 		{
 			SHMERROR("Failed to create texture: Out of memory!");
 			return 0;
 		}
-		case StorageReturnCode::AlreadyExisted:
+		else if (!texture)
 		{
             system_state->texture_ref_counters[id].reference_count++;
             return system_state->texture_storage.get_object(id);
-		}
 		}
 
 		switch (type)
@@ -139,11 +135,9 @@ namespace TextureSystem
 		}
 
         system_state->texture_ref_counters[id] = { 1, auto_destroy };
-        system_state->texture_storage.verify_write(id);
         return texture;
 
     fail:
-		system_state->texture_storage.revert_write(id);
 		SHMERRORV("Failed to create texture '%s'.", name);
 		return 0;
 	}
@@ -153,19 +147,16 @@ namespace TextureSystem
         TextureId id;
         Texture* texture;
 
-        StorageReturnCode ret_code = system_state->texture_storage.acquire(name, &id, &texture);
-		switch (ret_code)
-		{
-		case StorageReturnCode::OutOfMemory:
+        system_state->texture_storage.acquire(name, &id, &texture);
+		if (!id.is_valid())
 		{
 			SHMERROR("Failed to create texture: Out of memory!");
 			return 0;
 		}
-		case StorageReturnCode::AlreadyExisted:
+		else if (!texture)
 		{
             system_state->texture_ref_counters[id].reference_count++;
             return system_state->texture_storage.get_object(id);
-		}
 		}
 
 		CString::copy(name, texture->name, Constants::max_texture_name_length);
@@ -178,11 +169,9 @@ namespace TextureSystem
 		goto_if(!Renderer::texture_create(texture), fail);
 
         system_state->texture_ref_counters[id] = { 1, true };
-        system_state->texture_storage.verify_write(id);
         return texture;
 
     fail:
-		system_state->texture_storage.revert_write(id);
 		SHMERRORV("Failed to create texture '%s'.", name);
 		return 0;
 
@@ -195,19 +184,16 @@ namespace TextureSystem
 
 		if (register_texture)
 		{
-			StorageReturnCode ret_code = system_state->texture_storage.acquire(name, &id, &t);
-			switch (ret_code)
-			{
-			case StorageReturnCode::OutOfMemory:
+			system_state->texture_storage.acquire(name, &id, &t);
+			if (!id.is_valid())
 			{
 				SHMERROR("Failed to wrap texture: Out of memory!");
 				return false;
 			}
-			case StorageReturnCode::AlreadyExisted:
+			else if (!t)
 			{
 				SHMERRORV("Failed to wrap texture: Texture named '%s' already exists!", name);
 				return false;
-			}
 			}
 		}
 		else
@@ -227,10 +213,8 @@ namespace TextureSystem
 		t->internal_data.init(internal_data_size, 0, AllocationTag::Texture, internal_data);
 
 		if (register_texture)
-		{
 			system_state->texture_ref_counters[id] = { 1, true };
-			system_state->texture_storage.verify_write(id);
-		}
+
 		return true;
 	}
 
@@ -273,7 +257,6 @@ namespace TextureSystem
             Texture* texture;
             system_state->texture_storage.release(name, &id, &texture);
 			_destroy_texture(texture);
-            system_state->texture_storage.verify_write(id);
 		}
 	}
 

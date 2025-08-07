@@ -80,7 +80,6 @@ namespace ShaderSystem
 			ShaderId id;
 			system_state->shader_storage.release(shader->name.c_str(), &id, &shader);
 			_destroy_shader(shader);
-			system_state->shader_storage.verify_write(id);
 		}
 		system_state->shader_storage.destroy();
 
@@ -94,19 +93,16 @@ namespace ShaderSystem
         ShaderId id;
         Shader* shader;
 
-        StorageReturnCode ret_code = system_state->shader_storage.acquire(config->name, &id, &shader);
-		switch (ret_code)
-		{
-		case StorageReturnCode::OutOfMemory:
+        system_state->shader_storage.acquire(config->name, &id, &shader);
+		if (!id.is_valid())
 		{
 			SHMERROR("Failed to create shader: Out of memory!");
 			return false;
 		}
-		case StorageReturnCode::AlreadyExisted:
+		else if (!shader)
 		{
 			SHMWARNV("Shader named '%s' already exists!", config->name);
             return true;
-		}
 		}
 
 		goto_if(!_create_shader(config, shader), fail);
@@ -121,11 +117,10 @@ namespace ShaderSystem
 			system_state->skybox_shader_id = id;
 		else if (!system_state->color3D_shader_id.is_valid() && CString::equal(config->name, Renderer::RendererConfig::builtin_shader_name_color3D))
 			system_state->color3D_shader_id = id;
-        system_state->shader_storage.verify_write(id);
+
         return true;
 
     fail:
-		system_state->shader_storage.revert_write(id);
 		SHMERRORV("Failed to create shader '%s'.", config->name);
 		return false;
 	}
@@ -201,7 +196,6 @@ namespace ShaderSystem
 		_destroy_shader(shader);
 		if (system_state->bound_shader_id == shader_id)
 			system_state->bound_shader_id.invalidate();
-		system_state->shader_storage.verify_write(shader_id);
 	}
 
 	void destroy_shader(const char* shader_name)

@@ -46,8 +46,11 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
     out_terrain->materials.init(config->materials_count, DarrayFlags::NonResizable);
     out_terrain->materials.set_count(config->materials_count);
-    for (uint32 i = 0; i < config->materials_count; i++)
+	for (uint32 i = 0; i < config->materials_count; i++)
+	{
         CString::copy(config->material_names[i], out_terrain->materials[i].name, Constants::max_material_name_length);
+		out_terrain->materials[i].material_id.invalidate();
+	}
 
 	if (!out_terrain->tile_count_x)
 	{
@@ -248,7 +251,14 @@ bool8 terrain_load(Terrain* terrain)
 
 	uint32 material_count = terrain->materials.count;
 	for (uint32 i = 0; i < material_count; i++)
-		terrain->materials[i].mat = MaterialSystem::acquire(terrain->materials[i].name, true);
+	{
+		terrain->materials[i].material_id = MaterialSystem::acquire_reference(terrain->materials[i].name);
+		if (terrain->materials[i].material_id.is_valid())
+			continue;
+
+		if (MaterialSystem::load_from_resource(terrain->materials[i].name, terrain->materials[i].name, true))
+			terrain->materials[i].material_id = MaterialSystem::acquire_reference(terrain->materials[i].name);
+	}
 
 	terrain->material_properties.materials_count = material_count;
 
@@ -261,7 +271,7 @@ bool8 terrain_load(Terrain* terrain)
 		// Use default material unless within the material count.
 		Material* sub_mat = default_material;
 		if (mat_i < material_count && sub_mat->maps.capacity >= 3)
-			sub_mat = terrain->materials[mat_i].mat;
+			sub_mat = MaterialSystem::get_material(terrain->materials[mat_i].material_id);
 
 		MaterialPhongProperties* sub_mat_properties = (MaterialPhongProperties*)sub_mat->properties;
 		mat_props->diffuse_color = sub_mat_properties->diffuse_color;
@@ -294,8 +304,8 @@ bool8 terrain_unload(Terrain* terrain)
 
 	for (uint32 ter_i = 0; ter_i < terrain->materials.count; ter_i++)
 	{
-		MaterialSystem::release(terrain->materials[ter_i].mat->name);
-		terrain->materials[ter_i].mat = 0;
+		MaterialSystem::release_reference(terrain->materials[ter_i].material_id);
+		terrain->materials[ter_i].material_id.invalidate();
 	}
 
     Renderer::geometry_unload(&terrain->geometry);

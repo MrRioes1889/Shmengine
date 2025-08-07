@@ -50,7 +50,6 @@ namespace GeometrySystem
 			GeometryData* geometry;
 			system_state->geometry_storage.release(geometry_id, &geometry);
 			Renderer::destroy_geometry(geometry);
-			system_state->geometry_storage.verify_write(geometry_id);
 		}
 		system_state->geometry_storage.destroy();
 
@@ -61,8 +60,8 @@ namespace GeometrySystem
 	{
 		GeometryId id;
 		GeometryData* geometry;
-		StorageReturnCode ret_code = system_state->geometry_storage.acquire(&id, &geometry);
-		if (ret_code == StorageReturnCode::OutOfMemory)
+		system_state->geometry_storage.acquire(&id, &geometry);
+		if (!id.is_valid())
 		{
 			SHMERROR("Could not obtain a free slot for geometry.");
 			return GeometryId::invalid_value;
@@ -71,11 +70,9 @@ namespace GeometrySystem
 		goto_if_log(!Renderer::create_geometry(config, geometry), fail, "Failed to create geometry from config");
 
 		system_state->geometry_ref_counters[id] = { 1, auto_destroy };
-		system_state->geometry_storage.verify_write(id);
 		return id;
 
 	fail:
-		system_state->geometry_storage.revert_write(id);
 		return GeometryId::invalid_value;
 	}
 
@@ -113,7 +110,6 @@ namespace GeometrySystem
             GeometryData* geometry;
             system_state->geometry_storage.release(id, &geometry);
 			Renderer::destroy_geometry(geometry);
-            system_state->geometry_storage.verify_write(id);
 		}
 	}
 

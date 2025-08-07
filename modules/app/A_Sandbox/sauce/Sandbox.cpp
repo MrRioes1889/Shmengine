@@ -379,7 +379,8 @@ static bool8 application_on_debug_event(uint16 code, void* sender, void* listene
 
 	if (code == SystemEventCode::DEBUG0 && app_state->main_scene.state == ResourceState::Loaded)
 	{
-		const char* names[3] = {
+		const char* names[3] = 
+		{
 		"cobblestone",
 		"paving",
 		"paving2"
@@ -395,14 +396,18 @@ static bool8 application_on_debug_event(uint16 code, void* sender, void* listene
 			return false;
 
 		MeshGeometry* g = &m->geometries[0];
-		g->material = MaterialSystem::acquire(names[choice], true);
-		if (!g->material)
+		if (g->material_id.is_valid())
+			MaterialSystem::release_reference(g->material_id);
+
+		g->material_id = MaterialSystem::acquire_reference(names[choice]);
+		if (!g->material_id.is_valid())
 		{
-			SHMWARNV("event_on_debug_event - Failed to acquire material '%s'! Using default.", names[choice]);
-			g->material = MaterialSystem::get_default_material();
+			if (MaterialSystem::load_from_resource(names[choice], names[choice], true))
+				g->material_id = MaterialSystem::acquire_reference(names[choice]);
 		}
 
-		MaterialSystem::release(old_name);
+		if (!g->material_id.is_valid())
+			SHMWARNV("Failed to acquire material '%s'! Using default.", names[choice]);
 	}
 	else if (code == SystemEventCode::DEBUG1)
 	{

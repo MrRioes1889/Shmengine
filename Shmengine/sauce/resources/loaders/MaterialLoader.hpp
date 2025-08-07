@@ -24,13 +24,17 @@ struct MaterialResourceData
 
     Darray<MaterialProperty> properties;
 	Darray<TextureMapResourceData> maps;
+
+	Sarray<TextureMapConfig> map_configs;
 };
 
 namespace ResourceSystem
 {
-	bool8 material_loader_load(const char* name, MaterialResourceData* out_config);
-	void material_loader_unload(MaterialResourceData* config);
+	bool8 material_loader_load(const char* name, MaterialResourceData* out_resource);
+	void material_loader_unload(MaterialResourceData* resource);
 
 	bool8 material_loader_import_obj_material_library_file(const char* file_path);
+
+	MaterialConfig material_loader_get_config_from_resource(MaterialResourceData* resource);
 }
 

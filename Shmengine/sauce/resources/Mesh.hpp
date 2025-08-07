@@ -3,6 +3,7 @@
 #include "Defines.hpp"
 #include "ResourceTypes.hpp"
 #include "systems/GeometrySystem.hpp"
+#include "systems/MaterialSystem.hpp"
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
 
@@ -22,7 +23,7 @@ struct MeshGeometry
 	char material_name[Constants::max_material_name_length];
 
 	GeometrySystem::GeometryId g_id;
-	Material* material;
+	MaterialId material_id;
 };
 
 struct MeshConfig

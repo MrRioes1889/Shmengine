@@ -40,7 +40,6 @@ namespace FontSystem
 			FontId font_id;
 			system_state->font_storage.release(font->name, &font_id, &font);
 			_destroy_font(font);
-			system_state->font_storage.verify_write(font_id);
 		}
 		system_state->font_storage.destroy();
 	}
@@ -52,19 +51,16 @@ namespace FontSystem
 		FontResourceData resource;
 		FontConfig config;
 
-		StorageReturnCode ret_code = system_state->font_storage.acquire(name, &id, &font);
-		switch (ret_code)
-		{
-		case StorageReturnCode::OutOfMemory:
+		system_state->font_storage.acquire(name, &id, &font);
+		if (!id.is_valid())
 		{
 			SHMERROR("No space to allocate font left!");
 			return false;
 		}
-		case StorageReturnCode::AlreadyExisted:
+		else if (!font)
 		{
 			SHMWARNV("Font named '%s' already exists!", name);
 			return true;
-		}
 		}
 
 		resource = {};
@@ -75,12 +71,11 @@ namespace FontSystem
 
 		goto_if_log(!_create_font(&config, font), fail, "Failed to create font object");
 
-		system_state->font_storage.verify_write(id);
 		ResourceSystem::font_loader_unload(&resource);
 		return true;
 
 	fail:
-		system_state->font_storage.revert_write(id);
+		system_state->font_storage.release(name, &id, &font);
 		return false;
 	}
 

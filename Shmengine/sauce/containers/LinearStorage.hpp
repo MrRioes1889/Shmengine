@@ -12,26 +12,11 @@ namespace StorageFlags
 	typedef uint8 Value;
 }
 
-enum class StorageReturnCode
-{
-	OutOfMemory = 0,
-	NewEntry,
-	AlreadyExisted
-};
-
-enum class StorageSlotState : uint8
-{
-	Empty = 0,
-	Creating,
-	Available,
-	Destroying
-};
-
 template <typename ObjectT, typename IdentifierT>
 struct LinearStorage
 {
 	
-	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return objects.get_external_size_requirement(count) + slot_states.get_external_size_requirement(count); }
+	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return objects.get_external_size_requirement(count) + occupied_flags.get_external_size_requirement(count); }
 
 	SHMINLINE LinearStorage(uint32 count, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
@@ -61,7 +46,7 @@ struct LinearStorage
 
 		objects.init(count, 0, tag, memory);
 		void* slot_states_data = PTR_BYTES_OFFSET(memory, objects.size());
-		slot_states.init(count, 0, tag, slot_states_data);
+		occupied_flags.init(count, 0, tag, slot_states_data);
 
 		object_count = 0;
 		first_empty_index = 0;
@@ -73,80 +58,47 @@ struct LinearStorage
 			Memory::free_memory(objects.data);
 
 		objects.free_data();
-		slot_states.free_data();
+		occupied_flags.free_data();
 	}
 
-	StorageReturnCode acquire(IdentifierT* out_id, ObjectT** out_creation_ptr)
+	void acquire(IdentifierT* out_id, ObjectT** out_creation_ptr)
 	{
 		out_id->invalidate();
 		*out_creation_ptr = 0;
 
 		if (object_count >= objects.capacity)
-			return StorageReturnCode::OutOfMemory;
+			return;
 
 		IdentifierT id = first_empty_index;
-		for (IdentifierT i = first_empty_index + 1; i < slot_states.capacity; i++)
+		for (IdentifierT i = first_empty_index + 1; i < occupied_flags.capacity; i++)
 		{
-			if (slot_states[i] == StorageSlotState::Empty)
+			if (!occupied_flags[i])
 			{
 				first_empty_index = i;
 				break;
 			}
 		}
 
-		slot_states[id] = StorageSlotState::Creating;
+		occupied_flags[id] = true;
 		*out_id = id;
 		*out_creation_ptr = &objects[id];
 		object_count++;
-
-		return StorageReturnCode::NewEntry;
 	}
 
 	void release(IdentifierT id, ObjectT** out_destruction_ptr)
 	{
 		*out_destruction_ptr = 0;
-		if (slot_states[id] == StorageSlotState::Empty)
+		if (!id.is_valid() || !occupied_flags[id])
 			return;
 
 		*out_destruction_ptr = &objects[id];
-		slot_states[id] = StorageSlotState::Destroying;
-	}
-
-	void verify_write(IdentifierT id)
-	{
-		StorageSlotState current_state = slot_states[id];
-		if (current_state == StorageSlotState::Creating)
-		{
-			slot_states[id] = StorageSlotState::Available;
-		}
-		else if (current_state == StorageSlotState::Destroying)
-		{
-			slot_states[id] = StorageSlotState::Empty;
-			object_count--;
-			if (id < first_empty_index) 
-				first_empty_index = id;
-		}
-	}
-
-	void revert_write(IdentifierT id)
-	{
-		StorageSlotState current_state = slot_states[id];
-		if (current_state == StorageSlotState::Creating)
-		{
-			slot_states[id] = StorageSlotState::Empty;
-			object_count--;
-			if (id < first_empty_index) 
-				first_empty_index = id;
-		}
-		else if (current_state == StorageSlotState::Destroying)
-		{
-			slot_states[id] = StorageSlotState::Available;
-		}
+		occupied_flags[id] = false;
+		object_count--;
 	}
 
 	SHMINLINE ObjectT* get_object(IdentifierT id)
 	{
-		if (slot_states[id] != StorageSlotState::Available)
+		if (!id.is_valid() || !occupied_flags[id])
 			return 0;
 
 		return &objects[id];
@@ -156,18 +108,18 @@ struct LinearStorage
 	IdentifierT first_empty_index;
 	uint32 object_count;
 	Sarray<ObjectT> objects;
-	Sarray<StorageSlotState> slot_states;
+	Sarray<bool8> occupied_flags;
 	
 	struct Iterator
 	{
-		Iterator(LinearStorage* target) : storage(target), cursor(0), counter(0), object_count(target->object_count) { }
+		Iterator(LinearStorage* target) : storage(target), cursor(0), counter(0), available_count(target->object_count) { }
 
 		SHMINLINE IdentifierT get_next() 
 		{
-			if (counter >= object_count)
+			if (counter >= available_count)
 				return IdentifierT::invalid_value;
 
-			while (storage->slot_states[cursor] == StorageSlotState::Empty)
+			while (!storage->occupied_flags[cursor])
 				cursor++;
 
 			IdentifierT id = cursor;
@@ -178,7 +130,7 @@ struct LinearStorage
 
 		LinearStorage* storage;
 		IdentifierT cursor;
-		uint32 object_count;
+		uint32 available_count;
 		uint32 counter;
 	};
 
@@ -192,7 +144,7 @@ template <typename ObjectT, typename IdentifierT, uint32 lookup_key_buffer_size>
 struct LinearHashedStorage
 {
 	
-	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return objects.get_external_size_requirement(count) + slot_states.get_external_size_requirement(count) + lookup_table.get_external_size_requirement(count); }
+	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return objects.get_external_size_requirement(count) + occupied_flags.get_external_size_requirement(count) + lookup_table.get_external_size_requirement(count); }
 
 	SHMINLINE LinearHashedStorage(uint32 count, AllocationTag tag = AllocationTag::Dict, void* memory = 0)
 	{
@@ -222,8 +174,8 @@ struct LinearHashedStorage
 
 		objects.init(count, 0, tag, memory);
 		void* slot_states_data = PTR_BYTES_OFFSET(memory, objects.size());
-		slot_states.init(count, 0, tag, slot_states_data);
-		void* hashtable_data = PTR_BYTES_OFFSET(slot_states_data, slot_states.size());
+		occupied_flags.init(count, 0, tag, slot_states_data);
+		void* hashtable_data = PTR_BYTES_OFFSET(slot_states_data, occupied_flags.size());
 		lookup_table.init(count, 0, tag, hashtable_data);
 
 		object_count = 0;
@@ -236,28 +188,28 @@ struct LinearHashedStorage
 			Memory::free_memory(objects.data);
 
 		objects.free_data();
-		slot_states.free_data();
+		occupied_flags.free_data();
 		lookup_table.destroy();
 	}
 
-	StorageReturnCode acquire(const char* key, IdentifierT* out_id, ObjectT** out_creation_ptr)
+	void acquire(const char* key, IdentifierT* out_id, ObjectT** out_creation_ptr)
 	{
 		out_id->invalidate();
 		*out_creation_ptr = 0;
 
 		if (object_count >= objects.capacity)
-			return StorageReturnCode::OutOfMemory;
+			return;
 
 		if (IdentifierT* existing_id = lookup_table.get(key))
 		{
 			*out_id = *existing_id;
-			return StorageReturnCode::AlreadyExisted;
+			return;
 		}
 
 		IdentifierT new_id = first_empty_index;
-		for (IdentifierT i = first_empty_index + 1; i < slot_states.capacity; i++)
+		for (IdentifierT i = first_empty_index + 1; i < occupied_flags.capacity; i++)
 		{
-			if (slot_states[i] == StorageSlotState::Empty)
+			if (!occupied_flags[i])
 			{
 				first_empty_index = i;
 				break;
@@ -265,63 +217,32 @@ struct LinearHashedStorage
 		}
 
 		IdentifierT* ret_id = lookup_table.set_value(key, new_id);
-		slot_states[*ret_id] = StorageSlotState::Creating;
+		occupied_flags[*ret_id] = true;
 		*out_id = *ret_id;
 		*out_creation_ptr = &objects[*ret_id];
 		object_count++;
-
-		return StorageReturnCode::NewEntry;
 	}
 
 	void release(const char* key, IdentifierT* out_id, ObjectT** out_destruction_ptr)
 	{
 		out_id->invalidate();
 		*out_destruction_ptr = 0;
-		IdentifierT* id = lookup_table.get(key);
-		if (!id)
+		IdentifierT* id_ptr = lookup_table.get(key);
+		if (!id_ptr)
 			return;
 
-		*out_id = *id;
-		*out_destruction_ptr = &objects[*id];
-		slot_states[*id] = StorageSlotState::Destroying;
+		IdentifierT id = *id_ptr;
+		*out_id = id;
+
+		*out_destruction_ptr = &objects[id];
+		occupied_flags[id] = false;
 		lookup_table.remove_entry(key);
-	}
-
-	void verify_write(IdentifierT id)
-	{
-		StorageSlotState current_state = slot_states[id];
-		if (current_state == StorageSlotState::Creating)
-		{
-			slot_states[id] = StorageSlotState::Available;
-		}
-		else if (current_state == StorageSlotState::Destroying)
-		{
-			slot_states[id] = StorageSlotState::Empty;
-			object_count--;
-			if (id < first_empty_index) 
-				first_empty_index = id;
-		}
-	}
-
-	void revert_write(IdentifierT id)
-	{
-		StorageSlotState current_state = slot_states[id];
-		if (current_state == StorageSlotState::Creating)
-		{
-			slot_states[id] = StorageSlotState::Empty;
-			object_count--;
-			if (id < first_empty_index) 
-				first_empty_index = id;
-		}
-		else if (current_state == StorageSlotState::Destroying)
-		{
-			slot_states[id] = StorageSlotState::Available;
-		}
+		object_count--;
 	}
 
 	SHMINLINE ObjectT* get_object(IdentifierT id)
 	{
-		if (slot_states[id] != StorageSlotState::Available)
+		if (!id.is_valid() || !occupied_flags[id])
 			return 0;
 
 		return &objects[id];
@@ -330,7 +251,7 @@ struct LinearHashedStorage
 	SHMINLINE ObjectT* get_object(const char* key)
 	{
 		IdentifierT* id = lookup_table.get(key);
-		if (!id || slot_states[*id] != StorageSlotState::Available)
+		if (!id || !occupied_flags[*id])
 			return 0;
 
 		return &objects[*id];
@@ -349,19 +270,19 @@ struct LinearHashedStorage
 	IdentifierT first_empty_index;
 	uint32 object_count;
 	Sarray<ObjectT> objects;
-	Sarray<StorageSlotState> slot_states;
+	Sarray<bool8> occupied_flags;
 	HashtableRH<IdentifierT, lookup_key_buffer_size> lookup_table;
 	
 	struct Iterator
 	{
-		Iterator(LinearHashedStorage* target) : storage(target), cursor(0), counter(0), object_count(target->object_count) { }
+		Iterator(LinearHashedStorage* target) : storage(target), cursor(0), counter(0), available_count(target->object_count) { }
 
 		SHMINLINE ObjectT* get_next() 
 		{
-			if (counter >= object_count)
+			if (counter >= available_count)
 				return 0;
 
-			while (storage->slot_states[cursor] == StorageSlotState::Empty)
+			while (!storage->occupied_flags[cursor])
 				cursor++;
 
 			ObjectT* obj = &storage->objects[cursor];
@@ -372,7 +293,7 @@ struct LinearHashedStorage
 
 		LinearHashedStorage* storage;
 		uint32 cursor;
-		uint32 object_count;
+		uint32 available_count;
 		uint32 counter;
 	};
 

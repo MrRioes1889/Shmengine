@@ -33,7 +33,7 @@ namespace MaterialSystem
 
 	static SystemState* system_state = 0;
 
-	static bool8 _create_material_from_resource(const char* name, Material* m);
+	static bool8 _create_material_from_resource(const char* name, const char* resource_name, Material* m);
 	static bool8 _create_material(const MaterialConfig* config, Material* m);
 	static void _destroy_material(Material* m);
 
@@ -42,8 +42,8 @@ namespace MaterialSystem
 
     static bool8 _assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture);
 
-    bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config) {
-
+    bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config) 
+    {
         SystemConfig* sys_config = (SystemConfig*)config;
         system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
@@ -59,12 +59,10 @@ namespace MaterialSystem
         _create_default_ui_material();
 
         return true;
-
     }
 
     void system_shutdown(void* state) 
     {
-
         if (!system_state)
             return;
 
@@ -74,7 +72,6 @@ namespace MaterialSystem
 			MaterialId material_id;
 			system_state->material_storage.release(material->name, &material_id, &material);
 			_destroy_material(material);
-			system_state->material_storage.verify_write(material_id);
 		}
 		system_state->material_storage.destroy();
 
@@ -83,28 +80,24 @@ namespace MaterialSystem
 		_destroy_material(&system_state->default_material);
 
         system_state = 0;
-
     }
 
-    static Material* _acquire(const MaterialConfig* config, const char* name, bool8 auto_destroy)
+    static bool8 _load_material(const MaterialConfig* config, const char* name, const char* resource_name, bool8 auto_destroy)
     {
         MaterialId id;
         Material* m;
 
-        StorageReturnCode ret_code = system_state->material_storage.acquire(name, &id, &m);
-		switch (ret_code)
-		{
-		case StorageReturnCode::OutOfMemory:
-		{
-			SHMERROR("Failed to create material: Out of memory!");
-			return 0;
-		}
-		case StorageReturnCode::AlreadyExisted:
-		{
-            system_state->material_ref_counters[id].reference_count++;
+        system_state->material_storage.acquire(name, &id, &m);
+        if (!id.is_valid())
+        {
+			SHMERROR("Failed to load material: Out of memory!");
+			return true;
+        }
+        else if (!m)
+        {
+            SHMWARNV("Failed to load material: Material named '%s' already exists!", name);
             return system_state->material_storage.get_object(id);
-		}
-		}
+        }
 
         if (config)
         {
@@ -112,46 +105,78 @@ namespace MaterialSystem
 		}
         else
         {
-			goto_if(!_create_material_from_resource(name, m), fail);
+			goto_if(!_create_material_from_resource(name, resource_name, m), fail);
         }
 
-        system_state->material_ref_counters[id] = { 1, auto_destroy };
-        system_state->material_storage.verify_write(id);
+        system_state->material_ref_counters[id] = { 0, auto_destroy };
         return m;
 
     fail:
-		system_state->material_storage.revert_write(id);
-		SHMERRORV("Failed to load material '%s'.", config->name);
+		system_state->material_storage.release(name, &id, &m);
+		SHMERRORV("Failed to load material '%s'.", name);
 		return 0;
     }
 
-    Material* acquire(const char* name, bool8 auto_destroy) 
+    bool8 load_from_resource(const char* name, const char* resource_name, bool8 auto_destroy) 
     {
-        return _acquire(0, name, auto_destroy);
+        return _load_material(0, name, resource_name, auto_destroy);
     }
 
-    Material* acquire(const MaterialConfig* config, bool8 auto_destroy) 
+    bool8 load_from_config(const MaterialConfig* config, bool8 auto_destroy) 
     {
-        return _acquire(config, config->name, auto_destroy);
+        return _load_material(config, config->name, 0, auto_destroy);
     }
 
-    void release(const char* name) 
+    MaterialId acquire_reference(MaterialId id)
     {
-		MaterialId id = system_state->material_storage.get_id(name);
+        if (!system_state->material_storage.get_object(id))
+            return MaterialId::invalid_value;
+
+        system_state->material_ref_counters[id].reference_count++;
+        return id;
+    }
+
+    MaterialId acquire_reference(const char* name)
+    {
+        MaterialId id = system_state->material_storage.get_id(name);
         if (!id.is_valid())
+            return MaterialId::invalid_value;
+
+        system_state->material_ref_counters[id].reference_count++;
+        return id;
+    }
+
+    void release_reference(MaterialId id) 
+    {
+		if (!id.is_valid())
             return;
 
         ReferenceCounter* ref_counter = &system_state->material_ref_counters[id];
         if (ref_counter->reference_count > 0)
 			ref_counter->reference_count--;
 
-        if (ref_counter->reference_count == 0 && ref_counter->auto_destroy)
+        if (!ref_counter->auto_destroy || ref_counter->reference_count > 0)
+            return;
+		
+		Material* material = system_state->material_storage.get_object(id);
+		if (!material)
 		{
-            Material* m;
-            system_state->material_storage.release(name, &id, &m);
-			_destroy_material(m);
-            system_state->material_storage.verify_write(id);
+			SHMWARNV("Released material id %hu is not available for auto destruct. Skipping destruction.", id);
+			return;
 		}
+
+		system_state->material_storage.release(material->name, &id, &material);
+		_destroy_material(material);
+    }
+
+    void release_reference(const char* name) 
+    {
+		release_reference(system_state->material_storage.get_id(name));
+	}
+
+    Material* get_material(MaterialId id)
+    {
+        return system_state->material_storage.get_object(id);
     }
 
     static bool8 _assign_map(TextureMap* map, const TextureMapConfig* config, const char* material_name, Texture* default_texture)
@@ -185,42 +210,18 @@ namespace MaterialSystem
         return true;
     }
 
-    static bool8 _create_material_from_resource(const char* name, Material* m)
+    static bool8 _create_material_from_resource(const char* name, const char* resource_name, Material* m)
     {
         MaterialResourceData resource;
-        if (!ResourceSystem::material_loader_load(name, &resource))
+        if (!ResourceSystem::material_loader_load(resource_name, &resource))
         {
             SHMERRORV("Failed to load material resources for material '%s'", name);
             return false;
         }
 
-        MaterialConfig config = {};
-
-        config.name = resource.name;
-        config.shader_name = resource.shader_name;
-        config.type = resource.type;
-        config.properties_count = resource.properties.count;
-        config.properties = resource.properties.data;
-
-        Sarray<TextureMapConfig> map_configs(resource.maps.count, 0);
-        for (uint32 i = 0; i < map_configs.capacity; i++)
-        {
-            map_configs[i].name = resource.maps[i].name;
-            map_configs[i].texture_name = resource.maps[i].texture_name;
-            map_configs[i].filter_min = resource.maps[i].filter_min;
-            map_configs[i].filter_mag = resource.maps[i].filter_mag;
-            map_configs[i].repeat_u = resource.maps[i].repeat_u;
-            map_configs[i].repeat_v = resource.maps[i].repeat_v;
-            map_configs[i].repeat_w = resource.maps[i].repeat_w;
-        }
-
-        config.maps_count = map_configs.capacity;
-        config.maps = map_configs.data;
-
-        // Now acquire from loaded config.
+        MaterialConfig config = ResourceSystem::material_loader_get_config_from_resource(&resource);
+        config.name = name;
         bool8 success = _create_material(&config, m);
-
-        map_configs.free_data();
         ResourceSystem::material_loader_unload(&resource);
         return success;
     }

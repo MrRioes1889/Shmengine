@@ -34,7 +34,7 @@ bool8 mesh_init(MeshConfig* config, Mesh* out_mesh)
         MeshGeometry* g = &out_mesh->geometries[i];
         CString::copy(config->g_configs[i].material_name, g->material_name, Constants::max_material_name_length);
         g->g_id = GeometrySystem::create_geometry(config->g_configs[i].data_config, true);
-        g->material = 0;
+        g->material_id.invalidate();
 
         GeometryData* g_data = GeometrySystem::get_geometry_data(g->g_id);
         if (g_data->extents.max.x > out_mesh->extents.max.x)
@@ -143,10 +143,10 @@ bool8 mesh_unload(Mesh* mesh)
     {     
         GeometryData* g_data = GeometrySystem::get_geometry_data(mesh->geometries[i].g_id);
         Renderer::geometry_unload(g_data);
-        if (mesh->geometries[i].material)
+        if (mesh->geometries[i].material_id.is_valid())
         {      
-            MaterialSystem::release(mesh->geometries[i].material->name);
-            mesh->geometries[i].material = 0;
+            MaterialSystem::release_reference(mesh->geometries[i].material_id);
+            mesh->geometries[i].material_id.invalidate();
         }
     }
 
@@ -191,11 +191,16 @@ static bool8 mesh_load_job_start(uint32 thread_index, void* user_data)
     {
         MeshGeometry* g = &mesh->geometries[i];
 
-        if (g->material_name[0])
-            g->material = MaterialSystem::acquire(g->material_name, true);
+        if (!g->material_name[0])
+            continue;
+    
+        g->material_id = MaterialSystem::acquire_reference(g->material_name);
+		if (g->material_id.is_valid())
+			continue;
 
-        if (!g->material)
-            g->material = MaterialSystem::get_default_material();
+		if (MaterialSystem::load_from_resource(g->material_name, g->material_name, true))
+			g->material_id = MaterialSystem::acquire_reference(g->material_name);
+
     }
 
     return true;
