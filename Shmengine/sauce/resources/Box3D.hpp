@@ -21,8 +21,6 @@ struct Box3D
 
 SHMAPI bool8 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box);
 SHMAPI bool8 box3D_destroy(Box3D* box);
-SHMAPI bool8 box3D_load(Box3D* box);
-SHMAPI bool8 box3D_unload(Box3D* box);
 
 SHMAPI bool8 box3D_update(Box3D* box);
 

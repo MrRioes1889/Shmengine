@@ -23,8 +23,6 @@ struct Line3D
 
 SHMAPI bool8 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Line3D* out_line);
 SHMAPI bool8 line3D_destroy(Line3D* line);
-SHMAPI bool8 line3D_load(Line3D* line);
-SHMAPI bool8 line3D_unload(Line3D* line);
 
 SHMAPI bool8 line3D_update(Line3D* line);
 

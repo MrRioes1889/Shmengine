@@ -68,32 +68,25 @@ bool8 application_init(Application* app_inst)
 	}
 
 	app_state->debug_console.init();
-	app_state->debug_console.load();
 
 	UITextConfig ui_text_config = {};
 	ui_text_config.font_name = "Martian Mono";
 	ui_text_config.font_size = 21;
 	ui_text_config.text_content = "Some täest text,\n\tyo!";
 
-	if (!ui_text_init(&ui_text_config, &app_state->debug_info_text) || !ui_text_load(&app_state->debug_info_text))
+	if (!ui_text_init(&ui_text_config, &app_state->debug_info_text))
 	{
 		SHMERROR("Failed to load basic ui truetype text.");
 		return false;
 	}
 	ui_text_set_position(&app_state->debug_info_text, { 500, 550, 0 });
 
-	if (!gizmo3D_init(&app_state->editor_gizmo) || !gizmo3D_load(&app_state->editor_gizmo))
+	if (!gizmo3D_init(&app_state->editor_gizmo))
 	{
 		SHMERROR("Failed to load editor gizmo text.");
 		return false;
 	}
 	Math::transform_translate(app_state->editor_gizmo.xform, { 0.0f, 5.0f, 1.0f });
-
-	if (!scene_init_from_resource("main_scene", &app_state->main_scene))
-	{
-		SHMERROR("Failed to initialize main scene");
-		return false;
-	}
 
 	// Load up some test UI geometry.
 	MeshGeometryConfig ui_config = {};
@@ -201,7 +194,7 @@ bool8 application_update(FrameData* frame_data)
 		}	
 	}
 
-	if (app_state->main_scene.state == ResourceState::Loaded)
+	if (app_state->main_scene.state == ResourceState::Initialized)
 	{
 		Mesh* cube1 = scene_get_mesh(&app_state->main_scene, "cube_1");
 		Mesh* cube2 = scene_get_mesh(&app_state->main_scene, "cube_2");
@@ -273,7 +266,7 @@ bool8 application_render(FrameData* frame_data)
 
 	RenderViewId ui_view_id = RenderViewSystem::get_id("Builtin.UI");
 
-	if (app_state->main_scene.state == ResourceState::Loaded)
+	if (app_state->main_scene.state == ResourceState::Initialized)
 		scene_draw(&app_state->main_scene, &app_state->camera_frustum, frame_data);
 
 	RenderViewSystem::lines3D_draw(app_state->test_raycast_lines.data, app_state->test_raycast_lines.count, frame_data);
@@ -327,8 +320,7 @@ void application_on_module_unload()
 
 static bool8 application_on_mousebutton_released(uint16 code, void* sender, void* listener_inst, EventData data)
 {
-
-	if (app_state->main_scene.state != ResourceState::Loaded)
+	if (app_state->main_scene.state != ResourceState::Initialized)
 		return false;
 
 	if (data.ui8[0] == MouseButton::LMB)
@@ -352,7 +344,7 @@ static bool8 application_on_mousebutton_released(uint16 code, void* sender, void
 		SHMDEBUGV("Raycast: Hit object %u at %f/%f/%f.", hit_info.unique_id, hit_info.position.x, hit_info.position.y, hit_info.position.z);
 
 		Line3D* new_line = &app_state->test_raycast_lines[app_state->test_raycast_lines.emplace()];
-		if (!line3D_init(origin, hit_info.position, { 1.0f, 1.0f, 0.0f, 1.0f }, new_line) || !line3D_load(new_line))
+		if (!line3D_init(origin, hit_info.position, { 1.0f, 1.0f, 0.0f, 1.0f }, new_line))
 			SHMERROR("Failed to init or load new test line!");
 	}
 	
@@ -377,7 +369,7 @@ static bool8 application_on_event(uint16 code, void* sender, void* listener_inst
 static bool8 application_on_debug_event(uint16 code, void* sender, void* listener_inst, EventData data)
 {
 
-	if (code == SystemEventCode::DEBUG0 && app_state->main_scene.state == ResourceState::Loaded)
+	if (code == SystemEventCode::DEBUG0 && app_state->main_scene.state == ResourceState::Initialized)
 	{
 		const char* names[3] = 
 		{
@@ -411,20 +403,22 @@ static bool8 application_on_debug_event(uint16 code, void* sender, void* listene
 	}
 	else if (code == SystemEventCode::DEBUG1)
 	{
-		if (app_state->main_scene.state == ResourceState::Initialized || app_state->main_scene.state == ResourceState::Unloaded)
+		if (app_state->main_scene.state < ResourceState::Initialized)
 		{
 			SHMDEBUG("Loading main scene...");
-
-			if (!scene_load(&app_state->main_scene))
-				SHMERROR("Failed to load main_scene!");
+			if (!scene_init_from_resource("main_scene", &app_state->main_scene))
+			{
+				SHMERROR("Failed to initialize main scene");
+				return false;
+			}
 		}
 	}
 	else if (code == SystemEventCode::DEBUG2)
 	{
-		if (app_state->main_scene.state == ResourceState::Loaded)
+		if (app_state->main_scene.state == ResourceState::Initialized)
 		{
 			SHMDEBUG("Unloading main scene...");
-			scene_unload(&app_state->main_scene);
+			scene_destroy(&app_state->main_scene);
 			for (uint32 i = 0; i < app_state->test_raycast_lines.count; i++)
 				line3D_destroy(&app_state->test_raycast_lines[i]);
 			app_state->test_raycast_lines.clear();

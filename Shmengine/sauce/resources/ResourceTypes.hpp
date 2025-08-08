@@ -6,10 +6,7 @@ enum class ResourceState : uint8
 {
 	Uninitialized,
 	Destroyed,
-	Initializing,
 	Initialized,
-	Loading,
-	Loaded,
-	Unloading,
-	Unloaded
+	Initializing,
+	Destroying,
 };

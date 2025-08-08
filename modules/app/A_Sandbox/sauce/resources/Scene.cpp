@@ -21,7 +21,6 @@ static uint32 global_scene_id = 0;
 
 bool8 scene_init(SceneConfig* config, Scene* out_scene)
 {
-
 	if (out_scene->state >= ResourceState::Initialized)
 		return false;
 
@@ -133,8 +132,6 @@ bool8 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 	if (out_scene->state >= ResourceState::Initialized)
 		return false;
 
-	out_scene->state = ResourceState::Initializing;
-
 	SceneResourceData resource = {};
 	if (!ResourceSystem::scene_loader_load(resource_name, 0, &resource))
 	{
@@ -231,7 +228,7 @@ bool8 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 bool8 scene_destroy(Scene* scene)
 {
 
-	if (scene->state != ResourceState::Unloaded && !scene_unload(scene))
+	if (scene->state != ResourceState::Initialized)
 		return false;
 
 	if (scene->skybox.state >= ResourceState::Initialized)
@@ -270,106 +267,6 @@ bool8 scene_destroy(Scene* scene)
 	scene->description.free_data();
 
 	scene->state = ResourceState::Destroyed;
-
-	return true;
-
-}
-
-bool8 scene_load(Scene* scene)
-{
-
-	if (scene->state != ResourceState::Initialized && scene->state != ResourceState::Unloaded)
-		return false;
-
-	scene->state = ResourceState::Loading;
-
-	if (scene->skybox.state >= ResourceState::Initialized)
-	{
-		if (!skybox_load(&scene->skybox))
-		{
-			SHMERROR("Failed to load skybox.");
-			return false;
-		}
-	}
-
-	for (uint32 i = 0; i < scene->terrains.count; i++)
-	{
-		if (!terrain_load(&scene->terrains[i]))
-		{
-			SHMERROR("Failed to load terrain.");
-			return false;
-		}
-	}
-
-	for (uint32 i = 0; i < scene->meshes.count; i++)
-	{
-		if (!mesh_load(&scene->meshes[i]))
-		{
-			SHMERROR("Failed to load mesh.");
-			return false;
-		}
-	}
-
-	for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
-	{
-		if (!box3D_load(&scene->p_light_boxes[i]))
-		{
-			SHMERROR("Failed to load light box.");
-			return false;
-		}
-	}
-
-	return true;
-
-}
-
-bool8 scene_unload(Scene* scene)
-{
-
-	if (scene->state <= ResourceState::Initialized)
-		return true;
-	else if (scene->state != ResourceState::Loaded)
-		return false;
-
-	scene->state = ResourceState::Unloading;
-
-	for (uint32 i = 0; i < scene->meshes.count; i++)
-	{
-		if (!mesh_unload(&scene->meshes[i]))
-		{
-			SHMERROR("Failed to unload mesh.");
-			return false;
-		}
-	}
-
-	for (uint32 i = 0; i < scene->terrains.count; i++)
-	{
-		if (!terrain_unload(&scene->terrains[i]))
-		{
-			SHMERROR("Failed to unload terrain.");
-			return false;
-		}
-	}
-
-	if (scene->skybox.state >= ResourceState::Initialized)
-	{
-		if (!skybox_unload(&scene->skybox))
-		{
-			SHMERROR("Failed to unload skybox.");
-			return false;
-		}
-	}
-
-	for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
-	{
-		if (!box3D_unload(&scene->p_light_boxes[i]))
-		{
-			SHMERROR("Failed to unload light box.");
-			return false;
-		}
-	}
-
-	scene->state = ResourceState::Unloaded;
 
 	return true;
 
@@ -425,43 +322,6 @@ bool8 scene_update(Scene* scene)
 
 		if (objects_initialized)
 			scene->state = ResourceState::Initialized;
-	}
-	else if (scene->state == ResourceState::Loading)
-	{
-		bool8 objects_loaded = true;
-
-		if (scene->skybox.state != ResourceState::Loaded)
-			objects_loaded = false;
-
-		for (uint32 i = 0; i < scene->meshes.count; i++)
-		{
-			if (scene->meshes[i].state != ResourceState::Loaded)
-			{
-				objects_loaded = false;
-				break;
-			}
-		}
-
-		for (uint32 i = 0; i < scene->terrains.count; i++)
-		{
-			if (scene->terrains[i].state != ResourceState::Loaded)
-			{
-				objects_loaded = false;
-				break;
-			}
-		}
-
-		for (uint32 i = 0; i < scene->p_light_boxes.count; i++)
-		{
-			if (scene->p_light_boxes[i].state != ResourceState::Loaded)
-			{
-				objects_loaded = false;
-				break;
-			}
-		}
-
-		if (objects_loaded)
-			scene->state = ResourceState::Loaded;
 	}
 	/*else if (scene->state == ResourceState::UNLOADING)
 	{
@@ -520,15 +380,6 @@ bool8 scene_add_point_light(Scene* scene, PointLight light)
 		return false;
 	}
 
-	if (scene->state == ResourceState::Loaded)
-	{
-		if (!box3D_load(light_box))
-		{
-			SHMERROR("Failed to initialize light box!");
-			return false;
-		}
-	}
-
 	return true;
 }
 
@@ -550,7 +401,6 @@ bool8 scene_add_point_light(Scene* scene, PointLight light)
 
 bool8 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 {
-
 	Mesh* mesh = &scene->meshes[scene->meshes.emplace()];
 
 	bool8 initialized = false;
@@ -561,20 +411,11 @@ bool8 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 
 	if (!initialized)
 	{
-		SHMERROR("Failed to initialize mesh!");
+		SHMERROR("Failed to initialize mesh for scene!");
 		return false;
 	}
 
 	mesh->transform = config->transform;
-
-	if (scene->state == ResourceState::Loaded)
-	{
-		if (!mesh_load(mesh))
-		{
-			SHMERROR("Failed to initialize mesh!");
-			return false;
-		}
-	}
 
 	Mesh* added_mesh = &scene->meshes[scene->meshes.count - 1];
 
@@ -639,37 +480,16 @@ bool8 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 
 bool8 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 {
-
 	Terrain* terrain = &scene->terrains[scene->terrains.emplace()];
 
 	bool8 initialized = false;
 	if (config->resource_name)
-	{
 		initialized = terrain_init_from_resource(config->resource_name, terrain);		
-	}		
 	else
-	{
 		initialized = terrain_init(&config->t_config, terrain);
-	}		
-
-	if (!initialized)
-	{
-		SHMERROR("Failed to initialize terrain!");
-		return false;
-	}
 
 	terrain->xform = config->xform;
-
-	if (scene->state == ResourceState::Loaded)
-	{
-		if (!terrain_load(terrain))
-		{
-			SHMERROR("Failed to initialize terrain!");
-			return false;
-		}
-	}
-
-	return true;
+	return initialized;
 }
 
 //bool8 scene_remove_terrain(Scene* scene, const char* name)
@@ -701,7 +521,6 @@ bool8 scene_add_terrain(Scene* scene, SceneTerrainConfig* config)
 
 bool8 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 {
-
 	if (scene->skybox.state >= ResourceState::Initialized)
 	{
 		if (!skybox_destroy(&scene->skybox))
@@ -715,15 +534,6 @@ bool8 scene_add_skybox(Scene* scene, SkyboxConfig* config)
 	{
 		SHMERROR("Failed to initialize skybox!");
 		return false;
-	}
-
-	if (scene->state == ResourceState::Loaded)
-	{
-		if (!skybox_load(&scene->skybox))
-		{
-			SHMERROR("Failed to initialize skybox!");
-			return false;
-		}
 	}
 
 	return true;
@@ -791,8 +601,7 @@ PointLight* scene_get_point_light(Scene* scene, uint32 index)
 
 bool8 scene_draw(Scene* scene, const Math::Frustum* camera_frustum, FrameData* frame_data)
 {
-
-	if (scene->state != ResourceState::Loaded)
+	if (scene->state != ResourceState::Initialized)
 		return false;
 
 	if (scene->skybox.state >= ResourceState::Initialized)
@@ -814,7 +623,6 @@ bool8 scene_draw(Scene* scene, const Math::Frustum* camera_frustum, FrameData* f
 
 Math::Ray3DHitInfo scene_raycast(Scene* scene, Math::Ray3D ray) 
 {
-
 	Math::Ray3DHitInfo hit_info = {};
 
 	for (uint32 i = 0; i < scene->meshes.count; ++i) {

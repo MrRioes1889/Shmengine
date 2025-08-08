@@ -13,7 +13,7 @@ static void update_displayed_console_text(DebugConsole* console);
 
 bool8 DebugConsole::init()
 {
-	state = ResourceState::Uninitialized;
+	state = ResourceState::Initializing;
 	Memory::zero_memory(line_lenghts, lines_limit * sizeof(uint16));
 	console_text.reserve(lines_limit * 128);
 	CString::copy("--> ", entry_text_prefix, sizeof(entry_text_prefix));
@@ -47,45 +47,24 @@ bool8 DebugConsole::init()
 	Console::register_command("exit", 0, command_exit);
 	Console::register_command("quit", 0, command_exit);
 
+	entry_text = entry_text_prefix;
+	entry_text.append('_');
+	ui_text_set_text(&entry_control, entry_text.c_str());
+
 	state = ResourceState::Initialized;
 	return true;
 }
 
 void DebugConsole::destroy()
 {
-	unload();
+	if (state != ResourceState::Initialized)
+		return;
 
 	ui_text_destroy(&text_control);
 	ui_text_destroy(&entry_control);
 
 	console_text.free_data();
 	state = ResourceState::Destroyed;
-}
-
-bool8 DebugConsole::load()
-{
-	entry_text = entry_text_prefix;
-	entry_text.append('_');
-	ui_text_set_text(&entry_control, entry_text.c_str());
-
-	ui_text_load(&text_control);
-	ui_text_load(&entry_control);
-
-	loaded = true;
-	state = ResourceState::Loaded;
-	return true;
-}
-
-bool8 DebugConsole::unload()
-{
-	if (!loaded)
-		return false;
-
-	ui_text_unload(&text_control);
-	ui_text_unload(&entry_control);
-
-	state = ResourceState::Unloaded;
-	return true;
 }
 
 void DebugConsole::update()

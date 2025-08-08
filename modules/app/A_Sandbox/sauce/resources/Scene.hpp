@@ -94,8 +94,6 @@ struct Scene
 bool8 scene_init(SceneConfig* config, Scene* out_scene);
 bool8 scene_init_from_resource(const char* resource_name, Scene* out_scene);
 bool8 scene_destroy(Scene* scene);
-bool8 scene_load(Scene* scene);
-bool8 scene_unload(Scene* scene);
 
 bool8 scene_update(Scene* scene);
 

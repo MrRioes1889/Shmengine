@@ -12,10 +12,10 @@
 #include "systems/MaterialSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 
-static void mesh_load_job_success(void* params);
-static void mesh_load_job_fail(void* params);
-static bool8 mesh_load_job_start(void* params, void* result_data);
-static bool8 mesh_load_async(Mesh* mesh, bool8 reload);
+static void _mesh_init_job_success(void* params);
+static void _mesh_init_job_fail(void* params);
+static bool8 _mesh_init_job_start(uint32 thread_index, void* user_data);
+static bool8 _mesh_init_async(Mesh* mesh);
 
 bool8 mesh_init(MeshConfig* config, Mesh* out_mesh)
 {
@@ -23,7 +23,6 @@ bool8 mesh_init(MeshConfig* config, Mesh* out_mesh)
         return false;
 
     out_mesh->state = ResourceState::Initializing;
-
     out_mesh->name = config->name;
     out_mesh->extents = {};
     out_mesh->center = {};
@@ -55,17 +54,15 @@ bool8 mesh_init(MeshConfig* config, Mesh* out_mesh)
     out_mesh->center = (out_mesh->extents.min + out_mesh->extents.max) * 0.5f;
 
     out_mesh->generation = Constants::max_u8;
+    out_mesh->unique_id = identifier_acquire_new_id(out_mesh);
 
-    out_mesh->state = ResourceState::Initialized;
+    _mesh_init_async(out_mesh);
 
     return true;
 }
 
 bool8 mesh_init_from_resource(const char* resource_name, Mesh* out_mesh)
 {
-
-    out_mesh->state = ResourceState::Initializing;
-
     MeshResourceData resource = {};
     if (!ResourceSystem::mesh_loader_load(resource_name, &resource))
     {
@@ -92,49 +89,14 @@ bool8 mesh_init_from_resource(const char* resource_name, Mesh* out_mesh)
     ResourceSystem::mesh_loader_unload(&resource);
 
     return true;
-
 }
 
 bool8 mesh_destroy(Mesh* mesh)
 {
-    if (mesh->state != ResourceState::Unloaded && !mesh_unload(mesh))
-        return false;
-
-    for (uint16 i = 0; i < mesh->geometries.capacity; i++)
-        GeometrySystem::release(mesh->geometries[i].g_id);
-
-    mesh->name.free_data();
-
-    mesh->state = ResourceState::Destroyed;
-    return true;
-}
-
-bool8 mesh_load(Mesh* mesh)
-{
-
-    if (mesh->state != ResourceState::Initialized && mesh->state != ResourceState::Unloaded)
-        return false;
-
-    bool8 is_reload = mesh->state == ResourceState::Unloaded;
-
-    mesh->state = ResourceState::Loading;
-    mesh->generation = Constants::max_u8;
-    mesh->unique_id = identifier_acquire_new_id(mesh);
-
-    mesh_load_async(mesh, is_reload);
-
-    return true;
-
-}
-
-bool8 mesh_unload(Mesh* mesh)
-{
-    if (mesh->state <= ResourceState::Initialized)
+    if (mesh->state != ResourceState::Initialized)
         return true;
-    else if (mesh->state != ResourceState::Loaded)
-        return false;
 
-    mesh->state = ResourceState::Unloading;
+    mesh->state = ResourceState::Destroying;
 
     mesh->generation = Constants::max_u8;
     identifier_release_id(mesh->unique_id);
@@ -150,31 +112,33 @@ bool8 mesh_unload(Mesh* mesh)
         }
     }
 
-    mesh->state = ResourceState::Unloaded;
+    for (uint16 i = 0; i < mesh->geometries.capacity; i++)
+        GeometrySystem::release(mesh->geometries[i].g_id);
 
+    mesh->name.free_data();
+
+    mesh->state = ResourceState::Destroyed;
     return true;
-
 }
 
 struct MeshLoadParams
 {
 	Mesh* out_mesh;
-    bool8 is_reload;
 };
 
-static void mesh_load_job_success(void* params) 
+static void _mesh_init_job_success(void* params) 
 {
     MeshLoadParams* mesh_params = (MeshLoadParams*)params;
     Mesh* mesh = mesh_params->out_mesh;  
 
     mesh_params->out_mesh->generation++;
-    mesh_params->out_mesh->state = ResourceState::Loaded;
+    mesh_params->out_mesh->state = ResourceState::Initialized;
 
     SHMTRACEV("Successfully loaded mesh '%s'.", mesh->name.c_str());
 
 }
 
-static void mesh_load_job_fail(void* params) 
+static void _mesh_init_job_fail(void* params) 
 {
     MeshLoadParams* mesh_params = (MeshLoadParams*)params;
     Mesh* mesh = mesh_params->out_mesh;
@@ -182,7 +146,7 @@ static void mesh_load_job_fail(void* params)
     SHMERRORV("Failed to load mesh '%s'.", mesh->name.c_str());
 }
 
-static bool8 mesh_load_job_start(uint32 thread_index, void* user_data) 
+static bool8 _mesh_init_job_start(uint32 thread_index, void* user_data) 
 {
     MeshLoadParams* load_params = (MeshLoadParams*)user_data;
     Mesh* mesh = load_params->out_mesh;
@@ -206,14 +170,13 @@ static bool8 mesh_load_job_start(uint32 thread_index, void* user_data)
     return true;
 }
 
-static bool8 mesh_load_async(Mesh* mesh, bool8 reload)
+static bool8 _mesh_init_async(Mesh* mesh)
 {
     mesh->generation = Constants::max_u8;
 
-    JobSystem::JobInfo job = JobSystem::job_create(mesh_load_job_start, mesh_load_job_success, mesh_load_job_fail, sizeof(MeshLoadParams));
+    JobSystem::JobInfo job = JobSystem::job_create(_mesh_init_job_start, _mesh_init_job_success, _mesh_init_job_fail, sizeof(MeshLoadParams));
     MeshLoadParams* params = (MeshLoadParams*)job.user_data;
     params->out_mesh = mesh;
-    params->is_reload = reload;
     JobSystem::submit(job);
 
     return true;

@@ -34,6 +34,14 @@ bool8 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Lin
 	update_vertices(out_line);
 	out_line->is_dirty = false;
 
+	out_line->unique_id = identifier_acquire_new_id(out_line);
+
+	if (!Renderer::geometry_load(&out_line->geometry))
+	{
+		SHMERROR("Failed to load line geometry!");
+		return false;
+	}
+
 	out_line->state = ResourceState::Initialized;
 
 	return true;
@@ -41,8 +49,15 @@ bool8 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Lin
 
 bool8 line3D_destroy(Line3D* line)
 {
-	if (line->state != ResourceState::Unloaded && !line3D_unload(line))
+	if (line->state != ResourceState::Initialized)
 		return false;
+
+	line->state = ResourceState::Destroying;
+
+	Renderer::geometry_unload(&line->geometry);
+
+	identifier_release_id(line->unique_id);
+	line->unique_id = Constants::max_u32;
 
 	Renderer::destroy_geometry(&line->geometry);
 
@@ -50,57 +65,15 @@ bool8 line3D_destroy(Line3D* line)
 	return true;
 }
 
-bool8 line3D_load(Line3D* line)
-{
-
-	if (line->state != ResourceState::Initialized && line->state != ResourceState::Unloaded)
-		return false;
-
-	bool8 is_reload = line->state == ResourceState::Unloaded;
-
-	line->state = ResourceState::Loading;
-	line->unique_id = identifier_acquire_new_id(line);
-
-	if (!Renderer::geometry_load(&line->geometry))
-	{
-		SHMERROR("Failed to load line geometry!");
-		return false;
-	}
-
-	line->state = ResourceState::Loaded;
-
-	return true;
-
-}
-
-bool8 line3D_unload(Line3D* line)
-{
-
-	if (line->state <= ResourceState::Initialized)
-		return true;
-	else if (line->state != ResourceState::Loaded)
-		return false;
-
-	line->state = ResourceState::Unloading;
-
-	Renderer::geometry_unload(&line->geometry);
-
-	identifier_release_id(line->unique_id);
-	line->unique_id = Constants::max_u32;
-	line->state = ResourceState::Unloaded;
-
-	return true;
-
-}
-
 bool8 line3D_update(Line3D* line)
 {
-	if (!line->is_dirty)
+	if (!line->is_dirty || line->state != ResourceState::Initialized)
 		return true;
 
 	update_vertices(line);
-	if (line->state == ResourceState::Loaded)
-		return Renderer::geometry_load(&line->geometry);
+	Renderer::geometry_load(&line->geometry);
+
+	line->is_dirty = false;
 
 	return true;
 }

@@ -355,7 +355,6 @@ namespace Renderer::Vulkan
 	// TODO: Overhaul for performance necessary. Creating/destruction of staging buffer and copy function seem to be major bottlenecks!
 	bool8 vk_buffer_load_range_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
-
 		OPTICK_EVENT();
 		
 		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
@@ -379,7 +378,6 @@ namespace Renderer::Vulkan
 		vk_buffer_destroy_internal(&staging);			
 
 		return true;
-
 	}
 
 	bool8 vk_buffer_copy_range(RenderBuffer* source, uint64 source_offset, RenderBuffer* dest, uint64 dest_offset, uint64 size)
@@ -391,7 +389,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_buffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool8 bind_only)
 	{
-
 		VulkanCommandBuffer& command_buffer = context->graphics_command_buffers[context->bound_framebuffer_index];
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 
@@ -419,7 +416,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_buffer_copy_range_internal(VkBuffer source, uint64 source_offset, VkBuffer dest, uint64 dest_offset, uint64 size)
 	{
-
 		VkQueue queue = context->device.graphics_queue;
 		vkQueueWaitIdle(queue);
 		// Create a one-time-use command buffer.
@@ -437,7 +433,6 @@ namespace Renderer::Vulkan
 		vk_command_buffer_end_single_use(context->device.graphics_command_pool, &temp_command_buffer, queue);
 
 		return true;
-
 	}
 
 }

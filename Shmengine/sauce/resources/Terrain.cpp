@@ -175,6 +175,49 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
 	Renderer::create_geometry(&geometry_config, &out_terrain->geometry);
 
+	out_terrain->unique_id = identifier_acquire_new_id(out_terrain);
+
+    if (!Renderer::geometry_load(&out_terrain->geometry))
+    {
+        SHMERROR("Failed to load terrain geometry!");
+        return false;
+    }
+
+	uint32 material_count = out_terrain->materials.count;
+	for (uint32 i = 0; i < material_count; i++)
+	{
+		out_terrain->materials[i].material_id = MaterialSystem::acquire_reference(out_terrain->materials[i].name);
+		if (out_terrain->materials[i].material_id.is_valid())
+			continue;
+
+		if (MaterialSystem::load_from_resource(out_terrain->materials[i].name, out_terrain->materials[i].name, true))
+			out_terrain->materials[i].material_id = MaterialSystem::acquire_reference(out_terrain->materials[i].name);
+	}
+
+	out_terrain->material_properties.materials_count = material_count;
+
+	Material* default_material = MaterialSystem::get_default_material();
+
+	// Phong properties and maps for each material.
+	for (uint32 mat_i = 0; mat_i < Constants::max_terrain_materials_count; mat_i++) {
+		// Properties.
+		MaterialPhongProperties* mat_props = &out_terrain->material_properties.materials[mat_i];
+		// Use default material unless within the material count.
+		Material* sub_mat = default_material;
+		if (mat_i < material_count && sub_mat->maps.capacity >= 3)
+			sub_mat = MaterialSystem::get_material(out_terrain->materials[mat_i].material_id);
+
+		MaterialPhongProperties* sub_mat_properties = (MaterialPhongProperties*)sub_mat->properties;
+		mat_props->diffuse_color = sub_mat_properties->diffuse_color;
+		mat_props->shininess = sub_mat_properties->shininess;
+	}
+
+	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
+	
+	const uint32 max_map_count = Constants::max_terrain_materials_count * 3;
+	if (!Renderer::shader_acquire_instance_resources(terrain_shader, max_map_count, &out_terrain->shader_instance_id))
+		SHMERRORV("Failed to acquire renderer resources for terrain '%s'.", out_terrain->name.c_str());
+
     out_terrain->state = ResourceState::Initialized;
 
     return true;
@@ -182,8 +225,6 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
 bool8 terrain_init_from_resource(const char* resource_name, Terrain* out_terrain)
 {
-    out_terrain->state = ResourceState::Initializing;
-
     TerrainResourceData resource = {};
     if (!ResourceSystem::terrain_loader_load(resource_name, &resource))
     {
@@ -219,84 +260,10 @@ bool8 terrain_init_from_resource(const char* resource_name, Terrain* out_terrain
 
 bool8 terrain_destroy(Terrain* terrain)
 {
-    if (terrain->state != ResourceState::Unloaded && !terrain_unload(terrain))
+    if (terrain->state != ResourceState::Initialized)
         return false;
 
-	Renderer::destroy_geometry(&terrain->geometry);
-    terrain->vertex_infos.free_data();
-
-    terrain->materials.free_data();
-
-    terrain->name.free_data();
-
-    terrain->state = ResourceState::Destroyed;
-    return true;
-}
-
-bool8 terrain_load(Terrain* terrain)
-{
-    if (terrain->state != ResourceState::Initialized && terrain->state != ResourceState::Unloaded)
-        return false;
-
-    bool8 is_reload = terrain->state == ResourceState::Unloaded;
-
-    terrain->state = ResourceState::Loading;
-	terrain->unique_id = identifier_acquire_new_id(terrain);
-
-    if (!Renderer::geometry_load(&terrain->geometry))
-    {
-        SHMERROR("Failed to load terrain geometry!");
-        return false;
-    }
-
-	uint32 material_count = terrain->materials.count;
-	for (uint32 i = 0; i < material_count; i++)
-	{
-		terrain->materials[i].material_id = MaterialSystem::acquire_reference(terrain->materials[i].name);
-		if (terrain->materials[i].material_id.is_valid())
-			continue;
-
-		if (MaterialSystem::load_from_resource(terrain->materials[i].name, terrain->materials[i].name, true))
-			terrain->materials[i].material_id = MaterialSystem::acquire_reference(terrain->materials[i].name);
-	}
-
-	terrain->material_properties.materials_count = material_count;
-
-	Material* default_material = MaterialSystem::get_default_material();
-
-	// Phong properties and maps for each material.
-	for (uint32 mat_i = 0; mat_i < Constants::max_terrain_materials_count; mat_i++) {
-		// Properties.
-		MaterialPhongProperties* mat_props = &terrain->material_properties.materials[mat_i];
-		// Use default material unless within the material count.
-		Material* sub_mat = default_material;
-		if (mat_i < material_count && sub_mat->maps.capacity >= 3)
-			sub_mat = MaterialSystem::get_material(terrain->materials[mat_i].material_id);
-
-		MaterialPhongProperties* sub_mat_properties = (MaterialPhongProperties*)sub_mat->properties;
-		mat_props->diffuse_color = sub_mat_properties->diffuse_color;
-		mat_props->shininess = sub_mat_properties->shininess;
-	}
-
-	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
-	
-	const uint32 max_map_count = Constants::max_terrain_materials_count * 3;
-	if (!Renderer::shader_acquire_instance_resources(terrain_shader, max_map_count, &terrain->shader_instance_id))
-		SHMERRORV("Failed to acquire renderer resources for terrain '%s'.", terrain->name.c_str());
-
-    terrain->state = ResourceState::Loaded;
-
-    return true;
-}
-
-bool8 terrain_unload(Terrain* terrain)
-{
-    if (terrain->state <= ResourceState::Initialized)
-        return true;
-    else if (terrain->state != ResourceState::Loaded)
-        return false;
-
-    terrain->state = ResourceState::Unloading;
+    terrain->state = ResourceState::Destroying;
 
 	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
 	Renderer::shader_release_instance_resources(terrain_shader, terrain->shader_instance_id);
@@ -312,8 +279,15 @@ bool8 terrain_unload(Terrain* terrain)
 
 	identifier_release_id(terrain->unique_id);
 	terrain->unique_id = Constants::max_u32;
-    terrain->state = ResourceState::Unloaded;
 
+	Renderer::destroy_geometry(&terrain->geometry);
+    terrain->vertex_infos.free_data();
+
+    terrain->materials.free_data();
+
+    terrain->name.free_data();
+
+    terrain->state = ResourceState::Destroyed;
     return true;
 }
 

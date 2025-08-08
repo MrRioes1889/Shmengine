@@ -22,7 +22,6 @@ struct DebugConsole
 
 	ResourceState state;
 	bool8 visible;
-	bool8 loaded;
 	KeyCode::Value held_key;
 
 	Input::Keymap keymap;
@@ -33,9 +32,6 @@ struct DebugConsole
 	void destroy();
 
 	void setup_keymap();
-
-	bool8 load();
-	bool8 unload();
 
 	void update();
 

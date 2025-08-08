@@ -31,5 +31,3 @@ struct Skybox
 
 SHMAPI bool8 skybox_init(SkyboxConfig* config, Skybox* out_skybox);
 SHMAPI bool8 skybox_destroy(Skybox* skybox);
-SHMAPI bool8 skybox_load(Skybox* skybox);
-SHMAPI bool8 skybox_unload(Skybox* skybox);

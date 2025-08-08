@@ -37,6 +37,14 @@ bool8 gizmo3D_init(Gizmo3D* out_gizmo)
 	update_vertices(out_gizmo);
 	out_gizmo->is_dirty = false;
 
+	out_gizmo->unique_id = identifier_acquire_new_id(out_gizmo);
+
+	if (!Renderer::geometry_load(&out_gizmo->geometry))
+	{
+		SHMERROR("Failed to load gizmo geometry!");
+		return false;
+	}
+
 	out_gizmo->state = ResourceState::Initialized;
 
 	return true;
@@ -44,8 +52,14 @@ bool8 gizmo3D_init(Gizmo3D* out_gizmo)
 
 bool8 gizmo3D_destroy(Gizmo3D* gizmo)
 {
-	if (gizmo->state != ResourceState::Unloaded && !gizmo3D_unload(gizmo))
+	if (gizmo->state != ResourceState::Initialized)
 		return false;
+
+	gizmo->state = ResourceState::Destroying;
+	Renderer::geometry_unload(&gizmo->geometry);
+
+	identifier_release_id(gizmo->unique_id);
+	gizmo->unique_id = Constants::max_u32;
 
 	Renderer::destroy_geometry(&gizmo->geometry);
 
@@ -53,57 +67,13 @@ bool8 gizmo3D_destroy(Gizmo3D* gizmo)
 	return true;
 }
 
-bool8 gizmo3D_load(Gizmo3D* gizmo)
-{
-
-	if (gizmo->state != ResourceState::Initialized && gizmo->state != ResourceState::Unloaded)
-		return false;
-
-	bool8 is_reload = gizmo->state == ResourceState::Unloaded;
-
-	gizmo->state = ResourceState::Loading;
-	gizmo->unique_id = identifier_acquire_new_id(gizmo);
-
-	if (!Renderer::geometry_load(&gizmo->geometry))
-	{
-		SHMERROR("Failed to load gizmo geometry!");
-		return false;
-	}
-
-	gizmo->state = ResourceState::Loaded;
-
-	return true;
-
-}
-
-bool8 gizmo3D_unload(Gizmo3D* gizmo)
-{
-
-	if (gizmo->state <= ResourceState::Initialized)
-		return true;
-	else if (gizmo->state != ResourceState::Loaded)
-		return false;
-
-	gizmo->state = ResourceState::Unloading;
-
-	Renderer::geometry_unload(&gizmo->geometry);
-
-	identifier_release_id(gizmo->unique_id);
-	gizmo->unique_id = Constants::max_u32;
-	gizmo->state = ResourceState::Unloaded;
-
-	return true;
-
-}
-
 bool8 gizmo3D_update(Gizmo3D* gizmo)
 {
-	if (!gizmo->is_dirty)
+	if (!gizmo->is_dirty || gizmo->state != ResourceState::Initialized)
 		return true;
 
 	update_vertices(gizmo);
-	if (gizmo->state == ResourceState::Loaded)
-		return Renderer::geometry_load(&gizmo->geometry);
+	Renderer::geometry_load(&gizmo->geometry);
 
 	gizmo->is_dirty = false;
 

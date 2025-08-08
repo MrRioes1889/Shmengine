@@ -36,6 +36,14 @@ bool8 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 	update_vertices(out_box);
 	out_box->is_dirty = false;
 
+	out_box->unique_id = identifier_acquire_new_id(out_box);
+
+	if (!Renderer::geometry_load(&out_box->geometry))
+	{
+		SHMERROR("Failed to load box geometry!");
+		return false;
+	}
+
 	out_box->state = ResourceState::Initialized;
 
 	return true;
@@ -43,8 +51,13 @@ bool8 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 
 bool8 box3D_destroy(Box3D* box)
 {
-	if (box->state != ResourceState::Unloaded && !box3D_unload(box))
+	if (box->state != ResourceState::Initialized)
 		return false;
+
+	Renderer::geometry_unload(&box->geometry);
+
+	identifier_release_id(box->unique_id);
+	box->unique_id = Constants::max_u32;
 
 	Renderer::destroy_geometry(&box->geometry);
 
@@ -52,58 +65,13 @@ bool8 box3D_destroy(Box3D* box)
 	return true;
 }
 
-bool8 box3D_load(Box3D* box)
-{
-
-	if (box->state != ResourceState::Initialized && box->state != ResourceState::Unloaded)
-		return false;
-
-	bool8 is_reload = box->state == ResourceState::Unloaded;
-
-	box->state = ResourceState::Loading;
-	box->unique_id = identifier_acquire_new_id(box);
-
-	if (!Renderer::geometry_load(&box->geometry))
-	{
-		SHMERROR("Failed to load box geometry!");
-		return false;
-	}
-
-	box->state = ResourceState::Loaded;
-
-	return true;
-
-}
-
-bool8 box3D_unload(Box3D* box)
-{
-
-	if (box->state <= ResourceState::Initialized)
-		return true;
-	else if (box->state != ResourceState::Loaded)
-		return false;
-
-	box->state = ResourceState::Unloading;
-
-	Renderer::geometry_unload(&box->geometry);
-
-	identifier_release_id(box->unique_id);
-	box->unique_id = Constants::max_u32;
-	box->state = ResourceState::Unloaded;
-
-	return true;
-
-}
-
 bool8 box3D_update(Box3D* box)
 {
-	if (!box->is_dirty)
+	if (!box->is_dirty || box->state != ResourceState::Initialized)
 		return true;
 
 	update_vertices(box);
-	if (box->state == ResourceState::Loaded)
-		return Renderer::geometry_load(&box->geometry);
-
+	Renderer::geometry_load(&box->geometry);
 	box->is_dirty = false;
 
 	return true;

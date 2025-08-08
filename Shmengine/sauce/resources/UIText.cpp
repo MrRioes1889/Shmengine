@@ -56,6 +56,21 @@ bool8 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 
     out_ui_text->unique_id = identifier_acquire_new_id(out_ui_text);
     out_ui_text->is_dirty = true;
+
+    Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
+    if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, &out_ui_text->shader_instance_id))
+    {
+        SHMFATAL("Unable to acquire shader resources for font texture map.");
+        return false;
+    }
+
+    const FontAtlas* atlas = FontSystem::get_atlas(out_ui_text->font_id, out_ui_text->font_size);
+    if (!atlas)
+        return false;
+
+    regenerate_geometry(out_ui_text, atlas);
+    Renderer::geometry_load(&out_ui_text->geometry);
+
     out_ui_text->state = ResourceState::Initialized;
 
     return true;
@@ -63,51 +78,10 @@ bool8 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 
 bool8 ui_text_destroy(UIText* ui_text)
 {
-    if (ui_text->state != ResourceState::Unloaded && !ui_text_unload(ui_text))
+    if (ui_text->state != ResourceState::Initialized)
         return false;
 
-    Renderer::destroy_geometry(&ui_text->geometry);
-    ui_text->text.free_data();
-
-    ui_text->state = ResourceState::Destroyed;
-
-    return true;
-}
-
-bool8 ui_text_load(UIText* ui_text)
-{
-    if (ui_text->state != ResourceState::Initialized && ui_text->state != ResourceState::Unloaded)
-        return false;
-
-    ui_text->state = ResourceState::Loading;
-
-    Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
-    if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, &ui_text->shader_instance_id))
-    {
-        SHMFATAL("Unable to acquire shader resources for font texture map.");
-        return false;
-    }
-
-    const FontAtlas* atlas = FontSystem::get_atlas(ui_text->font_id, ui_text->font_size);
-    if (!atlas)
-        return false;
-
-    regenerate_geometry(ui_text, atlas);
-    Renderer::geometry_load(&ui_text->geometry);
-
-    ui_text->state = ResourceState::Loaded;
-
-    return true;
-}
-
-bool8 ui_text_unload(UIText* ui_text)
-{
-    if (ui_text->state <= ResourceState::Initialized)
-        return true;
-    else if (ui_text->state != ResourceState::Loaded)
-        return false;
-
-    ui_text->state = ResourceState::Unloading;
+    ui_text->state = ResourceState::Destroying;
 
     Renderer::geometry_unload(&ui_text->geometry);
 
@@ -119,7 +93,12 @@ bool8 ui_text_unload(UIText* ui_text)
     identifier_release_id(ui_text->unique_id);
     ui_text->unique_id = 0;
 
-    ui_text->state = ResourceState::Unloaded;
+
+    Renderer::destroy_geometry(&ui_text->geometry);
+    ui_text->text.free_data();
+
+    ui_text->state = ResourceState::Destroyed;
+
     return true;
 }
 
@@ -157,7 +136,7 @@ bool8 ui_text_set_font(UIText* ui_text, const char* font_name, uint16 font_size)
 void ui_text_update(UIText* ui_text)
 {
     OPTICK_EVENT();
-    if (!ui_text->is_dirty)
+    if (!ui_text->is_dirty || ui_text->state != ResourceState::Initialized)
         return;
 
     const FontAtlas* atlas = FontSystem::get_atlas(ui_text->font_id, ui_text->font_size);
@@ -165,9 +144,7 @@ void ui_text_update(UIText* ui_text)
         return;
 
     regenerate_geometry(ui_text, atlas);
-
-    if (ui_text->state == ResourceState::Loaded)
-        Renderer::geometry_load(&ui_text->geometry);
+	Renderer::geometry_load(&ui_text->geometry);
         
     ui_text->is_dirty = false;
 }

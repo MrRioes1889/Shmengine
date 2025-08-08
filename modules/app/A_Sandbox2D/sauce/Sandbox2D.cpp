@@ -68,14 +68,13 @@ bool8 application_init(Application* app_inst)
 	}
 
 	app_state->debug_console.init();
-	app_state->debug_console.load();
 
 	UITextConfig ui_text_config = {};
 	ui_text_config.font_name = "Martian Mono";
 	ui_text_config.font_size = 21;
 	ui_text_config.text_content = "Some täest text,\n\tyo!";
 
-	if (!ui_text_init(&ui_text_config, &app_state->debug_info_text) || !ui_text_load(&app_state->debug_info_text))
+	if (!ui_text_init(&ui_text_config, &app_state->debug_info_text))
 	{
 		SHMERROR("Failed to load basic ui truetype text.");
 		return false;

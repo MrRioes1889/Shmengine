@@ -29,8 +29,6 @@ struct Gizmo3D
 
 SHMAPI bool8 gizmo3D_init(Gizmo3D* out_gizmo);
 SHMAPI bool8 gizmo3D_destroy(Gizmo3D* gizmo);
-SHMAPI bool8 gizmo3D_load(Gizmo3D* gizmo);
-SHMAPI bool8 gizmo3D_unload(Gizmo3D* gizmo);
 
 SHMAPI bool8 gizmo3D_update(Gizmo3D* gizmo);
 
