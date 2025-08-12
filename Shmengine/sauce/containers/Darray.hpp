@@ -231,8 +231,11 @@ SHMINLINE void Darray<T>::free_data()
 {
 	if (data)
 	{
-		for (uint32 i = 0; i < count; i++)
-			data[i].~T();
+		if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+		{
+			for (uint32 i = 0; i < count; i++)
+				data[i].~T();
+		}
 
 		if (!(flags & DarrayFlags::ExternalMemory))
 		{
@@ -252,12 +255,13 @@ SHMINLINE void Darray<T>::free_data()
 template<typename T>
 SHMINLINE void Darray<T>::clear()
 {
-
-	for (uint32 i = 0; i < count; i++)
-		data[i].~T();
+	if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+	{
+		for (uint32 i = 0; i < count; i++)
+			data[i].~T();
+	}
 
 	count = 0;
-
 }
 
 template<typename T>
@@ -342,7 +346,8 @@ inline SHMINLINE void Darray<T>::pop()
 		return;
 
 	T* pop_ptr = data + (count - 1);
-	pop_ptr->~T();
+	if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+		pop_ptr->~T();
 	Memory::zero_memory(pop_ptr, sizeof(T));
 	count--;
 
@@ -378,7 +383,9 @@ inline SHMINLINE void Darray<T>::remove_at(uint32 index)
 
 	uint32 copy_block_size = (count - index - 1) * sizeof(T);
 	T* remove_ptr = data + index;
-	(*remove_ptr).~T();
+
+	if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+		(*remove_ptr).~T();
 
 	T* copy_source = remove_ptr + 1;
 	T* copy_dest = remove_ptr;

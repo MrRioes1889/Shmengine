@@ -6,6 +6,7 @@
 #include "renderer/RendererFrontend.hpp"
 #include "renderer/Geometry.hpp"
 #include "resources/loaders/MeshLoader.hpp"
+#include "utility/math/Transform.hpp"
 
 #include "systems/JobSystem.hpp"
 #include "systems/GeometrySystem.hpp"
@@ -32,7 +33,8 @@ bool8 mesh_init(MeshConfig* config, Mesh* out_mesh)
     {
         MeshGeometry* g = &out_mesh->geometries[i];
         CString::copy(config->g_configs[i].material_name, g->material_name, Constants::max_material_name_length);
-        g->g_id = GeometrySystem::create_geometry(config->g_configs[i].data_config, true);
+        g->g_id = GeometrySystem::create_geometry(&config->g_configs[i].geo_config, true);
+		Renderer::geometry_load(GeometrySystem::get_geometry_data(g->g_id));
         g->material_id.invalidate();
 
         GeometryData* g_data = GeometrySystem::get_geometry_data(g->g_id);
@@ -71,21 +73,10 @@ bool8 mesh_init_from_resource(const char* resource_name, Mesh* out_mesh)
         return false;
     }
 
-    MeshConfig config = {};
+    MeshConfig config = ResourceSystem::mesh_loader_get_config_from_resource(&resource);
     config.name = resource_name;
 
-    Sarray<MeshGeometryConfig> g_configs(resource.geometries.count, 0);
-    for (uint32 i = 0; i < resource.geometries.count; i++)
-    {
-        g_configs[i].material_name = resource.geometries[i].material_name;
-        g_configs[i].data_config = &resource.geometries[i].data_config;
-    }
-
-    config.g_configs = g_configs.data;
-    config.g_configs_count = g_configs.capacity;
-
     mesh_init(&config, out_mesh);
-    g_configs.free_data();
     ResourceSystem::mesh_loader_unload(&resource);
 
     return true;

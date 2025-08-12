@@ -115,19 +115,16 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		geometry_config.vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
 		out_terrain->vertex_infos.init(geometry_config.vertex_count, 0);
 	}
+	geometry_config.index_count = out_terrain->tile_count_x * out_terrain->tile_count_z * 6;
 
 	geometry_config.extents.max.x = out_terrain->tile_count_x * out_terrain->tile_scale_x * 0.5f;
 	geometry_config.extents.min.x = -geometry_config.extents.max.x;
 	geometry_config.extents.max.z = out_terrain->tile_count_z * out_terrain->tile_scale_z * 0.5f;
 	geometry_config.extents.min.z = -geometry_config.extents.max.z;
 	
-	//geometry_config.vertex_count = 4 * tile_count_x * tile_count_z;
-	geometry_config.vertices.init(geometry_config.vertex_size * geometry_config.vertex_count, 0);
+	Renderer::create_geometry(&geometry_config, &out_terrain->geometry);
 
-	geometry_config.index_count = out_terrain->tile_count_x * out_terrain->tile_count_z * 6;
-	geometry_config.indices.init(geometry_config.index_count, 0);
-
-	SarrayRef<TerrainVertex> vertices(&geometry_config.vertices);
+	SarrayRef<TerrainVertex> vertices(&out_terrain->geometry.vertices);
 	for (uint32 z = 0, i = 0; z < out_terrain->tile_count_z + 1; z++)
 	{
 		for (uint32 x = 0; x < out_terrain->tile_count_x + 1; x++, i++)
@@ -159,21 +156,20 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 			uint32 v2 = ((z + 1) * (out_terrain->tile_count_x + 1)) + x;
 			uint32 v3 = ((z + 1) * (out_terrain->tile_count_x + 1)) + x + 1;
 
-			geometry_config.indices[i + 0] = v2;
-			geometry_config.indices[i + 1] = v1;
-			geometry_config.indices[i + 2] = v0;
-			geometry_config.indices[i + 3] = v3;
-			geometry_config.indices[i + 4] = v1;
-			geometry_config.indices[i + 5] = v2;
+			out_terrain->geometry.indices[i + 0] = v2;
+			out_terrain->geometry.indices[i + 1] = v1;
+			out_terrain->geometry.indices[i + 2] = v0;
+			out_terrain->geometry.indices[i + 3] = v3;
+			out_terrain->geometry.indices[i + 4] = v1;
+			out_terrain->geometry.indices[i + 5] = v2;
 		}
 	}
 
-    Renderer::generate_terrain_normals(geometry_config.vertex_count, (TerrainVertex*)geometry_config.vertices.data,
-        geometry_config.index_count, geometry_config.indices.data);
-    Renderer::generate_terrain_tangents(geometry_config.vertex_count, (TerrainVertex*)geometry_config.vertices.data,
-        geometry_config.index_count, geometry_config.indices.data);
+    Renderer::generate_terrain_normals(geometry_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
+        geometry_config.index_count, out_terrain->geometry.indices.data);
+    Renderer::generate_terrain_tangents(geometry_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
+        geometry_config.index_count, out_terrain->geometry.indices.data);
 
-	Renderer::create_geometry(&geometry_config, &out_terrain->geometry);
 
 	out_terrain->unique_id = identifier_acquire_new_id(out_terrain);
 

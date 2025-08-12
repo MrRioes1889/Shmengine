@@ -48,10 +48,7 @@ bool8 ui_text_init(UITextConfig* config, UIText* out_ui_text)
 
     geometry_config.vertex_size = sizeof(Renderer::Vertex2D);
     geometry_config.vertex_count = quad_vertex_count * text_length;
-    geometry_config.vertices.init(geometry_config.vertex_size * geometry_config.vertex_count, 0);
-
     geometry_config.index_count = text_length * 6;
-    geometry_config.indices.init(geometry_config.index_count, 0);
     Renderer::create_geometry(&geometry_config, &out_ui_text->geometry);
 
     out_ui_text->unique_id = identifier_acquire_new_id(out_ui_text);

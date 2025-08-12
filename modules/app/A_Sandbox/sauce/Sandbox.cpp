@@ -89,7 +89,7 @@ bool8 application_init(Application* app_inst)
 	Math::transform_translate(app_state->editor_gizmo.xform, { 0.0f, 5.0f, 1.0f });
 
 	// Load up some test UI geometry.
-	MeshGeometryConfig ui_config = {};
+	/*MeshGeometryConfig ui_config = {};
 	GeometryConfig ui_g_config = {};
 	ui_config.data_config = &ui_g_config;
 		
@@ -137,7 +137,7 @@ bool8 application_init(Application* app_inst)
 	// Get UI geometry from config.
 	app_state->ui_meshes.init(1, 0);
 	Mesh* ui_mesh = &app_state->ui_meshes[app_state->ui_meshes.emplace()];
-	/*mesh_init()
+	*mesh_init()
 	ui_mesh->unique_id = identifier_acquire_new_id(ui_mesh);
 	ui_mesh->geometries.init(1, 0);
 	ui_mesh->geometries.emplace();

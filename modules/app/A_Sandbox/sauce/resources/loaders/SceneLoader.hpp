@@ -4,6 +4,7 @@
 #include <containers/Sarray.hpp>
 #include <utility/MathTypes.hpp>
 #include <utility/String.hpp>
+#include "resources/Scene.hpp"
 
 struct SkyboxConfig;
 struct MeshConfig;
@@ -19,12 +20,26 @@ struct SceneSkyboxResourceData
 	String cubemap_name;
 };
 
+
 struct SceneMeshResourceData
 {
+	struct CubeData
+	{
+		Math::Vec3f dim;
+		Math::Vec2f tiling;
+		char material_name[Constants::max_material_name_length];
+	};
+
+	~SceneMeshResourceData() = delete;
+
+	SceneMeshType type;
 	String name;
 	String parent_name;
-	String resource_name;
-	Darray<MeshGeometryResourceData> geometries;
+	union 
+	{
+		String resource_name;
+		CubeData cube_data;
+	};
 	Math::Transform transform;
 };
 
@@ -51,10 +66,16 @@ struct SceneResourceData
 	Sarray<PointLight> point_lights;
 	Sarray<SceneMeshResourceData> meshes;
 	Sarray<SceneTerrainResourceData> terrains;
+
+	Sarray<SkyboxConfig> skybox_configs;
+	Sarray<SceneMeshConfig> mesh_configs;
+	Sarray<SceneTerrainConfig> terrain_configs;
 };
 
 namespace ResourceSystem
 {
 	bool8 scene_loader_load(const char* name, void* params, SceneResourceData* out_resource);
 	void scene_loader_unload(SceneResourceData* resource);
+
+	SceneConfig scene_loader_get_config_from_resource(SceneResourceData* resource);
 }

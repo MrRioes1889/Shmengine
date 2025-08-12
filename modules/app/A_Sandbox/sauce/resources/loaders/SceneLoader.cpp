@@ -50,16 +50,16 @@ namespace ResourceSystem
 
         enum class ParserScope
         {
-            SCENE,
-            SKYBOX,
-            MESH,
-            PRIMITIVE_CUBE,
-            DIRECTIONAL_LIGHT,
-            POINT_LIGHT,
-            TERRAIN
+            Scene,
+            Skybox,
+            Mesh,
+            PrimitiveCube,
+            DirectionalLight,
+            PointLight,
+            Terrain
         };
 
-        ParserScope scope = ParserScope::SCENE;
+        ParserScope scope = ParserScope::Scene;
         // Read each line of the file.
         String line(512);
         uint64 line_length = 0;       
@@ -74,10 +74,6 @@ namespace ResourceSystem
         uint32 meshes_count = 0;
         uint32 skyboxes_count = 0;
         uint32 terrains_count = 0;
-
-        Math::Vec3f cube_dim = {};
-        Math::Vec2f cube_tiling = {};
-        String cube_material_name;
 
         uint32 line_number = 1;
         const char* continue_ptr = 0;
@@ -141,42 +137,41 @@ namespace ResourceSystem
 
             if (line[0] == '[')
             {
-                if (scope == ParserScope::SCENE)
+                if (scope == ParserScope::Scene)
                 {
                     if (line.equal_i("[Skybox]"))
                     {
-                        scope = ParserScope::SKYBOX;
+                        scope = ParserScope::Skybox;
                         skybox_i++;
                     }                        
                     else if (line.equal_i("[Mesh]"))
                     {
-                        scope = ParserScope::MESH;
+                        scope = ParserScope::Mesh;
                         mesh_i++;
                         out_resource->meshes[mesh_i].transform = Math::transform_create();
+                        out_resource->meshes[mesh_i].type = SceneMeshType::Resource;
                     }
                     else if (line.equal_i("[PrimitiveCube]"))
                     {
-                        scope = ParserScope::PRIMITIVE_CUBE;
-                        cube_dim = {};
-                        cube_tiling = {};
-                        cube_material_name = "";
+                        scope = ParserScope::PrimitiveCube;
                         mesh_i++;
                         out_resource->meshes[mesh_i].transform = Math::transform_create();
+                        out_resource->meshes[mesh_i].type = SceneMeshType::Cube;
                     }
                     else if (line.equal_i("[DirectionalLight]"))
                     {
-                        scope = ParserScope::DIRECTIONAL_LIGHT;
+                        scope = ParserScope::DirectionalLight;
                         dir_light_i++;
 
                     }
                     else if (line.equal_i("[PointLight]"))
                     {
-                        scope = ParserScope::POINT_LIGHT;
+                        scope = ParserScope::PointLight;
                         point_light_i++;
                     }
                     else if (line.equal_i("[Terrain]"))
                     {
-                        scope = ParserScope::TERRAIN;
+                        scope = ParserScope::Terrain;
                         terrain_i++;
                         out_resource->terrains[terrain_i].xform = Math::transform_create();
                     }
@@ -191,24 +186,7 @@ namespace ResourceSystem
                 {
                     if (line.equal_i("[/]"))
                     {
-                        if (scope == ParserScope::PRIMITIVE_CUBE)
-                        {
-                            SceneMeshResourceData* cube_mesh = &out_resource->meshes[mesh_i];
-                            if (!cube_material_name.is_empty() && !cube_mesh->name.is_empty())
-                            {
-                                cube_mesh->geometries.init(1, 0);
-                                cube_mesh->geometries.emplace();
-                                Renderer::generate_cube_config(cube_dim.x, cube_dim.y, cube_dim.z, cube_tiling.x, cube_tiling.y, cube_mesh->name.c_str(), &cube_mesh->geometries[0].data_config);
-                                CString::copy(cube_material_name.c_str(), cube_mesh->geometries[0].material_name, Constants::max_material_name_length);
-                            }
-                            else
-                            {
-                                SHMERRORV("Could not create geometry config for cube primitive due to missing data.");
-                                success = false;
-                            }
-                        }
-
-                        scope = ParserScope::SCENE;
+                        scope = ParserScope::Scene;
                     }                     
                     else
                     {
@@ -235,7 +213,7 @@ namespace ResourceSystem
             mid(value, line.c_str(), equal_index + 1);
             value.trim();
 
-            if (scope == ParserScope::SCENE)
+            if (scope == ParserScope::Scene)
             {
                 // Process the variable.
                 if (var_name.equal_i("version"))
@@ -263,7 +241,7 @@ namespace ResourceSystem
                     PARSE_VALUE(value.c_str(), &out_resource->max_p_lights_count);
                 }
             }
-            else if (scope == ParserScope::SKYBOX)
+            else if (scope == ParserScope::Skybox)
             {
                 SceneSkyboxResourceData* skybox = &out_resource->skyboxes[skybox_i];
 
@@ -276,7 +254,7 @@ namespace ResourceSystem
                     skybox->cubemap_name = value;
                 }
             }
-            else if (scope == ParserScope::MESH || scope == ParserScope::PRIMITIVE_CUBE)
+            else if (scope == ParserScope::Mesh || scope == ParserScope::PrimitiveCube)
             {
                 SceneMeshResourceData* mesh = &out_resource->meshes[mesh_i];
 
@@ -307,30 +285,28 @@ namespace ResourceSystem
                     Math::transform_scale(mesh->transform, scalar);
                 }
 
-                if (scope == ParserScope::MESH)
+                if (scope == ParserScope::Mesh)
                 {
                     if (var_name.equal_i("resource_name"))
-                    {
                         mesh->resource_name = value;
-                    }
                 }
                 else
                 {
                     if (var_name.equal_i("dim"))
                     {
-                        PARSE_VALUE(value.c_str(), &cube_dim);
+                        PARSE_VALUE(value.c_str(), &mesh->cube_data.dim);
                     }
-                    if (var_name.equal_i("tiling"))
+                    else if (var_name.equal_i("tiling"))
                     {
-                        PARSE_VALUE(value.c_str(), &cube_tiling);
+                        PARSE_VALUE(value.c_str(), &mesh->cube_data.tiling);
                     }
                     else if (var_name.equal_i("material_name"))
                     {
-                        cube_material_name = value;
+                        CString::copy(value.c_str(), mesh->cube_data.material_name, Constants::max_material_name_length);
                     }
                 }
             }
-            else if (scope == ParserScope::DIRECTIONAL_LIGHT)
+            else if (scope == ParserScope::DirectionalLight)
             {
                 DirectionalLight* dir_light = &out_resource->dir_lights[dir_light_i];
 
@@ -343,7 +319,7 @@ namespace ResourceSystem
                     PARSE_VALUE(value.c_str(), &dir_light->direction);
                 }
             }
-            else if (scope == ParserScope::POINT_LIGHT)
+            else if (scope == ParserScope::PointLight)
             {
                 PointLight* point_light = &out_resource->point_lights[point_light_i];
 
@@ -368,7 +344,7 @@ namespace ResourceSystem
                     PARSE_VALUE(value.c_str(), &point_light->quadratic);
                 }
             }    
-            else if (scope == ParserScope::TERRAIN)
+            else if (scope == ParserScope::Terrain)
             {
                 SceneTerrainResourceData* terrain = &out_resource->terrains[terrain_i];
 
@@ -429,15 +405,20 @@ namespace ResourceSystem
         for (uint32 i = 0; i < resource->meshes.capacity; i++)
         {
             resource->meshes[i].name.free_data();
-            resource->meshes[i].resource_name.free_data();
             resource->meshes[i].parent_name.free_data();
 
-            for (uint32 g = 0; g < resource->meshes[i].geometries.count; g++)
+            switch (resource->meshes[i].type)
             {
-                resource->meshes[i].geometries[g].data_config.vertices.free_data();
-                resource->meshes[i].geometries[g].data_config.indices.free_data();
+            case SceneMeshType::Resource:
+            {
+				resource->meshes[i].resource_name.free_data();
+                break;
             }
-            resource->meshes[i].geometries.free_data();
+            case SceneMeshType::Cube:
+            {
+                break;
+            }
+            }
         }
 
         for (uint32 i = 0; i < resource->terrains.capacity; i++)
@@ -453,5 +434,76 @@ namespace ResourceSystem
         resource->dir_lights.free_data();
         resource->meshes.free_data();
     }
+
+    SceneConfig scene_loader_get_config_from_resource(SceneResourceData* resource)
+    {
+        resource->skybox_configs.free_data();
+        resource->mesh_configs.free_data();
+        resource->terrain_configs.free_data();
+        resource->skybox_configs.init(resource->skyboxes.capacity, 0);
+        resource->mesh_configs.init(resource->meshes.capacity, 0);
+        resource->terrain_configs.init(resource->terrains.capacity, 0);
+
+		SceneConfig config = {};
+
+		config.name = resource->name.c_str();
+		config.description = resource->description.c_str();
+		config.max_meshes_count = resource->max_meshes_count;
+		config.max_terrains_count = resource->max_terrains_count;
+		config.max_p_lights_count = resource->max_p_lights_count;
+		config.transform = resource->transform;
+
+		for (uint32 i = 0; i < resource->skyboxes.capacity; i++)
+		{
+			SkyboxConfig* sb_config = &resource->skybox_configs[i];
+			sb_config->name = resource->skyboxes[i].name.c_str();
+			sb_config->cubemap_name = resource->skyboxes[i].cubemap_name.c_str();
+		}
+
+        for (uint32 mesh_i = 0; mesh_i < resource->meshes.capacity; mesh_i++)
+        {
+            SceneMeshConfig* m_config = &resource->mesh_configs[mesh_i];
+
+            m_config->type = resource->meshes[mesh_i].type;
+            m_config->name = resource->meshes[mesh_i].name.c_str();
+			m_config->parent_name = resource->meshes[mesh_i].parent_name.c_str();
+			m_config->transform = resource->meshes[mesh_i].transform;
+            switch (m_config->type)
+            {
+            case SceneMeshType::Resource:
+            {
+				m_config->resource_name = resource->meshes[mesh_i].resource_name.c_str();
+				break;
+            }
+            case SceneMeshType::Cube:
+            {
+                m_config->cube_config.dim = resource->meshes[mesh_i].cube_data.dim;
+                m_config->cube_config.tiling = resource->meshes[mesh_i].cube_data.tiling;
+                m_config->cube_config.material_name = resource->meshes[mesh_i].cube_data.material_name;
+            }
+            }
+		}
+
+		for (uint32 i = 0; i < resource->terrains.capacity; i++)
+		{
+			SceneTerrainConfig* t_config = &resource->terrain_configs[i];
+			t_config->t_config.name = resource->terrains[i].name.c_str();
+			t_config->resource_name = resource->terrains[i].resource_name.c_str();
+			t_config->xform = resource->terrains[i].xform;
+		}
+
+		config.skybox_configs_count = resource->skybox_configs.capacity;
+		config.skybox_configs = resource->skybox_configs.data;
+		config.mesh_configs_count = resource->mesh_configs.capacity;
+		config.mesh_configs = resource->mesh_configs.data;
+		config.terrain_configs_count = resource->terrain_configs.capacity;
+		config.terrain_configs = resource->terrain_configs.data;
+		config.dir_light_count = resource->dir_lights.capacity;
+		config.dir_lights = resource->dir_lights.data;
+		config.point_light_count = resource->point_lights.capacity;
+        config.point_lights = resource->point_lights.data;
+
+        return config;
+	}
 
 }

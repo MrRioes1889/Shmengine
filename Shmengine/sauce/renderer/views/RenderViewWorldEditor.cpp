@@ -86,12 +86,11 @@ bool8 render_view_world_editor_on_create(RenderView* self)
 	GeometryConfig grid_geometry_config = {};
 	grid_geometry_config.vertex_size = sizeof(VertexCoordinateGrid);
 	grid_geometry_config.vertex_count = 6;
-	grid_geometry_config.vertices.init(grid_geometry_config.vertex_size * grid_geometry_config.vertex_count, 0);
-	SarrayRef<VertexCoordinateGrid> grid_vertices(&grid_geometry_config.vertices);
+	Renderer::create_geometry(&grid_geometry_config, &internal_data->coordinate_grid.geometry);
+	SarrayRef<VertexCoordinateGrid> grid_vertices(&internal_data->coordinate_grid.geometry.vertices);
 	for (uint32 i = 0; i < grid_vertices.capacity; i++)
 		grid_vertices[i].index = i;
 
-	Renderer::create_geometry(&grid_geometry_config, &internal_data->coordinate_grid.geometry);
 	Renderer::geometry_load(&internal_data->coordinate_grid.geometry);
 
 	return true;

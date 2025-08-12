@@ -6,6 +6,7 @@
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
 #include "core/Subsystems.hpp"
+#include "renderer/RendererTypes.hpp"
 
 struct DirectionalLight;
 struct PointLight;
@@ -181,8 +182,6 @@ struct MaterialTerrainProperties
 	Math::Vec3f padding;
 	uint32 materials_count;
 };
-
-typedef Id16 MaterialId;
 
 struct Material
 {

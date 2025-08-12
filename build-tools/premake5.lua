@@ -126,6 +126,7 @@ project  (vulkan_renderer_module_name)
 
     includedirs
 	{
+        workspace_dir .. "/modules/renderer/" .. vulkan_renderer_module_name .. "/sauce",
         workspace_dir .. "/" .. engine_name .. "/sauce",        
         "$(VULKAN_SDK)/Include",
         workspace_dir .. "/vendor/Optick/include", 
@@ -198,6 +199,7 @@ project  (sandbox_app_module_name)
 
     includedirs
 	{
+        workspace_dir .. "/modules/app/" .. sandbox_app_module_name .. "/sauce",
         workspace_dir .. "/" .. engine_name .. "/sauce",
         workspace_dir .. "/vendor/Optick/include", 
 		workspace_dir .. "/modules/app/Common/sauce",
@@ -268,6 +270,7 @@ project  (sandbox2D_app_module_name)
 
     includedirs
 	{
+        workspace_dir .. "/modules/app/" .. sandbox2D_app_module_name .. "/sauce",
         workspace_dir .. "/" .. engine_name .. "/sauce",
         workspace_dir .. "/vendor/Optick/include", 
 		workspace_dir .. "/modules/app/Common/sauce",

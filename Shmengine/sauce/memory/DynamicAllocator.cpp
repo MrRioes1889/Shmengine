@@ -81,7 +81,7 @@ void* DynamicAllocator::reallocate(uint64 requested_size, void* data_ptr, Alloca
 	freelist.free(old_data_offset, bytes_freed);
 	void* new_data = allocate(requested_size, *out_tag, alignment, bytes_allocated);	
 	void* old_data_ptr = PTR_BYTES_OFFSET(data, old_data_offset + old_alignment_offset + sizeof(AllocHeader));
-	Memory::copy_memory(old_data_ptr, new_data, requested_size);
+	Memory::copy_memory(old_data_ptr, new_data, SHMIN(requested_size, old_size));
 
 	return new_data;
 }

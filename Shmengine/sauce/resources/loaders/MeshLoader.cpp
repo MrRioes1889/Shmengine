@@ -67,10 +67,12 @@ namespace ResourceSystem
     static const char* loader_type_path = "models/";
 
     static bool8 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, MeshResourceData* out_resource);
-    static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometryConfig* out_data);
+    static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometryResourceData* out_data);
 
     static bool8 load_shmesh_file(FileSystem::FileHandle* shmesh_file, const char* shmesh_filepath, MeshResourceData* out_resource);
     static bool8 write_shmesh_file(const char* path, const char* name, MeshResourceData* resource);
+
+    static void geometry_resource_deduplicate_vertices(GeometryResourceData* geo);
 
     bool8 mesh_loader_load(const char* name, MeshResourceData* out_resource)
     {
@@ -151,15 +153,42 @@ namespace ResourceSystem
 
     void mesh_loader_unload(MeshResourceData* resource)
     {
-
         for (uint32 i = 0; i < resource->geometries.count; i++)
         {
-            GeometryConfig* g_config = &resource->geometries[i].data_config;
+            GeometryResourceData* g_config = &resource->geometries[i].geometry_data;
             g_config->indices.free_data();
             g_config->vertices.free_data();
         }
         resource->geometries.free_data();
+        resource->mesh_geometry_configs.free_data();
+    }
 
+    MeshConfig mesh_loader_get_config_from_resource(MeshResourceData* resource)
+    {
+        resource->mesh_geometry_configs.free_data();
+        resource->mesh_geometry_configs.init(resource->geometries.count, 0);
+
+        for (uint32 i = 0; i < resource->geometries.count; i++)
+        {
+            MeshGeometryConfig* mesh_config = &resource->mesh_geometry_configs[i];
+            mesh_config->geo_config.vertex_size = resource->geometries[i].geometry_data.vertex_size;
+            mesh_config->geo_config.vertex_count = resource->geometries[i].geometry_data.vertex_count;
+            mesh_config->geo_config.index_count = resource->geometries[i].geometry_data.index_count;
+            mesh_config->geo_config.center = resource->geometries[i].geometry_data.center;
+            mesh_config->geo_config.extents = resource->geometries[i].geometry_data.extents;
+            mesh_config->geo_config.vertices = resource->geometries[i].geometry_data.vertices.data;
+            mesh_config->geo_config.indices = resource->geometries[i].geometry_data.indices.data;
+            mesh_config->geo_config.name = resource->geometries[i].geometry_data.name;
+            mesh_config->material_name = resource->geometries[i].material_name;
+        }
+
+        MeshConfig config =
+        {
+            .g_configs_count = resource->mesh_geometry_configs.capacity,
+            .g_configs = resource->mesh_geometry_configs.data,
+        };
+
+        return config;
     }
 
     static bool8 import_obj_file(FileSystem::FileHandle* obj_file, const char* obj_filepath, const char* mesh_name, const char* out_shmesh_filename, MeshResourceData* out_resource)
@@ -276,11 +305,11 @@ namespace ResourceSystem
                         name = mesh_name;
                         name += "_geo";
                     }
-                    CString::copy(name.c_str(), new_data->data_config.name, Constants::max_geometry_name_length);
+                    CString::copy(name.c_str(), new_data->geometry_data.name, Constants::max_geometry_name_length);
 
                     CString::copy(material_names[i].c_str(), new_data->material_name, Constants::max_material_name_length);
 
-                    process_subobject(positions, normals, tex_coords, groups[i].faces, &new_data->data_config);
+                    process_subobject(positions, normals, tex_coords, groups[i].faces, &new_data->geometry_data);
 
                     groups[i].faces.free_data();
                 }
@@ -304,20 +333,20 @@ namespace ResourceSystem
         {
             
             MeshGeometryResourceData* new_data = &out_resource->geometries[out_resource->geometries.emplace()];
-            CString::copy(name.c_str(), new_data->data_config.name, Constants::max_geometry_name_length);
+            CString::copy(name.c_str(), new_data->geometry_data.name, Constants::max_geometry_name_length);
             if (!name[0])
             {
                 name = mesh_name;
                 name += "_geo";
             }
-            CString::copy(name.c_str(), new_data->data_config.name, Constants::max_geometry_name_length);
+            CString::copy(name.c_str(), new_data->geometry_data.name, Constants::max_geometry_name_length);
 
             if (i > 0)
-                CString::append(new_data->data_config.name, Constants::max_geometry_name_length, CString::to_string(i));
+                CString::append(new_data->geometry_data.name, Constants::max_geometry_name_length, CString::to_string(i));
                 
             CString::copy(material_names[i].c_str(), new_data->material_name, Constants::max_material_name_length);
 
-            process_subobject(positions, normals, tex_coords, groups[i].faces, &new_data->data_config);
+            process_subobject(positions, normals, tex_coords, groups[i].faces, &new_data->geometry_data);
 
             groups[i].faces.free_data();
         }
@@ -339,10 +368,10 @@ namespace ResourceSystem
         // De-duplicate geometry
 
         for (uint32 i = 0; i < out_resource->geometries.count; ++i) {
-            GeometryConfig* g = &out_resource->geometries[i].data_config;
+            GeometryResourceData* g = &out_resource->geometries[i].geometry_data;
             SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
 
-            Renderer::geometry_deduplicate_vertices(*g);
+            geometry_resource_deduplicate_vertices(g);
             Renderer::generate_mesh_tangents(g->vertex_count, (Renderer::Vertex3D*)g->vertices.data, g->index_count, g->indices.data);
 
             // TODO: Maybe shrink down vertex array to count after deduplication!
@@ -353,7 +382,7 @@ namespace ResourceSystem
 
     }
 
-    static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometryConfig* out_data)
+    static void process_subobject(const Darray<Math::Vec3f>& positions, const Darray<Math::Vec3f>& normals, const Darray<Math::Vec2f>& tex_coords, const Darray<MeshFaceData>& faces, GeometryResourceData* out_data)
     {
 
         out_data->vertex_count = 0;
@@ -482,7 +511,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < resource->geometries.count; i++)
         {
             MeshGeometryResourceData& config = resource->geometries[i];
-            GeometryConfig& g_data = config.data_config;
+            GeometryResourceData& g_data = config.geometry_data;
 
             ShmeshFileGeometryHeader geo_header = {};
             geo_header.center = g_data.center;
@@ -557,7 +586,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < file_header->geometry_count; i++)
         {
             MeshGeometryResourceData* config = &out_resource->geometries[out_resource->geometries.emplace()];
-            GeometryConfig* g = &config->data_config;
+            GeometryResourceData* g = &config->geometry_data;
 
             check_buffer_size(sizeof(ShmeshFileGeometryHeader));
             ShmeshFileGeometryHeader* geo_header = (ShmeshFileGeometryHeader*)&read_ptr[read_bytes];
@@ -595,5 +624,63 @@ namespace ResourceSystem
 
         return true;
     }   
+
+    static bool8 vertex3d_equal(Renderer::Vertex3D vert_0, Renderer::Vertex3D vert_1) 
+    {
+        return 
+            (Math::vec_compare(vert_0.position, vert_1.position, Constants::FLOAT_EPSILON) &&
+            Math::vec_compare(vert_0.normal, vert_1.normal, Constants::FLOAT_EPSILON) &&
+            Math::vec_compare(vert_0.tex_coords, vert_1.tex_coords, Constants::FLOAT_EPSILON) &&
+            Math::vec_compare(vert_0.color, vert_1.color, Constants::FLOAT_EPSILON));
+    }
+
+    static void reassign_index(uint32 index_count, uint32* indices, uint32 from, uint32 to) 
+    {
+        for (uint32 i = 0; i < index_count; ++i) 
+        {
+            if (indices[i] == from)
+                indices[i] = to;
+            else if (indices[i] > from)
+                indices[i]--;
+        }
+    }
+
+    static void geometry_resource_deduplicate_vertices(GeometryResourceData* geo)
+    {
+
+        Darray<Renderer::Vertex3D> new_vertices(geo->vertex_count / 4, 0, (AllocationTag)geo->vertices.allocation_tag);
+        Renderer::Vertex3D* old_vertices = (Renderer::Vertex3D*)geo->vertices.transfer_data();        
+        uint32 old_vertex_count = geo->vertex_count;
+
+        uint32 found_count = 0;
+        for (uint32 o = 0; o < old_vertex_count; o++)
+        {
+            bool8 found = false;
+            for (uint32 n = 0; n < new_vertices.count; n++)
+            {
+                if (vertex3d_equal(new_vertices[n], old_vertices[o]))
+                {
+                    reassign_index(geo->index_count, geo->indices.data, o - found_count, n);
+                    found = true;
+                    found_count++;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                new_vertices.emplace(old_vertices[o]);
+            }
+        }
+
+        Memory::free_memory(old_vertices);
+
+        geo->vertex_count = new_vertices.count;
+        Renderer::Vertex3D* ptr = new_vertices.transfer_data();
+        geo->vertices.init(geo->vertex_count * sizeof(Renderer::Vertex3D), 0, (AllocationTag)new_vertices.allocation_tag, ptr);
+        
+        uint32 removed_count = old_vertex_count - geo->vertex_count;
+        SHMDEBUGV("geometry_deduplicate_vertices: removed %u vertices, orig/now %u/%u.", removed_count, old_vertex_count, geo->vertex_count);
+    }
 
 }

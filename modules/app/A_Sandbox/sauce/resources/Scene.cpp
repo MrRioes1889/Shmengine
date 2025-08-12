@@ -12,7 +12,8 @@
 #include <resources/Skybox.hpp>
 #include <resources/Box3D.hpp>
 #include <renderer/Camera.hpp>
-#include <renderer//RendererFrontend.hpp>
+#include <renderer/RendererFrontend.hpp>
+#include <renderer/Geometry.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <systems/GeometrySystem.hpp>
 #include <systems/ShaderSystem.hpp>
@@ -139,90 +140,11 @@ bool8 scene_init_from_resource(const char* resource_name, Scene* out_scene)
 		return false;
 	}
 
-	SceneConfig config = {};
-
-	config.name = resource.name.c_str();
-	config.description = resource.description.c_str();
-	config.max_meshes_count = resource.max_meshes_count;
-	config.max_terrains_count = resource.max_terrains_count;
-	config.max_p_lights_count = resource.max_p_lights_count;
-	config.transform = resource.transform;
-
-	Sarray<SkyboxConfig> skybox_configs(resource.skyboxes.capacity, 0);
-	for (uint32 i = 0; i < resource.skyboxes.capacity; i++)
-	{
-		SkyboxConfig* sb_config = &skybox_configs[i];
-		sb_config->name = resource.skyboxes[i].name.c_str();
-		sb_config->cubemap_name = resource.skyboxes[i].cubemap_name.c_str();
-	}
-	
-	Sarray<SceneMeshConfig> mesh_configs(resource.meshes.capacity, 0);
-
-	uint32 mesh_geometry_count = 0;
-	for (uint32 mesh_i = 0; mesh_i < resource.meshes.capacity; mesh_i++)
-	{
-		if (!resource.meshes[mesh_i].resource_name.is_empty())
-			continue;
-
-		mesh_geometry_count += resource.meshes[mesh_i].geometries.count;
-	}
-	
-	Sarray<MeshGeometryConfig> mesh_geometry_configs(mesh_geometry_count, 0);
-	uint32 mesh_geometry_configs_i = 0;
-
-	for (uint32 mesh_i = 0; mesh_i < resource.meshes.capacity; mesh_i++)
-	{
-		SceneMeshConfig* m_config = &mesh_configs[mesh_i];
-
-		m_config->parent_name = resource.meshes[mesh_i].parent_name.c_str();
-		m_config->transform = resource.meshes[mesh_i].transform;
-		if (!resource.meshes[mesh_i].resource_name.is_empty())
-		{
-			m_config->resource_name = resource.meshes[mesh_i].resource_name.c_str();
-			continue;
-		}
-
-		for (uint32 geo_i = 0; geo_i < resource.meshes[mesh_i].geometries.count; geo_i++)
-		{
-			mesh_geometry_configs[mesh_geometry_configs_i].material_name = resource.meshes[mesh_i].geometries[geo_i].material_name;
-			mesh_geometry_configs[mesh_geometry_configs_i].data_config = &resource.meshes[mesh_i].geometries[geo_i].data_config;
-		}		
-
-		m_config->m_config.name = resource.meshes[mesh_i].name.c_str();
-		m_config->m_config.g_configs_count = resource.meshes[mesh_i].geometries.count;
-		m_config->m_config.g_configs = &mesh_geometry_configs[mesh_geometry_configs_i];
-
-		mesh_geometry_configs_i += resource.meshes[mesh_i].geometries.count;
-	}
-
-	Sarray<SceneTerrainConfig> terrain_configs(resource.terrains.capacity, 0);
-	for (uint32 i = 0; i < resource.terrains.capacity; i++)
-	{
-		SceneTerrainConfig* t_config = &terrain_configs[i];
-		t_config->t_config.name = resource.terrains[i].name.c_str();
-		t_config->resource_name = resource.terrains[i].resource_name.c_str();
-		t_config->xform = resource.terrains[i].xform;
-	}
-
-	config.skybox_configs_count = skybox_configs.capacity;
-	config.skybox_configs = skybox_configs.data;
-	config.mesh_configs_count = mesh_configs.capacity;
-	config.mesh_configs = mesh_configs.data;
-	config.terrain_configs_count = terrain_configs.capacity;
-	config.terrain_configs = terrain_configs.data;
-	config.dir_light_count = resource.dir_lights.capacity;
-	config.dir_lights = resource.dir_lights.data;
-	config.point_light_count = resource.point_lights.capacity;
-	config.point_lights = resource.point_lights.data;
+	SceneConfig config = ResourceSystem::scene_loader_get_config_from_resource(&resource);
 
 	bool8 success = scene_init(&config, out_scene);
-	skybox_configs.free_data();
-	mesh_configs.free_data();
-	mesh_geometry_configs.free_data();
-	terrain_configs.free_data();
 	ResourceSystem::scene_loader_unload(&resource);
 	return success;
-
 }
 
 bool8 scene_destroy(Scene* scene)
@@ -323,25 +245,6 @@ bool8 scene_update(Scene* scene)
 		if (objects_initialized)
 			scene->state = ResourceState::Initialized;
 	}
-	/*else if (scene->state == ResourceState::UNLOADING)
-	{
-		bool8 objects_unloaded = true;
-
-		if (scene->skybox && scene->skybox->state > ResourceState::UNLOADED)
-			objects_unloaded = false;
-
-		for (uint32 i = 0; i < scene->meshes.count; i++)
-		{
-			if (scene->meshes[i]->state > ResourceState::UNLOADED)
-			{
-				objects_unloaded = false;
-				break;
-			}
-		}
-
-		if (objects_unloaded)
-			scene->state = ResourceState::UNLOADED;
-	}*/
 
 	return true;
 }
@@ -404,10 +307,41 @@ bool8 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 	Mesh* mesh = &scene->meshes[scene->meshes.emplace()];
 
 	bool8 initialized = false;
-	if (config->resource_name)
+	switch (config->type)
+	{
+	case SceneMeshType::Resource:
+	{
 		initialized = mesh_init_from_resource(config->resource_name, mesh);		
-	else
-		initialized = mesh_init(&config->m_config, mesh);
+		break;
+	}
+	case SceneMeshType::Cube:
+	{
+		GeometryResourceData geo_resource = {};
+		Renderer::generate_cube_geometry(
+			config->cube_config.dim.x,
+			config->cube_config.dim.y,
+			config->cube_config.dim.z,
+			config->cube_config.tiling.x,
+			config->cube_config.tiling.y,
+			config->name,
+			&geo_resource
+		);
+
+		MeshGeometryConfig mesh_geo_config = {};
+		mesh_geo_config.geo_config = Renderer::geometry_get_config_from_resource(&geo_resource);
+		mesh_geo_config.material_name = config->cube_config.material_name;
+
+		MeshConfig mesh_config = {};
+		mesh_config.g_configs = &mesh_geo_config;
+		mesh_config.g_configs_count = 1;
+		mesh_config.name = config->name;
+
+		initialized = mesh_init(&mesh_config, mesh);
+		geo_resource.indices.free_data();
+		geo_resource.vertices.free_data();
+		break;
+	}
+	}
 
 	if (!initialized)
 	{

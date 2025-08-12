@@ -174,8 +174,11 @@ SHMINLINE void Stack<T>::free_data()
 {
 	if (data)
 	{
-		for (uint32 i = 0; i < count; i++)
-			data[i].~T();
+		if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+		{
+			for (uint32 i = 0; i < count; i++)
+				data[i].~T();
+		}
 
 		if (!(flags & StackFlags::ExternalMemory))
 			Memory::free_memory(data);
@@ -190,13 +193,14 @@ SHMINLINE void Stack<T>::free_data()
 template<typename T>
 SHMINLINE void Stack<T>::clear()
 {
-
-	for (uint32 i = 0; i < count; i++)
-		data[i].~T();
+	if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+	{
+		for (uint32 i = 0; i < count; i++)
+			data[i].~T();
+	}
 
 	//Memory::zero_memory(data, sizeof(T) * capacity);
 	count = 0;
-
 }
 
 template<typename T>
@@ -242,7 +246,8 @@ inline SHMINLINE void Stack<T>::pop()
 		return;
 
 	T* pop_ptr = data + (count - 1);
-	(*pop_ptr).~T();
+	if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+		(*pop_ptr).~T();
 	count--;
 
 }

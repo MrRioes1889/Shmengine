@@ -28,7 +28,6 @@ bool8 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Lin
 
 	geometry_config.index_count = 0;
 
-	geometry_config.vertices.init(geometry_config.vertex_size * geometry_config.vertex_count, 0);
 	Renderer::create_geometry(&geometry_config, &out_line->geometry);
 	
 	update_vertices(out_line);

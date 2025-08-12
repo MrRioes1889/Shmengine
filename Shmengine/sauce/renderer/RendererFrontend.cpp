@@ -19,6 +19,7 @@
 // TODO: temporary
 #include "utility/CString.hpp"
 #include "core/Event.hpp"
+#include "Geometry.hpp"
 // end
 
 namespace Renderer
@@ -390,6 +391,20 @@ namespace Renderer
 		renderbuffer_draw(&system_state->general_vertex_buffer, geometry->vertex_buffer_alloc_ref.byte_offset, geometry->vertex_count, includes_indices);
 		if (includes_indices)
 			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_alloc_ref.byte_offset, geometry->index_count, false);
+	}
+
+	GeometryConfig geometry_get_config_from_resource(GeometryResourceData* resource)
+	{
+		GeometryConfig geo_config = {};
+		geo_config.center = resource->center;
+		geo_config.extents = resource->extents;
+		geo_config.index_count = resource->index_count;
+		geo_config.indices = resource->indices.data;
+		geo_config.name = resource->name;
+		geo_config.vertex_count = resource->vertex_count;
+		geo_config.vertex_size = resource->vertex_size;
+		geo_config.vertices = resource->vertices.data;
+		return geo_config;
 	}
 
 	bool8 shader_create(const ShaderConfig* config, Shader* shader)

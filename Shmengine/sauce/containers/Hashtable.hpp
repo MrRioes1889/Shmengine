@@ -300,7 +300,8 @@ private:
 		}
 
 		node->key_string[0] = 0;
-		object_arr[index].~ObjectT();
+		if constexpr (std::is_destructible_v<ObjectT> && !std::is_trivially_destructible_v<ObjectT>)
+			object_arr[index].~ObjectT();
 	}
 };
 
@@ -494,7 +495,8 @@ private:
 
 	void remove(NodeIndex remove_index)
 	{
-		object_arr[remove_index].~ObjectT();
+		if constexpr (std::is_destructible_v<ObjectT> && !std::is_trivially_destructible_v<ObjectT>)
+			object_arr[remove_index].~ObjectT();
 		key_arr[remove_index].psl = 0;
 		key_arr[remove_index].key_string[0] = 0;
 

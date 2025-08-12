@@ -24,8 +24,6 @@ bool8 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 	geometry_config.vertex_size = sizeof(Renderer::VertexColor3D);
 	// NOTE: 12 * 2 line vertices per box
 	geometry_config.vertex_count = 2 * 12; 
-	geometry_config.vertices.init(geometry_config.vertex_size * geometry_config.vertex_count, 0);
-
 	geometry_config.index_count = 0;
 
 	geometry_config.center = {};

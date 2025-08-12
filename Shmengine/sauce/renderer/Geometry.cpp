@@ -11,19 +11,24 @@ namespace Renderer
 {
 	extern SystemState* system_state;
 
-	bool8 create_geometry(GeometryConfig* config, GeometryData* g)
+	bool8 create_geometry(GeometryConfig* config, GeometryData* out_geometry)
 	{
-		g->center = config->center;
-		g->extents = config->extents;
+		out_geometry->center = config->center;
+		out_geometry->extents = config->extents;
 
-		g->vertex_size = config->vertex_size;
-		g->vertex_count = config->vertex_count;
-		g->index_count = config->index_count;
-		g->vertices.steal(config->vertices);
-		g->indices.steal(config->indices);
-		g->vertex_buffer_alloc_ref = {};
-		g->index_buffer_alloc_ref = {};
-		g->loaded = false;
+		out_geometry->vertex_size = config->vertex_size;
+		out_geometry->vertex_count = config->vertex_count;
+		out_geometry->index_count = config->index_count;
+		out_geometry->vertices.init(out_geometry->vertex_count * out_geometry->vertex_size, 0);
+		out_geometry->indices.init(out_geometry->index_count, 0);
+		if (config->vertices)
+			out_geometry->vertices.copy_memory(config->vertices, out_geometry->vertex_count * out_geometry->vertex_size, 0);
+		if (config->indices)
+			out_geometry->indices.copy_memory(config->indices, out_geometry->index_count, 0);
+
+		out_geometry->vertex_buffer_alloc_ref = {};
+		out_geometry->index_buffer_alloc_ref = {};
+		out_geometry->loaded = false;
 
 		return true;
 	}
@@ -45,7 +50,7 @@ namespace Renderer
 		CString::empty(g->name);
 	}
 
-	void generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometryConfig* out_config)
+	void generate_plane_geometry(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometryData* out_geometry)
 	{
 		if (width == 0) 
 		{
@@ -78,11 +83,11 @@ namespace Renderer
 			tile_y = 1.0f;
 		}
 
-		out_config->vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
-		out_config->vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
-		out_config->vertices.init(out_config->vertex_size * out_config->vertex_count, 0);
-		out_config->index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
-		out_config->indices.init(out_config->index_count, 0);
+		out_geometry->vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
+		out_geometry->vertex_count = x_segment_count * y_segment_count * 4;  // 4 verts per segment
+		out_geometry->vertices.init(out_geometry->vertex_size * out_geometry->vertex_count, 0);
+		out_geometry->index_count = x_segment_count * y_segment_count * 6;  // 6 indices per segment
+		out_geometry->indices.init(out_geometry->index_count, 0);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 seg_width = width / x_segment_count;
@@ -102,10 +107,10 @@ namespace Renderer
 				float32 max_uvy = ((y + 1) / (float32)y_segment_count) * tile_y;
 
 				uint32 v_offset = ((y * x_segment_count) + x) * 4;
-				Renderer::Vertex3D* v0 = &((Renderer::Vertex3D*)&out_config->vertices[0])[v_offset + 0];
-				Renderer::Vertex3D* v1 = &((Renderer::Vertex3D*)&out_config->vertices[0])[v_offset + 1];
-				Renderer::Vertex3D* v2 = &((Renderer::Vertex3D*)&out_config->vertices[0])[v_offset + 2];
-				Renderer::Vertex3D* v3 = &((Renderer::Vertex3D*)&out_config->vertices[0])[v_offset + 3];
+				Renderer::Vertex3D* v0 = &((Renderer::Vertex3D*)&out_geometry->vertices[0])[v_offset + 0];
+				Renderer::Vertex3D* v1 = &((Renderer::Vertex3D*)&out_geometry->vertices[0])[v_offset + 1];
+				Renderer::Vertex3D* v2 = &((Renderer::Vertex3D*)&out_geometry->vertices[0])[v_offset + 2];
+				Renderer::Vertex3D* v3 = &((Renderer::Vertex3D*)&out_geometry->vertices[0])[v_offset + 3];
 
 				v0->position.x = min_x;
 				v0->position.y = min_y;
@@ -129,23 +134,23 @@ namespace Renderer
 
 				// Generate indices
 				uint32 i_offset = ((y * x_segment_count) + x) * 6;
-				out_config->indices[i_offset + 0] = v_offset + 0;
-				out_config->indices[i_offset + 1] = v_offset + 1;
-				out_config->indices[i_offset + 2] = v_offset + 2;
-				out_config->indices[i_offset + 3] = v_offset + 0;
-				out_config->indices[i_offset + 4] = v_offset + 3;
-				out_config->indices[i_offset + 5] = v_offset + 1;
+				out_geometry->indices[i_offset + 0] = v_offset + 0;
+				out_geometry->indices[i_offset + 1] = v_offset + 1;
+				out_geometry->indices[i_offset + 2] = v_offset + 2;
+				out_geometry->indices[i_offset + 3] = v_offset + 0;
+				out_geometry->indices[i_offset + 4] = v_offset + 3;
+				out_geometry->indices[i_offset + 5] = v_offset + 1;
 			}
 		}
 
 		if (name && CString::length(name) > 0)
-			CString::copy(name, out_config->name, Constants::max_geometry_name_length);
+			CString::copy(name, out_geometry->name, Constants::max_geometry_name_length);
 		else
-			CString::copy(GeometrySystem::SystemConfig::default_name, out_config->name, Constants::max_geometry_name_length);
+			CString::copy(GeometrySystem::SystemConfig::default_name, out_geometry->name, Constants::max_geometry_name_length);
 
 	}
 
-	void generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, GeometryConfig* out_config)
+	void generate_cube_geometry(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, GeometryResourceData* out_geometry)
 	{
 
 		if (width == 0) 
@@ -175,11 +180,11 @@ namespace Renderer
 			tile_y = 1.0f;
 		}
 
-		out_config->vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
-		out_config->vertex_count = 4 * 6;  // 4 verts per segment
-		out_config->vertices.init(out_config->vertex_size * out_config->vertex_count, 0);
-		out_config->index_count = 6 * 6;  // 6 indices per segment
-		out_config->indices.init(out_config->index_count, 0);
+		out_geometry->vertex_size = sizeof(Renderer::Vertex3D);  // 4 verts per segment
+		out_geometry->vertex_count = 4 * 6;  // 4 verts per segment
+		out_geometry->vertices.init(out_geometry->vertex_size * out_geometry->vertex_count, 0);
+		out_geometry->index_count = 6 * 6;  // 6 indices per segment
+		out_geometry->indices.init(out_geometry->index_count, 0);
 
 		// TODO: This generates extra vertices, but we can always deduplicate them later.
 		float32 half_width = width * 0.5f;
@@ -197,16 +202,16 @@ namespace Renderer
 		float32 max_uvx = tile_x;
 		float32 max_uvy = tile_y;
 
-		out_config->extents.min.x = min_x;
-		out_config->extents.min.y = min_y;
-		out_config->extents.min.z = min_z;
-		out_config->extents.max.x = max_x;
-		out_config->extents.max.y = max_y;
-		out_config->extents.max.z = max_z;
+		out_geometry->extents.min.x = min_x;
+		out_geometry->extents.min.y = min_y;
+		out_geometry->extents.min.z = min_z;
+		out_geometry->extents.max.x = max_x;
+		out_geometry->extents.max.y = max_y;
+		out_geometry->extents.max.z = max_z;
 
-		out_config->center = VEC3_ZERO;
+		out_geometry->center = VEC3_ZERO;
 
-		Renderer::Vertex3D* verts = (Renderer::Vertex3D*)out_config->vertices.data;
+		Renderer::Vertex3D* verts = (Renderer::Vertex3D*)out_geometry->vertices.data;
 
 		// Front
 		verts[(0 * 4) + 0].position = { min_x, min_y, max_z };
@@ -296,20 +301,20 @@ namespace Renderer
 		{
 			uint32 v_offset = i * 4;
 			uint32 i_offset = i * 6;
-			out_config->indices[i_offset + 0] = v_offset + 0;
-			out_config->indices[i_offset + 1] = v_offset + 1;
-			out_config->indices[i_offset + 2] = v_offset + 2;
-			out_config->indices[i_offset + 3] = v_offset + 0;
-			out_config->indices[i_offset + 4] = v_offset + 3;
-			out_config->indices[i_offset + 5] = v_offset + 1;
+			out_geometry->indices[i_offset + 0] = v_offset + 0;
+			out_geometry->indices[i_offset + 1] = v_offset + 1;
+			out_geometry->indices[i_offset + 2] = v_offset + 2;
+			out_geometry->indices[i_offset + 3] = v_offset + 0;
+			out_geometry->indices[i_offset + 4] = v_offset + 3;
+			out_geometry->indices[i_offset + 5] = v_offset + 1;
 		}
 
-		generate_mesh_tangents(out_config->vertex_count, (Vertex3D*)out_config->vertices.data, out_config->index_count, out_config->indices.data );
+		generate_mesh_tangents(out_geometry->vertex_count, (Vertex3D*)out_geometry->vertices.data, out_geometry->index_count, out_geometry->indices.data );
 
 		if (name && CString::length(name) > 0)
-			CString::copy(name, out_config->name, Constants::max_geometry_name_length);
+			CString::copy(name, out_geometry->name, Constants::max_geometry_name_length);
 		else
-			CString::copy(GeometrySystem::SystemConfig::default_name, out_config->name, Constants::max_geometry_name_length);
+			CString::copy(GeometrySystem::SystemConfig::default_name, out_geometry->name, Constants::max_geometry_name_length);
 
 	}
 
@@ -428,64 +433,5 @@ namespace Renderer
 		}
 
 	}
-
-    static bool8 vertex3d_equal(Vertex3D vert_0, Vertex3D vert_1) {
-        return 
-            (Math::vec_compare(vert_0.position, vert_1.position, Constants::FLOAT_EPSILON) &&
-            Math::vec_compare(vert_0.normal, vert_1.normal, Constants::FLOAT_EPSILON) &&
-            Math::vec_compare(vert_0.tex_coords, vert_1.tex_coords, Constants::FLOAT_EPSILON) &&
-            Math::vec_compare(vert_0.color, vert_1.color, Constants::FLOAT_EPSILON));
-    }
-
-    void reassign_index(uint32 index_count, uint32* indices, uint32 from, uint32 to) {
-        for (uint32 i = 0; i < index_count; ++i) {
-            if (indices[i] == from) {
-                indices[i] = to;
-            }
-            else if (indices[i] > from) {
-                // Pull in all indicies higher than 'from' by 1.
-                indices[i]--;
-            }
-        }
-    }
-
-    void geometry_deduplicate_vertices(GeometryConfig& g_config)
-    {
-
-        Darray<Vertex3D> new_vertices(g_config.vertex_count / 4, 0, (AllocationTag)g_config.vertices.allocation_tag);
-        Vertex3D* old_vertices = (Renderer::Vertex3D*)g_config.vertices.transfer_data();        
-        uint32 old_vertex_count = g_config.vertex_count;
-
-        uint32 found_count = 0;
-        for (uint32 o = 0; o < old_vertex_count; o++)
-        {
-            bool8 found = false;
-            for (uint32 n = 0; n < new_vertices.count; n++)
-            {
-                if (vertex3d_equal(new_vertices[n], old_vertices[o]))
-                {
-                    reassign_index(g_config.index_count, g_config.indices.data, o - found_count, n);
-                    found = true;
-                    found_count++;
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                new_vertices.emplace(old_vertices[o]);
-            }
-        }
-
-        Memory::free_memory(old_vertices);
-
-        g_config.vertex_count = new_vertices.count;
-        Vertex3D* ptr = new_vertices.transfer_data();
-        g_config.vertices.init(g_config.vertex_count * sizeof(Vertex3D), 0, (AllocationTag)new_vertices.allocation_tag, ptr);
-        
-        uint32 removed_count = old_vertex_count - g_config.vertex_count;
-        SHMDEBUGV("geometry_deduplicate_vertices: removed %u vertices, orig/now %u/%u.", removed_count, old_vertex_count, g_config.vertex_count);
-
-    }
 
 }

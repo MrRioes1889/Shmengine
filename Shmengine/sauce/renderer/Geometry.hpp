@@ -14,15 +14,14 @@ namespace Renderer
 
 	SHMAPI void geometry_draw(GeometryData* geometry);
 
-	SHMAPI void generate_plane_config(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometryConfig* out_config);
-	SHMAPI void generate_cube_config(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, GeometryConfig* out_config);
+	SHMAPI GeometryConfig geometry_get_config_from_resource(GeometryResourceData* resource);
+
+	SHMAPI void generate_plane_geometry(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometryData* out_geometry);
+	SHMAPI void generate_cube_geometry(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, GeometryResourceData* out_geometry);
 
 	void generate_mesh_normals(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices);
 	void generate_mesh_tangents(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices);
 	
 	void generate_terrain_normals(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices);
 	void generate_terrain_tangents(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices);
-
-	void geometry_deduplicate_vertices(GeometryConfig& g_config);
-
 }

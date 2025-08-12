@@ -31,23 +31,34 @@ struct SceneTerrainConfig
 	Math::Transform xform;
 };
 
+enum class SceneMeshType
+{
+	Resource,
+	Cube
+};
+
 struct SceneMeshConfig
 {
-	const char* resource_name;
-	const char* parent_name;
-	MeshConfig m_config;
+	struct CubeConfig
+	{
+		Math::Vec3f dim;
+		Math::Vec2f tiling;
+		const char* material_name;
+	};
 
+	SceneMeshType type;
+	union
+	{
+		const char* resource_name;
+		CubeConfig cube_config;
+	};
+	const char* name;
+	const char* parent_name;
 	Math::Transform transform;
 };
 
 struct SceneConfig
 {
-	struct TerrainResource
-	{
-		const char* name;
-		const char* resource_name;
-	};
-
 	const char* name;
 	const char* description;
 
@@ -62,7 +73,6 @@ struct SceneConfig
 	uint32 point_light_count;
 	uint32 mesh_configs_count;
 	uint32 terrain_configs_count;
-	uint32 terrain_resources_count;
 
 	SkyboxConfig* skybox_configs;
 	DirectionalLight* dir_lights;

@@ -25,7 +25,7 @@ struct Skybox
 	UniqueId unique_id;
 	String cubemap_name;
 	TextureMap cubemap;
-	GeometrySystem::GeometryId geometry_id;
+	GeometryId geometry_id;
 	uint32 shader_instance_id;
 };
 

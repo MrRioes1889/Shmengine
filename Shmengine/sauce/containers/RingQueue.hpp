@@ -49,6 +49,7 @@ SHMINLINE RingQueue<T>::RingQueue(uint32 reserve_count, RingQueueFlags creation_
 template<typename T>
 SHMINLINE RingQueue<T>::~RingQueue()
 {
+	free_data();
 }
 
 template<typename T>

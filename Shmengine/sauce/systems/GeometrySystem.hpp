@@ -4,6 +4,7 @@
 #include "core/Subsystems.hpp"
 #include "core/Identifier.hpp"
 #include "containers/Sarray.hpp"
+#include "renderer/RendererTypes.hpp"
 
 struct Material;
 struct GeometryConfig;
@@ -11,7 +12,6 @@ struct GeometryData;
 
 namespace GeometrySystem
 {
-	typedef Id16 GeometryId;
 
 	struct SystemConfig
 	{

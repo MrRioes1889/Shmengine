@@ -25,12 +25,14 @@ bool8 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 
 	out_skybox->shader_instance_id = Constants::max_u32;
 
-	GeometryConfig skybox_cube_config = {};
-	Renderer::generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), &skybox_cube_config);
+	GeometryResourceData geo_resource = {};
+	Renderer::generate_cube_geometry(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), &geo_resource);
+	GeometryConfig skybox_cube_config = Renderer::geometry_get_config_from_resource(&geo_resource);
 	out_skybox->geometry_id = GeometrySystem::create_geometry(&skybox_cube_config, true);
 
 	out_skybox->unique_id = identifier_acquire_new_id(out_skybox);
 
+	Renderer::geometry_load(GeometrySystem::get_geometry_data(out_skybox->geometry_id));
 	out_skybox->cubemap.texture = TextureSystem::acquire(out_skybox->cubemap_name.c_str(), TextureType::Cube, true);
 	if (!Renderer::texture_map_acquire_resources(&out_skybox->cubemap))
 	{
@@ -63,6 +65,7 @@ bool8 skybox_destroy(Skybox* skybox)
 	skybox->shader_instance_id = 0;
 	TextureSystem::release(skybox->cubemap_name.c_str());
 	Renderer::texture_map_release_resources(&skybox->cubemap);
+	Renderer::geometry_unload(GeometrySystem::get_geometry_data(skybox->geometry_id));
 
 	identifier_release_id(skybox->unique_id);
 	skybox->unique_id = 0;

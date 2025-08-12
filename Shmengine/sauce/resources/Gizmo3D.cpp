@@ -24,14 +24,13 @@ bool8 gizmo3D_init(Gizmo3D* out_gizmo)
 	GeometryConfig geometry_config = {};
 	geometry_config.vertex_size = sizeof(Renderer::VertexColor3D);
 	// NOTE: 12 * 2 line vertices per gizmo
-	geometry_config.vertex_count = 0;
+	const uint32 max_vertex_count = (12 + (rotate_circle_segments * 2 * 3));
+	geometry_config.vertex_count = max_vertex_count;
 	geometry_config.index_count = 0;
 
 	geometry_config.center = {};
 	geometry_config.extents = {};
 
-	const uint32 max_vertex_count = (12 + (rotate_circle_segments * 2 * 3));
-	geometry_config.vertices.init(geometry_config.vertex_size * max_vertex_count, 0);
 	Renderer::create_geometry(&geometry_config, &out_gizmo->geometry);
 
 	update_vertices(out_gizmo);

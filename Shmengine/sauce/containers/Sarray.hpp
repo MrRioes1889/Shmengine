@@ -178,8 +178,11 @@ SHMINLINE void Sarray<T>::free_data()
 {
 	if (data)
 	{
-		for (uint32 i = 0; i < capacity; i++)
-			data[i].~T();
+		if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+		{
+			for (uint32 i = 0; i < capacity; i++)
+				data[i].~T();
+		}
 
 		if (!(flags & SarrayFlags::ExternalMemory))
 			Memory::free_memory(data);
@@ -193,6 +196,8 @@ SHMINLINE void Sarray<T>::free_data()
 template<typename T>
 SHMINLINE void Sarray<T>::resize(uint32 new_count, void* memory)
 {
+	SHMASSERT_MSG(data, "Cannot resize not initialized Sarray.");
+
 	if (data && !(flags & SarrayFlags::ExternalMemory))
 		data = (T*)Memory::reallocate(new_count * sizeof(T), data);
 	else
@@ -207,8 +212,11 @@ SHMINLINE void Sarray<T>::resize(uint32 new_count, void* memory)
 template<typename T>
 SHMINLINE void Sarray<T>::clear()
 {
-	for (uint32 i = 0; i < capacity; i++)
-		data[i].~T();
+	if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+	{
+		for (uint32 i = 0; i < capacity; i++)
+			data[i].~T();
+	}
 
 	Memory::zero_memory(data, sizeof(T) * capacity);
 }
@@ -225,10 +233,10 @@ inline SHMINLINE T* Sarray<T>::transfer_data()
 }
 
 template<typename T>
-SHMINLINE void Sarray<T>::copy_memory(const void* source, uint32 copy_count, uint32 array_offset)
+SHMINLINE void Sarray<T>::copy_memory(const void* source, uint32 copy_count, uint32 dest_offset)
 {
-	SHMASSERT_MSG((copy_count + array_offset) <= capacity, "Sarray does not fit requested size and/or imported count does not fit!");
-	T* dest = data + array_offset;
+	SHMASSERT_MSG((copy_count + dest_offset) <= capacity, "Sarray does not fit requested size and/or imported count does not fit!");
+	T* dest = data + dest_offset;
 	Memory::copy_memory(source, dest, copy_count * sizeof(T));
 }
 

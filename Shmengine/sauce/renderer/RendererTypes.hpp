@@ -9,6 +9,7 @@
 #include "utility/Utility.hpp"
 #include "memory/Freelist.hpp"
 #include "utility/Math.hpp"
+#include "resources/ResourceTypes.hpp"
 
 struct UIText;
 struct Skybox;
@@ -59,18 +60,35 @@ struct LightingInfo
 	PointLight* p_lights;
 };
 
+typedef Id16 MaterialId;
+typedef Id16 GeometryId;
+
+struct GeometryResourceData
+{
+	uint32 vertex_size;
+	uint32 vertex_count;
+	uint32 index_count;
+
+	Math::Vec3f center;
+	Math::Extents3D extents;
+
+	Sarray<byte> vertices;	
+	Sarray<uint32> indices;
+	char name[Constants::max_geometry_name_length];
+};
+
 struct GeometryConfig
 {
 	uint32 vertex_size;
 	uint32 vertex_count;
 	uint32 index_count;
 
-	Sarray<byte> vertices;	
-	Sarray<uint32> indices;
-	char name[Constants::max_geometry_name_length];
-
 	Math::Vec3f center;
 	Math::Extents3D extents;
+
+	byte* vertices;	
+	uint32* indices;
+	const char* name;
 };
 
 struct GeometryData
@@ -91,6 +109,41 @@ struct GeometryData
 
 	RenderBufferAllocationReference vertex_buffer_alloc_ref;
 	RenderBufferAllocationReference index_buffer_alloc_ref;
+};
+
+struct MeshGeometryConfig
+{
+	GeometryConfig geo_config;
+	const char *material_name;
+};
+
+struct MeshGeometry
+{
+	char material_name[Constants::max_material_name_length];
+
+	GeometryId g_id;
+	MaterialId material_id;
+};
+
+struct MeshConfig
+{
+	uint32 g_configs_count;
+
+	const char* name;
+	MeshGeometryConfig* g_configs;
+};
+
+struct Mesh
+{
+	String name;
+
+	ResourceState state;
+	UniqueId unique_id;
+	uint8 generation;
+	Sarray<MeshGeometry> geometries;
+	Math::Extents3D extents;
+	Math::Vec3f center;
+	Math::Transform transform;
 };
 
 namespace Renderer
