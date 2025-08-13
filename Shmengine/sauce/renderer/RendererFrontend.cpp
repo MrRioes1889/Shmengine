@@ -9,7 +9,6 @@
 #include "memory/Freelist.hpp"
 #include "utility/math/Transform.hpp"
 #include "systems/TextureSystem.hpp"
-#include "systems/GeometrySystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 #include "systems/RenderViewSystem.hpp"
@@ -400,7 +399,6 @@ namespace Renderer
 		geo_config.extents = resource->extents;
 		geo_config.index_count = resource->index_count;
 		geo_config.indices = resource->indices.data;
-		geo_config.name = resource->name;
 		geo_config.vertex_count = resource->vertex_count;
 		geo_config.vertex_size = resource->vertex_size;
 		geo_config.vertices = resource->vertices.data;

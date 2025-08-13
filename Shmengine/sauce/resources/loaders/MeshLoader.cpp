@@ -171,14 +171,7 @@ namespace ResourceSystem
         for (uint32 i = 0; i < resource->geometries.count; i++)
         {
             MeshGeometryConfig* mesh_config = &resource->mesh_geometry_configs[i];
-            mesh_config->geo_config.vertex_size = resource->geometries[i].geometry_data.vertex_size;
-            mesh_config->geo_config.vertex_count = resource->geometries[i].geometry_data.vertex_count;
-            mesh_config->geo_config.index_count = resource->geometries[i].geometry_data.index_count;
-            mesh_config->geo_config.center = resource->geometries[i].geometry_data.center;
-            mesh_config->geo_config.extents = resource->geometries[i].geometry_data.extents;
-            mesh_config->geo_config.vertices = resource->geometries[i].geometry_data.vertices.data;
-            mesh_config->geo_config.indices = resource->geometries[i].geometry_data.indices.data;
-            mesh_config->geo_config.name = resource->geometries[i].geometry_data.name;
+            mesh_config->geo_config = Renderer::geometry_get_config_from_resource(&resource->geometries[i].geometry_data);
             mesh_config->material_name = resource->geometries[i].material_name;
         }
 

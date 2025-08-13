@@ -15,7 +15,6 @@
 #include <renderer/RendererFrontend.hpp>
 #include <renderer/Geometry.hpp>
 #include <systems/RenderViewSystem.hpp>
-#include <systems/GeometrySystem.hpp>
 #include <systems/ShaderSystem.hpp>
 
 static uint32 global_scene_id = 0;

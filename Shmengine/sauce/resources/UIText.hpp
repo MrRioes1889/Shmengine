@@ -6,7 +6,6 @@
 #include "utility/String.hpp"
 
 #include "systems/FontSystem.hpp"
-#include "systems/GeometrySystem.hpp"
 
 struct RenderView;
 namespace Renderer

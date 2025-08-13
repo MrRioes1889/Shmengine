@@ -18,7 +18,6 @@
 // TODO: temp
 #include <utility/math/Transform.hpp>
 #include <systems/MaterialSystem.hpp>
-#include <systems/GeometrySystem.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <systems/FontSystem.hpp>
 #include <systems/ShaderSystem.hpp>

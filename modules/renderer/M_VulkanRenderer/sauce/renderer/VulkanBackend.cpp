@@ -12,7 +12,6 @@
 
 #include <systems/ShaderSystem.hpp>
 #include <systems/MaterialSystem.hpp>
-#include <systems/GeometrySystem.hpp>
 #include <systems/TextureSystem.hpp>
 
 // TODO: Get rid of frontend include

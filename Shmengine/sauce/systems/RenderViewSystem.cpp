@@ -301,7 +301,7 @@ namespace RenderViewSystem
 					geo_render_data->object_index = view->objects.count - 1;
 					geo_render_data->shader_instance_id = material->shader_instance_id;
 					geo_render_data->shader_id = shader_id;
-					geo_render_data->geometry_data = GeometrySystem::get_geometry_data(g->g_id);
+					geo_render_data->geometry_data = &g->geometry_data;
 					geo_render_data->has_transparency = (material->maps[0].texture->flags & TextureFlags::HasTransparency);
 					packet_data.geometries_pushed_count++;
 
@@ -348,7 +348,7 @@ namespace RenderViewSystem
 		render_data->object_index = Constants::max_u32;
 		render_data->shader_id = shader_id;
 		render_data->shader_instance_id = skybox->shader_instance_id;
-		render_data->geometry_data = GeometrySystem::get_geometry_data(skybox->geometry_id);
+		render_data->geometry_data = &skybox->geometry;
 		render_data->has_transparency = 0;
 		packet_data.geometries_pushed_count++;
 

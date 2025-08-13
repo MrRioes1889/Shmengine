@@ -4,7 +4,6 @@
 #include "ResourceTypes.hpp"
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
-#include "systems/GeometrySystem.hpp"
 #include "systems/MaterialSystem.hpp"
 
 struct Material;

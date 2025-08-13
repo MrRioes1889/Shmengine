@@ -88,13 +88,10 @@ struct GeometryConfig
 
 	byte* vertices;	
 	uint32* indices;
-	const char* name;
 };
 
 struct GeometryData
 {
-	char name[Constants::max_geometry_name_length];
-
 	Math::Vec3f center;
 	Math::Extents3D extents;
 	
@@ -121,7 +118,7 @@ struct MeshGeometry
 {
 	char material_name[Constants::max_material_name_length];
 
-	GeometryId g_id;
+	GeometryData geometry_data;
 	MaterialId material_id;
 };
 

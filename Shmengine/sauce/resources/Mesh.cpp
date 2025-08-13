@@ -9,7 +9,6 @@
 #include "utility/math/Transform.hpp"
 
 #include "systems/JobSystem.hpp"
-#include "systems/GeometrySystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 
@@ -33,11 +32,11 @@ bool8 mesh_init(MeshConfig* config, Mesh* out_mesh)
     {
         MeshGeometry* g = &out_mesh->geometries[i];
         CString::copy(config->g_configs[i].material_name, g->material_name, Constants::max_material_name_length);
-        g->g_id = GeometrySystem::create_geometry(&config->g_configs[i].geo_config, true);
-		Renderer::geometry_load(GeometrySystem::get_geometry_data(g->g_id));
+        Renderer::create_geometry(&config->g_configs[i].geo_config, &g->geometry_data);
+		Renderer::geometry_load(&g->geometry_data);
         g->material_id.invalidate();
 
-        GeometryData* g_data = GeometrySystem::get_geometry_data(g->g_id);
+        GeometryData* g_data = &g->geometry_data;
         if (g_data->extents.max.x > out_mesh->extents.max.x)
             out_mesh->extents.max.x = g_data->extents.max.x;
         if (g_data->extents.max.y > out_mesh->extents.max.y)
@@ -94,7 +93,7 @@ bool8 mesh_destroy(Mesh* mesh)
 
     for (uint32 i = 0; i < mesh->geometries.capacity; ++i)
     {     
-        GeometryData* g_data = GeometrySystem::get_geometry_data(mesh->geometries[i].g_id);
+        GeometryData* g_data = &mesh->geometries[i].geometry_data;
         Renderer::geometry_unload(g_data);
         if (mesh->geometries[i].material_id.is_valid())
         {      
@@ -102,9 +101,6 @@ bool8 mesh_destroy(Mesh* mesh)
             mesh->geometries[i].material_id.invalidate();
         }
     }
-
-    for (uint16 i = 0; i < mesh->geometries.capacity; i++)
-        GeometrySystem::release(mesh->geometries[i].g_id);
 
     mesh->name.free_data();
 

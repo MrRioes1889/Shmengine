@@ -11,7 +11,6 @@
 #include "platform/Platform.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "systems/FontSystem.hpp"
-#include "systems/GeometrySystem.hpp"
 #include "systems/JobSystem.hpp"
 #include "systems/MaterialSystem.hpp"
 #include "systems/RenderViewSystem.hpp"
@@ -37,24 +36,23 @@ namespace SubsystemManager
 	{
 		enum
 		{
-			MEMORY,
-			CONSOLE,
-			LOGGING,
-			INPUT,
-			EVENT,
-			PLATFORM,
+			Memory,
+			Console,
+			Logging,
+			Input,
+			Event,
+			Platform,
 
-			RENDERER,
-			SHADER_SYSTEM,
-			JOB_SYSTEM,
-			RENDERVIEW_SYSTEM,
-			TEXTURE_SYSTEM,
-			FONT_SYSTEM,	
-			MATERIAL_SYSTEM,
-			GEOMETRY_SYSTEM,
-			KNOWN_TYPES_COUNT,
+			Renderer,
+			ShaderSystem,
+			JobSystem,
+			RenderViewSystem,
+			TextureSystem,
+			FontSystem,	
+			MaterialSystem,
+			KnownTypesCount,
 
-			MAX_TYPES_COUNT = 128
+			MaxTypesCount = 128
 		};
 		typedef uint8 Value;
 	}
@@ -62,7 +60,7 @@ namespace SubsystemManager
 	struct ManagerState
 	{
 		Memory::LinearAllocator allocator;
-		Subsystem subsystems[SubsystemType::MAX_TYPES_COUNT];
+		Subsystem subsystems[SubsystemType::MaxTypesCount];
 	};
 
 	static ManagerState manager_state = {};
@@ -82,7 +80,7 @@ namespace SubsystemManager
 		Memory::SystemConfig mem_config;
 		mem_config.total_allocation_size = gibibytes(1);
 
-		if (!register_system(SubsystemType::MEMORY, Memory::system_init, Memory::system_shutdown, 0, &mem_config))
+		if (!register_system(SubsystemType::Memory, Memory::system_init, Memory::system_shutdown, 0, &mem_config))
 		{
 			SHMFATAL("Failed to register memory subsystem!");
 			return false;
@@ -101,13 +99,13 @@ namespace SubsystemManager
 
 	void shutdown_advanced()
 	{
-		for (int32 i = SubsystemType::GEOMETRY_SYSTEM; i > SubsystemType::EVENT; i--)
+		for (int32 i = SubsystemType::MaterialSystem; i > SubsystemType::Event; i--)
 			manager_state.subsystems[i].shutdown(manager_state.subsystems[i].state);
 	}
 
 	void shutdown_basic()
 	{
-		for (int32 i = SubsystemType::EVENT; i >= 0; i--)
+		for (int32 i = SubsystemType::Event; i >= 0; i--)
 			manager_state.subsystems[i].shutdown(manager_state.subsystems[i].state);
 
 		manager_state.allocator.destroy();
@@ -116,7 +114,7 @@ namespace SubsystemManager
 	bool8 update(const FrameData* frame_data)
 	{
 		OPTICK_EVENT();
-		for (uint32 i = 0; i < SubsystemType::MAX_TYPES_COUNT; ++i) {
+		for (uint32 i = 0; i < SubsystemType::MaxTypesCount; ++i) {
 			Subsystem* s = &manager_state.subsystems[i];
 			if (s->update) {
 				if (!s->update(s->state, frame_data)) {
@@ -143,7 +141,7 @@ namespace SubsystemManager
 				return false;
 			}
 		}
-		else if (type != SubsystemType::MEMORY)
+		else if (type != SubsystemType::Memory)
 		{
 			SHMERROR("Initialize is required for types except K_SYSTEM_TYPE_MEMORY.");
 			return false;
@@ -157,31 +155,31 @@ namespace SubsystemManager
 	static bool8 register_known_systems_pre_boot()
 	{
 
-		if (!register_system(SubsystemType::CONSOLE, Console::system_init, Console::system_shutdown, 0, 0))
+		if (!register_system(SubsystemType::Console, Console::system_init, Console::system_shutdown, 0, 0))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
 		}
 
-		if (!register_system(SubsystemType::LOGGING, Log::system_init, Log::system_shutdown, 0, 0))
+		if (!register_system(SubsystemType::Logging, Log::system_init, Log::system_shutdown, 0, 0))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
 		}
 
-		if (!register_system(SubsystemType::INPUT, Input::system_init, Input::system_shutdown, 0, 0))
+		if (!register_system(SubsystemType::Input, Input::system_init, Input::system_shutdown, 0, 0))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
 		}
 
-		if (!register_system(SubsystemType::EVENT, Event::system_init, Event::system_shutdown, 0, 0))
+		if (!register_system(SubsystemType::Event, Event::system_init, Event::system_shutdown, 0, 0))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
 		}
 
-		if (!register_system(SubsystemType::PLATFORM, Platform::system_init, Platform::system_shutdown, 0, 0))
+		if (!register_system(SubsystemType::Platform, Platform::system_init, Platform::system_shutdown, 0, 0))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
@@ -199,7 +197,7 @@ namespace SubsystemManager
 		renderer_sys_config.flags = 0;
 		renderer_sys_config.renderer_module_name = app_config->renderer_module_name;
 
-		if (!register_system(SubsystemType::RENDERER, Renderer::system_init, Renderer::system_shutdown, 0, &renderer_sys_config))
+		if (!register_system(SubsystemType::Renderer, Renderer::system_init, Renderer::system_shutdown, 0, &renderer_sys_config))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
@@ -211,7 +209,7 @@ namespace SubsystemManager
 		shader_sys_config.max_global_textures = 31;
 		shader_sys_config.max_instance_textures = 31;
 
-		if (!register_system(SubsystemType::SHADER_SYSTEM, ShaderSystem::system_init, ShaderSystem::system_shutdown, 0, &shader_sys_config))
+		if (!register_system(SubsystemType::ShaderSystem, ShaderSystem::system_init, ShaderSystem::system_shutdown, 0, &shader_sys_config))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
@@ -244,7 +242,7 @@ namespace SubsystemManager
 		job_system_config.job_thread_count = thread_count;
 		job_system_config.type_flags = job_thread_types;
 
-		if (!register_system(SubsystemType::JOB_SYSTEM, JobSystem::system_init, JobSystem::system_shutdown, JobSystem::update, &job_system_config))
+		if (!register_system(SubsystemType::JobSystem, JobSystem::system_init, JobSystem::system_shutdown, JobSystem::update, &job_system_config))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
@@ -253,7 +251,7 @@ namespace SubsystemManager
 		RenderViewSystem::SystemConfig render_view_sys_config;
 		render_view_sys_config.max_view_count = 251;
 
-		if (!register_system(SubsystemType::RENDERVIEW_SYSTEM, RenderViewSystem::system_init, RenderViewSystem::system_shutdown, 0, &render_view_sys_config))
+		if (!register_system(SubsystemType::RenderViewSystem, RenderViewSystem::system_init, RenderViewSystem::system_shutdown, 0, &render_view_sys_config))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
@@ -262,7 +260,7 @@ namespace SubsystemManager
 		TextureSystem::SystemConfig texture_sys_config;
 		texture_sys_config.max_texture_count = 512;
 
-		if (!register_system(SubsystemType::TEXTURE_SYSTEM, TextureSystem::system_init, TextureSystem::system_shutdown, 0, &texture_sys_config))
+		if (!register_system(SubsystemType::TextureSystem, TextureSystem::system_init, TextureSystem::system_shutdown, 0, &texture_sys_config))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
@@ -271,7 +269,7 @@ namespace SubsystemManager
 		FontSystem::SystemConfig font_sys_config;
 		font_sys_config.max_font_count = 31;
 
-		if (!register_system(SubsystemType::FONT_SYSTEM, FontSystem::system_init, FontSystem::system_shutdown, 0, &font_sys_config))
+		if (!register_system(SubsystemType::FontSystem, FontSystem::system_init, FontSystem::system_shutdown, 0, &font_sys_config))
 		{
 			SHMFATAL("Failed to register console subsystem!");
 			return false;
@@ -280,18 +278,9 @@ namespace SubsystemManager
 		MaterialSystem::SystemConfig material_sys_config;
 		material_sys_config.max_material_count = 0x1000;
 
-		if (!register_system(SubsystemType::MATERIAL_SYSTEM, MaterialSystem::system_init, MaterialSystem::system_shutdown, 0, &material_sys_config))
+		if (!register_system(SubsystemType::MaterialSystem, MaterialSystem::system_init, MaterialSystem::system_shutdown, 0, &material_sys_config))
 		{
 			SHMFATAL("Failed to register console subsystem!");
-			return false;
-		}
-
-		GeometrySystem::SystemConfig geometry_sys_config;
-		geometry_sys_config.max_geometry_count = 0x1000;
-
-		if (!register_system(SubsystemType::GEOMETRY_SYSTEM, GeometrySystem::system_init, GeometrySystem::system_shutdown, 0, &geometry_sys_config))
-		{
-			SHMFATAL("Failed to register geometry subsystem!");
 			return false;
 		}
 

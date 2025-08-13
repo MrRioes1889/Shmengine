@@ -46,8 +46,6 @@ namespace Renderer
 		g->vertex_buffer_alloc_ref = {};
 		g->index_buffer_alloc_ref = {};
 		g->loaded = false;
-
-		CString::empty(g->name);
 	}
 
 	void generate_plane_geometry(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometryData* out_geometry)
@@ -142,12 +140,6 @@ namespace Renderer
 				out_geometry->indices[i_offset + 5] = v_offset + 1;
 			}
 		}
-
-		if (name && CString::length(name) > 0)
-			CString::copy(name, out_geometry->name, Constants::max_geometry_name_length);
-		else
-			CString::copy(GeometrySystem::SystemConfig::default_name, out_geometry->name, Constants::max_geometry_name_length);
-
 	}
 
 	void generate_cube_geometry(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, GeometryResourceData* out_geometry)
@@ -310,12 +302,6 @@ namespace Renderer
 		}
 
 		generate_mesh_tangents(out_geometry->vertex_count, (Vertex3D*)out_geometry->vertices.data, out_geometry->index_count, out_geometry->indices.data );
-
-		if (name && CString::length(name) > 0)
-			CString::copy(name, out_geometry->name, Constants::max_geometry_name_length);
-		else
-			CString::copy(GeometrySystem::SystemConfig::default_name, out_geometry->name, Constants::max_geometry_name_length);
-
 	}
 
 	void generate_mesh_normals(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices)
