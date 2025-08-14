@@ -9,22 +9,43 @@
 
 namespace Renderer
 {
+	static void _generate_cube_geometry(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, GeometryData* out_geometry);
+	static void _generate_plane_geometry(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, GeometryData* out_geometry);
+
 	extern SystemState* system_state;
 
-	bool8 create_geometry(GeometryConfig* config, GeometryData* out_geometry)
+	bool8 geometry_init(GeometryConfig* config, GeometryData* out_geometry)
 	{
-		out_geometry->center = config->center;
-		out_geometry->extents = config->extents;
+		switch (config->type)
+		{
+		case GeometryConfigType::Default:
+		{
+			out_geometry->center = config->default_config.center;
+			out_geometry->extents = config->default_config.extents;
 
-		out_geometry->vertex_size = config->vertex_size;
-		out_geometry->vertex_count = config->vertex_count;
-		out_geometry->index_count = config->index_count;
-		out_geometry->vertices.init(out_geometry->vertex_count * out_geometry->vertex_size, 0);
-		out_geometry->indices.init(out_geometry->index_count, 0);
-		if (config->vertices)
-			out_geometry->vertices.copy_memory(config->vertices, out_geometry->vertex_count * out_geometry->vertex_size, 0);
-		if (config->indices)
-			out_geometry->indices.copy_memory(config->indices, out_geometry->index_count, 0);
+			out_geometry->vertex_size = config->default_config.vertex_size;
+			out_geometry->vertex_count = config->default_config.vertex_count;
+			out_geometry->index_count = config->default_config.index_count;
+			out_geometry->vertices.init(out_geometry->vertex_count * out_geometry->vertex_size, 0);
+			out_geometry->indices.init(out_geometry->index_count, 0);
+			if (config->default_config.vertices)
+				out_geometry->vertices.copy_memory(config->default_config.vertices, out_geometry->vertex_count * out_geometry->vertex_size, 0);
+			if (config->default_config.indices)
+				out_geometry->indices.copy_memory(config->default_config.indices, out_geometry->index_count, 0);
+			break;
+		}
+		case GeometryConfigType::Cube:
+		{
+			_generate_cube_geometry(
+				config->cube_config.dim.width,
+				config->cube_config.dim.height,
+				config->cube_config.dim.depth,
+				config->cube_config.tiling.x,
+				config->cube_config.tiling.y,
+				out_geometry);
+			break;
+		}
+		}
 
 		out_geometry->vertex_buffer_alloc_ref = {};
 		out_geometry->index_buffer_alloc_ref = {};
@@ -33,7 +54,7 @@ namespace Renderer
 		return true;
 	}
 
-	void destroy_geometry(GeometryData* g)
+	void geometry_destroy(GeometryData* g)
 	{
 		if (g->loaded)
 			Renderer::geometry_unload(g);
@@ -48,7 +69,21 @@ namespace Renderer
 		g->loaded = false;
 	}
 
-	void generate_plane_geometry(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, const char* name, GeometryData* out_geometry)
+	GeometryConfig geometry_get_config_from_resource(GeometryResourceData* resource)
+	{
+		GeometryConfig geo_config = {};
+		geo_config.type = GeometryConfigType::Default;
+		geo_config.default_config.center = resource->center;
+		geo_config.default_config.extents = resource->extents;
+		geo_config.default_config.index_count = resource->index_count;
+		geo_config.default_config.indices = resource->indices.data;
+		geo_config.default_config.vertex_count = resource->vertex_count;
+		geo_config.default_config.vertex_size = resource->vertex_size;
+		geo_config.default_config.vertices = resource->vertices.data;
+		return geo_config;
+	}
+
+	static void _generate_plane_geometry(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, GeometryData* out_geometry)
 	{
 		if (width == 0) 
 		{
@@ -142,9 +177,8 @@ namespace Renderer
 		}
 	}
 
-	void generate_cube_geometry(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, const char* name, GeometryResourceData* out_geometry)
+	static void _generate_cube_geometry(float32 width, float32 height, float32 depth, float32 tile_x, float32 tile_y, GeometryData* out_geometry)
 	{
-
 		if (width == 0) 
 		{
 			SHMWARN("Width must be nonzero. Defaulting to one.");

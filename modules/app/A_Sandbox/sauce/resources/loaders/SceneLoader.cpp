@@ -8,7 +8,6 @@
 #include <platform/FileSystem.hpp>
 #include <renderer/RendererTypes.hpp>
 #include <renderer/Geometry.hpp>
-#include <resources/Mesh.hpp>
 #include <resources/loaders/MeshLoader.hpp>
 
 namespace ResourceSystem

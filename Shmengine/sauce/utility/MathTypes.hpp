@@ -94,20 +94,29 @@ namespace Math
 	{
 		union
 		{
-			struct {
+			struct 
+			{
 				float32 x;
 				float32 y;
 				float32 z;
 			};
-			struct {
+			struct 
+			{
 				float32 r;
 				float32 g;
 				float32 b;
 			};
-			struct {
+			struct 
+			{
 				float32 pitch;
 				float32 yaw;
 				float32 roll;
+			};
+			struct
+			{
+				float32 width;
+				float32 height;
+				float32 depth;
 			};
 			float32 e[3];
 		};

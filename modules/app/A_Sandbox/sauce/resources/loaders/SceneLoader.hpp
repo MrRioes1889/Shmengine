@@ -20,7 +20,6 @@ struct SceneSkyboxResourceData
 	String cubemap_name;
 };
 
-
 struct SceneMeshResourceData
 {
 	struct CubeData

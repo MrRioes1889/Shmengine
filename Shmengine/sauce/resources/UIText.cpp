@@ -43,13 +43,14 @@ bool8 ui_text_init(UITextConfig* config, UIText* out_ui_text)
         text_length = 1;
 
     GeometryConfig geometry_config = {};
-    geometry_config.extents = {};
-    geometry_config.center = {};
+    geometry_config.type = GeometryConfigType::Default;
+    geometry_config.default_config.extents = {};
+    geometry_config.default_config.center = {};
 
-    geometry_config.vertex_size = sizeof(Renderer::Vertex2D);
-    geometry_config.vertex_count = quad_vertex_count * text_length;
-    geometry_config.index_count = text_length * 6;
-    Renderer::create_geometry(&geometry_config, &out_ui_text->geometry);
+    geometry_config.default_config.vertex_size = sizeof(Renderer::Vertex2D);
+    geometry_config.default_config.vertex_count = quad_vertex_count * text_length;
+    geometry_config.default_config.index_count = text_length * 6;
+    Renderer::geometry_init(&geometry_config, &out_ui_text->geometry);
 
     out_ui_text->unique_id = identifier_acquire_new_id(out_ui_text);
     out_ui_text->is_dirty = true;
@@ -91,7 +92,7 @@ bool8 ui_text_destroy(UIText* ui_text)
     ui_text->unique_id = 0;
 
 
-    Renderer::destroy_geometry(&ui_text->geometry);
+    Renderer::geometry_destroy(&ui_text->geometry);
     ui_text->text.free_data();
 
     ui_text->state = ResourceState::Destroyed;

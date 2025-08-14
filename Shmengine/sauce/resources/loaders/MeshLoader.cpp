@@ -3,7 +3,6 @@
 #include "core/Engine.hpp"
 #include "MaterialLoader.hpp"
 #include "systems/MaterialSystem.hpp"
-#include "resources/Mesh.hpp"
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
@@ -163,7 +162,7 @@ namespace ResourceSystem
         resource->mesh_geometry_configs.free_data();
     }
 
-    MeshConfig mesh_loader_get_config_from_resource(MeshResourceData* resource)
+    MeshConfig mesh_loader_get_config_from_resource(const char* name, MeshResourceData* resource)
     {
         resource->mesh_geometry_configs.free_data();
         resource->mesh_geometry_configs.init(resource->geometries.count, 0);
@@ -178,6 +177,7 @@ namespace ResourceSystem
         MeshConfig config =
         {
             .g_configs_count = resource->mesh_geometry_configs.capacity,
+            .name = name,
             .g_configs = resource->mesh_geometry_configs.data,
         };
 

@@ -18,7 +18,6 @@
 #include "renderer/views/RenderViewUI.hpp"
 #include "renderer/views/RenderViewPick.hpp"
 
-#include "resources/Mesh.hpp"
 #include "resources/Skybox.hpp"
 #include "resources/Terrain.hpp"
 #include "resources/UIText.hpp"
@@ -268,7 +267,7 @@ namespace RenderViewSystem
 		for (uint32 i = 0; i < mesh_count; i++)
 		{
 			Mesh* m = &meshes[i];
-			if (m->generation == Constants::max_u8)
+			if (m->state != ResourceState::Initialized)
 				continue;
 
 			RenderViewObjectData* object_data = &view->objects[view->objects.emplace()];

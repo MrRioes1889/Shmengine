@@ -26,5 +26,5 @@ namespace ResourceSystem
 	bool8 mesh_loader_load(const char* name, MeshResourceData* out_resource);
 	void mesh_loader_unload(MeshResourceData* resource);
 
-	MeshConfig mesh_loader_get_config_from_resource(MeshResourceData* resource);
+	MeshConfig mesh_loader_get_config_from_resource(const char* name, MeshResourceData* resource);
 }

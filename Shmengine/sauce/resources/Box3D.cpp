@@ -21,15 +21,16 @@ bool8 box3D_init(Math::Vec3f size, Math::Vec4f color, Box3D* out_box)
 	out_box->unique_id = Constants::max_u32;
 
 	GeometryConfig geometry_config = {};
-	geometry_config.vertex_size = sizeof(Renderer::VertexColor3D);
+	geometry_config.type = GeometryConfigType::Default;
+	geometry_config.default_config.vertex_size = sizeof(Renderer::VertexColor3D);
 	// NOTE: 12 * 2 line vertices per box
-	geometry_config.vertex_count = 2 * 12; 
-	geometry_config.index_count = 0;
+	geometry_config.default_config.vertex_count = 2 * 12; 
+	geometry_config.default_config.index_count = 0;
 
-	geometry_config.center = {};
-	geometry_config.extents.min = { -size.x * 0.5f, -size.y * 0.5f, -size.z * 0.5f };
-	geometry_config.extents.max = { size.x * 0.5f, size.y * 0.5f, size.z * 0.5f };
-	Renderer::create_geometry(&geometry_config, &out_box->geometry);
+	geometry_config.default_config.center = {};
+	geometry_config.default_config.extents.min = { -size.x * 0.5f, -size.y * 0.5f, -size.z * 0.5f };
+	geometry_config.default_config.extents.max = { size.x * 0.5f, size.y * 0.5f, size.z * 0.5f };
+	Renderer::geometry_init(&geometry_config, &out_box->geometry);
 	
 	update_vertices(out_box);
 	out_box->is_dirty = false;
@@ -57,7 +58,7 @@ bool8 box3D_destroy(Box3D* box)
 	identifier_release_id(box->unique_id);
 	box->unique_id = Constants::max_u32;
 
-	Renderer::destroy_geometry(&box->geometry);
+	Renderer::geometry_destroy(&box->geometry);
 
 	box->state = ResourceState::Destroyed;
 	return true;

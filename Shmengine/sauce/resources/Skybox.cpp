@@ -24,10 +24,11 @@ bool8 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 
 	out_skybox->shader_instance_id = Constants::max_u32;
 
-	GeometryResourceData geo_resource = {};
-	Renderer::generate_cube_geometry(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, out_skybox->name.c_str(), &geo_resource);
-	GeometryConfig skybox_cube_config = Renderer::geometry_get_config_from_resource(&geo_resource);
-	Renderer::create_geometry(&skybox_cube_config, &out_skybox->geometry);
+	GeometryConfig skybox_cube_config = {};
+	skybox_cube_config.type = GeometryConfigType::Cube;
+	skybox_cube_config.cube_config.dim = { 10.0f, 10.0f, 10.0f };
+	skybox_cube_config.cube_config.tiling = { 1.0f, 1.0f };
+	Renderer::geometry_init(&skybox_cube_config, &out_skybox->geometry);
 
 	out_skybox->unique_id = identifier_acquire_new_id(out_skybox);
 

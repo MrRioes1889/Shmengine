@@ -74,10 +74,11 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 	}
 
 	GeometryConfig geometry_config = {};
-	geometry_config.extents = {};
-	geometry_config.center = {};
+	geometry_config.type = GeometryConfigType::Default;
+	geometry_config.default_config.extents = {};
+	geometry_config.default_config.center = {};
 
-	geometry_config.vertex_size = sizeof(TerrainVertex);
+	geometry_config.default_config.vertex_size = sizeof(TerrainVertex);
 
 	if (config->heightmap_name)
 	{
@@ -91,38 +92,38 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 
 		out_terrain->tile_count_x = texture_config.width - 1;
 		out_terrain->tile_count_z = texture_config.height - 1;
-		geometry_config.vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
-		out_terrain->vertex_infos.init(geometry_config.vertex_count, 0);
+		geometry_config.default_config.vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
+		out_terrain->vertex_infos.init(geometry_config.default_config.vertex_count, 0);
 
-		for (uint32 i = 0; i < geometry_config.vertex_count; i++)
+		for (uint32 i = 0; i < geometry_config.default_config.vertex_count; i++)
 		{
 			uint8 r = texture_config.pixels[(i * 4) + 0];
 			float32 height = r / 255.0f;
 			out_terrain->vertex_infos[i].height = height;
-			if (height > geometry_config.extents.max.y)
-				geometry_config.extents.max.y = height;
+			if (height > geometry_config.default_config.extents.max.y)
+				geometry_config.default_config.extents.max.y = height;
 		}
 
 		/*geometry_config.extents.max.y *= out_terrain->scale_y * 0.5f;
 		geometry_config.extents.min.y = -geometry_config.extents.max.y;*/
-		geometry_config.extents.max.y *= out_terrain->scale_y;
-		geometry_config.extents.min.y = 0.0f;
+		geometry_config.default_config.extents.max.y *= out_terrain->scale_y;
+		geometry_config.default_config.extents.min.y = 0.0f;
 
 		ResourceSystem::texture_loader_unload(&resource);
 	}
 	else
 	{
-		geometry_config.vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
-		out_terrain->vertex_infos.init(geometry_config.vertex_count, 0);
+		geometry_config.default_config.vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
+		out_terrain->vertex_infos.init(geometry_config.default_config.vertex_count, 0);
 	}
-	geometry_config.index_count = out_terrain->tile_count_x * out_terrain->tile_count_z * 6;
+	geometry_config.default_config.index_count = out_terrain->tile_count_x * out_terrain->tile_count_z * 6;
 
-	geometry_config.extents.max.x = out_terrain->tile_count_x * out_terrain->tile_scale_x * 0.5f;
-	geometry_config.extents.min.x = -geometry_config.extents.max.x;
-	geometry_config.extents.max.z = out_terrain->tile_count_z * out_terrain->tile_scale_z * 0.5f;
-	geometry_config.extents.min.z = -geometry_config.extents.max.z;
+	geometry_config.default_config.extents.max.x = out_terrain->tile_count_x * out_terrain->tile_scale_x * 0.5f;
+	geometry_config.default_config.extents.min.x = -geometry_config.default_config.extents.max.x;
+	geometry_config.default_config.extents.max.z = out_terrain->tile_count_z * out_terrain->tile_scale_z * 0.5f;
+	geometry_config.default_config.extents.min.z = -geometry_config.default_config.extents.max.z;
 	
-	Renderer::create_geometry(&geometry_config, &out_terrain->geometry);
+	Renderer::geometry_init(&geometry_config, &out_terrain->geometry);
 
 	SarrayRef<TerrainVertex> vertices(&out_terrain->geometry.vertices);
 	for (uint32 z = 0, i = 0; z < out_terrain->tile_count_z + 1; z++)
@@ -130,9 +131,9 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		for (uint32 x = 0; x < out_terrain->tile_count_x + 1; x++, i++)
 		{
 			TerrainVertex* v = &vertices[i];
-			v->position.x = x * out_terrain->tile_scale_x + geometry_config.extents.min.x;		
-			v->position.y = out_terrain->vertex_infos[i].height * out_terrain->scale_y + geometry_config.extents.min.y;
-			v->position.z = z * out_terrain->tile_scale_z + geometry_config.extents.min.z;
+			v->position.x = x * out_terrain->tile_scale_x + geometry_config.default_config.extents.min.x;		
+			v->position.y = out_terrain->vertex_infos[i].height * out_terrain->scale_y + geometry_config.default_config.extents.min.y;
+			v->position.z = z * out_terrain->tile_scale_z + geometry_config.default_config.extents.min.z;
 
 			v->color = { 1.0f, 1.0f, 1.0f, 1.0f };       // white;
 			v->normal = { 0.0f, 1.0f, 0.0f };  // TODO: calculate based on geometry.
@@ -165,10 +166,10 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		}
 	}
 
-    Renderer::generate_terrain_normals(geometry_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
-        geometry_config.index_count, out_terrain->geometry.indices.data);
-    Renderer::generate_terrain_tangents(geometry_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
-        geometry_config.index_count, out_terrain->geometry.indices.data);
+    Renderer::generate_terrain_normals(geometry_config.default_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
+        geometry_config.default_config.index_count, out_terrain->geometry.indices.data);
+    Renderer::generate_terrain_tangents(geometry_config.default_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
+        geometry_config.default_config.index_count, out_terrain->geometry.indices.data);
 
 
 	out_terrain->unique_id = identifier_acquire_new_id(out_terrain);
@@ -276,7 +277,7 @@ bool8 terrain_destroy(Terrain* terrain)
 	identifier_release_id(terrain->unique_id);
 	terrain->unique_id = Constants::max_u32;
 
-	Renderer::destroy_geometry(&terrain->geometry);
+	Renderer::geometry_destroy(&terrain->geometry);
     terrain->vertex_infos.free_data();
 
     terrain->materials.free_data();

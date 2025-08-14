@@ -36,7 +36,6 @@ namespace Renderer
 
 	void set_viewport(Math::Vec4f rect);
 	void reset_viewport();
-
 	void set_scissor(Math::Rect2Di rect);
 	void reset_scissor();
 
@@ -47,7 +46,6 @@ namespace Renderer
 
 	SHMAPI bool8 renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass);
 	SHMAPI void renderpass_destroy(RenderPass* pass);
-
 	SHMAPI bool8 renderpass_begin(RenderPass* pass, RenderTarget* target);
 	SHMAPI bool8 renderpass_end(RenderPass* pass);
 
@@ -60,28 +58,26 @@ namespace Renderer
 
 	SHMAPI bool8 geometry_load(GeometryData* geometry);
 	SHMAPI void geometry_unload(GeometryData* geometry);
-
 	SHMAPI void geometry_draw(GeometryData* geometry);
 
 	SHMAPI bool8 shader_create(const ShaderConfig* config, Shader* shader);
 	SHMAPI void shader_destroy(Shader* shader);
-
 	bool8 shader_init(Shader* shader);
 	bool8 shader_use(Shader* shader);
-
 	SHMAPI bool8 shader_bind_globals(Shader* shader);
 	SHMAPI bool8 shader_bind_instance(Shader* shader, uint32 instance_id);
-
 	SHMAPI bool8 shader_apply_globals(Shader* shader);
 	SHMAPI bool8 shader_apply_instance(Shader* shader);
-
 	SHMAPI bool8 shader_acquire_instance_resources(Shader* shader, uint32 texture_maps_count, uint32* out_instance_id);
 	SHMAPI bool8 shader_release_instance_resources(Shader* shader, uint32 instance_id);
-
 	SHMAPI bool8 shader_set_uniform(Shader* shader, ShaderUniform* uniform, const void* value);
 
 	bool8 texture_map_acquire_resources(TextureMap* out_map);
 	void texture_map_release_resources(TextureMap* out_map);
+
+	SHMAPI bool8 mesh_init(MeshConfig* config, Mesh* out_mesh);
+	SHMAPI bool8 mesh_init_from_resource_async(const char* resource_name, Mesh* out_mesh);
+	SHMAPI bool8 mesh_destroy(Mesh* mesh);
 
 	SHMAPI bool8 renderbuffer_create(const char* name, RenderBufferType type, uint64 size, bool8 use_freelist, RenderBuffer* out_buffer);
 	SHMAPI void renderbuffer_destroy(RenderBuffer* buffer);
@@ -100,7 +96,6 @@ namespace Renderer
 	SHMAPI bool8 renderbuffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool8 bind_only);
 
 	bool8 is_multithreaded();
-
 }
 
 

@@ -65,6 +65,7 @@ typedef Id16 GeometryId;
 
 struct GeometryResourceData
 {
+	char name[Constants::max_geometry_name_length];
 	uint32 vertex_size;
 	uint32 vertex_count;
 	uint32 index_count;
@@ -74,20 +75,41 @@ struct GeometryResourceData
 
 	Sarray<byte> vertices;	
 	Sarray<uint32> indices;
-	char name[Constants::max_geometry_name_length];
+};
+
+enum class GeometryConfigType
+{
+	Default,
+	Cube
 };
 
 struct GeometryConfig
 {
-	uint32 vertex_size;
-	uint32 vertex_count;
-	uint32 index_count;
+	struct DefaultConfig 
+	{
+		uint32 vertex_size;
+		uint32 vertex_count;
+		uint32 index_count;
 
-	Math::Vec3f center;
-	Math::Extents3D extents;
+		Math::Vec3f center;
+		Math::Extents3D extents;
 
-	byte* vertices;	
-	uint32* indices;
+		byte* vertices;	
+		uint32* indices;
+	};
+
+	struct CubeConfig
+	{
+		Math::Vec3f dim;
+		Math::Vec2f tiling;
+	};
+
+	GeometryConfigType type;
+	union
+	{
+		DefaultConfig default_config;
+		CubeConfig cube_config;
+	};
 };
 
 struct GeometryData
@@ -116,8 +138,6 @@ struct MeshGeometryConfig
 
 struct MeshGeometry
 {
-	char material_name[Constants::max_material_name_length];
-
 	GeometryData geometry_data;
 	MaterialId material_id;
 };
@@ -136,7 +156,6 @@ struct Mesh
 
 	ResourceState state;
 	UniqueId unique_id;
-	uint8 generation;
 	Sarray<MeshGeometry> geometries;
 	Math::Extents3D extents;
 	Math::Vec3f center;

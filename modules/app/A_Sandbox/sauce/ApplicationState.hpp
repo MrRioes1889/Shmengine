@@ -14,7 +14,6 @@
 // TODO: temp
 #include <resources/UIText.hpp>
 #include <resources/Skybox.hpp>
-#include <resources/Mesh.hpp>
 #include <resources/Line3D.hpp>
 #include <resources/Box3D.hpp>
 #include <resources/Gizmo3D.hpp>

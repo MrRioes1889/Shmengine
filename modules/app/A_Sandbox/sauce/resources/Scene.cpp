@@ -7,7 +7,6 @@
 #include <utility/Math.hpp>
 #include <utility/math/Geometry.hpp>
 #include <resources/loaders/MeshLoader.hpp>
-#include <resources/Mesh.hpp>
 #include <resources/Terrain.hpp>
 #include <resources/Skybox.hpp>
 #include <resources/Box3D.hpp>
@@ -163,7 +162,7 @@ bool8 scene_destroy(Scene* scene)
 
 	for (uint32 i = 0; i < scene->meshes.count; i++)
 	{
-		if (!mesh_destroy(&scene->meshes[i]))
+		if (!Renderer::mesh_destroy(&scene->meshes[i]))
 		{
 			SHMERROR("Failed to destroy mesh.");
 			return false;
@@ -310,24 +309,15 @@ bool8 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 	{
 	case SceneMeshType::Resource:
 	{
-		initialized = mesh_init_from_resource(config->resource_name, mesh);		
+		initialized = Renderer::mesh_init_from_resource_async(config->resource_name, mesh);		
 		break;
 	}
 	case SceneMeshType::Cube:
 	{
-		GeometryResourceData geo_resource = {};
-		Renderer::generate_cube_geometry(
-			config->cube_config.dim.x,
-			config->cube_config.dim.y,
-			config->cube_config.dim.z,
-			config->cube_config.tiling.x,
-			config->cube_config.tiling.y,
-			config->name,
-			&geo_resource
-		);
-
 		MeshGeometryConfig mesh_geo_config = {};
-		mesh_geo_config.geo_config = Renderer::geometry_get_config_from_resource(&geo_resource);
+		mesh_geo_config.geo_config.type = GeometryConfigType::Cube;
+		mesh_geo_config.geo_config.cube_config.dim = config->cube_config.dim;
+		mesh_geo_config.geo_config.cube_config.tiling = config->cube_config.tiling;
 		mesh_geo_config.material_name = config->cube_config.material_name;
 
 		MeshConfig mesh_config = {};
@@ -335,9 +325,7 @@ bool8 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 		mesh_config.g_configs_count = 1;
 		mesh_config.name = config->name;
 
-		initialized = mesh_init(&mesh_config, mesh);
-		geo_resource.indices.free_data();
-		geo_resource.vertices.free_data();
+		initialized = Renderer::mesh_init(&mesh_config, mesh);
 		break;
 	}
 	}

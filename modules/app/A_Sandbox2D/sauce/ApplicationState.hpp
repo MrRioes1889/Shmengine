@@ -9,7 +9,6 @@
 #include "ui/DebugConsole.hpp"
 
 // TODO: temp
-#include <resources/Mesh.hpp>
 #include <resources/UIText.hpp>
 // end
 

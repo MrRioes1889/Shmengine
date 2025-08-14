@@ -7,7 +7,6 @@
 
 #include <resources/ResourceTypes.hpp>
 #include <resources/Skybox.hpp>
-#include <resources/Mesh.hpp>
 #include <resources/Terrain.hpp>
 
 struct FrameData;
