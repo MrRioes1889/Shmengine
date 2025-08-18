@@ -4,7 +4,7 @@
 #include "ResourceTypes.hpp"
 #include "utility/String.hpp"
 #include "utility/math/Transform.hpp"
-#include "systems/MaterialSystem.hpp"
+#include "renderer/RendererTypes.hpp"
 
 struct Material;
 struct LightinInfo;

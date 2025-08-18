@@ -2,6 +2,7 @@
 
 #include "VulkanInternal.hpp"
 #include <resources/loaders/GenericLoader.hpp>
+#include <systems/TextureSystem.hpp>
 #include <systems/MaterialSystem.hpp>
 #include <systems/ShaderSystem.hpp>
 
@@ -12,7 +13,6 @@
 
 namespace Renderer::Vulkan
 {
-
 	extern VulkanContext* context;
 
 	static bool8 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage);
@@ -22,7 +22,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_shader_create(const ShaderConfig* config, Shader* shader)
 	{
-
 		if (shader->internal_data)
 		{
 			SHMERROR("Shader already has internal vulkan data assigned. Creation failed.");
@@ -509,7 +508,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_shader_apply_instance(Shader* s)
 	{
-		
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		uint32 image_index = context->bound_framebuffer_index;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;

@@ -149,8 +149,6 @@ struct ShaderInstance
 	Sarray<TextureMap*> instance_texture_maps;
 };
 
-typedef Id16 ShaderId;
-
 struct Shader
 {
 	String name;

@@ -9,7 +9,6 @@
 #include "utility/math/Transform.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "renderer/RendererFrontend.hpp"
-#include "renderer/Geometry.hpp"
 #include "containers/Sarray.hpp"
 
 #include "optick.h"

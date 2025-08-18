@@ -5,13 +5,14 @@
 #include "core/Identifier.hpp"
 #include "core/FrameData.hpp"
 #include "memory/LinearAllocator.hpp"
-#include "renderer/RendererTypes.hpp"
-#include "renderer/Geometry.hpp"
+#include "renderer/Utility.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "resources/loaders/TextureLoader.hpp"
 #include "resources/loaders/TerrainLoader.hpp"
 
 #include "systems/ShaderSystem.hpp"
+#include "systems/TextureSystem.hpp"
+#include "systems/MaterialSystem.hpp"
 
 bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 {
@@ -166,9 +167,9 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		}
 	}
 
-    Renderer::generate_terrain_normals(geometry_config.default_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
+    Renderer::geometry_generate_normals<TerrainVertex>(geometry_config.default_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
         geometry_config.default_config.index_count, out_terrain->geometry.indices.data);
-    Renderer::generate_terrain_tangents(geometry_config.default_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
+    Renderer::geometry_generate_tangents<TerrainVertex>(geometry_config.default_config.vertex_count, (TerrainVertex*)out_terrain->geometry.vertices.data,
         geometry_config.default_config.index_count, out_terrain->geometry.indices.data);
 
 

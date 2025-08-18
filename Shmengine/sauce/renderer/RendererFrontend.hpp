@@ -56,6 +56,8 @@ namespace Renderer
 	SHMAPI bool8 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 	SHMAPI void texture_destroy(Texture* texture);
 
+	SHMAPI bool8 geometry_init(GeometryConfig* config, GeometryData* g);
+	SHMAPI void geometry_destroy(GeometryData* g);
 	SHMAPI bool8 geometry_load(GeometryData* geometry);
 	SHMAPI void geometry_unload(GeometryData* geometry);
 	SHMAPI void geometry_draw(GeometryData* geometry);
@@ -74,6 +76,10 @@ namespace Renderer
 
 	bool8 texture_map_acquire_resources(TextureMap* out_map);
 	void texture_map_release_resources(TextureMap* out_map);
+
+	SHMAPI bool8 material_init(MaterialConfig* config, Material* out_material);
+	SHMAPI bool8 material_init_from_resource_async(const char* resource_name, Material* out_material);
+	SHMAPI bool8 material_destroy(Material* material);
 
 	SHMAPI bool8 mesh_init(MeshConfig* config, Mesh* out_mesh);
 	SHMAPI bool8 mesh_init_from_resource_async(const char* resource_name, Mesh* out_mesh);

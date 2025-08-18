@@ -2,7 +2,6 @@
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
-#include "renderer/Geometry.hpp"
 #include "resources/loaders/MeshLoader.hpp"
 #include "utility/math/Transform.hpp"
 
@@ -12,11 +11,12 @@
 
 namespace Renderer
 {
+	static bool8 _mesh_init(MeshConfig* config, Mesh* out_mesh);
+	static void _mesh_destroy(Mesh* mesh);
+
 	static void _mesh_init_from_resource_job_success(void* params);
 	static void _mesh_init_from_resource_job_fail(void* params);
 	static bool8 _mesh_init_from_resource_job(uint32 thread_index, void* user_data);
-
-	static bool8 _mesh_init(MeshConfig* config, Mesh* out_mesh);
 
 	bool8 mesh_init(MeshConfig* config, Mesh* out_mesh)
 	{
@@ -71,25 +71,10 @@ namespace Renderer
 	bool8 mesh_destroy(Mesh* mesh)
 	{
 		if (mesh->state != ResourceState::Initialized)
-			return true;
+			return false;
 
 		mesh->state = ResourceState::Destroying;
-
-		identifier_release_id(mesh->unique_id);
-
-		for (uint32 i = 0; i < mesh->geometries.capacity; ++i)
-		{     
-			GeometryData* g_data = &mesh->geometries[i].geometry_data;
-			Renderer::geometry_unload(g_data);
-			if (mesh->geometries[i].material_id.is_valid())
-			{      
-				MaterialSystem::release_reference(mesh->geometries[i].material_id);
-				mesh->geometries[i].material_id.invalidate();
-			}
-		}
-
-		mesh->name.free_data();
-
+		_mesh_destroy(mesh);
 		mesh->state = ResourceState::Destroyed;
 		return true;
 	}
@@ -129,6 +114,23 @@ namespace Renderer
 		return true;
 	}
 
+	static void _mesh_destroy(Mesh* mesh)
+	{
+		identifier_release_id(mesh->unique_id);
+
+		for (uint32 i = 0; i < mesh->geometries.capacity; ++i)
+		{     
+			GeometryData* g_data = &mesh->geometries[i].geometry_data;
+			Renderer::geometry_unload(g_data);
+			if (mesh->geometries[i].material_id.is_valid())
+			{      
+				MaterialSystem::release_reference(mesh->geometries[i].material_id);
+				mesh->geometries[i].material_id.invalidate();
+			}
+		}
+
+		mesh->name.free_data();
+	}
 
 	static void _mesh_init_from_resource_job_success(void* params) 
 	{
@@ -162,7 +164,8 @@ namespace Renderer
 		Mesh* mesh = load_params->out_mesh;
 
 		ResourceSystem::mesh_loader_unload(&load_params->resource);
-		mesh_destroy(load_params->out_mesh);
+		_mesh_destroy(mesh);
+		mesh->state = ResourceState::Destroyed;
 		SHMERRORV("Failed to load mesh '%s'.", mesh->name.c_str());
 	}
 

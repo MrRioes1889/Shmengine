@@ -17,7 +17,6 @@
 #include <utility/Sort.hpp>
 
 // TODO: temp
-#include <renderer/Geometry.hpp>
 #include <utility/math/Transform.hpp>
 #include <systems/MaterialSystem.hpp>
 #include <systems/RenderViewSystem.hpp>

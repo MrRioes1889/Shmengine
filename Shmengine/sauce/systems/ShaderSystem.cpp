@@ -5,6 +5,7 @@
 #include "containers/LinearStorage.hpp"
 
 #include "renderer/RendererFrontend.hpp"
+#include "TextureSystem.hpp"
 #include "MaterialSystem.hpp"
 
 #include "resources/loaders/ShaderLoader.hpp"

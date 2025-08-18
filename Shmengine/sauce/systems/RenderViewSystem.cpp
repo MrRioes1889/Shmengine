@@ -10,6 +10,7 @@
 #include "containers/LinearStorage.hpp"
 #include "renderer/RendererFrontend.hpp"
 #include "systems/TextureSystem.hpp"
+#include "systems/MaterialSystem.hpp"
 #include "optick.h"
 
 #include "renderer/views/RenderViewSkybox.hpp"

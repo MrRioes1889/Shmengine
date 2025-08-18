@@ -6,7 +6,7 @@
 #include "core/Logging.hpp"
 #include "core/Memory.hpp"
 #include "utility/String.hpp"
-#include "renderer/Geometry.hpp"
+#include "renderer/Utility.hpp"
 #include "platform/FileSystem.hpp"
 
 enum class MeshFileType {
@@ -365,7 +365,7 @@ namespace ResourceSystem
             SHMDEBUGV("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
 
             geometry_resource_deduplicate_vertices(g);
-            Renderer::generate_mesh_tangents(g->vertex_count, (Renderer::Vertex3D*)g->vertices.data, g->index_count, g->indices.data);
+            Renderer::geometry_generate_tangents<Renderer::Vertex3D>(g->vertex_count, (Renderer::Vertex3D*)g->vertices.data, g->index_count, g->indices.data);
 
             // TODO: Maybe shrink down vertex array to count after deduplication!
         }

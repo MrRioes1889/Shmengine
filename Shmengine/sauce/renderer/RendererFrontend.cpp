@@ -18,7 +18,6 @@
 // TODO: temporary
 #include "utility/CString.hpp"
 #include "core/Event.hpp"
-#include "Geometry.hpp"
 // end
 
 namespace Renderer
@@ -550,7 +549,6 @@ namespace Renderer
 
 	bool8 shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32* out_instance_id)
 	{
-
 		// TODO: dynamic
 		*out_instance_id = Constants::max_u32;
 		for (uint32 i = 0; i < 1024; ++i)
@@ -601,7 +599,6 @@ namespace Renderer
 
 	bool8 shader_set_uniform(Shader* s, ShaderUniform* uniform, const void* value) 
 	{
-
 		if (uniform->type == ShaderUniformType::Sampler)
 		{
 			if (uniform->scope == ShaderScope::Global)
@@ -613,7 +610,6 @@ namespace Renderer
 		}
 
 		return system_state->module.shader_set_uniform(s, uniform, value);	
-		
 	}
 
 	bool8 texture_map_acquire_resources(TextureMap* out_map)

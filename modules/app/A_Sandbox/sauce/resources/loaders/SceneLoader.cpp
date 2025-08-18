@@ -7,12 +7,10 @@
 #include <utility/math/Transform.hpp>
 #include <platform/FileSystem.hpp>
 #include <renderer/RendererTypes.hpp>
-#include <renderer/Geometry.hpp>
 #include <resources/loaders/MeshLoader.hpp>
 
 namespace ResourceSystem
 {
-
     static const char* loader_type_path = "scenes/";
 
 #define PARSE_VALUE(s, v) if (!CString::parse(s, v)) \

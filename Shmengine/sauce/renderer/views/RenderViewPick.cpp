@@ -8,6 +8,7 @@
 #include <utility/Sort.hpp>
 #include <resources/loaders/ShaderLoader.hpp>
 #include <systems/ShaderSystem.hpp>
+#include <systems/TextureSystem.hpp>
 #include <systems/MaterialSystem.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <renderer/RendererFrontend.hpp>

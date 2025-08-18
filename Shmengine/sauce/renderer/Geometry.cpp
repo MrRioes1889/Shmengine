@@ -1,7 +1,5 @@
-#include "Geometry.hpp"
-
 #include "RendererFrontend.hpp"
-#include "utility/Math.hpp"
+#include "renderer/Utility.hpp"
 #include "resources/Terrain.hpp"
 #include "systems/MaterialSystem.hpp"
 
@@ -69,19 +67,6 @@ namespace Renderer
 		g->loaded = false;
 	}
 
-	GeometryConfig geometry_get_config_from_resource(GeometryResourceData* resource)
-	{
-		GeometryConfig geo_config = {};
-		geo_config.type = GeometryConfigType::Default;
-		geo_config.default_config.center = resource->center;
-		geo_config.default_config.extents = resource->extents;
-		geo_config.default_config.index_count = resource->index_count;
-		geo_config.default_config.indices = resource->indices.data;
-		geo_config.default_config.vertex_count = resource->vertex_count;
-		geo_config.default_config.vertex_size = resource->vertex_size;
-		geo_config.default_config.vertices = resource->vertices.data;
-		return geo_config;
-	}
 
 	static void _generate_plane_geometry(float32 width, float32 height, uint32 x_segment_count, uint32 y_segment_count, float32 tile_x, float32 tile_y, GeometryData* out_geometry)
 	{
@@ -335,123 +320,7 @@ namespace Renderer
 			out_geometry->indices[i_offset + 5] = v_offset + 1;
 		}
 
-		generate_mesh_tangents(out_geometry->vertex_count, (Vertex3D*)out_geometry->vertices.data, out_geometry->index_count, out_geometry->indices.data );
-	}
-
-	void generate_mesh_normals(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices)
-	{
-		for (uint32 i = 0; i < indices_count; i += 3) 
-		{
-			uint32 i0 = indices[i + 0];
-			uint32 i1 = indices[i + 1];
-			uint32 i2 = indices[i + 2];
-
-			Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
-			Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
-
-			Math::Vec3f normal = Math::normalized(Math::cross_product(edge1, edge2));
-
-			// NOTE: This just generates a face normal. Smoothing out should be done in a separate pass if desired.
-			vertices[i0].normal = normal;
-			vertices[i1].normal = normal;
-			vertices[i2].normal = normal;
-		}
-	}
-
-	void generate_mesh_tangents(uint32 vertices_count, Vertex3D* vertices, uint32 indices_count, uint32* indices)
-	{
-
-		for (uint32 i = 0; i < indices_count; i += 3) {
-			uint32 i0 = indices[i + 0];
-			uint32 i1 = indices[i + 1];
-			uint32 i2 = indices[i + 2];
-
-			Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
-			Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
-
-			float32 deltaU1 = vertices[i1].tex_coords.x - vertices[i0].tex_coords.x;
-			float32 deltaV1 = vertices[i1].tex_coords.y - vertices[i0].tex_coords.y;
-
-			float32 deltaU2 = vertices[i2].tex_coords.x - vertices[i0].tex_coords.x;
-			float32 deltaV2 = vertices[i2].tex_coords.y - vertices[i0].tex_coords.y;
-
-			float32 dividend = (deltaU1 * deltaV2 - deltaU2 * deltaV1);
-			float32 fc = 1.0f / dividend;
-
-			Math::Vec3f tangent = {
-				(fc * (deltaV2 * edge1.x - deltaV1 * edge2.x)),
-				(fc * (deltaV2 * edge1.y - deltaV1 * edge2.y)),
-				(fc * (deltaV2 * edge1.z - deltaV1 * edge2.z)) };
-
-			tangent = Math::normalized(tangent);
-
-			float32 sx = deltaU1, sy = deltaU2;
-			float32 tx = deltaV1, ty = deltaV2;
-			float32 handedness = ((tx * sy - ty * sx) < 0.0f) ? -1.0f : 1.0f;
-			Math::Vec3f t4 = tangent * handedness;
-			vertices[i0].tangent = t4;
-			vertices[i1].tangent = t4;
-			vertices[i2].tangent = t4;
-		}
-
-	}
-
-	void generate_terrain_normals(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices)
-	{
-
-		for (uint32 i = 0; i < indices_count; i += 3)
-		{
-			uint32 i0 = indices[i];
-			uint32 i1 = indices[i + 1];
-			uint32 i2 = indices[i + 2];
-
-			Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
-			Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
-			Math::Vec3f normal = Math::normalized(Math::cross_product(edge1, edge2));
-
-			vertices[i0].normal = normal;
-			vertices[i1].normal = normal;
-			vertices[i2].normal = normal;
-		}
-
-	}
-
-	void generate_terrain_tangents(uint32 vertices_count, TerrainVertex* vertices, uint32 indices_count, uint32* indices)
-	{
-
-		for (uint32 i = 0; i < indices_count; i += 3) {
-			uint32 i0 = indices[i + 0];
-			uint32 i1 = indices[i + 1];
-			uint32 i2 = indices[i + 2];
-
-			Math::Vec3f edge1 = vertices[i1].position - vertices[i0].position;
-			Math::Vec3f edge2 = vertices[i2].position - vertices[i0].position;
-
-			float32 deltaU1 = vertices[i1].tex_coords.x - vertices[i0].tex_coords.x;
-			float32 deltaV1 = vertices[i1].tex_coords.y - vertices[i0].tex_coords.y;
-
-			float32 deltaU2 = vertices[i2].tex_coords.x - vertices[i0].tex_coords.x;
-			float32 deltaV2 = vertices[i2].tex_coords.y - vertices[i0].tex_coords.y;
-
-			float32 dividend = (deltaU1 * deltaV2 - deltaU2 * deltaV1);
-			float32 fc = 1.0f / dividend;
-
-			Math::Vec3f tangent = {
-				(fc * (deltaV2 * edge1.x - deltaV1 * edge2.x)),
-				(fc * (deltaV2 * edge1.y - deltaV1 * edge2.y)),
-				(fc * (deltaV2 * edge1.z - deltaV1 * edge2.z)) };
-
-			tangent = Math::normalized(tangent);
-
-			float32 sx = deltaU1, sy = deltaU2;
-			float32 tx = deltaV1, ty = deltaV2;
-			float32 handedness = ((tx * sy - ty * sx) < 0.0f) ? -1.0f : 1.0f;
-			Math::Vec3f t4 = tangent * handedness;
-			vertices[i0].tangent = t4;
-			vertices[i1].tangent = t4;
-			vertices[i2].tangent = t4;
-		}
-
+		geometry_generate_tangents<Vertex3D>(out_geometry->vertex_count, (Vertex3D*)out_geometry->vertices.data, out_geometry->index_count, out_geometry->indices.data );
 	}
 
 }

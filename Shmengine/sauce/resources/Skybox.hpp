@@ -3,7 +3,7 @@
 #include "ResourceTypes.hpp"
 #include "utility/MathTypes.hpp"
 #include "utility/String.hpp"
-#include "systems/MaterialSystem.hpp"
+#include "renderer/RendererTypes.hpp"
 
 struct GeometryData;
 namespace Renderer 

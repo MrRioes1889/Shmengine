@@ -3,7 +3,6 @@
 #include "core/FrameData.hpp"
 #include "memory/LinearAllocator.hpp"
 #include "renderer/RendererFrontend.hpp"
-#include "renderer/Geometry.hpp"
 #include "systems/TextureSystem.hpp"
 #include "systems/ShaderSystem.hpp"
 

@@ -10,7 +10,6 @@
 #include <systems/MaterialSystem.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <renderer/RendererFrontend.hpp>
-#include <renderer/Geometry.hpp>
 #include <renderer/Camera.hpp>
 #include <utility/Sort.hpp>
 

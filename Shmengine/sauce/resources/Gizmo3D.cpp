@@ -3,7 +3,6 @@
 #include "core/Memory.hpp"
 #include "core/Logging.hpp"
 #include "core/Identifier.hpp"
-#include "renderer/Geometry.hpp"
 #include "renderer/RendererFrontend.hpp"
 
 static void update_vertices(Gizmo3D* out_gizmo);

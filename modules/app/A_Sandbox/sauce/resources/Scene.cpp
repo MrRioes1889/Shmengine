@@ -12,7 +12,6 @@
 #include <resources/Box3D.hpp>
 #include <renderer/Camera.hpp>
 #include <renderer/RendererFrontend.hpp>
-#include <renderer/Geometry.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <systems/ShaderSystem.hpp>
 
