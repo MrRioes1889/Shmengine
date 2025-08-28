@@ -166,7 +166,7 @@ namespace TextureSystem
 		texture->type = TextureType::Plane;
 		texture->flags = 0;
 		texture->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
-		goto_if(!Renderer::texture_create(texture), fail);
+		goto_if(!Renderer::texture_init(texture), fail);
 
         system_state->texture_ref_counters[id] = { 1, true };
         return texture;
@@ -291,7 +291,7 @@ namespace TextureSystem
 		TextureConfig config = ResourceSystem::texture_loader_get_config_from_resource(&load_params->resource);
 
 		SHMTRACEV("Loading texture '%s'.", load_params->resource_name);
-		Renderer::texture_create(load_params->out_texture);
+		Renderer::texture_init(load_params->out_texture);
 		Renderer::texture_write_data(load_params->out_texture, 0, image_size, config.pixels);
 
 		SHMTRACEV("Successfully loaded texture '%s'.", load_params->resource_name);
@@ -407,7 +407,7 @@ namespace TextureSystem
 
 		}
 
-		Renderer::texture_create(t);
+		Renderer::texture_init(t);
 		Renderer::texture_write_data(t, 0, pixels.capacity, pixels.data);
 		pixels.free_data();
 		return true;
@@ -457,7 +457,7 @@ namespace TextureSystem
 		system_state->default_texture.type = TextureType::Plane;
 		system_state->default_texture.flags = 0;
 
-		Renderer::texture_create(&system_state->default_texture);
+		Renderer::texture_init(&system_state->default_texture);
 		Renderer::texture_write_data(&system_state->default_texture, 0, sizeof(pixels), pixels);
 
 		// Diffuse texture.
@@ -470,7 +470,7 @@ namespace TextureSystem
 		system_state->default_diffuse.channel_count = 4;
 		system_state->default_diffuse.type = TextureType::Plane;
 		system_state->default_diffuse.flags = 0;
-		Renderer::texture_create(&system_state->default_diffuse);
+		Renderer::texture_init(&system_state->default_diffuse);
 		Renderer::texture_write_data(&system_state->default_diffuse, 0, sizeof(diff_pixels), diff_pixels);
 
 		// Specular texture.
@@ -484,7 +484,7 @@ namespace TextureSystem
 		system_state->default_specular.channel_count = 4;
 		system_state->default_specular.type = TextureType::Plane;
 		system_state->default_specular.flags = 0;
-		Renderer::texture_create(&system_state->default_specular);
+		Renderer::texture_init(&system_state->default_specular);
 		Renderer::texture_write_data(&system_state->default_specular, 0, sizeof(spec_pixels), spec_pixels);
 
 		// Normal texture
@@ -511,7 +511,7 @@ namespace TextureSystem
 		system_state->default_normal.channel_count = 4;
 		system_state->default_normal.type = TextureType::Plane;
 		system_state->default_normal.flags = 0;
-		Renderer::texture_create(&system_state->default_normal);
+		Renderer::texture_init(&system_state->default_normal);
 		Renderer::texture_write_data(&system_state->default_normal, 0, sizeof(normal_pixels), normal_pixels);
 
 	}

@@ -1,7 +1,5 @@
 #include "RendererFrontend.hpp"
 #include "renderer/Utility.hpp"
-#include "resources/Terrain.hpp"
-#include "systems/MaterialSystem.hpp"
 
 #include "optick.h"
 

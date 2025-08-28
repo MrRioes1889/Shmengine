@@ -22,15 +22,15 @@ namespace Renderer::Vulkan
 		out_module->device_sleep_till_idle = Vulkan::vk_device_sleep_till_idle;
 		out_module->begin_frame = Vulkan::vk_begin_frame;
 		out_module->end_frame = Vulkan::vk_end_frame;
-		out_module->renderpass_create = Vulkan::vk_renderpass_create;
+		out_module->renderpass_init = Vulkan::vk_renderpass_init;
 		out_module->renderpass_destroy = Vulkan::vk_renderpass_destroy;
 		out_module->renderpass_begin = Vulkan::vk_renderpass_begin;
 		out_module->renderpass_end = Vulkan::vk_renderpass_end;
-		out_module->render_target_create = Vulkan::vk_render_target_create;
+		out_module->render_target_init = Vulkan::vk_render_target_create;
 		out_module->render_target_destroy = Vulkan::vk_render_target_destroy;
 		out_module->on_resized = Vulkan::on_resized;
 
-		out_module->texture_create = Vulkan::vk_texture_create;
+		out_module->texture_init = Vulkan::vk_texture_init;
 		out_module->texture_resize = Vulkan::vk_texture_resize;
 		out_module->texture_write_data = Vulkan::vk_texture_write_data;
 		out_module->texture_read_data = Vulkan::vk_texture_read_data;
@@ -38,9 +38,9 @@ namespace Renderer::Vulkan
 		out_module->texture_destroy = Vulkan::vk_texture_destroy;
 
 		out_module->shader_create = Vulkan::vk_shader_create;
+		out_module->shader_init = Vulkan::vk_shader_init;
 		out_module->shader_destroy = Vulkan::vk_shader_destroy;
 		out_module->shader_set_uniform = Vulkan::vk_shader_set_uniform;
-		out_module->shader_init = Vulkan::vk_shader_init;
 		out_module->shader_use = Vulkan::vk_shader_use;
 		out_module->shader_bind_globals = Vulkan::vk_shader_bind_globals;
 		out_module->shader_bind_instance = Vulkan::vk_shader_bind_instance;
@@ -50,11 +50,11 @@ namespace Renderer::Vulkan
 		out_module->shader_acquire_instance_resources = Vulkan::vk_shader_acquire_instance_resources;
 		out_module->shader_release_instance_resources = Vulkan::vk_shader_release_instance_resources;
 
-		out_module->texture_map_acquire_resources = Vulkan::vk_texture_map_acquire_resources;
-		out_module->texture_map_release_resources = Vulkan::vk_texture_map_release_resources;
+		out_module->texture_map_init = Vulkan::vk_texture_map_init;
+		out_module->texture_map_destroy = Vulkan::vk_texture_map_destroy;
 
-		out_module->renderbuffer_create_internal = Vulkan::vk_buffer_create;
-		out_module->renderbuffer_destroy_internal = Vulkan::vk_buffer_destroy;
+		out_module->renderbuffer_init = Vulkan::vk_buffer_init;
+		out_module->renderbuffer_destroy = Vulkan::vk_buffer_destroy;
 		out_module->renderbuffer_bind = Vulkan::vk_buffer_bind;
 		out_module->renderbuffer_unbind = Vulkan::vk_buffer_unbind;
 		out_module->renderbuffer_map_memory = Vulkan::vk_buffer_map_memory;

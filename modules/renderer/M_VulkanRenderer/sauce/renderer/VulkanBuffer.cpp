@@ -27,7 +27,7 @@ namespace Renderer::Vulkan
 		return (buffer->memory_property_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
 
-	bool8 vk_buffer_create(RenderBuffer* buffer)
+	bool8 vk_buffer_init(RenderBuffer* buffer)
 	{
 		buffer->internal_data.init(sizeof(VulkanBuffer), 0, AllocationTag::Vulkan);
 		if (!vk_buffer_create_internal((VulkanBuffer*)buffer->internal_data.data, buffer->type, buffer->size, buffer->name.c_str()))

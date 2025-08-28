@@ -137,7 +137,7 @@ namespace RenderViewSystem
 		out_view->renderpasses.init(config->renderpass_count, 0, AllocationTag::Renderer);
 		for (uint32 pass_i = 0; pass_i < out_view->renderpasses.capacity; pass_i++)
 		{
-			if (!Renderer::renderpass_create(&config->renderpass_configs[pass_i], &out_view->renderpasses[pass_i]))
+			if (!Renderer::renderpass_init(&config->renderpass_configs[pass_i], &out_view->renderpasses[pass_i]))
 			{
 				SHMERROR("Failed to create renderpass!");
 				return false;

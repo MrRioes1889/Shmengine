@@ -600,8 +600,8 @@ namespace ResourceSystem
         {
             resource->map_configs[i].name = resource->maps[i].name;
             resource->map_configs[i].texture_name = resource->maps[i].texture_name;
-            resource->map_configs[i].filter_min = resource->maps[i].filter_min;
-            resource->map_configs[i].filter_mag = resource->maps[i].filter_mag;
+            resource->map_configs[i].filter_minify = resource->maps[i].filter_min;
+            resource->map_configs[i].filter_magnify = resource->maps[i].filter_mag;
             resource->map_configs[i].repeat_u = resource->maps[i].repeat_u;
             resource->map_configs[i].repeat_v = resource->maps[i].repeat_v;
             resource->map_configs[i].repeat_w = resource->maps[i].repeat_w;

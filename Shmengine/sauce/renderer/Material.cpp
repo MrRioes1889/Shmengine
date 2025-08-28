@@ -11,7 +11,6 @@
 
 namespace Renderer
 {
-    static bool8 _assign_map(const TextureMapConfig* config, TextureMap* map);
 	static bool8 _material_init(MaterialConfig* config, Material* out_material);
     static void _material_destroy(Material* material);
 
@@ -78,23 +77,6 @@ namespace Renderer
 		return true;
 	}
 
-    static bool8 _assign_map(const TextureMapConfig* config, TextureMap* map)
-    {
-        map->filter_minify = config->filter_min;
-        map->filter_magnify = config->filter_mag;
-        map->repeat_u = config->repeat_u;
-        map->repeat_v = config->repeat_v;
-        map->repeat_w = config->repeat_w;
-
-        if (!Renderer::texture_map_acquire_resources(map))
-        {
-            SHMERROR("Unable to acquire resources for texture map.");
-            return false;
-        }
-
-        return true;
-    }
-
 	static bool8 _material_init(MaterialConfig* config, Material* out_material)
 	{
         CString::copy(config->name, out_material->name, Constants::max_material_name_length);
@@ -103,7 +85,7 @@ namespace Renderer
         out_material->type = config->type;
 
 		TextureMapConfig default_map_config = { 0 };
-		default_map_config.filter_mag = default_map_config.filter_min = TextureFilter::LINEAR;
+		default_map_config.filter_magnify = default_map_config.filter_minify = TextureFilter::LINEAR;
 		default_map_config.repeat_u = default_map_config.repeat_v = default_map_config.repeat_w = TextureRepeat::MIRRORED_REPEAT;
 		default_map_config.texture_name = 0;
 
@@ -130,9 +112,9 @@ namespace Renderer
             out_material->maps.init(3, 0);
 
 
-            goto_if(!_assign_map(config->maps_count > 0 ? &config->maps[0] : &default_map_config, &out_material->maps[0]), fail);
-            goto_if(!_assign_map(config->maps_count > 1 ? &config->maps[1] : &default_map_config, &out_material->maps[1]), fail);
-            goto_if(!_assign_map(config->maps_count > 2 ? &config->maps[2] : &default_map_config, &out_material->maps[2]), fail);
+            goto_if(!Renderer::texture_map_init(config->maps_count > 0 ? &config->maps[0] : &default_map_config, &out_material->maps[0]), fail);
+            goto_if(!Renderer::texture_map_init(config->maps_count > 1 ? &config->maps[1] : &default_map_config, &out_material->maps[1]), fail);
+            goto_if(!Renderer::texture_map_init(config->maps_count > 2 ? &config->maps[2] : &default_map_config, &out_material->maps[2]), fail);
             out_material->maps[0].texture = TextureSystem::get_default_diffuse_texture();
             out_material->maps[1].texture = TextureSystem::get_default_specular_texture();
             out_material->maps[2].texture = TextureSystem::get_default_normal_texture();
@@ -158,7 +140,7 @@ namespace Renderer
 
             out_material->maps.init(1, 0);
 
-            goto_if(!_assign_map(config->maps_count > 0 ? &config->maps[0] : &default_map_config, &out_material->maps[0]), fail);
+            goto_if(!Renderer::texture_map_init(config->maps_count > 0 ? &config->maps[0] : &default_map_config, &out_material->maps[0]), fail);
             out_material->maps[0].texture = TextureSystem::get_default_diffuse_texture();
             out_material->shader_id = ShaderSystem::get_shader_id(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
             break;
@@ -195,7 +177,7 @@ namespace Renderer
         for (uint32 i = 0; i < material->maps.capacity; i++)
         {
             TextureSystem::release(material->maps[i].texture->name);
-            Renderer::texture_map_release_resources(&material->maps[i]);
+            Renderer::texture_map_destroy(&material->maps[i]);
         }
 
         // Release renderer resources.

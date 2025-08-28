@@ -470,7 +470,7 @@ namespace Renderer::Vulkan
 		vk_set_scissor(context->scissor_rect);
 	}
 
-	bool8 vk_texture_create(Texture* texture)
+	bool8 vk_texture_init(Texture* texture)
 	{
 		VkFormat image_format;
 		if (texture->flags & TextureFlags::IsDepth)
@@ -536,7 +536,7 @@ namespace Renderer::Vulkan
 			texture->width = width;
 			texture->height = height;
 
-			vk_texture_create(texture);
+			vk_texture_init(texture);
 		}		
 	}
 

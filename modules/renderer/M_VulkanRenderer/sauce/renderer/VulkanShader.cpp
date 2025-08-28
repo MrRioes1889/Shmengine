@@ -4,7 +4,6 @@
 #include <resources/loaders/GenericLoader.hpp>
 #include <systems/TextureSystem.hpp>
 #include <systems/MaterialSystem.hpp>
-#include <systems/ShaderSystem.hpp>
 
 // TODO: Get rid of frontend include
 #include <renderer/RendererFrontend.hpp>
@@ -520,8 +519,6 @@ namespace Renderer::Vulkan
 		uint32 descriptor_count = 0;
 		uint32 descriptor_index = 0;
 
-		// Descriptor 0 - Uniform buffer
-		// Only do this if the descriptor has not yet been updated.
 		uint8* instance_ubo_generation = &(instance_descriptor->descriptor_states[descriptor_index].generations[image_index]);
 
 		VkDescriptorBufferInfo buffer_info;
@@ -538,18 +535,17 @@ namespace Renderer::Vulkan
 
 		if (s->instance_uniform_count)
 		{	
-			if (*instance_ubo_generation == Constants::max_u8 /*|| *global_ubo_generation != material->generation*/)
+			if (*instance_ubo_generation == Constants::max_u8)
 			{
 				descriptor_writes[descriptor_count] = ubo_descriptor;
 				descriptor_count++;
 
 				// Update the frame generation. In this case it is only needed once since this is a buffer.
-				*instance_ubo_generation = 1;  // material->generation; TODO: some generation from... somewhere
+				*instance_ubo_generation = 1;
 			}
 			descriptor_index++;
 		}
 
-		// Samplers will always be in the binding. If the binding count is less than 2, there are no samplers.
 		VkDescriptorImageInfo image_infos[RendererConfig::shader_max_instance_textures];
 		if (s->instance_uniform_sampler_count)
 		{
@@ -569,14 +565,6 @@ namespace Renderer::Vulkan
 				image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				image_infos[i].imageView = image->view;
 				image_infos[i].sampler = (VkSampler)map->internal_data;
-
-				// TODO: change up descriptor state to handle this properly.
-				// Sync frame generation if not using a default texture.
-				// if (t->generation != Constants::max_u32) {
-				//     *descriptor_generation = t->generation;
-				//     *descriptor_id = t->id;
-				// }		
-				// 	
 
 				update_sampler_count++;
 			}
@@ -598,12 +586,10 @@ namespace Renderer::Vulkan
 		}
 
 		return true;
-
 	}
 
 	bool8 vk_shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32 instance_id)
 	{
-
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 
 		uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
@@ -749,7 +735,7 @@ namespace Renderer::Vulkan
 		}
 	}
 
-	bool8 vk_texture_map_acquire_resources(TextureMap* out_map) 
+	bool8 vk_texture_map_init(TextureMap* out_map) 
 	{
 		// Create a sampler for the texture
 		VkSamplerCreateInfo sampler_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
@@ -784,7 +770,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	void vk_texture_map_release_resources(TextureMap* map) {
+	void vk_texture_map_destroy(TextureMap* map) {
 		if (map) {
 			vkDeviceWaitIdle(context->device.logical_device);
 			vkDestroySampler(context->device.logical_device, (VkSampler)map->internal_data, context->allocator_callbacks);

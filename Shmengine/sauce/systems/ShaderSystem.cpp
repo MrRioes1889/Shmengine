@@ -84,7 +84,7 @@ namespace ShaderSystem
 		}
 		system_state->shader_storage.destroy();
 
-		Renderer::texture_map_release_resources(&system_state->default_texture_map);
+		Renderer::texture_map_destroy(&system_state->default_texture_map);
 
 		system_state = 0;
 	}
@@ -485,18 +485,19 @@ namespace ShaderSystem
 
 	static bool8 _create_default_texture_map()
 	{
-		system_state->default_texture_map.filter_magnify = TextureFilter::LINEAR;
-		system_state->default_texture_map.filter_minify = TextureFilter::LINEAR;
-		system_state->default_texture_map.repeat_u = TextureRepeat::REPEAT;
-		system_state->default_texture_map.repeat_v = TextureRepeat::REPEAT;
-		system_state->default_texture_map.repeat_w = TextureRepeat::REPEAT;
+		TextureMapConfig map_config = {};
+		map_config.filter_magnify = TextureFilter::LINEAR;
+		map_config.filter_minify = TextureFilter::LINEAR;
+		map_config.repeat_u = TextureRepeat::REPEAT;
+		map_config.repeat_v = TextureRepeat::REPEAT;
+		map_config.repeat_w = TextureRepeat::REPEAT;
 
-		system_state->default_texture_map.texture = TextureSystem::get_default_diffuse_texture();
-
-		if (!Renderer::texture_map_acquire_resources(&system_state->default_texture_map)) {
+		if (!Renderer::texture_map_init(&map_config, &system_state->default_texture_map)) {
 			SHMERROR("Failed to acquire resources for default texture map.");
 			return false;
 		}
+
+		system_state->default_texture_map.texture = TextureSystem::get_default_diffuse_texture();
 		return true;
 	}
 

@@ -44,12 +44,12 @@ namespace Renderer
 	uint32 get_window_attachment_index();
 	SHMAPI uint32 get_window_attachment_count();
 
-	SHMAPI bool8 renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass);
+	SHMAPI bool8 renderpass_init(const RenderPassConfig* config, RenderPass* out_renderpass);
 	SHMAPI void renderpass_destroy(RenderPass* pass);
 	SHMAPI bool8 renderpass_begin(RenderPass* pass, RenderTarget* target);
 	SHMAPI bool8 renderpass_end(RenderPass* pass);
 
-	SHMAPI bool8 texture_create(Texture* texture);
+	SHMAPI bool8 texture_init(Texture* texture);
 	SHMAPI void texture_resize(Texture* texture, uint32 width, uint32 height);
 	SHMAPI bool8 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
 	SHMAPI bool8 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory);
@@ -63,9 +63,9 @@ namespace Renderer
 	SHMAPI void geometry_draw(GeometryData* geometry);
 
 	SHMAPI bool8 shader_create(const ShaderConfig* config, Shader* shader);
+	SHMAPI bool8 shader_init(Shader* shader);
 	SHMAPI void shader_destroy(Shader* shader);
-	bool8 shader_init(Shader* shader);
-	bool8 shader_use(Shader* shader);
+	SHMAPI bool8 shader_use(Shader* shader);
 	SHMAPI bool8 shader_bind_globals(Shader* shader);
 	SHMAPI bool8 shader_bind_instance(Shader* shader, uint32 instance_id);
 	SHMAPI bool8 shader_apply_globals(Shader* shader);
@@ -74,8 +74,8 @@ namespace Renderer
 	SHMAPI bool8 shader_release_instance_resources(Shader* shader, uint32 instance_id);
 	SHMAPI bool8 shader_set_uniform(Shader* shader, ShaderUniform* uniform, const void* value);
 
-	bool8 texture_map_acquire_resources(TextureMap* out_map);
-	void texture_map_release_resources(TextureMap* out_map);
+	bool8 texture_map_init(TextureMapConfig* config, TextureMap* out_map);
+	void texture_map_destroy(TextureMap* map);
 
 	SHMAPI bool8 material_init(MaterialConfig* config, Material* out_material);
 	SHMAPI bool8 material_init_from_resource_async(const char* resource_name, Material* out_material);
@@ -85,7 +85,7 @@ namespace Renderer
 	SHMAPI bool8 mesh_init_from_resource_async(const char* resource_name, Mesh* out_mesh);
 	SHMAPI bool8 mesh_destroy(Mesh* mesh);
 
-	SHMAPI bool8 renderbuffer_create(const char* name, RenderBufferType type, uint64 size, bool8 use_freelist, RenderBuffer* out_buffer);
+	SHMAPI bool8 renderbuffer_init(const char* name, RenderBufferType type, uint64 size, bool8 use_freelist, RenderBuffer* out_buffer);
 	SHMAPI void renderbuffer_destroy(RenderBuffer* buffer);
 	SHMAPI bool8 renderbuffer_bind(RenderBuffer* buffer, uint64 offset);
 	SHMAPI bool8 renderbuffer_unbind(RenderBuffer* buffer);

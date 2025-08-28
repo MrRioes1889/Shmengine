@@ -373,7 +373,7 @@ bool8 render_view_pick_regenerate_attachment_target(const RenderView* self, uint
 	if (attachment->type == Renderer::RenderTargetAttachmentType::DEPTH)
 		attachment->texture->flags |= TextureFlags::IsDepth;
 
-	Renderer::texture_create(attachment->texture);
+	Renderer::texture_init(attachment->texture);
 
 	return true;
 }

@@ -53,8 +53,8 @@ bool8 render_view_world_editor_on_create(RenderView* self)
 
 	internal_data->coordinate_grid_shader_u_locations.view = Constants::max_u16;
 	internal_data->coordinate_grid_shader_u_locations.projection = Constants::max_u16;
-	internal_data->coordinate_grid_shader_u_locations.near = Constants::max_u16;
-	internal_data->coordinate_grid_shader_u_locations.far = Constants::max_u16;
+	internal_data->coordinate_grid_shader_u_locations.near_clip = Constants::max_u16;
+	internal_data->coordinate_grid_shader_u_locations.far_clip = Constants::max_u16;
 
 	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_coordinate_grid, &self->renderpasses[0]))
 	{
@@ -71,8 +71,8 @@ bool8 render_view_world_editor_on_create(RenderView* self)
 
 	internal_data->coordinate_grid_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "projection");
 	internal_data->coordinate_grid_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "view");
-	internal_data->coordinate_grid_shader_u_locations.near = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "near");
-	internal_data->coordinate_grid_shader_u_locations.far = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "far");
+	internal_data->coordinate_grid_shader_u_locations.near_clip = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "near");
+	internal_data->coordinate_grid_shader_u_locations.far_clip = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "far");
 
 	internal_data->near_clip = 0.1f;
 	internal_data->far_clip = 4000.0f;
@@ -146,8 +146,8 @@ static bool8 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_d
 
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.projection, &internal_data->projection_matrix));
 	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.view, &camera->get_view()));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.near, &internal_data->near_clip));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.far, &internal_data->far_clip));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.near_clip, &internal_data->near_clip));
+	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.far_clip, &internal_data->far_clip));
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->coordinate_grid_shader_id));
 }

@@ -32,13 +32,13 @@ namespace Renderer::Vulkan
 	uint32 vk_get_window_attachment_index();
 	uint32 vk_get_window_attachment_count();
 
-	bool8 vk_renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass);
+	bool8 vk_renderpass_init(const RenderPassConfig* config, RenderPass* out_renderpass);
 	void vk_renderpass_destroy(RenderPass* pass);
 
 	bool8 vk_renderpass_begin(RenderPass* renderpass, RenderTarget* render_target);
 	bool8 vk_renderpass_end(RenderPass* renderpass);
 
-	bool8 vk_texture_create(Texture* texture);
+	bool8 vk_texture_init(Texture* texture);
 	void vk_texture_resize(Texture* texture, uint32 width, uint32 height);
 	bool8 vk_texture_write_data(Texture* texture, uint32 offset, uint32 size, const uint8* pixels);
 	bool8 vk_texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory);
@@ -62,10 +62,10 @@ namespace Renderer::Vulkan
 
 	bool8 vk_shader_set_uniform(Shader* frontend_shader, ShaderUniform* uniform, const void* value);
 
-	bool8 vk_texture_map_acquire_resources(TextureMap* out_map);
-	void vk_texture_map_release_resources(TextureMap* map);
+	bool8 vk_texture_map_init(TextureMap* out_map);
+	void vk_texture_map_destroy(TextureMap* map);
 
-	bool8 vk_buffer_create(RenderBuffer* buffer);
+	bool8 vk_buffer_init(RenderBuffer* buffer);
 	void vk_buffer_destroy(RenderBuffer* buffer);
 	bool8 vk_buffer_resize(RenderBuffer* buffer, uint64 new_size);
 	bool8 vk_buffer_bind(RenderBuffer* buffer, uint64 offset);

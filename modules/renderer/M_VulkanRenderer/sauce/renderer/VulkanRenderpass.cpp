@@ -9,7 +9,7 @@ namespace Renderer::Vulkan
 
 	extern VulkanContext* context;
 
-	bool8 vk_renderpass_create(const RenderPassConfig* config, RenderPass* out_renderpass)
+	bool8 vk_renderpass_init(const RenderPassConfig* config, RenderPass* out_renderpass)
 	{
 
 		out_renderpass->internal_data.init(sizeof(VulkanRenderpass), 0, AllocationTag::Renderer);

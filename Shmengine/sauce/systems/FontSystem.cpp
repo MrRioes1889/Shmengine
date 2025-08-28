@@ -95,6 +95,8 @@ namespace FontSystem
 
 	static bool8 _create_font(FontConfig* config, FontAtlas* out_font)
 	{
+		TextureMapConfig map_config = {};
+
 		CString::copy(config->name, out_font->name, Constants::max_font_name_length);
 		
 		out_font->type = config->type;
@@ -142,9 +144,9 @@ namespace FontSystem
 		}
 		goto_if_log(!out_font->map.texture, fail, "Unable to acquire texture for font atlas.");
 
-		out_font->map.filter_magnify = out_font->map.filter_minify = TextureFilter::LINEAR;
-		out_font->map.repeat_u = out_font->map.repeat_v = out_font->map.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
-		goto_if_log(!Renderer::texture_map_acquire_resources(&out_font->map), fail, "Unable to acquire resources for font atlas texture map.");
+		map_config.filter_magnify = map_config.filter_minify = TextureFilter::LINEAR;
+		map_config.repeat_u = map_config.repeat_v = map_config.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
+		goto_if_log(!Renderer::texture_map_init(&map_config, &out_font->map), fail, "Unable to acquire resources for font atlas texture map.");
 
 		return true;
 
@@ -155,7 +157,7 @@ namespace FontSystem
 
 	static void _destroy_font(FontAtlas* font)
 	{
-		Renderer::texture_map_release_resources(&font->map);
+		Renderer::texture_map_destroy(&font->map);
 
 		if (font->type == FontType::Bitmap && font->map.texture)
 			TextureSystem::release(font->map.texture->name);
