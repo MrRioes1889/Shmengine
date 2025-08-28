@@ -45,13 +45,9 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     out_terrain->tile_scale_z = config->tile_scale_z;
     out_terrain->scale_y = config->scale_y;
 
-    out_terrain->materials.init(config->materials_count, DarrayFlags::NonResizable);
-    out_terrain->materials.set_count(config->materials_count);
-	for (uint32 i = 0; i < config->materials_count; i++)
-	{
-        CString::copy(config->material_names[i], out_terrain->materials[i].name, Constants::max_material_name_length);
-		out_terrain->materials[i].material_id.invalidate();
-	}
+    out_terrain->material_ids.init(config->materials_count, 0);
+	for (uint32 i = 0; i < out_terrain->material_ids.capacity; i++)
+		out_terrain->material_ids[i].invalidate();
 
 	if (!out_terrain->tile_count_x)
 	{
@@ -141,9 +137,9 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 			v->tex_coords.x = (float32)x;
 			v->tex_coords.y = (float32)z;
 
-			float32 step_size = 1.0f / (float32)out_terrain->materials.count;
+			float32 step_size = 1.0f / (float32)out_terrain->material_ids.capacity;
 			v->material_weights[0] = 1.0f - smoothstep(0.0f, step_size, out_terrain->vertex_infos[i].height);
-			for (uint32 w = 1; w < out_terrain->materials.count; w++)
+			for (uint32 w = 1; w < out_terrain->material_ids.capacity; w++)
 				v->material_weights[w] = smoothstep(step_size * (w - 1), step_size * w, out_terrain->vertex_infos[i].height) - smoothstep(step_size * w, step_size * (w + 1), out_terrain->vertex_infos[i].height);
 
 		}
@@ -181,18 +177,15 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
         return false;
     }
 
-	uint32 material_count = out_terrain->materials.count;
-	for (uint32 i = 0; i < material_count; i++)
+	for (uint32 i = 0; i < out_terrain->material_ids.capacity; i++)
 	{
-		out_terrain->materials[i].material_id = MaterialSystem::acquire_reference(out_terrain->materials[i].name);
-		if (out_terrain->materials[i].material_id.is_valid())
-			continue;
-
-		if (MaterialSystem::load_from_resource(out_terrain->materials[i].name, out_terrain->materials[i].name, true))
-			out_terrain->materials[i].material_id = MaterialSystem::acquire_reference(out_terrain->materials[i].name);
+		Material* material;
+		out_terrain->material_ids[i] = MaterialSystem::acquire_material_id(config->material_names[i], &material);
+		if (material)
+			Renderer::material_init_from_resource_async(config->material_names[i], material);
 	}
 
-	out_terrain->material_properties.materials_count = material_count;
+	out_terrain->material_properties.materials_count = out_terrain->material_ids.capacity;
 
 	Material* default_material = MaterialSystem::get_default_material();
 
@@ -202,8 +195,10 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 		MaterialPhongProperties* mat_props = &out_terrain->material_properties.materials[mat_i];
 		// Use default material unless within the material count.
 		Material* sub_mat = default_material;
-		if (mat_i < material_count && sub_mat->maps.capacity >= 3)
-			sub_mat = MaterialSystem::get_material(out_terrain->materials[mat_i].material_id);
+		if (mat_i < out_terrain->material_ids.capacity && sub_mat->maps.capacity >= 3)
+			sub_mat = MaterialSystem::get_material(out_terrain->material_ids[mat_i]);
+		if (sub_mat->state != ResourceState::Initialized)
+			sub_mat = default_material;
 
 		MaterialPhongProperties* sub_mat_properties = (MaterialPhongProperties*)sub_mat->properties;
 		mat_props->diffuse_color = sub_mat_properties->diffuse_color;
@@ -267,10 +262,15 @@ bool8 terrain_destroy(Terrain* terrain)
 	Renderer::shader_release_instance_resources(terrain_shader, terrain->shader_instance_id);
 	terrain->shader_instance_id = Constants::max_u32;
 
-	for (uint32 ter_i = 0; ter_i < terrain->materials.count; ter_i++)
+	for (uint32 mat_i = 0; mat_i < terrain->material_ids.capacity; mat_i++)
 	{
-		MaterialSystem::release_reference(terrain->materials[ter_i].material_id);
-		terrain->materials[ter_i].material_id.invalidate();
+		Material* material = MaterialSystem::get_material(terrain->material_ids[mat_i]);
+		if (material)
+			MaterialSystem::release_material_id(material->name, &material);
+		if (material)
+			Renderer::material_destroy(material);
+
+		terrain->material_ids[mat_i].invalidate();
 	}
 
     Renderer::geometry_unload(&terrain->geometry);
@@ -281,7 +281,7 @@ bool8 terrain_destroy(Terrain* terrain)
 	Renderer::geometry_destroy(&terrain->geometry);
     terrain->vertex_infos.free_data();
 
-    terrain->materials.free_data();
+    terrain->material_ids.free_data();
 
     terrain->name.free_data();
 

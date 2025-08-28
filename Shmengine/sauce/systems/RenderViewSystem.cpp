@@ -294,7 +294,7 @@ namespace RenderViewSystem
 				if (in_frustum)
 				{
 					Material* material = MaterialSystem::get_material(g->material_id);
-					if (!material)
+					if (material->state != ResourceState::Initialized)
 						material = MaterialSystem::get_default_material();
 
 					RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
@@ -363,12 +363,12 @@ namespace RenderViewSystem
 	{
 		out_instance_data->shader_id = shader_id;
 		out_instance_data->instance_properties = &terrain->material_properties;
-		out_instance_data->texture_maps_count = terrain->materials.count * 3;
+		out_instance_data->texture_maps_count = terrain->material_ids.capacity * 3;
 		out_instance_data->texture_maps = (TextureMap**)frame_data->frame_allocator.allocate(sizeof(TextureMap*) * out_instance_data->texture_maps_count);
-		for (uint32 mat_i = 0; mat_i < terrain->materials.count; mat_i++)
+		for (uint32 mat_i = 0; mat_i < terrain->material_ids.capacity; mat_i++)
 		{
-			Material* material = MaterialSystem::get_material(terrain->materials[mat_i].material_id);
-			if (!material)
+			Material* material = MaterialSystem::get_material(terrain->material_ids[mat_i]);
+			if (material->state != ResourceState::Initialized)
 				material = MaterialSystem::get_default_material();
 
 			out_instance_data->texture_maps[mat_i * 3] = &material->maps[0];

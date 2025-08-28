@@ -47,12 +47,6 @@ struct TerrainConfig
 
 struct Terrain
 {
-	struct SubMaterial
-	{
-		char name[Constants::max_material_name_length];
-		MaterialId material_id;
-	};
-
 	String name;	
 	Math::Transform xform;
 	UniqueId unique_id;
@@ -71,7 +65,7 @@ struct Terrain
 
 	MaterialTerrainProperties material_properties;
 	
-	Darray<SubMaterial> materials;
+	Sarray<MaterialId> material_ids;
 
 	uint32 shader_instance_id;
 };

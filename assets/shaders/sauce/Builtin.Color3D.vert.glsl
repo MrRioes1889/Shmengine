@@ -1,28 +1,10 @@
 #version 450
-
-#extension GL_EXT_scalar_block_layout : enable
+#include "Builtin.Color3D.common.glsl"
 
 layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec4 in_color;
 
-layout(set = 0, binding = 0) uniform GlobalUBO 
-{
-    mat4 projection;
-	mat4 view;
-} global_ubo;
-
-layout(push_constant) uniform PushConstants 
-{
-	// Only guaranteed a total of 128 bytes.
-	mat4 model; // 64 bytes
-} local_ubo;
-
-
-// Data Transfer Object
-layout(location = 1) out struct DTO 
-{
-	vec4 color;
-} out_dto;
+layout(location = 1) out Dto out_dto;
 
 void main()
 {

@@ -1,22 +1,11 @@
 #version 450
+#include "Builtin.CoordinateGrid.common.glsl"
 
 #extension GL_EXT_scalar_block_layout : enable
 
 layout(location = 0) out vec4 out_color;
 
-layout(location = 1) in struct DTO 
-{
-	vec3 near_point;
-    vec3 far_point;
-} in_dto;
-
-layout(set = 0, binding = 0) uniform global_uniform_object
-{
-    mat4 projection;
-    mat4 view;
-    float near;
-    float far;
-} global_ubo;
+layout(location = 1) in Dto in_dto; 
 
 vec4 grid(vec3 fragPos3D, float scale, bool drawAxis) {
     vec2 coord = fragPos3D.xz * scale;

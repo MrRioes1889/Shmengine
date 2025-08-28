@@ -1,24 +1,9 @@
 #version 450
-
-#extension GL_EXT_scalar_block_layout : enable
+#include "Builtin.CoordinateGrid.common.glsl"
 
 layout(location = 0) in uint in_index;
 
-layout(set = 0, binding = 0) uniform global_uniform_object
-{
-    mat4 projection;
-    mat4 view;
-    float near;
-    float far;
-} global_ubo;
-
-// Data Transfer Object
-layout(location = 1) out struct DTO 
-{
-	vec3 near_point;
-    vec3 far_point;
-} out_dto;
-
+layout(location = 1) out Dto out_dto; 
 
 vec3 gridPlane[6] = vec3[](
     vec3(-1, 1, 0), vec3(-1, -1, 0), vec3(1, 1, 0),

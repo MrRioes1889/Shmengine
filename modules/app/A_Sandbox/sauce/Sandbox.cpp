@@ -386,15 +386,16 @@ static bool8 application_on_debug_event(uint16 code, void* sender, void* listene
 			return false;
 
 		MeshGeometry* g = &m->geometries[0];
-		if (g->material_id.is_valid())
-			MaterialSystem::release_reference(g->material_id);
+		Material* old_material = MaterialSystem::get_material(g->material_id);
+		if (old_material)
+			MaterialSystem::release_material_id(old_material->name, &old_material);
+		if (old_material)
+			Renderer::material_destroy(old_material);
 
-		g->material_id = MaterialSystem::acquire_reference(names[choice]);
-		if (!g->material_id.is_valid())
-		{
-			if (MaterialSystem::load_from_resource(names[choice], names[choice], true))
-				g->material_id = MaterialSystem::acquire_reference(names[choice]);
-		}
+		Material* new_material;
+		g->material_id = MaterialSystem::acquire_material_id(names[choice], &new_material);
+		if (new_material)
+			Renderer::material_init_from_resource_async(names[choice], new_material);
 
 		if (!g->material_id.is_valid())
 			SHMWARNV("Failed to acquire material '%s'! Using default.", names[choice]);

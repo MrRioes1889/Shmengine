@@ -16,7 +16,7 @@ workspace_dir = "%{wks.location}"
 
 common_premake_flags = {"FatalWarnings", "MultiProcessorCompile"}
 
-common_msvc_compiler_flags = {"/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011", "/wd4251"}
+common_msvc_compiler_flags = {"/permissive-", "/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011", "/wd4251"}
 common_clang_compiler_flags = {
     "-Wno-missing-braces", 
     "-Wno-reorder-ctor", 

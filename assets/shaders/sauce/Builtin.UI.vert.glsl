@@ -1,26 +1,11 @@
 #version 450
-
-#extension GL_EXT_scalar_block_layout : enable
+#include "Builtin.UI.common.glsl"
 
 layout(location = 0) in vec2 in_position;
 layout(location = 1) in vec2 in_tex_coord;
 
-layout(set = 0, binding = 0) uniform global_uniform_object
-{
-    mat4 projection;
-    mat4 view;
-} global_ubo;
-
-layout(push_constant) uniform push_constants
-{
-    mat4 model;
-} u_push_constants;
-
 layout(location = 0) out int out_mode;
-layout(location = 1) out struct dto
-{
-    vec2 tex_coord;
-} out_dto;
+layout(location = 1) out Dto out_dto;
 
 void main()
 {

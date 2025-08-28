@@ -31,12 +31,10 @@ namespace Renderer
 			Renderer::geometry_load(&g->geometry_data);
 			const char* material_name = config->g_configs[i].material_name;
 
-			g->material_id = MaterialSystem::acquire_reference(material_name);
-			if (g->material_id.is_valid())
-				continue;
-
-			if (MaterialSystem::load_from_resource(material_name, material_name, true))
-				g->material_id = MaterialSystem::acquire_reference(material_name);
+			Material* material;
+			g->material_id = MaterialSystem::acquire_material_id(material_name, &material);
+			if (material)
+				Renderer::material_init_from_resource_async(material_name, material);
 		}
 
 		out_mesh->state = ResourceState::Initialized;
@@ -122,11 +120,13 @@ namespace Renderer
 		{     
 			GeometryData* g_data = &mesh->geometries[i].geometry_data;
 			Renderer::geometry_unload(g_data);
-			if (mesh->geometries[i].material_id.is_valid())
-			{      
-				MaterialSystem::release_reference(mesh->geometries[i].material_id);
-				mesh->geometries[i].material_id.invalidate();
-			}
+			Material* material = MaterialSystem::get_material(mesh->geometries[i].material_id);
+			if (material)
+				MaterialSystem::release_material_id(material->name, &material);
+			if (material)
+				Renderer::material_destroy(material);
+
+			mesh->geometries[i].material_id.invalidate();
 		}
 
 		mesh->name.free_data();
@@ -144,12 +144,10 @@ namespace Renderer
 			Renderer::geometry_load(&g->geometry_data);
 			const char* material_name = config.g_configs[i].material_name;
 
-			g->material_id = MaterialSystem::acquire_reference(material_name);
-			if (g->material_id.is_valid())
-				continue;
-
-			if (MaterialSystem::load_from_resource(material_name, material_name, true))
-				g->material_id = MaterialSystem::acquire_reference(material_name);
+			Material* material;
+			g->material_id = MaterialSystem::acquire_material_id(material_name, &material);
+			if (material)
+				Renderer::material_init_from_resource_async(material_name, material);
 		}
 
 		load_params->out_mesh->state = ResourceState::Initialized;

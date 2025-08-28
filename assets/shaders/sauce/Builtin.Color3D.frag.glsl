@@ -1,15 +1,11 @@
 #version 450
+#include "Builtin.Color3D.common.glsl"
 
-#extension GL_EXT_scalar_block_layout : enable
+layout(location = 1) in Dto in_dto; 
 
 layout(location = 0) out vec4 out_color;
 
-// Data Transfer Object
-layout(location = 1) in struct DTO 
+void main() 
 {
-	vec4 color;
-} in_dto;
-
-void main() {
     out_color = in_dto.color;
 }

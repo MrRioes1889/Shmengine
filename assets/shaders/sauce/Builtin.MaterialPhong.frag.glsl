@@ -1,70 +1,10 @@
 #version 450
-
-#extension GL_EXT_scalar_block_layout : enable
+#include "Builtin.MaterialPhong.common.glsl"
 
 layout(location = 0) flat in int in_mode;
-layout(location = 1) in struct dto
-{
-    vec4 ambient_color;
-    vec3 normal;
-    vec2 texcoord;
-    vec3 camera_position;
-    vec3 frag_position;
-    vec4 color;
-    vec3 tangent;
-} in_dto;
+layout(location = 1) in Dto in_dto;
 
 layout(location = 0) out vec4 out_color;
-
-struct DirectionalLight
-{
-    vec4 color;
-    vec4 direction;
-};
-
-struct PointLight 
-{
-    vec4 color;
-    vec4 position;
-    // Usually 1, make sure denominator never gets smaller than 1
-    float constant_f;
-    // Reduces light intensity linearly
-    float linear;
-    // Makes the light fall off slower at longer distances.
-    float quadratic;
-    float padding;
-};
-
-const uint max_point_lights_count = 10;
-
-layout(set = 0, binding = 0) uniform global_uniform_object
-{
-    mat4 projection;
-    mat4 view;
-    vec4 ambient_color;
-    vec3 camera_position;
-    int mode;
-    DirectionalLight dir_light;
-    PointLight p_lights[max_point_lights_count];
-    uint p_lights_count;
-} global_ubo;
-
-struct MaterialPhongProperties 
-{
-    vec4 diffuse_color; 
-    vec3 padding;
-    float shininess;
-};
-
-layout(std430, set = 1, binding = 0) uniform instance_uniform_object
-{
-    MaterialPhongProperties properties;
-} instance_ubo;
-
-const int SAMP_DIFFUSE = 0;
-const int SAMP_SPECULAR = 1;
-const int SAMP_NORMAL = 2;
-layout(set = 1, binding = 1) uniform sampler2D samplers[3];
 
 mat3 TBN;
 
