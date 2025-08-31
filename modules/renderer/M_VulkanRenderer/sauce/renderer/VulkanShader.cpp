@@ -19,8 +19,11 @@ namespace Renderer::Vulkan
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
 
-	bool8 vk_shader_create(const ShaderConfig* config, Shader* shader)
+	bool8 vk_shader_init(ShaderConfig* config, Shader* shader)
 	{
+		VkDevice& logical_device = context->device.logical_device;
+		VkAllocationCallbacks* vk_allocator = context->allocator_callbacks;
+
 		if (shader->internal_data)
 		{
 			SHMERROR("Shader already has internal vulkan data assigned. Creation failed.");
@@ -28,6 +31,7 @@ namespace Renderer::Vulkan
 		}
 
 		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::Renderer);
+		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
 
 		VkShaderStageFlags vk_stages[RendererConfig::shader_max_stages];
 		for (uint8 i = 0; i < config->stages_count; ++i) {
@@ -52,7 +56,6 @@ namespace Renderer::Vulkan
 			}
 		}
 
-		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
 		v_shader->renderpass = (VulkanRenderpass*)config->renderpass->internal_data.data;
 		v_shader->config.max_descriptor_set_count = RendererConfig::shader_max_instances;
 
@@ -147,74 +150,6 @@ namespace Renderer::Vulkan
 
 			v_shader->config.descriptor_set_count++;
 		}
-
-		// Grab the UBO alignment requirement from the device.
-		shader->required_ubo_alignment = context->device.properties.limits.minUniformBufferOffsetAlignment;
-
-		return true;
-
-	}
-
-	void vk_shader_destroy(Shader* shader)
-	{
-
-		if (!shader->internal_data)
-			return;
-
-		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
-		if (!v_shader)
-		{
-			SHMERROR("vulkan_renderer_shader_destroy requires a valid pointer to a shader.");
-			return;
-		}
-
-		VkDevice logical_device = context->device.logical_device;
-		VkAllocationCallbacks* vk_allocator = context->allocator_callbacks;
-
-		for (uint32 i = 0; i < v_shader->config.descriptor_set_count; ++i)
-		{
-			if (v_shader->descriptor_set_layouts[i]) {
-				vkDestroyDescriptorSetLayout(logical_device, v_shader->descriptor_set_layouts[i], vk_allocator);
-				v_shader->descriptor_set_layouts[i] = 0;
-			}
-		}
-
-		if (v_shader->descriptor_pool)
-		{
-			vkDestroyDescriptorPool(logical_device, v_shader->descriptor_pool, vk_allocator);
-		}
-	
-		v_shader->mapped_uniform_buffer = 0;	
-
-		// Pipeline
-		for (uint32 i = 0; i < v_shader->pipelines.capacity; i++)
-		{
-			if (!v_shader->pipelines[i])
-				continue;
-
-			vk_pipeline_destroy(v_shader->pipelines[i]);
-			Memory::free_memory(v_shader->pipelines[i]);		
-		}
-		v_shader->pipelines.free_data();
-
-		// Shader modules
-		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
-		{
-			vkDestroyShaderModule(context->device.logical_device, v_shader->stages[i].handle, context->allocator_callbacks);
-		}
-
-		// Free the internal data memory.
-		Memory::free_memory(shader->internal_data);
-		shader->internal_data = 0;
-
-	}
-
-	bool8 vk_shader_init(Shader* shader)
-	{
-
-		VkDevice& logical_device = context->device.logical_device;
-		VkAllocationCallbacks* vk_allocator = context->allocator_callbacks;
-		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
 
 		// Create a module for each stage.
 		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
@@ -403,7 +338,7 @@ namespace Renderer::Vulkan
 		// Map the entire buffer's memory.
 		v_shader->mapped_uniform_buffer = vk_buffer_map_memory(&shader->uniform_buffer, 0, VK_WHOLE_SIZE);
 
-		// Allocate global descriptor sets, one per frame. Global is always the first set.
+		// Allocate global descriptor sets, one per frame in flight. Global is always the first set.
 		VkDescriptorSetLayout global_layouts[3] =
 		{
 			v_shader->descriptor_set_layouts[desc_set_index_global],
@@ -418,7 +353,55 @@ namespace Renderer::Vulkan
 		VK_CHECK(vkAllocateDescriptorSets(context->device.logical_device, &alloc_info, v_shader->global_descriptor_sets));
 
 		return true;
+	}
 
+	void vk_shader_destroy(Shader* shader)
+	{
+		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
+		if (!v_shader)
+		{
+			SHMERROR("vulkan_renderer_shader_destroy requires a valid pointer to a shader.");
+			return;
+		}
+
+		VkDevice logical_device = context->device.logical_device;
+		VkAllocationCallbacks* vk_allocator = context->allocator_callbacks;
+
+		for (uint32 i = 0; i < v_shader->config.descriptor_set_count; ++i)
+		{
+			if (v_shader->descriptor_set_layouts[i]) {
+				vkDestroyDescriptorSetLayout(logical_device, v_shader->descriptor_set_layouts[i], vk_allocator);
+				v_shader->descriptor_set_layouts[i] = 0;
+			}
+		}
+
+		if (v_shader->descriptor_pool)
+		{
+			vkDestroyDescriptorPool(logical_device, v_shader->descriptor_pool, vk_allocator);
+		}
+	
+		v_shader->mapped_uniform_buffer = 0;	
+
+		// Pipeline
+		for (uint32 i = 0; i < v_shader->pipelines.capacity; i++)
+		{
+			if (!v_shader->pipelines[i])
+				continue;
+
+			vk_pipeline_destroy(v_shader->pipelines[i]);
+			Memory::free_memory(v_shader->pipelines[i]);		
+		}
+		v_shader->pipelines.free_data();
+
+		// Shader modules
+		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
+		{
+			vkDestroyShaderModule(context->device.logical_device, v_shader->stages[i].handle, context->allocator_callbacks);
+		}
+
+		// Free the internal data memory.
+		Memory::free_memory(shader->internal_data);
+		shader->internal_data = 0;
 	}
 
 	bool8 vk_shader_use(Shader* s)

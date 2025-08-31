@@ -114,10 +114,13 @@ namespace SubsystemManager
 	bool8 update(const FrameData* frame_data)
 	{
 		OPTICK_EVENT();
-		for (uint32 i = 0; i < SubsystemType::MaxTypesCount; ++i) {
+		for (uint32 i = 0; i < SubsystemType::MaxTypesCount; ++i) 
+		{
 			Subsystem* s = &manager_state.subsystems[i];
-			if (s->update) {
-				if (!s->update(s->state, frame_data)) {
+			if (s->update) 
+			{
+				if (!s->update(s->state, frame_data)) 
+				{
 					SHMERRORV("System update failed for type: %u", i);
 				}
 			}
@@ -154,7 +157,6 @@ namespace SubsystemManager
 
 	static bool8 register_known_systems_pre_boot()
 	{
-
 		if (!register_system(SubsystemType::Console, Console::system_init, Console::system_shutdown, 0, 0))
 		{
 			SHMFATAL("Failed to register console subsystem!");
@@ -186,16 +188,17 @@ namespace SubsystemManager
 		}
 
 		return true;
-
 	}
 
 	static bool8 register_known_systems_post_boot(const ApplicationConfig* app_config)
 	{
-
 		Renderer::SystemConfig renderer_sys_config;
 		renderer_sys_config.application_name = app_config->name;
 		renderer_sys_config.flags = 0;
 		renderer_sys_config.renderer_module_name = app_config->renderer_module_name;
+		renderer_sys_config.max_shader_uniform_count = 128;
+		renderer_sys_config.max_shader_global_textures = 8;
+		renderer_sys_config.max_shader_instance_textures = 16;
 
 		if (!register_system(SubsystemType::Renderer, Renderer::system_init, Renderer::system_shutdown, 0, &renderer_sys_config))
 		{
@@ -205,9 +208,6 @@ namespace SubsystemManager
 
 		ShaderSystem::SystemConfig shader_sys_config;
 		shader_sys_config.max_shader_count = 1024;
-		shader_sys_config.max_uniform_count = 128;
-		shader_sys_config.max_global_textures = 31;
-		shader_sys_config.max_instance_textures = 31;
 
 		if (!register_system(SubsystemType::ShaderSystem, ShaderSystem::system_init, ShaderSystem::system_shutdown, 0, &shader_sys_config))
 		{

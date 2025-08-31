@@ -49,7 +49,7 @@ namespace Renderer
 		MeshResourceData resource;
 	};
 
-	bool8 mesh_init_from_resource_async(const char* resource_name, Mesh* out_mesh)
+	bool8 mesh_init_from_resource_async(const char* name, Mesh* out_mesh)
 	{
 		if (out_mesh->state >= ResourceState::Initialized)
 			return false;
@@ -59,7 +59,7 @@ namespace Renderer
 		JobSystem::JobInfo job = JobSystem::job_create(_mesh_init_from_resource_job, _mesh_init_from_resource_job_success, _mesh_init_from_resource_job_fail, sizeof(MeshLoadParams));
 		MeshLoadParams* params = (MeshLoadParams*)job.user_data;
 		params->out_mesh = out_mesh;
-		params->resource_name = resource_name;
+		params->resource_name = name;
 		params->resource = {};
 		JobSystem::submit(job);
 

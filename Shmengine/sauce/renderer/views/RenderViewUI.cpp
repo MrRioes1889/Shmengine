@@ -30,25 +30,16 @@ bool8 render_view_ui_on_create(RenderView* self)
 	self->internal_data.init(sizeof(RenderViewUIInternalData), 0, AllocationTag::Renderer);
 	RenderViewUIInternalData* internal_data = (RenderViewUIInternalData*)self->internal_data.data;
 
-	internal_data->ui_shader_u_locations.diffuse_texture = Constants::max_u16;
-	internal_data->ui_shader_u_locations.view = Constants::max_u16;
-	internal_data->ui_shader_u_locations.projection = Constants::max_u16;
-	internal_data->ui_shader_u_locations.model = Constants::max_u16;
-	internal_data->ui_shader_u_locations.properties = Constants::max_u16;
+	Shader* ui_shader = 0;
+	internal_data->ui_shader_id = ShaderSystem::acquire_shader_id(Renderer::RendererConfig::builtin_shader_name_ui, &ui_shader);
+	if (ui_shader)
+		Renderer::shader_init_from_resource(Renderer::RendererConfig::builtin_shader_name_ui, &self->renderpasses[0], ui_shader);
 
-	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_ui, &self->renderpasses[0]))
-	{
-		SHMERROR("Failed to create ui shader.");
-		return false;
-	}
-	
-	internal_data->ui_shader_id = ShaderSystem::get_shader_id(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
-
-	internal_data->ui_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "projection");
-	internal_data->ui_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "view");
-	internal_data->ui_shader_u_locations.diffuse_texture = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "diffuse_texture");
-	internal_data->ui_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "model");
-	internal_data->ui_shader_u_locations.properties = ShaderSystem::get_uniform_index(internal_data->ui_shader_id, "properties");
+	internal_data->ui_shader_u_locations.projection = Renderer::shader_get_uniform_index(ui_shader, "projection");
+	internal_data->ui_shader_u_locations.view = Renderer::shader_get_uniform_index(ui_shader, "view");
+	internal_data->ui_shader_u_locations.diffuse_texture = Renderer::shader_get_uniform_index(ui_shader, "diffuse_texture");
+	internal_data->ui_shader_u_locations.model = Renderer::shader_get_uniform_index(ui_shader, "model");
+	internal_data->ui_shader_u_locations.properties = Renderer::shader_get_uniform_index(ui_shader, "properties");
 
 	internal_data->near_clip = -100.0f;
 	internal_data->far_clip = 100.0f;
@@ -95,29 +86,30 @@ void render_view_ui_on_end_frame(RenderView* self)
 
 static bool8 set_globals_ui(RenderViewUIInternalData* internal_data)
 {
-	ShaderSystem::bind_shader(internal_data->ui_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->ui_shader_id);
+	Renderer::shader_bind_globals(shader);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.view, &internal_data->view_matrix));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->ui_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->ui_shader_u_locations.view, &internal_data->view_matrix));
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->ui_shader_id));
 }
 
 static bool8 set_instance_ui(RenderViewUIInternalData* internal_data, RenderViewInstanceData instance)
 {
-	ShaderSystem::bind_shader(internal_data->ui_shader_id);
-	ShaderSystem::bind_instance(instance.shader_instance_id);
+	Shader* shader = ShaderSystem::get_shader(internal_data->ui_shader_id);
+	Renderer::shader_bind_instance(shader, instance.shader_instance_id);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.properties, instance.instance_properties));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.diffuse_texture, instance.texture_maps[0]));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->ui_shader_u_locations.properties, instance.instance_properties));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->ui_shader_u_locations.diffuse_texture, instance.texture_maps[0]));
 
 	return Renderer::shader_apply_instance(ShaderSystem::get_shader(internal_data->ui_shader_id));
 }
 
 static bool8 set_locals_ui(RenderViewUIInternalData* internal_data, Math::Mat4* model)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->ui_shader_u_locations.model, model));
+	Shader* shader = ShaderSystem::get_shader(internal_data->ui_shader_id);
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->ui_shader_u_locations.model, model));
 
 	return true;
 }
@@ -158,6 +150,7 @@ bool8 render_view_ui_on_render(RenderView* self, FrameData* frame_data, uint32 f
 	}
 
 	ShaderId shader_id = ShaderId::invalid_value;
+	Shader* shader = 0;
 
 	for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
 	{
@@ -166,12 +159,13 @@ bool8 render_view_ui_on_render(RenderView* self, FrameData* frame_data, uint32 f
 		if (render_data->shader_id != shader_id)
 		{
 			shader_id = render_data->shader_id;
-			ShaderSystem::use_shader(shader_id);
-			ShaderSystem::bind_globals();
+			shader = ShaderSystem::get_shader(shader_id);
+			Renderer::shader_use(shader);
+			Renderer::shader_bind_globals(shader);
 		}
 
 		if (render_data->shader_instance_id != Constants::max_u32)
-			ShaderSystem::bind_instance(render_data->shader_instance_id);
+			Renderer::shader_bind_instance(shader, render_data->shader_instance_id);
 
 		if (render_data->object_index != Constants::max_u32)
 		{

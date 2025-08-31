@@ -38,9 +38,8 @@ namespace Renderer::Vulkan
 
 	VulkanContext* context = 0;
 
-	bool8 init(void* context_block, const ModuleConfig& config, uint32* out_window_render_target_count)
+	bool8 init(void* context_block, const ModuleConfig& config, DeviceProperties* out_device_properties)
 	{
-
 		context = (VulkanContext*)context_block;
 		context->find_memory_index = find_memory_index;
 
@@ -219,8 +218,6 @@ namespace Renderer::Vulkan
 		for (uint32 i = 0; i < RendererConfig::framebuffer_count; i++)
 			context->framebuffer_fences_in_flight[i] = 0;
 
-		*out_window_render_target_count = context->swapchain.render_textures.capacity;
-
 		create_command_buffers();
 
 		context->image_available_semaphores.init(context->swapchain.max_frames_in_flight, 0, AllocationTag::Renderer);
@@ -238,6 +235,9 @@ namespace Renderer::Vulkan
 		}
 
 		context->end_of_frame_task_queue.init(100, 0, AllocationTag::Renderer);
+
+		CString::copy(context->device.properties.deviceName, out_device_properties->device_name, RendererConfig::max_device_name_length);
+		out_device_properties->required_ubo_offset_alignment = context->device.properties.limits.minUniformBufferOffsetAlignment;
 
 		SHMINFO("Vulkan instance initialized successfully!");
 		return true;

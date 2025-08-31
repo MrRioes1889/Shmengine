@@ -62,35 +62,26 @@ bool8 render_view_pick_on_create(RenderView* self)
 	internal_data->pass_3D = &self->renderpasses[0];
 	internal_data->pass_2D = &self->renderpasses[1];
 
-	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_material_phong_pick, internal_data->pass_3D))
-	{
-		SHMERROR("Failed to create material phong pick shader.");
-		return false;
-	}
+	Shader* material_pick_shader = 0;
+	internal_data->material_phong_pick_shader_id = ShaderSystem::acquire_shader_id(Renderer::RendererConfig::builtin_shader_name_material_phong_pick, &material_pick_shader);
+	if (material_pick_shader)
+		Renderer::shader_init_from_resource(Renderer::RendererConfig::builtin_shader_name_material_phong_pick, internal_data->pass_3D, material_pick_shader);
 
-	internal_data->material_phong_pick_shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_material_phong_pick);
+	Shader* terrain_pick_shader = 0;
+	internal_data->terrain_pick_shader_id = ShaderSystem::acquire_shader_id(Renderer::RendererConfig::builtin_shader_name_terrain_pick, &terrain_pick_shader);
+	if (terrain_pick_shader)
+		Renderer::shader_init_from_resource(Renderer::RendererConfig::builtin_shader_name_terrain_pick, internal_data->pass_3D, terrain_pick_shader);
 
-	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_terrain_pick, internal_data->pass_3D))
-	{
-		SHMERROR("Failed to create terrain pick shader.");
-		return false;
-	}
-
-	internal_data->terrain_pick_shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_terrain_pick);
-
-	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_ui_pick, internal_data->pass_2D))
-	{
-		SHMERROR("Failed to create world pick shader.");
-		return false;
-	}
-
-	internal_data->ui_pick_shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_ui_pick);
+	Shader* ui_pick_shader = 0;
+	internal_data->ui_pick_shader_id = ShaderSystem::acquire_shader_id(Renderer::RendererConfig::builtin_shader_name_ui_pick, &ui_pick_shader);
+	if (ui_pick_shader)
+		Renderer::shader_init_from_resource(Renderer::RendererConfig::builtin_shader_name_ui_pick, internal_data->pass_2D, ui_pick_shader);
 
 	// NOTE: Only retrieving uniform locations once, since shaders all use the same layout
-	internal_data->id_color_location = ShaderSystem::get_uniform_index(internal_data->material_phong_pick_shader_id, "id_color");
-	internal_data->model_location = ShaderSystem::get_uniform_index(internal_data->material_phong_pick_shader_id, "model");
-	internal_data->projection_location = ShaderSystem::get_uniform_index(internal_data->material_phong_pick_shader_id, "projection");
-	internal_data->view_location = ShaderSystem::get_uniform_index(internal_data->material_phong_pick_shader_id, "view");
+	internal_data->id_color_location = Renderer::shader_get_uniform_index(material_pick_shader, "id_color");
+	internal_data->model_location = Renderer::shader_get_uniform_index(material_pick_shader, "model");
+	internal_data->projection_location = Renderer::shader_get_uniform_index(material_pick_shader, "projection");
+	internal_data->view_location = Renderer::shader_get_uniform_index(material_pick_shader, "view");
 
 	internal_data->near_clip_3D = 0.1f;
 	internal_data->far_clip_3D = 4000.0f;
@@ -139,33 +130,33 @@ void render_view_pick_on_resize(RenderView* self, uint32 width, uint32 height)
 
 static bool8 set_globals_material_phong_pick(RenderViewPickInternalData* internal_data, Camera* camera)
 {
-	ShaderSystem::bind_shader(internal_data->material_phong_pick_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->material_phong_pick_shader_id);
+	Renderer::shader_bind_globals(shader);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->projection_location, &internal_data->projection_3D));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->view_location, &camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->projection_location, &internal_data->projection_3D));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->view_location, &camera->get_view()));
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->material_phong_pick_shader_id));
 }
 
 static bool8 set_globals_terrain_pick(RenderViewPickInternalData* internal_data, Camera* camera)
 {
-	ShaderSystem::bind_shader(internal_data->terrain_pick_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->terrain_pick_shader_id);
+	Renderer::shader_bind_globals(shader);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->projection_location, &internal_data->projection_3D));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->view_location, &camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->projection_location, &internal_data->projection_3D));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->view_location, &camera->get_view()));
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->terrain_pick_shader_id));
 }
 
 static bool8 set_globals_ui_pick(RenderViewPickInternalData* internal_data)
 {
-	ShaderSystem::bind_shader(internal_data->ui_pick_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->ui_pick_shader_id);
+	Renderer::shader_bind_globals(shader);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->projection_location, &internal_data->projection_2D));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->view_location, &internal_data->view_2D));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->projection_location, &internal_data->projection_2D));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->view_location, &internal_data->view_2D));
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->ui_pick_shader_id));
 }
@@ -183,7 +174,6 @@ void render_view_pick_on_end_frame(RenderView* self)
 
 bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
-
 	RenderViewPickInternalData* internal_data = (RenderViewPickInternalData*)self->internal_data.data;
 	Camera* world_camera = RenderViewSystem::get_bound_world_camera();
 
@@ -194,7 +184,6 @@ bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32
 
 	if (render_target_index == 0)
 	{
-
 		if (!set_globals_material_phong_pick(internal_data, world_camera))
 			SHMERROR("Failed to apply globals to material phong pick shader.");
 		if (!set_globals_terrain_pick(internal_data, world_camera))
@@ -214,6 +203,7 @@ bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32
 
 		ShaderId shader_id = ShaderId::invalid_value;
 		ShaderId pick_shader_id = ShaderId::invalid_value;
+		Shader* pick_shader = 0;
 
 		for (uint32 geometry_i = 0; geometry_i < internal_data->world_view->geometries.count; geometry_i++)
 		{
@@ -234,8 +224,9 @@ bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32
 				else
 					continue;
 
-				ShaderSystem::use_shader(pick_shader_id);
-				ShaderSystem::bind_globals();
+				pick_shader = ShaderSystem::get_shader(pick_shader_id);
+				Renderer::shader_use(pick_shader);
+				Renderer::shader_bind_globals(pick_shader);
 			}
 
 			if (!pick_shader_id.is_valid())
@@ -246,8 +237,8 @@ bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32
 			uint32 r, g, b = 0;
 			Math::uint32_to_rgb(object_data->unique_id, &r, &g, &b);
 			Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
-			ShaderSystem::set_uniform(internal_data->id_color_location, &id_color);
-			ShaderSystem::set_uniform(internal_data->model_location, &object_data->model);
+			Renderer::shader_set_uniform(pick_shader, internal_data->id_color_location, &id_color);
+			Renderer::shader_set_uniform(pick_shader, internal_data->model_location, &object_data->model);
 
 			Renderer::geometry_draw(render_data->geometry_data);
 		}
@@ -267,6 +258,7 @@ bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32
 
 		shader_id.invalidate();
 		pick_shader_id.invalidate();
+		pick_shader = 0;
 
 		for (uint32 geometry_i = 0; geometry_i < internal_data->ui_view->geometries.count; geometry_i++)
 		{
@@ -285,8 +277,9 @@ bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32
 				else
 					continue;
 
-				ShaderSystem::use_shader(pick_shader_id);
-				ShaderSystem::bind_globals();
+				pick_shader = ShaderSystem::get_shader(pick_shader_id);
+				Renderer::shader_use(pick_shader);
+				Renderer::shader_bind_globals(pick_shader);
 			}
 
 			if (!pick_shader_id.is_valid())
@@ -297,8 +290,8 @@ bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32
 			uint32 r, g, b = 0;
 			Math::uint32_to_rgb(object_data->unique_id, &r, &g, &b);
 			Math::Vec3f id_color = Math::rgb_uint32_to_vec3(r, g, b);
-			ShaderSystem::set_uniform(internal_data->id_color_location, &id_color);
-			ShaderSystem::set_uniform(internal_data->model_location, &object_data->model);
+			Renderer::shader_set_uniform(pick_shader, internal_data->id_color_location, &id_color);
+			Renderer::shader_set_uniform(pick_shader, internal_data->model_location, &object_data->model);
 
 			Renderer::geometry_draw(render_data->geometry_data);
 		}
@@ -333,7 +326,6 @@ bool8 render_view_pick_on_render(RenderView* self, FrameData* frame_data, uint32
 	}*/
 
 	return true;
-
 }
 
 bool8 render_view_pick_regenerate_attachment_target(const RenderView* self, uint32 pass_index, Renderer::RenderTargetAttachment* attachment)

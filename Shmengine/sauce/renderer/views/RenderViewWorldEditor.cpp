@@ -47,32 +47,22 @@ bool8 render_view_world_editor_on_create(RenderView* self)
 	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::Renderer);
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
-	internal_data->color3D_shader_u_locations.view = Constants::max_u16;
-	internal_data->color3D_shader_u_locations.projection = Constants::max_u16;
-	internal_data->color3D_shader_u_locations.model = Constants::max_u16;
-
-	internal_data->coordinate_grid_shader_u_locations.view = Constants::max_u16;
-	internal_data->coordinate_grid_shader_u_locations.projection = Constants::max_u16;
-	internal_data->coordinate_grid_shader_u_locations.near_clip = Constants::max_u16;
-	internal_data->coordinate_grid_shader_u_locations.far_clip = Constants::max_u16;
-
-	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_coordinate_grid, &self->renderpasses[0]))
-	{
-		SHMERROR("Failed to create coordinate grid shader.");
-		return false;
-	}
-
 	internal_data->color3D_shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_color3D);
-	internal_data->coordinate_grid_shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_coordinate_grid);
+	Shader* color3D_shader = ShaderSystem::get_shader(internal_data->color3D_shader_id);
 
-	internal_data->color3D_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->color3D_shader_id, "projection");
-	internal_data->color3D_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->color3D_shader_id, "view");
-	internal_data->color3D_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->color3D_shader_id, "model");
+	Shader* coordinate_grid_shader = 0;
+	internal_data->coordinate_grid_shader_id = ShaderSystem::acquire_shader_id(Renderer::RendererConfig::builtin_shader_name_coordinate_grid, &coordinate_grid_shader);
+	if (coordinate_grid_shader)
+		Renderer::shader_init_from_resource(Renderer::RendererConfig::builtin_shader_name_coordinate_grid, &self->renderpasses[0], coordinate_grid_shader);
 
-	internal_data->coordinate_grid_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "projection");
-	internal_data->coordinate_grid_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "view");
-	internal_data->coordinate_grid_shader_u_locations.near_clip = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "near");
-	internal_data->coordinate_grid_shader_u_locations.far_clip = ShaderSystem::get_uniform_index(internal_data->coordinate_grid_shader_id, "far");
+	internal_data->color3D_shader_u_locations.projection = Renderer::shader_get_uniform_index(color3D_shader, "projection");
+	internal_data->color3D_shader_u_locations.view = Renderer::shader_get_uniform_index(color3D_shader, "view");
+	internal_data->color3D_shader_u_locations.model = Renderer::shader_get_uniform_index(color3D_shader, "model");
+
+	internal_data->coordinate_grid_shader_u_locations.projection = Renderer::shader_get_uniform_index(coordinate_grid_shader, "projection");
+	internal_data->coordinate_grid_shader_u_locations.view = Renderer::shader_get_uniform_index(coordinate_grid_shader, "view");
+	internal_data->coordinate_grid_shader_u_locations.near_clip = Renderer::shader_get_uniform_index(coordinate_grid_shader, "near");
+	internal_data->coordinate_grid_shader_u_locations.far_clip = Renderer::shader_get_uniform_index(coordinate_grid_shader, "far");
 
 	internal_data->near_clip = 0.1f;
 	internal_data->far_clip = 4000.0f;
@@ -124,30 +114,31 @@ void render_view_world_editor_on_resize(RenderView* self, uint32 width, uint32 h
 
 static bool8 set_globals_color3D(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
-	ShaderSystem::bind_shader(internal_data->color3D_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->color3D_shader_id);
+	Renderer::shader_bind_globals(shader);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.view, &camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->color3D_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->color3D_shader_u_locations.view, &camera->get_view()));
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->color3D_shader_id));
 }
 
 static bool8 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.model, model));
+	Shader* shader = ShaderSystem::get_shader(internal_data->color3D_shader_id);
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->color3D_shader_u_locations.model, model));
 	return true;
 }
 
 static bool8 set_globals_coordinate_grid(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
-	ShaderSystem::bind_shader(internal_data->coordinate_grid_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->coordinate_grid_shader_id);
+	Renderer::shader_bind_globals(shader);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.view, &camera->get_view()));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.near_clip, &internal_data->near_clip));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->coordinate_grid_shader_u_locations.far_clip, &internal_data->far_clip));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->coordinate_grid_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->coordinate_grid_shader_u_locations.view, &camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->coordinate_grid_shader_u_locations.near_clip, &internal_data->near_clip));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->coordinate_grid_shader_u_locations.far_clip, &internal_data->far_clip));
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->coordinate_grid_shader_id));
 }
@@ -165,7 +156,6 @@ void render_view_world_editor_on_end_frame(RenderView* self)
 
 bool8 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data, uint32 frame_number, uint64 render_target_index)
 {
-
 	OPTICK_EVENT();
 
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
@@ -193,6 +183,7 @@ bool8 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data
 	Renderer::RenderPass* renderpass = &self->renderpasses[0];
 
 	ShaderId shader_id = ShaderId::invalid_value;
+	Shader* shader = 0;
 
 	if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 	{
@@ -207,12 +198,13 @@ bool8 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data
 		if (render_data->shader_id != shader_id)
 		{
 			shader_id = render_data->shader_id;
-			ShaderSystem::use_shader(shader_id);
-			ShaderSystem::bind_globals();
+			shader = ShaderSystem::get_shader(shader_id);
+			Renderer::shader_use(shader);
+			Renderer::shader_bind_globals(shader);
 		}
 
 		if (render_data->shader_instance_id != Constants::max_u32)
-			ShaderSystem::bind_instance(render_data->shader_instance_id);
+			Renderer::shader_bind_instance(shader, render_data->shader_instance_id);
 
 		if (render_data->object_index != Constants::max_u32)
 		{
@@ -225,8 +217,9 @@ bool8 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data
 	}
 
 	// NOTE: Drawing coordinate grid separately
-	ShaderSystem::use_shader(internal_data->coordinate_grid_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* coordinate_grid_shader = ShaderSystem::get_shader(internal_data->coordinate_grid_shader_id);
+	Renderer::shader_use(coordinate_grid_shader);
+	Renderer::shader_bind_globals(coordinate_grid_shader);
 
 	//Renderer::geometry_draw(&internal_data->coordinate_grid.geometry);
 

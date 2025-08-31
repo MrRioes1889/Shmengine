@@ -60,6 +60,7 @@ namespace Renderer
 		static inline const char* builtin_shader_name_terrain_pick = "Builtin.TerrainPick";
 		static inline const char* builtin_shader_name_ui_pick = "Builtin.UIPick";
 
+		static inline const uint32 max_device_name_length = 256;
 		inline static const uint32 max_material_count = 0x400;
 		inline static const uint32 max_ui_count = 0x400;
 		inline static const uint32 max_geometry_count = 0x1000;
@@ -75,6 +76,11 @@ namespace Renderer
 		inline static const uint32 shader_max_push_const_ranges = 32;
 	};
 
+	struct DeviceProperties
+	{
+		char device_name[RendererConfig::max_device_name_length];
+		uint64 required_ubo_offset_alignment;
+	};
 
 	namespace ViewMode
 	{
@@ -272,7 +278,7 @@ namespace Renderer
 
 		uint64(*get_context_size_requirement)();
 
-		bool8(*init)(void* context, const ModuleConfig& config, uint32* out_window_render_target_count);
+		bool8(*init)(void* context, const ModuleConfig& config, DeviceProperties* device_properties);
 		void (*shutdown)();
 
 		void (*device_sleep_till_idle)();
@@ -311,8 +317,7 @@ namespace Renderer
 		bool8(*texture_read_data)(Texture* t, uint32 offset, uint32 size, void* out_memory);
 		bool8(*texture_read_pixel)(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
 
-		bool8(*shader_create)(const ShaderConfig* config, Shader* shader);
-		bool8(*shader_init)(Shader* shader);
+		bool8(*shader_init)(ShaderConfig* config, Shader* shader);
 		void (*shader_destroy)(Shader* shader);
 		bool8(*shader_use)(Shader* shader);
 		bool8(*shader_bind_globals)(Shader* shader);
@@ -342,11 +347,28 @@ namespace Renderer
 		bool8(*is_multithreaded)();
 	};
 
+	struct SystemConfig
+	{
+		const char* application_name;
+		RendererConfigFlags::Value flags;
+		const char* renderer_module_name;
+
+		uint16 max_shader_uniform_count;
+		uint16 max_shader_global_textures;
+		uint16 max_shader_instance_textures;
+	};
+
 	struct SystemState
 	{
 		Platform::DynamicLibrary renderer_lib;
 		Renderer::Module module;
 		void* module_context;
+
+		DeviceProperties device_properties;
+
+		uint16 max_shader_uniform_count;
+		uint16 max_shader_global_textures;
+		uint16 max_shader_instance_textures;
 
 		RenderBuffer general_vertex_buffer;
 		RenderBuffer general_index_buffer;
@@ -354,10 +376,8 @@ namespace Renderer
 		uint32 framebuffer_width;
 		uint32 framebuffer_height;
 
-		uint32 window_render_target_count;
-
-		bool8 resizing;
 		uint32 frames_since_resize;
+		bool8 resizing;
 
 		uint8 frame_number;
 
@@ -824,7 +844,7 @@ struct Shader
 	String name;
 
 	ShaderFlags::Value shader_flags;
-	ShaderState state;
+	ResourceState state;
 	Renderer::RenderTopologyTypeFlags::Value topologies;
 	ShaderScope bound_scope;
 
@@ -834,7 +854,6 @@ struct Shader
 	uint8 instance_uniform_sampler_count;
 	uint8 local_uniform_count;
 
-	uint64 required_ubo_alignment;
 	uint32 global_ubo_size;
 	uint32 global_ubo_stride;
 	RenderBufferAllocationReference global_ubo_alloc_ref;
@@ -869,12 +888,6 @@ struct Shader
 	void* internal_data;
 };
 
-struct SkyboxShaderUniformLocations
-{
-	ShaderUniformId projection;
-	ShaderUniformId view;
-	ShaderUniformId cube_map;
-};
 
 struct UIShaderUniformLocations
 {

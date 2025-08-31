@@ -49,7 +49,7 @@ namespace Renderer
 		MaterialResourceData resource;
 	};
 
-	bool8 material_init_from_resource_async(const char* resource_name, Material* out_material)
+	bool8 material_init_from_resource_async(const char* name, Material* out_material)
 	{
 		if (out_material->state >= ResourceState::Initialized)
 			return false;
@@ -59,7 +59,7 @@ namespace Renderer
 		JobSystem::JobInfo job = JobSystem::job_create(_material_init_from_resource_job, _material_init_from_resource_job_success, _material_init_from_resource_job_fail, sizeof(MaterialLoadParams));
 		MaterialLoadParams* params = (MaterialLoadParams*)job.user_data;
 		params->out_material = out_material;
-		params->resource_name = resource_name;
+		params->resource_name = name;
 		params->resource = {};
 		JobSystem::submit(job);
 

@@ -2,7 +2,6 @@
 
 #include "Defines.hpp"
 #include "utility/MathTypes.hpp"
-#include "systems/ShaderSystem.hpp"
 #include "renderer/RendererTypes.hpp"
 #include "core/Subsystems.hpp"
 #include "core/Identifier.hpp"

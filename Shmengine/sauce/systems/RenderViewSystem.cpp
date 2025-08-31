@@ -11,6 +11,7 @@
 #include "renderer/RendererFrontend.hpp"
 #include "systems/TextureSystem.hpp"
 #include "systems/MaterialSystem.hpp"
+#include "systems/ShaderSystem.hpp"
 #include "optick.h"
 
 #include "renderer/views/RenderViewSkybox.hpp"
@@ -230,7 +231,6 @@ namespace RenderViewSystem
 
 		}
 	}
-
 
 	static void material_get_instance_render_data(Material* material, FrameData* frame_data, ShaderId shader_id, RenderViewInstanceData* out_instance_data)
 	{

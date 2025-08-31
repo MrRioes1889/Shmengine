@@ -55,13 +55,17 @@ namespace Renderer
 		system_state->resizing = false;
 		system_state->frames_since_resize = 0;
 
+		system_state->max_shader_global_textures = sys_config->max_shader_global_textures;
+		system_state->max_shader_instance_textures = sys_config->max_shader_instance_textures;
+		system_state->max_shader_uniform_count = sys_config->max_shader_uniform_count;
+
 		uint64 context_size_req = system_state->module.get_context_size_requirement();
 		system_state->module_context = Memory::allocate(context_size_req, AllocationTag::Renderer);
 
 		ModuleConfig backend_config = {};
 		backend_config.application_name = sys_config->application_name;
 
-		if (!system_state->module.init(system_state->module_context, backend_config, &system_state->window_render_target_count))
+		if (!system_state->module.init(system_state->module_context, backend_config, &system_state->device_properties))
 		{
 			SHMERROR("Failed to initialize renderer backend!");
 			return false;

@@ -18,7 +18,7 @@ namespace MaterialSystem
 
 	struct ReferenceCounter
 	{
-		uint16 reference_count;
+		uint16 count;
 	};
 
 	struct SystemState
@@ -66,6 +66,7 @@ namespace MaterialSystem
         // Destroy the default materials.
 		Renderer::material_destroy(&system_state->default_ui_material);
         Renderer::material_destroy(&system_state->default_material);
+        system_state->material_ref_counters.free_data();
 
         system_state = 0;
     }
@@ -79,15 +80,15 @@ namespace MaterialSystem
         if (!id.is_valid())
         {
 			SHMERROR("Failed to load material: Out of memory!");
-			return true;
+			return MaterialId::invalid_value;
         }
         else if (!(*out_create_ptr))
         {
-			system_state->material_ref_counters[id].reference_count++;
+			system_state->material_ref_counters[id].count++;
             return id;
         }
 
-        system_state->material_ref_counters[id].reference_count = 1;
+        system_state->material_ref_counters[id].count = 1;
         return id;
     }
 
@@ -99,10 +100,10 @@ namespace MaterialSystem
             return;
 
         ReferenceCounter* ref_counter = &system_state->material_ref_counters[id];
-        if (ref_counter->reference_count > 0)
-			ref_counter->reference_count--;
+        if (ref_counter->count > 0)
+			ref_counter->count--;
 
-        if (ref_counter->reference_count > 0)
+        if (ref_counter->count > 0)
             return;
 		
 		system_state->material_storage.release(name, &id, out_destroy_ptr);

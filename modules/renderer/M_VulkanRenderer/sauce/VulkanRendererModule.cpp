@@ -37,7 +37,6 @@ namespace Renderer::Vulkan
 		out_module->texture_read_pixel = Vulkan::vk_texture_read_pixel;
 		out_module->texture_destroy = Vulkan::vk_texture_destroy;
 
-		out_module->shader_create = Vulkan::vk_shader_create;
 		out_module->shader_init = Vulkan::vk_shader_init;
 		out_module->shader_destroy = Vulkan::vk_shader_destroy;
 		out_module->shader_set_uniform = Vulkan::vk_shader_set_uniform;

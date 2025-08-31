@@ -16,6 +16,13 @@
 
 #include <optick.h>
 
+struct SkyboxShaderUniformLocations
+{
+	ShaderUniformId projection;
+	ShaderUniformId view;
+	ShaderUniformId cube_map;
+};
+
 struct RenderViewSkyboxInternalData 
 {
 	ShaderId skybox_shader_id;
@@ -34,21 +41,14 @@ bool8 render_view_skybox_on_create(RenderView* self)
 	self->internal_data.init(sizeof(RenderViewSkyboxInternalData), 0, AllocationTag::Renderer);
 	RenderViewSkyboxInternalData* internal_data = (RenderViewSkyboxInternalData*)self->internal_data.data;
 
-	internal_data->skybox_shader_u_locations.projection = Constants::max_u16;
-	internal_data->skybox_shader_u_locations.view = Constants::max_u16;
-	internal_data->skybox_shader_u_locations.cube_map = Constants::max_u16;
+	Shader* skybox_shader = 0;
+	internal_data->skybox_shader_id = ShaderSystem::acquire_shader_id(Renderer::RendererConfig::builtin_shader_name_skybox, &skybox_shader);
+	if (skybox_shader)
+		Renderer::shader_init_from_resource(Renderer::RendererConfig::builtin_shader_name_skybox, &self->renderpasses[0], skybox_shader);
 
-	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_skybox, &self->renderpasses[0]))
-	{
-		SHMERROR("Failed to create skybox shader.");
-		return false;
-	}
-
-	internal_data->skybox_shader_id = ShaderSystem::get_shader_id(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_skybox);
-
-	internal_data->skybox_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->skybox_shader_id, "projection");
-	internal_data->skybox_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->skybox_shader_id, "view");
-	internal_data->skybox_shader_u_locations.cube_map = ShaderSystem::get_uniform_index(internal_data->skybox_shader_id, "cube_texture");
+	internal_data->skybox_shader_u_locations.projection = Renderer::shader_get_uniform_index(skybox_shader, "projection");
+	internal_data->skybox_shader_u_locations.view = Renderer::shader_get_uniform_index(skybox_shader, "view");
+	internal_data->skybox_shader_u_locations.cube_map = Renderer::shader_get_uniform_index(skybox_shader, "cube_texture");
 
 	internal_data->near_clip = 0.1f;
 	internal_data->far_clip = 1000.0f;
@@ -96,21 +96,21 @@ void render_view_skybox_on_end_frame(RenderView* self)
 
 static bool8 set_globals_skybox(RenderViewSkyboxInternalData* internal_data, Math::Mat4* view_matrix)
 {
-	ShaderSystem::bind_shader(internal_data->skybox_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->skybox_shader_id);
+	Renderer::shader_bind_globals(shader);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->skybox_shader_u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->skybox_shader_u_locations.view, view_matrix));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->skybox_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->skybox_shader_u_locations.view, view_matrix));
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->skybox_shader_id));
 }
 
 static bool8 set_instance_skybox(RenderViewSkyboxInternalData* internal_data, RenderViewInstanceData instance)
 {
-	ShaderSystem::bind_shader(internal_data->skybox_shader_id);
-	ShaderSystem::bind_instance(instance.shader_instance_id);
+	Shader* shader = ShaderSystem::get_shader(internal_data->skybox_shader_id);
+	Renderer::shader_bind_instance(shader, instance.shader_instance_id);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->skybox_shader_u_locations.cube_map, instance.texture_maps[0]));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->skybox_shader_u_locations.cube_map, instance.texture_maps[0]));
 
 	return Renderer::shader_apply_instance(ShaderSystem::get_shader(internal_data->skybox_shader_id));
 }
@@ -165,6 +165,7 @@ bool8 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uint
 	}
 
 	ShaderId shader_id = ShaderId::invalid_value;
+	Shader* shader = 0;
 
 	for (uint32 geometry_i = 0; geometry_i < self->geometries.count; geometry_i++)
 	{
@@ -173,12 +174,13 @@ bool8 render_view_skybox_on_render(RenderView* self, FrameData* frame_data, uint
 		if (render_data->shader_id != shader_id)
 		{
 			shader_id = render_data->shader_id;
-			ShaderSystem::use_shader(shader_id);
-			ShaderSystem::bind_globals();
+			shader = ShaderSystem::get_shader(shader_id);
+			Renderer::shader_use(shader);
+			Renderer::shader_bind_globals(shader);
 		}
 			
 		if (render_data->shader_instance_id != Constants::max_u32)
-			ShaderSystem::bind_instance(render_data->shader_instance_id);
+			Renderer::shader_bind_instance(shader, render_data->shader_instance_id);
 
 		Renderer::geometry_draw(render_data->geometry_data);
 	}

@@ -16,14 +16,6 @@ struct Scene;
 
 namespace Renderer
 {
-
-	struct SystemConfig
-	{
-		const char* application_name;
-		RendererConfigFlags::Value flags;
-		const char* renderer_module_name;
-	};
-
 	bool8 system_init(FP_allocator_allocate allocator_callback, void* allocator, void* config);
 	void system_shutdown(void* state);	
 
@@ -62,8 +54,8 @@ namespace Renderer
 	SHMAPI void geometry_unload(GeometryData* geometry);
 	SHMAPI void geometry_draw(GeometryData* geometry);
 
-	SHMAPI bool8 shader_create(const ShaderConfig* config, Shader* shader);
-	SHMAPI bool8 shader_init(Shader* shader);
+	SHMAPI bool8 shader_init(ShaderConfig* config, Shader* out_shader);
+	SHMAPI bool8 shader_init_from_resource(const char* name, RenderPass* renderpass, Shader* out_shader);
 	SHMAPI void shader_destroy(Shader* shader);
 	SHMAPI bool8 shader_use(Shader* shader);
 	SHMAPI bool8 shader_bind_globals(Shader* shader);
@@ -72,17 +64,18 @@ namespace Renderer
 	SHMAPI bool8 shader_apply_instance(Shader* shader);
 	SHMAPI bool8 shader_acquire_instance_resources(Shader* shader, uint32 texture_maps_count, uint32* out_instance_id);
 	SHMAPI bool8 shader_release_instance_resources(Shader* shader, uint32 instance_id);
-	SHMAPI bool8 shader_set_uniform(Shader* shader, ShaderUniform* uniform, const void* value);
+	SHMAPI ShaderUniformId shader_get_uniform_index(Shader* shader, const char* uniform_name);
+	SHMAPI bool8 shader_set_uniform(Shader* shader, ShaderUniformId uniform_id, const void* value);
 
 	bool8 texture_map_init(TextureMapConfig* config, TextureMap* out_map);
 	void texture_map_destroy(TextureMap* map);
 
 	SHMAPI bool8 material_init(MaterialConfig* config, Material* out_material);
-	SHMAPI bool8 material_init_from_resource_async(const char* resource_name, Material* out_material);
+	SHMAPI bool8 material_init_from_resource_async(const char* name, Material* out_material);
 	SHMAPI bool8 material_destroy(Material* material);
 
 	SHMAPI bool8 mesh_init(MeshConfig* config, Mesh* out_mesh);
-	SHMAPI bool8 mesh_init_from_resource_async(const char* resource_name, Mesh* out_mesh);
+	SHMAPI bool8 mesh_init_from_resource_async(const char* name, Mesh* out_mesh);
 	SHMAPI bool8 mesh_destroy(Mesh* mesh);
 
 	SHMAPI bool8 renderbuffer_init(const char* name, RenderBufferType type, uint64 size, bool8 use_freelist, RenderBuffer* out_buffer);

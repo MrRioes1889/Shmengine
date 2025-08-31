@@ -26,6 +26,34 @@ typedef uint32 UniqueId;
 
 typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
+#ifdef _MSC_VER
+#define SHMINLINE __forceinline
+#define SHMNOINLINE __declspec(noinline)
+#else
+#define SHMINLINE static inline
+#define SHMNOINLINE
+#endif
+
+#ifdef _MSC_VER
+#define TYPEOF(x) decltype(x)
+#endif
+
+#ifdef SHMEXPORT
+// Exports
+#ifdef _MSC_VER
+#define SHMAPI __declspec(dllexport)
+#else
+#define SHMAPI __attribute__((visibility("default")))
+#endif
+#else
+// Imports
+#ifdef _MSC_VER
+#define SHMAPI __declspec(dllimport)
+#else
+#define SHMAPI
+#endif
+#endif
+
 namespace Constants
 {
 
@@ -73,7 +101,6 @@ namespace Constants
 
 }
 
-
 // Properly define static assertions.
 #if defined(__clang__) || defined(__gcc__)
 #define STATIC_ASSERT _Static_assert
@@ -83,12 +110,12 @@ namespace Constants
 
 #define goto_if(condition, tagname) if(condition) goto tagname;
 
-inline constexpr uint64 kibibytes(uint64 x) { return x * 1024ULL; }
-inline constexpr uint64 mebibytes(uint64 x) { return kibibytes(x) * 1024ULL; }
-inline constexpr uint64 gibibytes(uint64 x) { return mebibytes(x) * 1024ULL; }
-inline constexpr uint64 tebibytes(uint64 x) { return gibibytes(x) * 1024ULL; }
+SHMINLINE uint64 kibibytes(uint64 x) { return x * 1024ULL; }
+SHMINLINE uint64 mebibytes(uint64 x) { return kibibytes(x) * 1024ULL; }
+SHMINLINE uint64 gibibytes(uint64 x) { return mebibytes(x) * 1024ULL; } 
+SHMINLINE uint64 tebibytes(uint64 x) { return gibibytes(x) * 1024ULL; }
 
-inline constexpr uint8* PTR_BYTES_OFFSET(void* ptr, int64 offset) { return ((uint8*)ptr) + (offset); }
+SHMINLINE uint8* PTR_BYTES_OFFSET(void* ptr, int64 offset) { return ((uint8*)ptr) + (offset); }
 
 // Ensure all types are of the correct size.
 STATIC_ASSERT(sizeof(uint8) == 1, "Expected u8 to be 1 byte.");
@@ -104,33 +131,7 @@ STATIC_ASSERT(sizeof(int64) == 8, "Expected i64 to be 8 bytes.");
 STATIC_ASSERT(sizeof(float32) == 4, "Expected f32 to be 4 bytes.");
 STATIC_ASSERT(sizeof(float64) == 8, "Expected f64 to be 8 bytes.");
 
-#ifdef _MSC_VER
-#define TYPEOF(x) decltype(x)
-#endif
 
-#ifdef SHMEXPORT
-// Exports
-#ifdef _MSC_VER
-#define SHMAPI __declspec(dllexport)
-#else
-#define SHMAPI __attribute__((visibility("default")))
-#endif
-#else
-// Imports
-#ifdef _MSC_VER
-#define SHMAPI __declspec(dllimport)
-#else
-#define SHMAPI
-#endif
-#endif
-
-#ifdef _MSC_VER
-#define SHMINLINE __forceinline
-#define SHMNOINLINE __declspec(noinline)
-#else
-#define SHMINLINE static inline
-#define SHMNOINLINE
-#endif
 
 #define SHMIN(x, y) (y < x ? y : x)
 #define SHMAX(x, y) (y > x ? y : x)

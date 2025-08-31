@@ -54,7 +54,7 @@ bool8 ui_text_init(UITextConfig* config, UIText* out_ui_text)
     out_ui_text->unique_id = identifier_acquire_new_id(out_ui_text);
     out_ui_text->is_dirty = true;
 
-    Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
+    Shader* ui_shader = ShaderSystem::get_shader(ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_ui));
     if (!Renderer::shader_acquire_instance_resources(ui_shader, 1, &out_ui_text->shader_instance_id))
     {
         SHMFATAL("Unable to acquire shader resources for font texture map.");
@@ -82,7 +82,7 @@ bool8 ui_text_destroy(UIText* ui_text)
 
     Renderer::geometry_unload(&ui_text->geometry);
 
-    Shader* ui_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_ui);
+    Shader* ui_shader = ShaderSystem::get_shader(ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_ui));
     Renderer::shader_release_instance_resources(ui_shader, ui_text->shader_instance_id);
 
     ui_text->shader_instance_id = Constants::max_u32;

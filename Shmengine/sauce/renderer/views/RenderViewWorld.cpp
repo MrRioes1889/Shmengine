@@ -83,99 +83,61 @@ bool8 render_view_world_on_create(RenderView* self)
 	self->internal_data.init(sizeof(RenderViewWorldInternalData), 0, AllocationTag::Renderer);
 	RenderViewWorldInternalData* internal_data = (RenderViewWorldInternalData*)self->internal_data.data;
 
-	internal_data->material_phong_u_locations.view = Constants::max_u16;
-	internal_data->material_phong_u_locations.projection = Constants::max_u16;
-	internal_data->material_phong_u_locations.diffuse_texture = Constants::max_u16;
-	internal_data->material_phong_u_locations.specular_texture = Constants::max_u16;
-	internal_data->material_phong_u_locations.normal_texture = Constants::max_u16;
-	internal_data->material_phong_u_locations.camera_position = Constants::max_u16;
-	internal_data->material_phong_u_locations.ambient_color = Constants::max_u16;
-	internal_data->material_phong_u_locations.model = Constants::max_u16;
-	internal_data->material_phong_u_locations.render_mode = Constants::max_u16;
-	internal_data->material_phong_u_locations.dir_light = Constants::max_u16;
-	internal_data->material_phong_u_locations.p_lights = Constants::max_u16;
-	internal_data->material_phong_u_locations.p_lights_count = Constants::max_u16;
-	internal_data->material_phong_u_locations.properties = Constants::max_u16;
+	Shader* material_shader = 0;
+	internal_data->material_phong_shader_id = ShaderSystem::acquire_shader_id(Renderer::RendererConfig::builtin_shader_name_material_phong, &material_shader);
+	if (material_shader)
+		Renderer::shader_init_from_resource(Renderer::RendererConfig::builtin_shader_name_material_phong, &self->renderpasses[0], material_shader);
 
-	internal_data->terrain_u_locations.view = Constants::max_u16;
-	internal_data->terrain_u_locations.projection = Constants::max_u16;
-	internal_data->terrain_u_locations.camera_position = Constants::max_u16;
-	internal_data->terrain_u_locations.ambient_color = Constants::max_u16;
-	internal_data->terrain_u_locations.model = Constants::max_u16;
-	internal_data->terrain_u_locations.render_mode = Constants::max_u16;
-	internal_data->terrain_u_locations.dir_light = Constants::max_u16;
-	internal_data->terrain_u_locations.p_lights = Constants::max_u16;
-	internal_data->terrain_u_locations.p_lights_count = Constants::max_u16;
-	internal_data->terrain_u_locations.properties = Constants::max_u16;
-	for (uint32 i = 0; i < Constants::max_terrain_materials_count * 3; i++)
-		internal_data->terrain_u_locations.samplers[i] = Constants::max_u16;
+	Shader* terrain_shader = 0;
+	internal_data->terrain_shader_id = ShaderSystem::acquire_shader_id(Renderer::RendererConfig::builtin_shader_name_terrain, &terrain_shader);
+	if (terrain_shader)
+		Renderer::shader_init_from_resource(Renderer::RendererConfig::builtin_shader_name_terrain, &self->renderpasses[0], terrain_shader);
 
-	internal_data->color3D_shader_u_locations.view = Constants::max_u16;
-	internal_data->color3D_shader_u_locations.projection = Constants::max_u16;
-	internal_data->color3D_shader_u_locations.model = Constants::max_u16;
+	Shader* color3D_shader = 0;
+	internal_data->color3D_shader_id = ShaderSystem::acquire_shader_id(Renderer::RendererConfig::builtin_shader_name_color3D, &color3D_shader);
+	if (color3D_shader)
+		Renderer::shader_init_from_resource(Renderer::RendererConfig::builtin_shader_name_color3D, &self->renderpasses[0], color3D_shader);
 
-	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_material_phong, &self->renderpasses[0]))
-	{
-		SHMERROR("Failed to create material phong shader.");
-		return false;
-	}
+	internal_data->material_phong_u_locations.projection = Renderer::shader_get_uniform_index(material_shader, "projection");
+	internal_data->material_phong_u_locations.view = Renderer::shader_get_uniform_index(material_shader, "view");
+	internal_data->material_phong_u_locations.ambient_color = Renderer::shader_get_uniform_index(material_shader, "ambient_color");
+	internal_data->material_phong_u_locations.camera_position = Renderer::shader_get_uniform_index(material_shader, "camera_position");
+	internal_data->material_phong_u_locations.diffuse_texture = Renderer::shader_get_uniform_index(material_shader, "diffuse_texture");
+	internal_data->material_phong_u_locations.specular_texture = Renderer::shader_get_uniform_index(material_shader, "specular_texture");
+	internal_data->material_phong_u_locations.normal_texture = Renderer::shader_get_uniform_index(material_shader, "normal_texture");
+	internal_data->material_phong_u_locations.model = Renderer::shader_get_uniform_index(material_shader, "model");
+	internal_data->material_phong_u_locations.render_mode = Renderer::shader_get_uniform_index(material_shader, "mode");
+	internal_data->material_phong_u_locations.dir_light = Renderer::shader_get_uniform_index(material_shader, "dir_light");
+	internal_data->material_phong_u_locations.p_lights = Renderer::shader_get_uniform_index(material_shader, "p_lights");
+	internal_data->material_phong_u_locations.p_lights_count = Renderer::shader_get_uniform_index(material_shader, "p_lights_count");
+	internal_data->material_phong_u_locations.properties = Renderer::shader_get_uniform_index(material_shader, "properties");
 
-	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_terrain, &self->renderpasses[0]))
-	{
-		SHMERROR("Failed to create terrain shader.");
-		return false;
-	}
+	internal_data->terrain_u_locations.projection = Renderer::shader_get_uniform_index(terrain_shader, "projection");
+	internal_data->terrain_u_locations.view = Renderer::shader_get_uniform_index(terrain_shader, "view");
+	internal_data->terrain_u_locations.ambient_color = Renderer::shader_get_uniform_index(terrain_shader, "ambient_color");
+	internal_data->terrain_u_locations.camera_position = Renderer::shader_get_uniform_index(terrain_shader, "camera_position");
+	internal_data->terrain_u_locations.model = Renderer::shader_get_uniform_index(terrain_shader, "model");
+	internal_data->terrain_u_locations.render_mode = Renderer::shader_get_uniform_index(terrain_shader, "mode");
+	internal_data->terrain_u_locations.dir_light = Renderer::shader_get_uniform_index(terrain_shader, "dir_light");
+	internal_data->terrain_u_locations.p_lights = Renderer::shader_get_uniform_index(terrain_shader, "p_lights");
+	internal_data->terrain_u_locations.p_lights_count = Renderer::shader_get_uniform_index(terrain_shader, "p_lights_count");
+	internal_data->terrain_u_locations.properties = Renderer::shader_get_uniform_index(terrain_shader, "properties");
+	internal_data->terrain_u_locations.samplers[0] = Renderer::shader_get_uniform_index(terrain_shader, "diffuse_texture_0");
+	internal_data->terrain_u_locations.samplers[1] = Renderer::shader_get_uniform_index(terrain_shader, "specular_texture_0");
+	internal_data->terrain_u_locations.samplers[2] = Renderer::shader_get_uniform_index(terrain_shader, "normal_texture_0");
+	internal_data->terrain_u_locations.samplers[3] = Renderer::shader_get_uniform_index(terrain_shader, "diffuse_texture_1");
+	internal_data->terrain_u_locations.samplers[4] = Renderer::shader_get_uniform_index(terrain_shader, "specular_texture_1");
+	internal_data->terrain_u_locations.samplers[5] = Renderer::shader_get_uniform_index(terrain_shader, "normal_texture_1");
+	internal_data->terrain_u_locations.samplers[6] = Renderer::shader_get_uniform_index(terrain_shader, "diffuse_texture_2");
+	internal_data->terrain_u_locations.samplers[7] = Renderer::shader_get_uniform_index(terrain_shader, "specular_texture_2");
+	internal_data->terrain_u_locations.samplers[8] = Renderer::shader_get_uniform_index(terrain_shader, "normal_texture_2");
+	internal_data->terrain_u_locations.samplers[9] = Renderer::shader_get_uniform_index(terrain_shader, "diffuse_texture_3");
+	internal_data->terrain_u_locations.samplers[10] = Renderer::shader_get_uniform_index(terrain_shader, "specular_texture_3");
+	internal_data->terrain_u_locations.samplers[11] = Renderer::shader_get_uniform_index(terrain_shader, "normal_texture_3");
 
-	if (!ShaderSystem::create_shader_from_resource(Renderer::RendererConfig::builtin_shader_name_color3D, &self->renderpasses[0]))
-	{
-		SHMERROR("Failed to create color 3d shader.");
-		return false;
-	}
-
-	internal_data->material_phong_shader_id = ShaderSystem::get_shader_id(self->custom_shader_name ? self->custom_shader_name : Renderer::RendererConfig::builtin_shader_name_material_phong);
-	internal_data->terrain_shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_terrain);
-	internal_data->color3D_shader_id = ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_color3D);
-
-	internal_data->material_phong_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "projection");
-	internal_data->material_phong_u_locations.view = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "view");
-	internal_data->material_phong_u_locations.ambient_color = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "ambient_color");
-	internal_data->material_phong_u_locations.camera_position = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "camera_position");
-	internal_data->material_phong_u_locations.diffuse_texture = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "diffuse_texture");
-	internal_data->material_phong_u_locations.specular_texture = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "specular_texture");
-	internal_data->material_phong_u_locations.normal_texture = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "normal_texture");
-	internal_data->material_phong_u_locations.model = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "model");
-	internal_data->material_phong_u_locations.render_mode = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "mode");
-	internal_data->material_phong_u_locations.dir_light = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "dir_light");
-	internal_data->material_phong_u_locations.p_lights = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "p_lights");
-	internal_data->material_phong_u_locations.p_lights_count = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "p_lights_count");
-	internal_data->material_phong_u_locations.properties = ShaderSystem::get_uniform_index(internal_data->material_phong_shader_id, "properties");
-
-	internal_data->terrain_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "projection");
-	internal_data->terrain_u_locations.view = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "view");
-	internal_data->terrain_u_locations.ambient_color = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "ambient_color");
-	internal_data->terrain_u_locations.camera_position = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "camera_position");
-	internal_data->terrain_u_locations.model = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "model");
-	internal_data->terrain_u_locations.render_mode = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "mode");
-	internal_data->terrain_u_locations.dir_light = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "dir_light");
-	internal_data->terrain_u_locations.p_lights = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "p_lights");
-	internal_data->terrain_u_locations.p_lights_count = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "p_lights_count");
-	internal_data->terrain_u_locations.properties = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "properties");
-	internal_data->terrain_u_locations.samplers[0] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "diffuse_texture_0");
-	internal_data->terrain_u_locations.samplers[1] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "specular_texture_0");
-	internal_data->terrain_u_locations.samplers[2] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "normal_texture_0");
-	internal_data->terrain_u_locations.samplers[3] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "diffuse_texture_1");
-	internal_data->terrain_u_locations.samplers[4] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "specular_texture_1");
-	internal_data->terrain_u_locations.samplers[5] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "normal_texture_1");
-	internal_data->terrain_u_locations.samplers[6] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "diffuse_texture_2");
-	internal_data->terrain_u_locations.samplers[7] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "specular_texture_2");
-	internal_data->terrain_u_locations.samplers[8] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "normal_texture_2");
-	internal_data->terrain_u_locations.samplers[9] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "diffuse_texture_3");
-	internal_data->terrain_u_locations.samplers[10] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "specular_texture_3");
-	internal_data->terrain_u_locations.samplers[11] = ShaderSystem::get_uniform_index(internal_data->terrain_shader_id, "normal_texture_3");
-
-	internal_data->color3D_shader_u_locations.projection = ShaderSystem::get_uniform_index(internal_data->color3D_shader_id, "projection");
-	internal_data->color3D_shader_u_locations.view = ShaderSystem::get_uniform_index(internal_data->color3D_shader_id, "view");
-	internal_data->color3D_shader_u_locations.model = ShaderSystem::get_uniform_index(internal_data->color3D_shader_id, "model");
+	internal_data->color3D_shader_u_locations.projection = Renderer::shader_get_uniform_index(color3D_shader, "projection");
+	internal_data->color3D_shader_u_locations.view = Renderer::shader_get_uniform_index(color3D_shader, "view");
+	internal_data->color3D_shader_u_locations.model = Renderer::shader_get_uniform_index(color3D_shader, "model");
 
 	internal_data->near_clip = 0.1f;
 	internal_data->far_clip = 4000.0f;
@@ -219,31 +181,31 @@ void render_view_world_on_resize(RenderView* self, uint32 width, uint32 height)
 static bool8 set_globals_material_phong(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
 	MaterialPhongShaderUniformLocations u_locations = internal_data->material_phong_u_locations;
-	ShaderSystem::bind_shader(internal_data->material_phong_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->material_phong_shader_id);
+	Renderer::shader_bind_globals(shader);
 
 	Math::Vec3f camera_position = camera->get_position();
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &camera->get_view()));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.ambient_color, &internal_data->ambient_color));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.camera_position, &camera_position));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.render_mode, &internal_data->render_mode));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.view, &camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.ambient_color, &internal_data->ambient_color));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.camera_position, &camera_position));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.render_mode, &internal_data->render_mode));
 
 	if (internal_data->lighting.dir_light)
 	{
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, internal_data->lighting.dir_light));
+		UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.dir_light, internal_data->lighting.dir_light));
 	}
 
 	if (internal_data->lighting.p_lights)
 	{
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &internal_data->lighting.p_lights_count));
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, internal_data->lighting.p_lights));
+		UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.p_lights_count, &internal_data->lighting.p_lights_count));
+		UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.p_lights, internal_data->lighting.p_lights));
 	}
 	else
 	{
 		uint32 no_lights = 0;
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &no_lights));
+		UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.p_lights_count, &no_lights));
 	}
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->material_phong_shader_id));
@@ -252,53 +214,53 @@ static bool8 set_globals_material_phong(RenderViewWorldInternalData* internal_da
 static bool8 set_instance_material_phong(RenderViewWorldInternalData* internal_data, RenderViewInstanceData instance)
 {
 	MaterialPhongShaderUniformLocations u_locations = internal_data->material_phong_u_locations;
-	ShaderSystem::bind_shader(internal_data->material_phong_shader_id);
-	ShaderSystem::bind_instance(instance.shader_instance_id);
+	Shader* shader = ShaderSystem::get_shader(internal_data->material_phong_shader_id);
+	Renderer::shader_bind_instance(shader, instance.shader_instance_id);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.properties, instance.instance_properties));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.properties, instance.instance_properties));
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.diffuse_texture, instance.texture_maps[0]));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.specular_texture, instance.texture_maps[1]));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.normal_texture, instance.texture_maps[2]));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.diffuse_texture, instance.texture_maps[0]));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.specular_texture, instance.texture_maps[1]));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.normal_texture, instance.texture_maps[2]));
 
 	return Renderer::shader_apply_instance(ShaderSystem::get_shader(internal_data->material_phong_shader_id));
 }
 
 static bool8 set_locals_material_phong(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->material_phong_u_locations.model, model));
+	Shader* shader = ShaderSystem::get_shader(internal_data->material_phong_shader_id);
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->material_phong_u_locations.model, model));
 	return true;
 }
 
 static bool8 set_globals_terrain(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
-
 	TerrainShaderUniformLocations u_locations = internal_data->terrain_u_locations;
-	ShaderSystem::bind_shader(internal_data->terrain_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->terrain_shader_id);
+	Renderer::shader_bind_globals(shader);
 
 	Math::Vec3f camera_position = camera->get_position();
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.view, &camera->get_view()));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.ambient_color, &internal_data->ambient_color));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.camera_position, &camera_position));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.render_mode, &internal_data->render_mode));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.view, &camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.ambient_color, &internal_data->ambient_color));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.camera_position, &camera_position));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.render_mode, &internal_data->render_mode));
 
 	if (internal_data->lighting.dir_light)
 	{
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.dir_light, internal_data->lighting.dir_light));
+		UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.dir_light, internal_data->lighting.dir_light));
 	}
 
 	if (internal_data->lighting.p_lights)
 	{
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &internal_data->lighting.p_lights_count));
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights, internal_data->lighting.p_lights));
+		UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.p_lights_count, &internal_data->lighting.p_lights_count));
+		UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.p_lights, internal_data->lighting.p_lights));
 	}
 	else
 	{
 		uint32 no_lights = 0;
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(u_locations.p_lights_count, &no_lights));
+		UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, u_locations.p_lights_count, &no_lights));
 	}
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->terrain_shader_id));
@@ -306,36 +268,38 @@ static bool8 set_globals_terrain(RenderViewWorldInternalData* internal_data, Cam
 
 static bool8 set_instance_terrain(RenderViewWorldInternalData* internal_data, RenderViewInstanceData instance)
 {
-	ShaderSystem::bind_shader(internal_data->terrain_shader_id);
-	ShaderSystem::bind_instance(instance.shader_instance_id);
+	Shader* shader = ShaderSystem::get_shader(internal_data->terrain_shader_id);
+	Renderer::shader_bind_instance(shader, instance.shader_instance_id);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->terrain_u_locations.properties, instance.instance_properties));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->terrain_u_locations.properties, instance.instance_properties));
 	for (uint32 i = 0; i < instance.texture_maps_count; i++)
-		UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->terrain_u_locations.samplers[i], instance.texture_maps[i]));
+		UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->terrain_u_locations.samplers[i], instance.texture_maps[i]));
 
 	return Renderer::shader_apply_instance(ShaderSystem::get_shader(internal_data->terrain_shader_id));
 }
 
 static bool8 set_locals_terrain(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->terrain_u_locations.model, model));
+	Shader* shader = ShaderSystem::get_shader(internal_data->terrain_shader_id);
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->terrain_u_locations.model, model));
 	return true;
 }
 
 static bool8 set_globals_color3D(RenderViewWorldInternalData* internal_data, Camera* camera)
 {
-	ShaderSystem::bind_shader(internal_data->color3D_shader_id);
-	ShaderSystem::bind_globals();
+	Shader* shader = ShaderSystem::get_shader(internal_data->color3D_shader_id);
+	Renderer::shader_bind_globals(shader);
 
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.projection, &internal_data->projection_matrix));
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.view, &camera->get_view()));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->color3D_shader_u_locations.projection, &internal_data->projection_matrix));
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->color3D_shader_u_locations.view, &camera->get_view()));
 
 	return Renderer::shader_apply_globals(ShaderSystem::get_shader(internal_data->color3D_shader_id));
 }
 
 static bool8 set_locals_color3D(RenderViewWorldInternalData* internal_data, Math::Mat4* model)
 {
-	UNIFORM_APPLY_OR_FAIL(ShaderSystem::set_uniform(internal_data->color3D_shader_u_locations.model, model));
+	Shader* shader = ShaderSystem::get_shader(internal_data->color3D_shader_id);
+	UNIFORM_APPLY_OR_FAIL(Renderer::shader_set_uniform(shader, internal_data->color3D_shader_u_locations.model, model));
 	return true;
 }
 
@@ -443,6 +407,7 @@ bool8 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint3
 	Renderer::RenderPass* renderpass = &self->renderpasses[0];
 		
 	ShaderId shader_id = ShaderId::invalid_value;
+	Shader* shader = 0;
 
 	if (!Renderer::renderpass_begin(renderpass, &renderpass->render_targets[render_target_index]))
 	{
@@ -457,12 +422,13 @@ bool8 render_view_world_on_render(RenderView* self, FrameData* frame_data, uint3
 		if (render_data->shader_id != shader_id)
 		{
 			shader_id = render_data->shader_id;
-			ShaderSystem::use_shader(shader_id);
-			ShaderSystem::bind_globals();
+			shader = ShaderSystem::get_shader(shader_id);
+			Renderer::shader_use(shader);
+			Renderer::shader_bind_globals(shader);
 		}
 
 		if (render_data->shader_instance_id != Constants::max_u32)
-			ShaderSystem::bind_instance(render_data->shader_instance_id);
+			Renderer::shader_bind_instance(shader, render_data->shader_instance_id);
 
 		if (render_data->object_index != Constants::max_u32)
 		{

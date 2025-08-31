@@ -40,7 +40,7 @@ bool8 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 	}
 	out_skybox->cubemap.texture = TextureSystem::acquire(out_skybox->cubemap_name.c_str(), TextureType::Cube, true);
 
-	Shader* skybox_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_skybox);
+	Shader* skybox_shader = ShaderSystem::get_shader(ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_skybox));
 	if (!Renderer::shader_acquire_instance_resources(skybox_shader, 1, &out_skybox->shader_instance_id))
 	{
 		SHMFATAL("Failed to acquire shader instance resources for skybox cube map!");
@@ -59,7 +59,7 @@ bool8 skybox_destroy(Skybox* skybox)
 
 	skybox->state = ResourceState::Destroying;
 
-	Shader* skybox_shader = ShaderSystem::get_shader(Renderer::RendererConfig::builtin_shader_name_skybox);
+	Shader* skybox_shader = ShaderSystem::get_shader(ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_skybox));
 
 	Renderer::shader_release_instance_resources(skybox_shader, skybox->shader_instance_id);
 	skybox->shader_instance_id = 0;
