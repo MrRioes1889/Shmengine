@@ -770,7 +770,7 @@ struct ShaderAttributeConfig
 struct ShaderUniformConfig
 {
 	char name[Constants::max_shader_uniform_name_length];
-	uint32 size;
+	uint16 size;
 	uint32 location;
 	ShaderUniformType type;
 	ShaderScope scope;

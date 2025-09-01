@@ -14,9 +14,7 @@ namespace Renderer
 	static void _shader_destroy(Shader* shader);
 
 	static bool8 _add_attribute(Shader* shader, const ShaderAttributeConfig* config);
-	static bool8 _add_sampler(Shader* shader, const ShaderUniformConfig* config);
-	static bool8 _add_uniform(Shader* shader, const ShaderUniformConfig* config);
-	static bool8 _add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool8 is_sampler);
+	static bool8 _add_uniform(Shader* shader, ShaderUniformConfig* config);
 
 	static bool8 _create_default_texture_map();
 
@@ -134,16 +132,23 @@ namespace Renderer
 			}
 		}
 
+		if (out_shader->global_uniform_sampler_count >= system_state->max_shader_global_textures)
+		{
+			SHMERRORV("Shader global texture count %u exceeds max of %u", out_shader->global_uniform_sampler_count, system_state->max_shader_global_textures);
+			return false;
+		}
+
+		if (out_shader->instance_uniform_sampler_count >= system_state->max_shader_instance_textures)
+		{
+			SHMERRORV("Shader instance texture count %u exceeds max of %u", out_shader->instance_uniform_sampler_count, system_state->max_shader_instance_textures);
+			return false;
+		}
+
 		for (uint32 i = 0; i < config->attributes_count; i++)
 			_add_attribute(out_shader, &config->attributes[i]);
 
 		for (uint32 i = 0; i < config->uniforms_count; i++)
-		{
-			if (config->uniforms[i].type == ShaderUniformType::Sampler)
-				_add_sampler(out_shader, &config->uniforms[i]);
-			else
-				_add_uniform(out_shader, &config->uniforms[i]);
-		}
+			_add_uniform(out_shader, &config->uniforms[i]);
 
 		out_shader->instance_count = 0;
 
@@ -369,105 +374,96 @@ namespace Renderer
 		return true;
 	}
 
-	static bool8 _add_sampler(Shader* shader, const ShaderUniformConfig* config)
+	static bool8 _add_uniform(Shader* shader, ShaderUniformConfig* config)
 	{
-		if (config->scope == ShaderScope::Local)
-		{
-			SHMERROR("add_sampler cannot add a sampler at local scope.");
-			return false;
-		}
-
 		if (!config->name[0])
-			return false;
-
-		uint32 location = 0;
-		if (config->scope == ShaderScope::Global)
-		{
-			if (shader->global_texture_maps.count >= system_state->max_shader_global_textures)
-			{
-				SHMERRORV("Shader global texture count %u exceeds max of %u", shader->global_texture_maps.count + 1, system_state->max_shader_global_textures);
-				return false;
-			}
-			location = shader->global_texture_maps.count;
-
-			if (!default_texture_map.internal_data)
-				_create_default_texture_map();
-
-			shader->global_texture_maps.push(&default_texture_map);
-		}
-		else
-		{
-			if (shader->instance_texture_count >= system_state->max_shader_instance_textures)
-			{
-				SHMERRORV("Shader instance texture count %u exceeds max of %u", shader->instance_texture_count, system_state->max_shader_instance_textures);
-				return false;
-			}
-			location = shader->instance_texture_count;
-			shader->instance_texture_count++;
-		}
-
-		// Treat it like a uniform. NOTE: In the case of samplers, out_location is used to determine the
-		// hashtable entry's 'location' field value directly, and is then set to the index of the uniform array.
-		// This allows location lookups for samplers as if they were uniforms as well (since technically they are).
-		// TODO: might need to store this elsewhere
-		return _add_uniform(shader, config->name, 0, config->type, config->scope, location, true);
-	}
-
-	static bool8 _add_uniform(Shader* shader, const ShaderUniformConfig* config)
-	{
-		return _add_uniform(shader, config->name, config->size, config->type, config->scope, 0, false);
-	}
-
-	static bool8 _add_uniform(Shader* shader, const char* uniform_name, uint32 size, ShaderUniformType type, ShaderScope scope, uint32 set_location, bool8 is_sampler)
-	{
-		if (shader->uniforms.count >= system_state->max_shader_uniform_count)
-		{
-			SHMERRORV("A shader can only accept a combined maximum of %d uniforms and samplers at global, instance and local scopes.", system_state->max_shader_uniform_count);
-			return false;
-		}
-
-		if (!uniform_name[0])
 			return false;
 
 		ShaderUniform entry;
 		entry.index = (uint16)shader->uniforms.count;
-		entry.scope = scope;
-		entry.type = type;
-		if (is_sampler)
+		entry.scope = config->scope;
+		entry.type = config->type;
+
+		switch (entry.type)
+		{
+		case ShaderUniformType::Sampler:
+		{
+			uint32 set_location = Constants::max_u32;
+			switch (entry.scope)
+			{
+			case ShaderScope::Global:
+			{
+				set_location = shader->global_texture_maps.count;
+
+				if (!default_texture_map.internal_data)
+					_create_default_texture_map();
+
+				shader->global_texture_maps.push(&default_texture_map);
+				break;
+			}
+			case ShaderScope::Instance:
+			{
+				set_location = shader->instance_texture_count;
+				shader->instance_texture_count++;
+				break;
+			}
+			default:
+			{
+				SHMERRORV("%s : Local scope shader samplers not supported!", config->name);
+				return false;
+			}
+			}
+
 			entry.location = (uint16)set_location;
-		else
-			entry.location = entry.index;
-
-		if (scope != ShaderScope::Local)
-		{
-			entry.set_index = (uint8)scope;
-			entry.offset = is_sampler ? 0 : (scope == ShaderScope::Global ? shader->global_ubo_size : shader->ubo_size);
-			entry.size = is_sampler ? 0 : (uint16)size;
+			entry.offset = 0;
+			entry.size = 0;
+			entry.set_index = (uint8)entry.scope;
+			break;
 		}
-		else
+		default:
 		{
-			entry.set_index = Constants::max_u8;
-			Range r = get_aligned_range(shader->push_constant_size, size, 4);
+			switch (entry.scope)
+			{
+			case ShaderScope::Global:
+			{
+				entry.location = entry.index;
+				entry.set_index = (uint8)entry.scope;
+				entry.size = config->size;
+				entry.offset = shader->global_ubo_size;
+				shader->global_ubo_size += entry.size;
+				break;
+			}
+			case ShaderScope::Instance:
+			{
+				entry.location = entry.index;
+				entry.set_index = (uint8)entry.scope;
+				entry.size = config->size;
+				entry.offset = shader->ubo_size;
+				shader->ubo_size += entry.size;
+				break;
+			}
+			case ShaderScope::Local:
+			{
+				entry.set_index = Constants::max_u8;
+				Range r = get_aligned_range(shader->push_constant_size, config->size, 4);
 
-			entry.offset = (uint32)r.offset;
-			entry.size = (uint16)r.size;
+				entry.offset = (uint32)r.offset;
+				entry.size = (uint16)r.size;
 
-			shader->push_constant_ranges[shader->push_constant_range_count] = r;
-			shader->push_constant_range_count++;
+				shader->push_constant_ranges[shader->push_constant_range_count] = r;
+				shader->push_constant_range_count++;
 
-			shader->push_constant_size += (uint32)r.size;
+				shader->push_constant_size += (uint32)r.size;
+				break;
+			}
+			}
+
+			break;
+		}
 		}
 
-		shader->uniform_lookup.set_value(uniform_name, entry.index);
+		shader->uniform_lookup.set_value(config->name, entry.index);
 		shader->uniforms.emplace(entry);
-
-		if (is_sampler)
-			return true;
-
-		if (entry.scope == ShaderScope::Global)
-			shader->global_ubo_size += entry.size;
-		else if (entry.scope == ShaderScope::Instance)
-			shader->ubo_size += entry.size;
 
 		return true;
 	}

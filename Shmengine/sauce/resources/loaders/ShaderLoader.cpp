@@ -343,7 +343,7 @@ namespace ResourceSystem
                             SHMERRORV("Failed to load struct uniform. Size missing.", tmp[0].c_str());
                             return false;
                         }
-                        uint32 size = 0;
+                        uint16 size = 0;
                         if (!CString::parse(&tmp[0][6], &size))
                         {
                             SHMERRORV("Failed to parse uniform struct size: '%s'", tmp[0].c_str());
