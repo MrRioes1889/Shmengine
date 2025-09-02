@@ -1,22 +1,18 @@
 #include "RendererFrontend.hpp"
 #include "renderer/Utility.hpp"
 #include "systems/TextureSystem.hpp"
+#include "systems/MaterialSystem.hpp"
 #include "resources/loaders/ShaderLoader.hpp"
 
 namespace Renderer
 {
 	extern SystemState* system_state;
 
-	// TODO: temp
-	static TextureMap default_texture_map;
-
 	static bool8 _shader_init(ShaderConfig* config, Shader* out_shader);
 	static void _shader_destroy(Shader* shader);
 
-	static bool8 _add_attribute(Shader* shader, const ShaderAttributeConfig* config);
-	static bool8 _add_uniform(Shader* shader, ShaderUniformConfig* config);
-
-	static bool8 _create_default_texture_map();
+	static bool8 _add_attribute(Shader* shader, ShaderAttributeConfig* config, ShaderAttribute* out_attrib);
+	static bool8 _add_uniform(Shader* shader, ShaderUniformId index, ShaderUniformConfig* config, uint32* global_sampler_counter, uint32* instance_sampler_counter, ShaderUniform* out_uniform);
 
 	bool8 shader_init(ShaderConfig* config, Shader* out_shader)
 	{
@@ -69,18 +65,11 @@ namespace Renderer
 		s->state = ResourceState::Destroyed;
 	}
 
-	static bool8 _shader_init(ShaderConfig* config, Shader* out_shader) 
+	static bool8 _shader_init(ShaderConfig* config, Shader* out_shader)
 	{
 		out_shader->name = config->name;
 		out_shader->bound_instance_id = Constants::max_u32;
 		out_shader->last_update_frame_number = Constants::max_u8;
-
-		out_shader->global_texture_maps.init(1, 0, AllocationTag::Renderer);
-		out_shader->uniforms.init(1, 0, AllocationTag::Renderer);
-		out_shader->attributes.init(1, 0, AllocationTag::Renderer);
-
-		out_shader->uniform_lookup.init(1024, 0);
-		out_shader->uniform_lookup.floodfill(Constants::max_u16);
 
 		out_shader->global_ubo_size = 0;
 		out_shader->ubo_size = 0;
@@ -144,11 +133,18 @@ namespace Renderer
 			return false;
 		}
 
-		for (uint32 i = 0; i < config->attributes_count; i++)
-			_add_attribute(out_shader, &config->attributes[i]);
+		out_shader->attributes.init(config->attributes_count, 0, AllocationTag::Renderer);
+		for (uint32 i = 0; i < out_shader->attributes.capacity; i++)
+			_add_attribute(out_shader, &config->attributes[i], &out_shader->attributes[i]);
 
-		for (uint32 i = 0; i < config->uniforms_count; i++)
-			_add_uniform(out_shader, &config->uniforms[i]);
+		out_shader->global_texture_maps.init(out_shader->global_uniform_sampler_count, 0, AllocationTag::Renderer);
+		for (uint32 i = 0; i < out_shader->global_texture_maps.capacity; i++)
+			out_shader->global_texture_maps[i] = MaterialSystem::get_default_texture_map();
+
+		out_shader->uniform_lookup.init((uint32)(config->uniforms_count * 1.5f), 0);
+		out_shader->uniforms.init(config->uniforms_count, 0, AllocationTag::Renderer);
+		for (uint32 i = 0, global_sampler_counter = 0, instance_sampler_counter = 0; i < out_shader->uniforms.capacity; i++)
+			_add_uniform(out_shader, (uint16)i, &config->uniforms[i], &global_sampler_counter, &instance_sampler_counter, &out_shader->uniforms[i]);
 
 		out_shader->instance_count = 0;
 
@@ -288,14 +284,14 @@ namespace Renderer
 
 	ShaderUniformId shader_get_uniform_index(Shader* shader, const char* uniform_name)
 	{
-		ShaderUniformId index = shader->uniform_lookup.get_value(uniform_name);
-		if (!index.is_valid())
+		ShaderUniformId* id = shader->uniform_lookup.get(uniform_name);
+		if (!id)
 		{
 			SHMERRORV("Shader '%s' does not have a uniform named '%s' registered.", shader->name.c_str(), uniform_name);
 			return ShaderUniformId::invalid_value;
 		}
 
-		return shader->uniforms[index].index;
+		return shader->uniforms[(*id)].index;
 	}
 
 	bool8 shader_set_uniform(Shader* shader, ShaderUniformId uniform_id, const void* value) 
@@ -327,7 +323,7 @@ namespace Renderer
 		return system_state->module.shader_set_uniform(shader, uniform, value);	
 	}
 
-	static bool8 _add_attribute(Shader* shader, const ShaderAttributeConfig* config)
+	static bool8 _add_attribute(Shader* shader, ShaderAttributeConfig* config, ShaderAttribute* out_attrib)
 	{
 		uint16 size = 0;
 		switch (config->type)
@@ -365,46 +361,39 @@ namespace Renderer
 
 		shader->attribute_stride += size;
 
-		ShaderAttribute attrib = {};
-		attrib.name = config->name;
-		attrib.size = size;
-		attrib.type = config->type;
-		shader->attributes.emplace(attrib);
+		out_attrib->name = config->name;
+		out_attrib->size = size;
+		out_attrib->type = config->type;
 
 		return true;
 	}
 
-	static bool8 _add_uniform(Shader* shader, ShaderUniformConfig* config)
+	static bool8 _add_uniform(Shader* shader, ShaderUniformId index, ShaderUniformConfig* config, uint32* global_sampler_counter, uint32* instance_sampler_counter, ShaderUniform* out_uniform)
 	{
 		if (!config->name[0])
 			return false;
 
-		ShaderUniform entry;
-		entry.index = (uint16)shader->uniforms.count;
-		entry.scope = config->scope;
-		entry.type = config->type;
+		out_uniform->index = index;
+		out_uniform->scope = config->scope;
+		out_uniform->type = config->type;
 
-		switch (entry.type)
+		switch (out_uniform->type)
 		{
 		case ShaderUniformType::Sampler:
 		{
 			uint32 set_location = Constants::max_u32;
-			switch (entry.scope)
+			switch (out_uniform->scope)
 			{
 			case ShaderScope::Global:
 			{
-				set_location = shader->global_texture_maps.count;
-
-				if (!default_texture_map.internal_data)
-					_create_default_texture_map();
-
-				shader->global_texture_maps.push(&default_texture_map);
+				set_location = *global_sampler_counter;
+				(*global_sampler_counter)++;
 				break;
 			}
 			case ShaderScope::Instance:
 			{
-				set_location = shader->instance_texture_count;
-				shader->instance_texture_count++;
+				set_location = *instance_sampler_counter;
+				(*instance_sampler_counter)++;
 				break;
 			}
 			default:
@@ -414,41 +403,41 @@ namespace Renderer
 			}
 			}
 
-			entry.location = (uint16)set_location;
-			entry.offset = 0;
-			entry.size = 0;
-			entry.set_index = (uint8)entry.scope;
+			out_uniform->location = (uint16)set_location;
+			out_uniform->offset = 0;
+			out_uniform->size = 0;
+			out_uniform->set_index = (uint8)out_uniform->scope;
 			break;
 		}
 		default:
 		{
-			switch (entry.scope)
+			switch (out_uniform->scope)
 			{
 			case ShaderScope::Global:
 			{
-				entry.location = entry.index;
-				entry.set_index = (uint8)entry.scope;
-				entry.size = config->size;
-				entry.offset = shader->global_ubo_size;
-				shader->global_ubo_size += entry.size;
+				out_uniform->location = out_uniform->index;
+				out_uniform->set_index = (uint8)out_uniform->scope;
+				out_uniform->size = config->size;
+				out_uniform->offset = shader->global_ubo_size;
+				shader->global_ubo_size += out_uniform->size;
 				break;
 			}
 			case ShaderScope::Instance:
 			{
-				entry.location = entry.index;
-				entry.set_index = (uint8)entry.scope;
-				entry.size = config->size;
-				entry.offset = shader->ubo_size;
-				shader->ubo_size += entry.size;
+				out_uniform->location = out_uniform->index;
+				out_uniform->set_index = (uint8)out_uniform->scope;
+				out_uniform->size = config->size;
+				out_uniform->offset = shader->ubo_size;
+				shader->ubo_size += out_uniform->size;
 				break;
 			}
 			case ShaderScope::Local:
 			{
-				entry.set_index = Constants::max_u8;
+				out_uniform->set_index = Constants::max_u8;
 				Range r = get_aligned_range(shader->push_constant_size, config->size, 4);
 
-				entry.offset = (uint32)r.offset;
-				entry.size = (uint16)r.size;
+				out_uniform->offset = (uint32)r.offset;
+				out_uniform->size = (uint16)r.size;
 
 				shader->push_constant_ranges[shader->push_constant_range_count] = r;
 				shader->push_constant_range_count++;
@@ -462,27 +451,8 @@ namespace Renderer
 		}
 		}
 
-		shader->uniform_lookup.set_value(config->name, entry.index);
-		shader->uniforms.emplace(entry);
+		shader->uniform_lookup.set_value(config->name, out_uniform->index);
 
-		return true;
-	}
-
-	static bool8 _create_default_texture_map()
-	{
-		TextureMapConfig map_config = {};
-		map_config.filter_magnify = TextureFilter::LINEAR;
-		map_config.filter_minify = TextureFilter::LINEAR;
-		map_config.repeat_u = TextureRepeat::REPEAT;
-		map_config.repeat_v = TextureRepeat::REPEAT;
-		map_config.repeat_w = TextureRepeat::REPEAT;
-
-		if (!Renderer::texture_map_init(&map_config, &default_texture_map)) {
-			SHMERROR("Failed to acquire resources for default texture map.");
-			return false;
-		}
-
-		default_texture_map.texture = TextureSystem::get_default_diffuse_texture();
 		return true;
 	}
 }

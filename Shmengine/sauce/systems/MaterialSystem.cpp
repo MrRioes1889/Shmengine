@@ -15,6 +15,7 @@
 
 namespace MaterialSystem
 {
+	static bool8 _create_default_texture_map();
 
 	struct ReferenceCounter
 	{
@@ -25,6 +26,8 @@ namespace MaterialSystem
 	{
 		Material default_material;
 		Material default_ui_material;
+        
+        TextureMap default_texture_map;
 
 		Sarray<ReferenceCounter> material_ref_counters;
 		LinearHashedStorage<Material, MaterialId, Constants::max_material_name_length> material_storage;
@@ -48,6 +51,7 @@ namespace MaterialSystem
         system_state->material_storage.init(sys_config->max_material_count, AllocationTag::Array, storage_data);
 
         _create_default_materials();
+		_create_default_texture_map();
 
         return true;
     }
@@ -62,11 +66,12 @@ namespace MaterialSystem
 			Renderer::material_destroy(material);
 		}
 		system_state->material_storage.destroy();
+        system_state->material_ref_counters.free_data();
 
         // Destroy the default materials.
 		Renderer::material_destroy(&system_state->default_ui_material);
         Renderer::material_destroy(&system_state->default_material);
-        system_state->material_ref_counters.free_data();
+		Renderer::texture_map_destroy(&system_state->default_texture_map);
 
         system_state = 0;
     }
@@ -123,6 +128,11 @@ namespace MaterialSystem
     {
         return &system_state->default_ui_material;
     }
+
+	TextureMap* get_default_texture_map()
+	{
+		return &system_state->default_texture_map;
+	}
     
     static bool8 _create_default_materials() 
     {
@@ -165,4 +175,21 @@ namespace MaterialSystem
         return true;
     }
 
+	static bool8 _create_default_texture_map()
+	{
+		TextureMapConfig map_config = {};
+		map_config.filter_magnify = TextureFilter::LINEAR;
+		map_config.filter_minify = TextureFilter::LINEAR;
+		map_config.repeat_u = TextureRepeat::REPEAT;
+		map_config.repeat_v = TextureRepeat::REPEAT;
+		map_config.repeat_w = TextureRepeat::REPEAT;
+
+		if (!Renderer::texture_map_init(&map_config, &system_state->default_texture_map)) {
+			SHMERROR("Failed to acquire resources for default texture map.");
+			return false;
+		}
+
+		system_state->default_texture_map.texture = TextureSystem::get_default_diffuse_texture();
+		return true;
+	}
 }

@@ -801,7 +801,6 @@ struct ShaderConfig
 	ShaderStageConfig* stages;
 };
 
-
 struct ShaderUniform
 {
 	uint32 offset;
@@ -864,15 +863,14 @@ struct Shader
 	uint32 push_constant_size;
 	uint32 push_constant_stride;
 
-	Darray<TextureMap*> global_texture_maps;
+	Sarray<TextureMap*> global_texture_maps;
 
-	uint32 instance_texture_count;
 	uint32 bound_instance_id;
 	uint64 bound_ubo_offset;
 
-	HashtableOA<ShaderUniformId> uniform_lookup;
-	Darray<ShaderUniform> uniforms;
-	Darray<ShaderAttribute> attributes;
+	HashtableRH<ShaderUniformId, Constants::max_shader_uniform_name_length> uniform_lookup;
+	Sarray<ShaderUniform> uniforms;
+	Sarray<ShaderAttribute> attributes;
 
 	uint16 attribute_stride;
 	uint8 last_update_frame_number;

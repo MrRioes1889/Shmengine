@@ -24,5 +24,6 @@ namespace MaterialSystem
 
 	SHMAPI Material* get_default_material();
 	SHMAPI Material* get_default_ui_material();
+	SHMAPI TextureMap* get_default_texture_map();
 
 }

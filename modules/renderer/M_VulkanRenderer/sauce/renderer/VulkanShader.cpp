@@ -179,7 +179,7 @@ namespace Renderer::Vulkan
 
 		// Process attributes
 		uint32 offset = 0;
-		for (uint32 i = 0; i < shader->attributes.count; ++i)
+		for (uint32 i = 0; i < shader->attributes.capacity; ++i)
 		{
 			// Setup the new attribute.
 			VkVertexInputAttributeDescription attribute;
@@ -276,7 +276,7 @@ namespace Renderer::Vulkan
 			VulkanPipelineConfig p_config = {};
 			p_config.renderpass = v_shader->renderpass;
 			p_config.vertex_stride = shader->attribute_stride;
-			p_config.attribute_count = shader->attributes.count;
+			p_config.attribute_count = shader->attributes.capacity;
 			p_config.attribute_descriptions = v_shader->config.attributes;
 			p_config.descriptor_set_layout_count = v_shader->config.descriptor_set_count;
 			p_config.descriptor_set_layouts = v_shader->descriptor_set_layouts;
