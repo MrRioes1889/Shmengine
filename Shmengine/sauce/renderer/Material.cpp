@@ -27,7 +27,7 @@ namespace Renderer
 		_material_init(config, out_material);
 
         Shader* shader = ShaderSystem::get_shader(out_material->shader_id);
-        Renderer::shader_acquire_instance_resources(shader, out_material->maps.capacity, &out_material->shader_instance_id);
+        out_material->shader_instance_id = Renderer::shader_acquire_instance(shader);
 
         for (uint32 i = 0; i < out_material->maps.capacity && i < config->maps_count; i++)
         {
@@ -80,7 +80,7 @@ namespace Renderer
 	static bool8 _material_init(MaterialConfig* config, Material* out_material)
 	{
         CString::copy(config->name, out_material->name, Constants::max_material_name_length);
-        out_material->shader_instance_id = Constants::max_u32;
+        out_material->shader_instance_id.invalidate();
         out_material->shader_id.invalidate();
         out_material->type = config->type;
 
@@ -183,7 +183,7 @@ namespace Renderer
         // Release renderer resources.
         if (material->shader_id.is_valid() && material->shader_instance_id != Constants::max_u32)
         {
-            Renderer::shader_release_instance_resources(ShaderSystem::get_shader(material->shader_id), material->shader_instance_id);
+            Renderer::shader_release_instance(ShaderSystem::get_shader(material->shader_id), material->shader_instance_id);
             material->shader_id.invalidate();
         }
 
@@ -192,7 +192,7 @@ namespace Renderer
 
         // Zero it out, invalidate IDs.
         Memory::zero_memory(material, sizeof(Material));
-        material->shader_instance_id = Constants::max_u32;
+        material->shader_instance_id.invalidate();
     }
 
 	static void _material_init_from_resource_job_success(void* params) 
@@ -202,7 +202,7 @@ namespace Renderer
 
 		MaterialConfig config = ResourceSystem::material_loader_get_config_from_resource(&load_params->resource);
         Shader* shader = ShaderSystem::get_shader(material->shader_id);
-        Renderer::shader_acquire_instance_resources(shader, material->maps.capacity, &material->shader_instance_id);
+        material->shader_instance_id = Renderer::shader_acquire_instance(shader);
 
         for (uint32 i = 0; i < material->maps.capacity && i < config.maps_count; i++)
         {

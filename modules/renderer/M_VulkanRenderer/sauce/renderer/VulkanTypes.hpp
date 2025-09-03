@@ -146,7 +146,7 @@ namespace Renderer::Vulkan
 	{
 		Id8 sampler_binding_index;
 		uint8 binding_count;
-		VkDescriptorSetLayoutBinding bindings[RendererConfig::shader_max_bindings];
+		VkDescriptorSetLayoutBinding bindings[RendererConfig::shader_max_binding_count];
 	};
 
 	struct VulkanShaderStage
@@ -170,13 +170,13 @@ namespace Renderer::Vulkan
 		uint16 max_descriptor_set_count;
 		uint16 descriptor_set_count;
 
-		VulkanShaderStageConfig stages[RendererConfig::shader_max_stages];
+		VulkanShaderStageConfig stages[RendererConfig::shader_max_stage_count];
 
 		VkDescriptorPoolSize pool_sizes[2];
 
 		VulkanDescriptorSetConfig descriptor_sets[2];
 
-		VkVertexInputAttributeDescription attributes[RendererConfig::shader_max_attributes];
+		VkVertexInputAttributeDescription attributes[RendererConfig::shader_max_attribute_count];
 
 		RenderCullMode cull_mode;
 	};
@@ -190,7 +190,7 @@ namespace Renderer::Vulkan
 	struct VulkanShaderInstanceDescriptor
 	{
 		VkDescriptorSet descriptor_sets[RendererConfig::framebuffer_count];
-		VulkanDescriptorState descriptor_states[RendererConfig::shader_max_bindings];
+		VulkanDescriptorState descriptor_states[RendererConfig::shader_max_binding_count];
 	};
 
 	struct VulkanPipelineConfig
@@ -233,7 +233,7 @@ namespace Renderer::Vulkan
 
 		VulkanRenderpass* renderpass;
 
-		VulkanShaderStage stages[RendererConfig::shader_max_stages];
+		VulkanShaderStage stages[RendererConfig::shader_max_stage_count];
 
 		VkDescriptorPool descriptor_pool;
 
@@ -246,7 +246,7 @@ namespace Renderer::Vulkan
 		Sarray<VulkanPipeline*> pipelines;
 		uint32 bound_pipeline_id;
 
-		VulkanShaderInstanceDescriptor instance_descriptors[RendererConfig::shader_max_instances];
+		VulkanShaderInstanceDescriptor instance_descriptors[RendererConfig::shader_max_instance_count];
 	};
 
 	enum class TaskType

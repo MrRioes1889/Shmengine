@@ -164,7 +164,7 @@ bool8 render_view_ui_on_render(RenderView* self, FrameData* frame_data, uint32 f
 			Renderer::shader_bind_globals(shader);
 		}
 
-		if (render_data->shader_instance_id != Constants::max_u32)
+		if (render_data->shader_instance_id.is_valid())
 			Renderer::shader_bind_instance(shader, render_data->shader_instance_id);
 
 		if (render_data->object_index != Constants::max_u32)

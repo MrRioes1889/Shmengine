@@ -46,8 +46,8 @@ namespace Renderer::Vulkan
 
 		out_module->shader_apply_globals = Vulkan::vk_shader_apply_globals;
 		out_module->shader_apply_instance = Vulkan::vk_shader_apply_instance;
-		out_module->shader_acquire_instance_resources = Vulkan::vk_shader_acquire_instance_resources;
-		out_module->shader_release_instance_resources = Vulkan::vk_shader_release_instance_resources;
+		out_module->shader_acquire_instance = Vulkan::vk_shader_acquire_instance;
+		out_module->shader_release_instance = Vulkan::vk_shader_release_instance;
 
 		out_module->texture_map_init = Vulkan::vk_texture_map_init;
 		out_module->texture_map_destroy = Vulkan::vk_texture_map_destroy;

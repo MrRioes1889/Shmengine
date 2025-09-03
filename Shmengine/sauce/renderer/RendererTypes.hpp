@@ -25,6 +25,12 @@ struct ShaderUniform;
 
 typedef AllocationReference32 RenderBufferAllocationReference;
 
+typedef Id16 MaterialId;
+typedef Id16 GeometryId;
+typedef Id16 ShaderId;
+typedef Id16 ShaderUniformId;
+typedef Id16 ShaderInstanceId;
+
 namespace Platform
 {
 	struct PlatformState;
@@ -66,14 +72,14 @@ namespace Renderer
 		inline static const uint32 max_geometry_count = 0x1000;
 		inline static const uint32 framebuffer_count = 3;
 
-		inline static const uint32 shader_max_instances = max_material_count;
-		inline static const uint32 shader_max_stages = 8;
-		inline static const uint32 shader_max_global_textures = 31;
-		inline static const uint32 shader_max_instance_textures = 31;
-		inline static const uint32 shader_max_attributes = 16;
-		inline static const uint32 shader_max_uniforms = 128;
-		inline static const uint32 shader_max_bindings = 2;
-		inline static const uint32 shader_max_push_const_ranges = 32;
+		inline static const uint32 shader_max_instance_count = max_material_count;
+		inline static const uint32 shader_max_stage_count = 8;
+		inline static const uint32 shader_max_global_texture_count = 31;
+		inline static const uint32 shader_max_instance_texture_count = 31;
+		inline static const uint32 shader_max_attribute_count = 16;
+		inline static const uint32 shader_max_uniform_count = 128;
+		inline static const uint32 shader_max_binding_count = 2;
+		inline static const uint32 shader_max_push_const_range_count = 32;
 	};
 
 	struct DeviceProperties
@@ -321,11 +327,11 @@ namespace Renderer
 		void (*shader_destroy)(Shader* shader);
 		bool8(*shader_use)(Shader* shader);
 		bool8(*shader_bind_globals)(Shader* shader);
-		bool8(*shader_bind_instance)(Shader* shader, uint32 instance_id);
+		bool8(*shader_bind_instance)(Shader* shader, ShaderInstanceId instance_id);
 		bool8(*shader_apply_globals)(Shader* shader);
 		bool8(*shader_apply_instance)(Shader* shader);
-		bool8(*shader_acquire_instance_resources)(Shader* shader, uint32 texture_maps_count, uint32 instance_id);
-		bool8(*shader_release_instance_resources)(Shader* shader, uint32 instance_id);
+		bool8(*shader_acquire_instance)(Shader* shader, ShaderInstanceId instance_id);
+		bool8(*shader_release_instance)(Shader* shader, ShaderInstanceId instance_id);
 		bool8(*shader_set_uniform)(Shader* shader, ShaderUniform* uniform, const void* value);
 
 		bool8(*texture_map_init)(TextureMap* out_map);
@@ -410,11 +416,6 @@ struct LightingInfo
 	uint32 p_lights_count;
 	PointLight* p_lights;
 };
-
-typedef Id16 MaterialId;
-typedef Id16 GeometryId;
-typedef Id16 ShaderId;
-typedef Id16 ShaderUniformId;
 
 namespace TextureFilter
 {
@@ -588,7 +589,7 @@ struct Material
 	ResourceState state;
 	MaterialType type;
 	ShaderId shader_id;
-	uint32 shader_instance_id;
+	ShaderInstanceId shader_instance_id;
 	char name[Constants::max_material_name_length];
 	
 	Sarray<TextureMap> maps;
@@ -834,8 +835,6 @@ struct ShaderInstance
 {
 	RenderBufferAllocationReference alloc_ref;
 	uint8 last_update_frame_number;
-
-	Sarray<TextureMap*> instance_texture_maps;
 };
 
 struct Shader
@@ -858,14 +857,14 @@ struct Shader
 	RenderBufferAllocationReference global_ubo_alloc_ref;
 
 	uint32 ubo_size;
-	uint32 ubo_stride;
+	uint32 instance_ubo_stride;
 
 	uint32 push_constant_size;
 	uint32 push_constant_stride;
 
 	Sarray<TextureMap*> global_texture_maps;
 
-	uint32 bound_instance_id;
+	ShaderInstanceId bound_instance_id;
 	uint64 bound_ubo_offset;
 
 	HashtableRH<ShaderUniformId, Constants::max_shader_uniform_name_length> uniform_lookup;
@@ -879,7 +878,8 @@ struct Shader
 	Range push_constant_ranges[32];
 
 	uint32 instance_count;
-	ShaderInstance instances[Renderer::RendererConfig::shader_max_instances];
+	Sarray<ShaderInstance> instances;
+	Sarray<TextureMap*> instance_texture_maps;
 
 	Renderer::RenderBuffer uniform_buffer;
 

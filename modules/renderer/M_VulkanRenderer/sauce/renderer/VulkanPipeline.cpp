@@ -149,9 +149,9 @@ namespace Renderer::Vulkan
         VkPipelineLayoutCreateInfo pipeline_layout_create_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
         //Push Constants
-        VkPushConstantRange ranges[RendererConfig::shader_max_push_const_ranges];
+        VkPushConstantRange ranges[RendererConfig::shader_max_push_const_range_count];
         if (config->push_constant_range_count > 0) {
-            if (config->push_constant_range_count > RendererConfig::shader_max_push_const_ranges) {
+            if (config->push_constant_range_count > RendererConfig::shader_max_push_const_range_count) {
                 SHMERRORV("vulkan_graphics_pipeline_create: cannot have more than 32 push constant ranges. Passed count: %i", config->push_constant_range_count);
                 return false;
             }

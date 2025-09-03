@@ -34,7 +34,7 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
     out_terrain->name = config->name;
     out_terrain->xform = Math::transform_create();
 
-	out_terrain->shader_instance_id = Constants::max_u32;
+	out_terrain->shader_instance_id.invalidate();
 	out_terrain->unique_id = Constants::max_u32;
 
 	out_terrain->material_properties = {};
@@ -206,9 +206,9 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 	}
 
 	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
+	out_terrain->shader_instance_id = Renderer::shader_acquire_instance(terrain_shader);
 	
-	const uint32 max_map_count = Constants::max_terrain_materials_count * 3;
-	if (!Renderer::shader_acquire_instance_resources(terrain_shader, max_map_count, &out_terrain->shader_instance_id))
+	if (!out_terrain->shader_instance_id.is_valid())
 		SHMERRORV("Failed to acquire renderer resources for terrain '%s'.", out_terrain->name.c_str());
 
     out_terrain->state = ResourceState::Initialized;
@@ -259,8 +259,8 @@ bool8 terrain_destroy(Terrain* terrain)
     terrain->state = ResourceState::Destroying;
 
 	Shader* terrain_shader = ShaderSystem::get_shader(ShaderSystem::get_terrain_shader_id());
-	Renderer::shader_release_instance_resources(terrain_shader, terrain->shader_instance_id);
-	terrain->shader_instance_id = Constants::max_u32;
+	Renderer::shader_release_instance(terrain_shader, terrain->shader_instance_id);
+	terrain->shader_instance_id.invalidate();
 
 	for (uint32 mat_i = 0; mat_i < terrain->material_ids.capacity; mat_i++)
 	{

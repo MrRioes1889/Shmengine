@@ -32,9 +32,9 @@ struct RenderViewObjectData
 
 struct RenderViewInstanceData
 {
-	uint32 shader_instance_id;
 	uint32 texture_maps_count;
 	ShaderId shader_id;
+	ShaderInstanceId shader_instance_id;
 
 	void* instance_properties;
 	TextureMap** texture_maps;
@@ -43,7 +43,7 @@ struct RenderViewInstanceData
 struct RenderViewGeometryData
 {
 	ShaderId shader_id;
-	uint32 shader_instance_id;
+	ShaderInstanceId shader_instance_id;
 	uint32 object_index;
 	bool8 has_transparency;
 	GeometryData* geometry_data;

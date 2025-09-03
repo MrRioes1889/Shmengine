@@ -45,8 +45,8 @@ struct LinearStorage
 		}
 
 		objects.init(count, 0, tag, memory);
-		void* slot_states_data = PTR_BYTES_OFFSET(memory, objects.size());
-		occupied_flags.init(count, 0, tag, slot_states_data);
+		void* flags_data = PTR_BYTES_OFFSET(memory, objects.size());
+		occupied_flags.init(count, 0, tag, flags_data);
 
 		object_count = 0;
 		first_empty_index = 0;
@@ -59,6 +59,19 @@ struct LinearStorage
 
 		objects.free_data();
 		occupied_flags.free_data();
+	}
+
+	void resize(uint32 new_count)
+	{
+		if (new_count <= objects.capacity || (flags & StorageFlags::ExternalMemory))
+			return;
+
+		void* data = Memory::reallocate(get_external_size_requirement(new_count), objects.data);
+		objects.resize(new_count, data);
+		void* new_flags_data = PTR_BYTES_OFFSET(data, objects.size());
+		Memory::copy_memory(occupied_flags.data, new_flags_data, occupied_flags.size());
+		Memory::zero_memory(occupied_flags.data, occupied_flags.size());
+		occupied_flags.init(new_count, new_flags_data);
 	}
 
 	void acquire(IdentifierT* out_id, ObjectT** out_creation_ptr)

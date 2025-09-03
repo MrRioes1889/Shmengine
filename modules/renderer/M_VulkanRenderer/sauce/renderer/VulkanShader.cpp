@@ -33,7 +33,7 @@ namespace Renderer::Vulkan
 		shader->internal_data = Memory::allocate(sizeof(VulkanShader), AllocationTag::Renderer);
 		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
 
-		VkShaderStageFlags vk_stages[RendererConfig::shader_max_stages];
+		VkShaderStageFlags vk_stages[RendererConfig::shader_max_stage_count];
 		for (uint8 i = 0; i < config->stages_count; ++i) {
 			switch (config->stages[i].stage) {
 			case ShaderStage::Fragment:
@@ -57,14 +57,14 @@ namespace Renderer::Vulkan
 		}
 
 		v_shader->renderpass = (VulkanRenderpass*)config->renderpass->internal_data.data;
-		v_shader->config.max_descriptor_set_count = RendererConfig::shader_max_instances;
+		v_shader->config.max_descriptor_set_count = RendererConfig::shader_max_instance_count;
 
 		v_shader->config.stage_count = 0;
 
 		for (uint32 i = 0; i < config->stages_count; i++) {
 
-			if (v_shader->config.stage_count + 1 > RendererConfig::shader_max_stages) {
-				SHMERRORV("Shaders may have a maximum of %i stages", RendererConfig::shader_max_stages);
+			if (v_shader->config.stage_count + 1 > RendererConfig::shader_max_stage_count) {
+				SHMERRORV("Shaders may have a maximum of %i stages", RendererConfig::shader_max_stage_count);
 				return false;
 			}
 
@@ -241,7 +241,7 @@ namespace Renderer::Vulkan
 		scissor.extent.width = context->framebuffer_width;
 		scissor.extent.height = context->framebuffer_height;
 
-		VkPipelineShaderStageCreateInfo stage_create_infos[RendererConfig::shader_max_stages] = {};
+		VkPipelineShaderStageCreateInfo stage_create_infos[RendererConfig::shader_max_stage_count] = {};
 		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
 		{
 			stage_create_infos[i] = v_shader->stages[i].shader_stage_create_info;
@@ -395,9 +395,7 @@ namespace Renderer::Vulkan
 
 		// Shader modules
 		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
-		{
 			vkDestroyShaderModule(context->device.logical_device, v_shader->stages[i].handle, context->allocator_callbacks);
-		}
 
 		// Free the internal data memory.
 		Memory::free_memory(shader->internal_data);
@@ -429,7 +427,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool8 vk_shader_bind_instance(Shader* s, uint32 instance_id)
+	bool8 vk_shader_bind_instance(Shader* s, ShaderInstanceId instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
@@ -507,7 +505,7 @@ namespace Renderer::Vulkan
 		VkDescriptorBufferInfo buffer_info;
 		buffer_info.buffer = ((VulkanBuffer*)s->uniform_buffer.internal_data.data)->handle;
 		buffer_info.offset = instance->alloc_ref.byte_offset;
-		buffer_info.range = s->ubo_stride;
+		buffer_info.range = s->instance_ubo_stride;
 
 		VkWriteDescriptorSet ubo_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		ubo_descriptor.dstSet = descriptor_set;
@@ -529,7 +527,7 @@ namespace Renderer::Vulkan
 			descriptor_index++;
 		}
 
-		VkDescriptorImageInfo image_infos[RendererConfig::shader_max_instance_textures];
+		VkDescriptorImageInfo image_infos[RendererConfig::shader_max_instance_texture_count];
 		if (s->instance_uniform_sampler_count)
 		{
 			uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
@@ -538,7 +536,7 @@ namespace Renderer::Vulkan
 			for (uint32 i = 0; i < total_sampler_count; ++i)
 			{
 				// TODO: only update in the list if actually needing an update.
-				TextureMap* map = s->instances[s->bound_instance_id].instance_texture_maps[i];
+				TextureMap* map = s->instance_texture_maps[(s->bound_instance_id * s->instance_uniform_sampler_count) + i];
 				Texture* t = map->texture;
 
 				if (!(t->flags & TextureFlags::IsLoaded))
@@ -571,7 +569,7 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool8 vk_shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32 instance_id)
+	bool8 vk_shader_acquire_instance(Shader* s, ShaderInstanceId instance_id)
 	{
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 
@@ -615,7 +613,7 @@ namespace Renderer::Vulkan
 
 	}
 
-	bool8 vk_shader_release_instance_resources(Shader* s, uint32 instance_id)
+	bool8 vk_shader_release_instance(Shader* s, ShaderInstanceId instance_id)
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;

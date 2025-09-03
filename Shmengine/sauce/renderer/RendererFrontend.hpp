@@ -59,11 +59,11 @@ namespace Renderer
 	SHMAPI void shader_destroy(Shader* shader);
 	SHMAPI bool8 shader_use(Shader* shader);
 	SHMAPI bool8 shader_bind_globals(Shader* shader);
-	SHMAPI bool8 shader_bind_instance(Shader* shader, uint32 instance_id);
+	SHMAPI bool8 shader_bind_instance(Shader* shader, ShaderInstanceId instance_id);
 	SHMAPI bool8 shader_apply_globals(Shader* shader);
 	SHMAPI bool8 shader_apply_instance(Shader* shader);
-	SHMAPI bool8 shader_acquire_instance_resources(Shader* shader, uint32 texture_maps_count, uint32* out_instance_id);
-	SHMAPI bool8 shader_release_instance_resources(Shader* shader, uint32 instance_id);
+	SHMAPI ShaderInstanceId shader_acquire_instance(Shader* shader);
+	SHMAPI bool8 shader_release_instance(Shader* shader, ShaderInstanceId instance_id);
 	SHMAPI ShaderUniformId shader_get_uniform_index(Shader* shader, const char* uniform_name);
 	SHMAPI bool8 shader_set_uniform(Shader* shader, ShaderUniformId uniform_id, const void* value);
 

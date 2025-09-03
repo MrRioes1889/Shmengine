@@ -510,7 +510,7 @@ namespace RenderViewSystem
 
 			RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
 			geo_render_data->object_index = view->objects.count - 1;
-			geo_render_data->shader_instance_id = Constants::max_u32;
+			geo_render_data->shader_instance_id.invalidate();
 			geo_render_data->shader_id = shader_id;
 			geo_render_data->geometry_data = &box->geometry;
 			geo_render_data->has_transparency = 0;
@@ -555,7 +555,7 @@ namespace RenderViewSystem
 
 			RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
 			geo_render_data->object_index = view->objects.count - 1;
-			geo_render_data->shader_instance_id = Constants::max_u32;
+			geo_render_data->shader_instance_id.invalidate();
 			geo_render_data->shader_id = shader_id;
 			geo_render_data->geometry_data = &line->geometry;
 			geo_render_data->has_transparency = 0;
@@ -601,7 +601,7 @@ namespace RenderViewSystem
 
 		RenderViewGeometryData* geo_render_data = &view->geometries[view->geometries.emplace()];
 		geo_render_data->object_index = view->objects.count - 1;
-		geo_render_data->shader_instance_id = Constants::max_u32;
+		geo_render_data->shader_instance_id.invalidate();
 		geo_render_data->shader_id = shader_id;
 		geo_render_data->geometry_data = &gizmo->geometry;
 		geo_render_data->has_transparency = 0;

@@ -27,7 +27,7 @@ struct UIText
 	UniqueId unique_id;
 	FontId font_id;
 	uint16 font_size;
-	uint32 shader_instance_id;
+	ShaderInstanceId shader_instance_id;
 	String text;
 	Math::Transform transform;
 	GeometryData geometry;

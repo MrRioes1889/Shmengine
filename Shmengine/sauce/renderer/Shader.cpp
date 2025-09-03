@@ -68,7 +68,7 @@ namespace Renderer
 	static bool8 _shader_init(ShaderConfig* config, Shader* out_shader)
 	{
 		out_shader->name = config->name;
-		out_shader->bound_instance_id = Constants::max_u32;
+		out_shader->bound_instance_id.invalidate();
 		out_shader->last_update_frame_number = Constants::max_u8;
 
 		out_shader->global_ubo_size = 0;
@@ -83,9 +83,6 @@ namespace Renderer
 			out_shader->shader_flags |= ShaderFlags::DepthTest;
 		if (config->depth_write)
 			out_shader->shader_flags |= ShaderFlags::DepthWrite;
-
-		for (uint32 i = 0; i < RendererConfig::shader_max_instances; ++i)
-			out_shader->instances[i].alloc_ref = {};
 
 		out_shader->global_uniform_count = 0;
 		out_shader->global_uniform_sampler_count = 0;
@@ -133,6 +130,14 @@ namespace Renderer
 			return false;
 		}
 
+		out_shader->instances.init(4, 0);
+		for (uint32 i = 0; i < out_shader->instances.capacity; ++i)
+		{
+			out_shader->instances[i].alloc_ref = {};
+			out_shader->instances[i].last_update_frame_number = Constants::max_u8;
+		}
+		out_shader->instance_texture_maps.init(out_shader->instances.capacity * out_shader->instance_uniform_sampler_count, 0);
+
 		out_shader->attributes.init(config->attributes_count, 0, AllocationTag::Renderer);
 		for (uint32 i = 0; i < out_shader->attributes.capacity; i++)
 			_add_attribute(out_shader, &config->attributes[i], &out_shader->attributes[i]);
@@ -150,11 +155,11 @@ namespace Renderer
 
 		// Make sure the UBO is aligned according to device requirements.
 		out_shader->global_ubo_stride = (uint32)get_aligned_pow2(out_shader->global_ubo_size, system_state->device_properties.required_ubo_offset_alignment);
-		out_shader->ubo_stride = (uint32)get_aligned_pow2(out_shader->ubo_size, system_state->device_properties.required_ubo_offset_alignment);
+		out_shader->instance_ubo_stride = (uint32)get_aligned_pow2(out_shader->ubo_size, system_state->device_properties.required_ubo_offset_alignment);
 
 		// Uniform  buffer.
 		// TODO: max count should be configurable, or perhaps long term support of buffer resizing.
-		uint64 total_buffer_size = out_shader->global_ubo_stride + (out_shader->ubo_stride * RendererConfig::max_material_count);  // global + (locals)
+		uint64 total_buffer_size = out_shader->global_ubo_stride + (out_shader->instance_ubo_stride * RendererConfig::shader_max_instance_count);  // global + (locals)
 		char u_buffer_name[Constants::max_buffer_name_length];
 		CString::print_s(u_buffer_name, Constants::max_buffer_name_length, "%s%s", out_shader->name.c_str(), "_u_buf");
 		if (!renderbuffer_init(u_buffer_name, RenderBufferType::UNIFORM, total_buffer_size, true, &out_shader->uniform_buffer))
@@ -188,98 +193,101 @@ namespace Renderer
 		shader->~Shader();
 	}
 
-	bool8 shader_use(Shader* s) 
+	bool8 shader_use(Shader* shader) 
 	{
-		return system_state->module.shader_use(s);
+		return system_state->module.shader_use(shader);
 	}
 
-	bool8 shader_bind_globals(Shader* s) 
+	bool8 shader_bind_globals(Shader* shader) 
 	{
-		s->bound_ubo_offset = s->global_ubo_alloc_ref.byte_offset;
-		return system_state->module.shader_bind_globals(s);
+		shader->bound_ubo_offset = shader->global_ubo_alloc_ref.byte_offset;
+		return system_state->module.shader_bind_globals(shader);
 	}
 
-	bool8 shader_bind_instance(Shader* s, uint32 instance_id) 
+	bool8 shader_bind_instance(Shader* shader, ShaderInstanceId instance_id) 
 	{
-		s->bound_instance_id = instance_id;
-		s->bound_ubo_offset = s->instances[instance_id].alloc_ref.byte_offset;
+		shader->bound_instance_id = instance_id;
+		shader->bound_ubo_offset = shader->instances[instance_id].alloc_ref.byte_offset;
 
-		return system_state->module.shader_bind_instance(s, instance_id);
+		return system_state->module.shader_bind_instance(shader, instance_id);
 	}
 
-	bool8 shader_apply_globals(Shader* s) 
+	bool8 shader_apply_globals(Shader* shader) 
 	{
-		if (s->last_update_frame_number == system_state->frame_number)
+		if (shader->last_update_frame_number == system_state->frame_number)
 			return true;
 
-		s->last_update_frame_number = system_state->frame_number;
-		return system_state->module.shader_apply_globals(s);
+		shader->last_update_frame_number = system_state->frame_number;
+		return system_state->module.shader_apply_globals(shader);
 	}
 
-	bool8 shader_apply_instance(Shader* s) 
+	bool8 shader_apply_instance(Shader* shader) 
 	{
-		if (s->instance_uniform_count < 1 && s->instance_uniform_sampler_count < 1)
+		if (shader->instance_uniform_count < 1 && shader->instance_uniform_sampler_count < 1)
 		{
 			SHMERROR("This shader does not use instances.");
 			return false;
 		}
 
-		ShaderInstance* instance = &s->instances[s->bound_instance_id];
+		ShaderInstance* instance = &shader->instances[shader->bound_instance_id];
 		if (instance->last_update_frame_number == system_state->frame_number)
 			return true;
 
 		instance->last_update_frame_number = system_state->frame_number;
-		return system_state->module.shader_apply_instance(s);
+		return system_state->module.shader_apply_instance(shader);
 	}
 
-	bool8 shader_acquire_instance_resources(Shader* s, uint32 texture_maps_count, uint32* out_instance_id)
+	ShaderInstanceId shader_acquire_instance(Shader* shader)
 	{
-		// TODO: dynamic
-		*out_instance_id = Constants::max_u32;
-		for (uint32 i = 0; i < 1024; ++i)
+		ShaderInstanceId instance_id = ShaderInstanceId::invalid_value;
+		for (ShaderInstanceId i = 0; i < shader->instances.capacity; i++)
 		{
-			if (!s->instances[i].alloc_ref.byte_size)
+			if (!shader->instances[i].alloc_ref.byte_size)
 			{
-				*out_instance_id = i;
+				instance_id = i;
 				break;
 			}
 		}
-		if (*out_instance_id == Constants::max_u32)
+		if (!instance_id.is_valid())
 		{
-			SHMERROR("vulkan_shader_acquire_instance_resources failed to acquire new id");
+			SHMERROR("vulkan_shader_acquire_instance_resources failed to acquire new id.");
 			return false;
 		}
 
-		s->instance_count++;
-		ShaderInstance* instance = &s->instances[*out_instance_id];
-
-		if (texture_maps_count)
-			instance->instance_texture_maps.init(texture_maps_count, true, AllocationTag::Renderer);
-
-		// Allocate some space in the UBO - by the stride, not the size.
-		uint64 size = s->ubo_stride;
-		if (size > 0)
+		shader->instance_count++;
+		if (shader->instance_count >= shader->instances.capacity)
 		{
-			if (!renderbuffer_allocate(&s->uniform_buffer, size, &instance->alloc_ref))
-			{
-				SHMERROR("vulkan_material_shader_acquire_resources failed to acquire ubo space");
-				return false;
-			}
+			shader->instances.resize(shader->instances.capacity * 2);
+			shader->instance_texture_maps.resize(shader->instance_texture_maps.capacity * 2);
 		}
 
-		return system_state->module.shader_acquire_instance_resources(s, texture_maps_count, *out_instance_id);
+		ShaderInstance* instance = &shader->instances[instance_id];
+		uint64 size = shader->instance_ubo_stride;
+		if (size > 0)
+		{
+			if (!renderbuffer_allocate(&shader->uniform_buffer, size, &instance->alloc_ref))
+				SHMERROR("Failed to allocate instance ubo space.");
+		}
+
+		if (!system_state->module.shader_acquire_instance(shader, instance_id))
+		{
+			SHMERROR("Failed to acquire shader instance.");
+			renderbuffer_free(&shader->uniform_buffer, &instance->alloc_ref);
+			shader->instance_count--;
+			return ShaderInstanceId::invalid_value;
+		}
+
+		return instance_id;
 	}
 
-	bool8 shader_release_instance_resources(Shader* s, uint32 instance_id) 
+	bool8 shader_release_instance(Shader* s, ShaderInstanceId instance_id) 
 	{
 		ShaderInstance* instance = &s->instances[instance_id];
-
-		instance->instance_texture_maps.free_data();
 
 		renderbuffer_free(&s->uniform_buffer, &instance->alloc_ref);
 		s->instance_count--;
 
-		return system_state->module.shader_release_instance_resources(s, instance_id);
+		return system_state->module.shader_release_instance(s, instance_id);
 	}
 
 	ShaderUniformId shader_get_uniform_index(Shader* shader, const char* uniform_name)
@@ -315,7 +323,7 @@ namespace Renderer
 			if (uniform->scope == ShaderScope::Global)
 				shader->global_texture_maps[uniform->location] = (TextureMap*)value;
 			else
-				shader->instances[shader->bound_instance_id].instance_texture_maps[uniform->location] = (TextureMap*)value;
+				shader->instance_texture_maps[(shader->bound_instance_id * shader->instance_uniform_sampler_count) + uniform->location] = (TextureMap*)value;
 
 			return true;
 		}

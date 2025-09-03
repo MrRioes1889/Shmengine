@@ -67,7 +67,7 @@ struct Terrain
 	
 	Sarray<MaterialId> material_ids;
 
-	uint32 shader_instance_id;
+	ShaderInstanceId shader_instance_id;
 };
 
 SHMAPI bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain);

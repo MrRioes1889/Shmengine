@@ -25,7 +25,7 @@ struct Skybox
 	String cubemap_name;
 	TextureMap cubemap;
 	GeometryData geometry;
-	uint32 shader_instance_id;
+	ShaderInstanceId shader_instance_id;
 };
 
 SHMAPI bool8 skybox_init(SkyboxConfig* config, Skybox* out_skybox);
