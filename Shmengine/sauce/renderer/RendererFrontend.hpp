@@ -82,7 +82,7 @@ namespace Renderer
 	SHMAPI void renderbuffer_destroy(RenderBuffer* buffer);
 	SHMAPI bool8 renderbuffer_bind(RenderBuffer* buffer, uint64 offset);
 	SHMAPI bool8 renderbuffer_unbind(RenderBuffer* buffer);
-	SHMAPI void* renderbuffer_map_memory(RenderBuffer* buffer, uint64 offset, uint64 size);
+	SHMAPI void renderbuffer_map_memory(RenderBuffer* buffer, uint64 offset, uint64 size);
 	SHMAPI void renderbuffer_unmap_memory(RenderBuffer* buffer);
 	SHMAPI bool8 renderbuffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size);
 	SHMAPI bool8 renderbuffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory);

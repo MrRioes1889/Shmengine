@@ -41,7 +41,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_buffer_create_internal(VulkanBuffer* buffer, RenderBufferType type, uint64 size, const char* name)
 	{
-
 		switch (type) {
 		case RenderBufferType::VERTEX:
 		{
@@ -88,7 +87,6 @@ namespace Renderer::Vulkan
 		}
 		}
 
-		buffer->mapped_memory = 0;
 		buffer->is_locked = false;
 
 		VkBufferCreateInfo buffer_create_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -121,11 +119,7 @@ namespace Renderer::Vulkan
 		bool8 is_device_memory = buffer_is_device_local(buffer);
 		Memory::track_external_allocation(buffer->memory_requirements.size, is_device_memory ? AllocationTag::GPU_Local : AllocationTag::Vulkan);
 
-		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
-			vk_buffer_map_memory_internal(buffer, 0, size);
-
 		return true;
-
 	}
 
 	void vk_buffer_destroy(RenderBuffer* buffer)
@@ -170,7 +164,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_buffer_resize_internal(VulkanBuffer* buffer, uint64 old_size, uint64 new_size, const char* name)
 	{
-
 		// Create new buffer.
 		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		buffer_info.size = new_size;
@@ -209,11 +202,13 @@ namespace Renderer::Vulkan
 	
 		// Destroy the old
 		vk_buffer_unmap_memory_internal(buffer);
-		if (buffer->memory) {
+		if (buffer->memory) 
+		{
 			vkFreeMemory(context->device.logical_device, buffer->memory, context->allocator_callbacks);
 			buffer->memory = 0;
 		}
-		if (buffer->handle) {
+		if (buffer->handle) 
+		{
 			vkDestroyBuffer(context->device.logical_device, buffer->handle, context->allocator_callbacks);
 			buffer->handle = 0;
 		}
@@ -229,7 +224,6 @@ namespace Renderer::Vulkan
 		buffer->memory = new_memory;
 		buffer->handle = new_buffer;
 		VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_DEVICE_MEMORY, buffer->memory, name);
-		vk_buffer_map_memory_internal(buffer, 0, new_size);
 
 		return true;
 
@@ -266,11 +260,9 @@ namespace Renderer::Vulkan
 
 	void* vk_buffer_map_memory_internal(VulkanBuffer* buffer, uint64 offset, uint64 size)
 	{
-		if (buffer->mapped_memory)
-			return buffer->mapped_memory;
-
-		VK_CHECK(vkMapMemory(context->device.logical_device, buffer->memory, offset, size, 0, &buffer->mapped_memory));
-		return buffer->mapped_memory;
+		void* mapped_memory = 0;
+		VK_CHECK(vkMapMemory(context->device.logical_device, buffer->memory, offset, size, 0, &mapped_memory));
+		return mapped_memory;
 	}
 
 	void vk_buffer_unmap_memory(RenderBuffer* buffer)
@@ -281,11 +273,7 @@ namespace Renderer::Vulkan
 
 	void vk_buffer_unmap_memory_internal(VulkanBuffer* buffer)
 	{
-		if (!buffer->mapped_memory)
-			return;
-
 		vkUnmapMemory(context->device.logical_device, buffer->memory);
-		buffer->mapped_memory = 0;
 	}
 
 	bool8 vk_buffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size)
@@ -311,16 +299,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_buffer_read_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
 	{
-	
-		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
-		{
-
-			uint8* ptr = (uint8*)buffer->mapped_memory + offset;
-			Memory::copy_memory(ptr, out_memory, size);
-			return true;
-			
-		}
-
 		VulkanBuffer read;
 		if (!vk_buffer_create_internal(&read, RenderBufferType::READ, size, "temp_read_buffer")) {
 			SHMERROR("vk_buffer_read - Failed to create read buffer.");
@@ -331,38 +309,27 @@ namespace Renderer::Vulkan
 		vk_buffer_copy_range_internal(buffer->handle, offset, read.handle, 0, size);
 
 		// Map/copy/unmap
-		void* mapped_data;
-		VK_CHECK(vkMapMemory(context->device.logical_device, read.memory, 0, size, 0, &mapped_data));
-		Memory::copy_memory(mapped_data, out_memory, size);
-		vkUnmapMemory(context->device.logical_device, read.memory);
+		void* mapped_read_data = vk_buffer_map_memory_internal(&read, 0, size);
+		Memory::copy_memory(mapped_read_data, out_memory, size);
+		vk_buffer_unmap_memory_internal(&read);
 
 		// Clean up the read buffer.
 		vk_buffer_unbind_internal(&read);
 		vk_buffer_destroy_internal(&read);
 
 		return true;
-
 	}
 
 	bool8 vk_buffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
-
 		VulkanBuffer* internal_buffer = (VulkanBuffer*)buffer->internal_data.data;
 		return vk_buffer_load_range_internal(internal_buffer, offset, size, data);
-
 	}
 
 	// TODO: Overhaul for performance necessary. Creating/destruction of staging buffer and copy function seem to be major bottlenecks!
 	bool8 vk_buffer_load_range_internal(VulkanBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
 		OPTICK_EVENT();
-		
-		if (!buffer_is_device_local(buffer) || buffer_is_host_visible(buffer))
-		{					
-			uint8* ptr = (uint8*)buffer->mapped_memory + offset;
-			Memory::copy_memory(data, ptr, size);
-			return true;
-		}
 		
 		VulkanBuffer staging;		
 		if (!vk_buffer_create_internal(&staging, RenderBufferType::STAGING, size, "load_range_staging_buffer")) {
@@ -371,7 +338,10 @@ namespace Renderer::Vulkan
 		}		
 		vk_buffer_bind_internal(&staging, 0);
 
-		vk_buffer_load_range_internal(&staging, 0, size, data);
+		void* mapped_staging_data = vk_buffer_map_memory_internal(&staging, 0, size);
+		Memory::copy_memory(data, mapped_staging_data, size);
+		vk_buffer_unmap_memory_internal(&staging);
+
 		vk_buffer_copy_range_internal(staging.handle, 0, buffer->handle, offset, size);		
 
 		vk_buffer_unbind_internal(&staging);
@@ -385,6 +355,27 @@ namespace Renderer::Vulkan
 		VulkanBuffer* source_v_buffer = (VulkanBuffer*)source->internal_data.data;
 		VulkanBuffer* dest_v_buffer = (VulkanBuffer*)dest->internal_data.data;
 		return vk_buffer_copy_range_internal(source_v_buffer->handle, source_offset, dest_v_buffer->handle, dest_offset, size);
+	}
+
+	bool8 vk_buffer_copy_range_internal(VkBuffer source, uint64 source_offset, VkBuffer dest, uint64 dest_offset, uint64 size)
+	{
+		VkQueue queue = context->device.graphics_queue;
+		vkQueueWaitIdle(queue);
+		// Create a one-time-use command buffer.
+		VulkanCommandBuffer temp_command_buffer;
+		vk_command_buffer_reserve_and_begin_single_use(context->device.graphics_command_pool, &temp_command_buffer);
+
+		// Prepare the copy command and add it to the command buffer.
+		VkBufferCopy copy_region;
+		copy_region.srcOffset = source_offset;
+		copy_region.dstOffset = dest_offset;
+		copy_region.size = size;
+		vkCmdCopyBuffer(temp_command_buffer.handle, source, dest, 1, &copy_region);
+
+		// Submit the buffer for execution and wait for it to complete.
+		vk_command_buffer_end_single_use(context->device.graphics_command_pool, &temp_command_buffer, queue);
+
+		return true;
 	}
 
 	bool8 vk_buffer_draw(RenderBuffer* buffer, uint64 offset, uint32 element_count, bool8 bind_only)
@@ -412,27 +403,6 @@ namespace Renderer::Vulkan
 		SHMERROR("vk_buffer_draw - Invalid buffer type for drawing!");
 		return false;
 
-	}
-
-	bool8 vk_buffer_copy_range_internal(VkBuffer source, uint64 source_offset, VkBuffer dest, uint64 dest_offset, uint64 size)
-	{
-		VkQueue queue = context->device.graphics_queue;
-		vkQueueWaitIdle(queue);
-		// Create a one-time-use command buffer.
-		VulkanCommandBuffer temp_command_buffer;
-		vk_command_buffer_reserve_and_begin_single_use(context->device.graphics_command_pool, &temp_command_buffer);
-
-		// Prepare the copy command and add it to the command buffer.
-		VkBufferCopy copy_region;
-		copy_region.srcOffset = source_offset;
-		copy_region.dstOffset = dest_offset;
-		copy_region.size = size;
-		vkCmdCopyBuffer(temp_command_buffer.handle, source, dest, 1, &copy_region);
-
-		// Submit the buffer for execution and wait for it to complete.
-		vk_command_buffer_end_single_use(context->device.graphics_command_pool, &temp_command_buffer, queue);
-
-		return true;
 	}
 
 }

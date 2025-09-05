@@ -291,7 +291,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_image_write_data(VulkanImage* image, VkFormat image_format, TextureType texture_type, uint32 offset, uint32 size, const uint8* pixels)
 	{		
-
 		VulkanBuffer staging;
 		if (!vk_buffer_create_internal(&staging, RenderBufferType::STAGING, size, "texture_write_staging_buffer")) {
 			SHMERROR("Failed to create staging buffer.");
@@ -299,7 +298,9 @@ namespace Renderer::Vulkan
 		}
 		vk_buffer_bind_internal(&staging, 0);
 
-		vk_buffer_load_range_internal(&staging, 0, size, pixels);
+		void* mapped_staging_data = vk_buffer_map_memory_internal(&staging, offset, size);
+		Memory::copy_memory(pixels, mapped_staging_data, size);
+		vk_buffer_unmap_memory_internal(&staging);
 
 		VulkanCommandBuffer temp_buffer;
 		VulkanCommandPool pool = context->device.graphics_command_pool;

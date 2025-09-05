@@ -176,6 +176,7 @@ namespace Renderer
 			SHMERROR("Failed to allocate space for the uniform buffer!");
 			return false;
 		}
+		renderbuffer_map_memory(&out_shader->uniform_buffer, 0, out_shader->uniform_buffer.size);
 
 		bool8 res = system_state->module.shader_init(config, out_shader);
 		if (!res)
@@ -200,15 +201,12 @@ namespace Renderer
 
 	bool8 shader_bind_globals(Shader* shader) 
 	{
-		shader->bound_ubo_offset = shader->global_ubo_alloc_ref.byte_offset;
 		return system_state->module.shader_bind_globals(shader);
 	}
 
 	bool8 shader_bind_instance(Shader* shader, ShaderInstanceId instance_id) 
 	{
 		shader->bound_instance_id = instance_id;
-		shader->bound_ubo_offset = shader->instances[instance_id].alloc_ref.byte_offset;
-
 		return system_state->module.shader_bind_instance(shader, instance_id);
 	}
 
@@ -325,6 +323,17 @@ namespace Renderer
 			else
 				shader->instance_texture_maps[(shader->bound_instance_id * shader->instance_uniform_sampler_count) + uniform->location] = (TextureMap*)value;
 
+			return true;
+		}
+		else if (uniform->scope != ShaderScope::Local)
+		{
+			uint64 addr = (uint64)shader->uniform_buffer.mapped_memory;
+			uint64 ubo_offset = uniform->scope == ShaderScope::Instance ? 
+				shader->instances[shader->bound_instance_id].alloc_ref.byte_offset : 
+				shader->global_ubo_alloc_ref.byte_offset;
+
+			addr += ubo_offset + uniform->offset;
+			Memory::copy_memory(value, (void*)addr, uniform->size);
 			return true;
 		}
 

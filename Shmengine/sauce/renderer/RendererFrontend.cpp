@@ -78,6 +78,7 @@ namespace Renderer
 			return false;
 		}
 		renderbuffer_bind(&system_state->general_vertex_buffer, 0);
+		renderbuffer_map_memory(&system_state->general_vertex_buffer, 0, system_state->general_vertex_buffer.size);
 
 		uint64 index_buffer_size = mebibytes(8);
 		if (!renderbuffer_init("s_general_index_buffer", RenderBufferType::INDEX, index_buffer_size, true, &system_state->general_index_buffer))
@@ -86,6 +87,7 @@ namespace Renderer
 			return false;
 		}
 		renderbuffer_bind(&system_state->general_index_buffer, 0);
+		renderbuffer_map_memory(&system_state->general_index_buffer, 0, system_state->general_index_buffer.size);
 
 		return true;
 	}
@@ -417,6 +419,7 @@ namespace Renderer
 		out_buffer->name = name;
 		out_buffer->size = size;
 		out_buffer->type = type;
+		out_buffer->mapped_memory = 0;
 		out_buffer->has_freelist = use_freelist;
 
 		if (out_buffer->has_freelist)
@@ -439,7 +442,6 @@ namespace Renderer
 		}
 
 		return true;
-
 	}
 
 	void renderbuffer_destroy(RenderBuffer* buffer)
@@ -451,40 +453,10 @@ namespace Renderer
 		buffer->name.free_data();
 	}
 
-	bool8 renderbuffer_bind(RenderBuffer* buffer, uint64 offset)
-	{
-		return system_state->module.renderbuffer_bind(buffer, offset);
-	}
-
-	bool8 renderbuffer_unbind(RenderBuffer* buffer)
-	{
-		return system_state->module.renderbuffer_unbind(buffer);
-	}
-
-	void* renderbuffer_map_memory(RenderBuffer* buffer, uint64 offset, uint64 size)
-	{		
-		return system_state->module.renderbuffer_map_memory(buffer, offset, size);
-	}
-
-	void renderbuffer_unmap_memory(RenderBuffer* buffer)
-	{
-		system_state->module.renderbuffer_unmap_memory(buffer);
-	}
-
-	bool8 renderbuffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size)
-	{
-		return system_state->module.renderbuffer_flush(buffer, offset, size);
-	}
-
-	bool8 renderbuffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
-	{
-		return system_state->module.renderbuffer_read(buffer, offset, size, out_memory);
-	}
-
 	bool8 renderbuffer_resize(RenderBuffer* buffer, uint64 new_total_size)
 	{
-
-		if (new_total_size <= buffer->size) {
+		if (new_total_size <= buffer->size) 
+		{
 			SHMERROR("renderer_renderbuffer_resize - New size has to be larger than current one.");
 			return false;
 		}
@@ -560,9 +532,53 @@ namespace Renderer
 		alloc->byte_offset = 0;
 	}
 
+	bool8 renderbuffer_bind(RenderBuffer* buffer, uint64 offset)
+	{
+		return system_state->module.renderbuffer_bind(buffer, offset);
+	}
+
+	bool8 renderbuffer_unbind(RenderBuffer* buffer)
+	{
+		return system_state->module.renderbuffer_unbind(buffer);
+	}
+
+	void renderbuffer_map_memory(RenderBuffer* buffer, uint64 offset, uint64 size)
+	{		
+		buffer->mapped_memory = system_state->module.renderbuffer_map_memory(buffer, offset, size);
+	}
+
+	void renderbuffer_unmap_memory(RenderBuffer* buffer)
+	{
+		system_state->module.renderbuffer_unmap_memory(buffer);
+		buffer->mapped_memory = 0;
+	}
+
+	bool8 renderbuffer_flush(RenderBuffer* buffer, uint64 offset, uint64 size)
+	{
+		return system_state->module.renderbuffer_flush(buffer, offset, size);
+	}
+
+	bool8 renderbuffer_read(RenderBuffer* buffer, uint64 offset, uint64 size, void* out_memory)
+	{
+		if (buffer->mapped_memory)
+		{
+			uint8* ptr = (uint8*)buffer->mapped_memory + offset;
+			Memory::copy_memory(ptr, out_memory, size);
+			return true;
+		}
+
+		return system_state->module.renderbuffer_read(buffer, offset, size, out_memory);
+	}
+
 	bool8 renderbuffer_load_range(RenderBuffer* buffer, uint64 offset, uint64 size, const void* data)
 	{
-		OPTICK_EVENT();
+		if (buffer->mapped_memory)
+		{					
+			uint8* ptr = (uint8*)buffer->mapped_memory + offset;
+			Memory::copy_memory(data, ptr, size);
+			return true;
+		}
+
 		return system_state->module.renderbuffer_load_range(buffer, offset, size, data);
 	}
 

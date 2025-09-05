@@ -28,7 +28,6 @@ namespace Renderer::Vulkan
 	{
 		VkBuffer handle;
 		VkDeviceMemory memory;
-		void* mapped_memory;
 		bool8 is_locked;
 		VkBufferUsageFlags usage;
 		int32 memory_index;
@@ -135,13 +134,6 @@ namespace Renderer::Vulkan
 		VulkanCommandBufferState state;
 	};
 
-	struct VulkanShaderStageConfig
-	{
-		static const uint32 max_filename_length = 255;
-		VkShaderStageFlagBits stage;
-		char filename[max_filename_length];
-	};
-
 	struct VulkanDescriptorSetConfig
 	{
 		Id8 sampler_binding_index;
@@ -151,9 +143,8 @@ namespace Renderer::Vulkan
 
 	struct VulkanShaderStage
 	{
-		VkShaderModuleCreateInfo module_create_info;
-		VkShaderModule handle;
-		VkPipelineShaderStageCreateInfo shader_stage_create_info;
+		VkShaderModule shader_module_handle;
+		VkShaderStageFlagBits stage_flags;
 	};
 
 	enum class VulkanTopologyCLass
@@ -166,11 +157,8 @@ namespace Renderer::Vulkan
 
 	struct VulkanShaderConfig
 	{
-		uint32 stage_count;
 		uint16 max_descriptor_set_count;
 		uint16 descriptor_set_count;
-
-		VulkanShaderStageConfig stages[RendererConfig::shader_max_stage_count];
 
 		VkDescriptorPoolSize pool_sizes[2];
 
@@ -225,14 +213,13 @@ namespace Renderer::Vulkan
 
 	struct VulkanShader
 	{
-		uint32 id;
-
 		VkPrimitiveTopology current_topology;
 
 		VulkanShaderConfig config;
 
 		VulkanRenderpass* renderpass;
 
+		uint32 stage_count;
 		VulkanShaderStage stages[RendererConfig::shader_max_stage_count];
 
 		VkDescriptorPool descriptor_pool;
@@ -240,8 +227,6 @@ namespace Renderer::Vulkan
 		VkDescriptorSetLayout descriptor_set_layouts[2];
 
 		VkDescriptorSet global_descriptor_sets[RendererConfig::framebuffer_count];
-
-		void* mapped_uniform_buffer;
 
 		Sarray<VulkanPipeline*> pipelines;
 		uint32 bound_pipeline_id;

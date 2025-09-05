@@ -249,6 +249,7 @@ namespace Renderer
 		Buffer freelist_data;
 		Freelist freelist;
 		Buffer internal_data;
+		void* mapped_memory;
 	};
 
 	struct Vertex3D
@@ -865,7 +866,6 @@ struct Shader
 	Sarray<TextureMap*> global_texture_maps;
 
 	ShaderInstanceId bound_instance_id;
-	uint64 bound_ubo_offset;
 
 	HashtableRH<ShaderUniformId, Constants::max_shader_uniform_name_length> uniform_lookup;
 	Sarray<ShaderUniform> uniforms;

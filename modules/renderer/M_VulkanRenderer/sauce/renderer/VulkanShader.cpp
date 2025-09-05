@@ -14,7 +14,11 @@ namespace Renderer::Vulkan
 {
 	extern VulkanContext* context;
 
-	static bool8 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage);
+	static bool8 _create_shader_module(VulkanShader* shader, const char* filename, VkShaderStageFlagBits stage_flags, VulkanShaderStage* shader_stage);
+
+	static VkShaderStageFlagBits _convert_shader_stage(ShaderStage::Value stage);
+	static VkSamplerAddressMode _convert_repeat_type(TextureRepeat::Value repeat);
+	static VkFilter convert_filter_type(TextureFilter::Value filter);
 
 	static const uint32 desc_set_index_global = 0;
 	static const uint32 desc_set_index_instance = 1;
@@ -59,32 +63,7 @@ namespace Renderer::Vulkan
 		v_shader->renderpass = (VulkanRenderpass*)config->renderpass->internal_data.data;
 		v_shader->config.max_descriptor_set_count = RendererConfig::shader_max_instance_count;
 
-		v_shader->config.stage_count = 0;
-
-		for (uint32 i = 0; i < config->stages_count; i++) {
-
-			if (v_shader->config.stage_count + 1 > RendererConfig::shader_max_stage_count) {
-				SHMERRORV("Shaders may have a maximum of %i stages", RendererConfig::shader_max_stage_count);
-				return false;
-			}
-
-			VkShaderStageFlagBits stage_flag;
-			switch (config->stages[i].stage) {
-			case ShaderStage::Vertex:
-				stage_flag = VK_SHADER_STAGE_VERTEX_BIT;
-				break;
-			case ShaderStage::Fragment:
-				stage_flag = VK_SHADER_STAGE_FRAGMENT_BIT;
-				break;
-			default:
-				SHMERRORV("vulkan_shader_create: Unsupported shader stage flagged: %i. Stage ignored.", config->stages[i].stage);
-				continue;
-			}
-
-			v_shader->config.stages[v_shader->config.stage_count].stage = stage_flag;
-			CString::copy(config->stages[i].filename, v_shader->config.stages[v_shader->config.stage_count].filename, VulkanShaderStageConfig::max_filename_length);
-			v_shader->config.stage_count++;
-		}
+		v_shader->stage_count = config->stages_count;
 
 		// TODO: Replace
 		v_shader->config.pool_sizes[0] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 };
@@ -152,11 +131,12 @@ namespace Renderer::Vulkan
 		}
 
 		// Create a module for each stage.
-		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
+		for (uint32 i = 0; i < v_shader->stage_count; ++i)
 		{
-			if (!create_shader_module(v_shader, v_shader->config.stages[i], &v_shader->stages[i]))
+			VkShaderStageFlagBits stage_flags = _convert_shader_stage(config->stages[i].stage);
+			if (!_create_shader_module(v_shader, config->stages[i].filename, stage_flags, &v_shader->stages[i]))
 			{
-				SHMERRORV("Unable to create %s shader module for '%s'. Shader will be destroyed.", v_shader->config.stages[i].filename, shader->name.c_str());
+				SHMERRORV("Unable to create %s shader module for '%s'. Shader will be destroyed.", config->stages[i].filename, shader->name.c_str());
 				return false;
 			}
 		}
@@ -242,9 +222,13 @@ namespace Renderer::Vulkan
 		scissor.extent.height = context->framebuffer_height;
 
 		VkPipelineShaderStageCreateInfo stage_create_infos[RendererConfig::shader_max_stage_count] = {};
-		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
+		for (uint32 i = 0; i < v_shader->stage_count; ++i)
 		{
-			stage_create_infos[i] = v_shader->stages[i].shader_stage_create_info;
+			stage_create_infos[i] = {};
+			stage_create_infos[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			stage_create_infos[i].stage = v_shader->stages[i].stage_flags;
+			stage_create_infos[i].module = v_shader->stages[i].shader_module_handle;
+			stage_create_infos[i].pName = "main";
 		}
 
 		v_shader->pipelines.init((uint32)VulkanTopologyCLass::TOPOLOGY_CLASS_COUNT, 0);
@@ -280,7 +264,7 @@ namespace Renderer::Vulkan
 			p_config.attribute_descriptions = v_shader->config.attributes;
 			p_config.descriptor_set_layout_count = v_shader->config.descriptor_set_count;
 			p_config.descriptor_set_layouts = v_shader->descriptor_set_layouts;
-			p_config.stage_count = v_shader->config.stage_count;
+			p_config.stage_count = v_shader->stage_count;
 			p_config.stages = stage_create_infos;
 			p_config.viewport = viewport;
 			p_config.scissor = scissor;
@@ -335,9 +319,6 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		// Map the entire buffer's memory.
-		v_shader->mapped_uniform_buffer = vk_buffer_map_memory(&shader->uniform_buffer, 0, VK_WHOLE_SIZE);
-
 		// Allocate global descriptor sets, one per frame in flight. Global is always the first set.
 		VkDescriptorSetLayout global_layouts[3] =
 		{
@@ -376,12 +357,8 @@ namespace Renderer::Vulkan
 		}
 
 		if (v_shader->descriptor_pool)
-		{
 			vkDestroyDescriptorPool(logical_device, v_shader->descriptor_pool, vk_allocator);
-		}
 	
-		v_shader->mapped_uniform_buffer = 0;	
-
 		// Pipeline
 		for (uint32 i = 0; i < v_shader->pipelines.capacity; i++)
 		{
@@ -394,8 +371,8 @@ namespace Renderer::Vulkan
 		v_shader->pipelines.free_data();
 
 		// Shader modules
-		for (uint32 i = 0; i < v_shader->config.stage_count; ++i)
-			vkDestroyShaderModule(context->device.logical_device, v_shader->stages[i].handle, context->allocator_callbacks);
+		for (uint32 i = 0; i < v_shader->stage_count; ++i)
+			vkDestroyShaderModule(context->device.logical_device, v_shader->stages[i].shader_module_handle, context->allocator_callbacks);
 
 		// Free the internal data memory.
 		Memory::free_memory(shader->internal_data);
@@ -642,78 +619,8 @@ namespace Renderer::Vulkan
 			VkCommandBuffer command_buffer = context->graphics_command_buffers[context->bound_framebuffer_index].handle;
 			vkCmdPushConstants(command_buffer, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform->offset, uniform->size, value);
 		}
-		else
-		{
-			// Map the appropriate memory location and copy the data over.
-			uint64 addr = (uint64)v_shader->mapped_uniform_buffer;
-			addr += s->bound_ubo_offset + uniform->offset;
-			Memory::copy_memory(value, (void*)addr, uniform->size);
-		}
 
 		return true;
-	}
-
-	bool8 create_shader_module(VulkanShader* shader, const VulkanShaderStageConfig& config, VulkanShaderStage* shader_stage)
-	{
-		// Read the resource.
-		Buffer data = {};
-		if (!ResourceSystem::generic_loader_load(config.filename, &data))
-		{
-			SHMERRORV("Unable to read shader module: %s.", config.filename);
-			return false;
-		}
-
-		shader_stage->module_create_info = {};
-		shader_stage->module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		// Use the resource's size and data directly.
-		shader_stage->module_create_info.codeSize = data.size;
-		shader_stage->module_create_info.pCode = (uint32*)data.data;
-
-		VK_CHECK(vkCreateShaderModule(
-			context->device.logical_device,
-			&shader_stage->module_create_info,
-			context->allocator_callbacks,
-			&shader_stage->handle));
-
-		// Release the resource.
-		ResourceSystem::generic_loader_unload(&data);
-
-		// Shader stage info
-		shader_stage->shader_stage_create_info = {};
-		shader_stage->shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shader_stage->shader_stage_create_info.stage = config.stage;
-		shader_stage->shader_stage_create_info.module = shader_stage->handle;
-		shader_stage->shader_stage_create_info.pName = "main";
-
-		return true;
-	}
-
-	static VkSamplerAddressMode convert_repeat_type(TextureRepeat::Value repeat) {
-		switch (repeat) {
-		case TextureRepeat::REPEAT:
-			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		case TextureRepeat::MIRRORED_REPEAT:
-			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		case TextureRepeat::CLAMP_TO_EDGE:
-			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		case TextureRepeat::CLAMP_TO_BORDER:
-			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-		default:
-			SHMWARNV("convert_repeat_type Type %u not supported, defaulting to repeat.", (uint32)repeat);
-			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		}
-	}
-
-	static VkFilter convert_filter_type(TextureFilter::Value filter) {
-		switch (filter) {
-		case TextureFilter::NEAREST:
-			return VK_FILTER_NEAREST;
-		case TextureFilter::LINEAR:
-			return VK_FILTER_LINEAR;
-		default:
-			SHMWARNV("convert_filter_type: Unsupported filter type %u, defaulting to linear.", (uint32)filter);
-			return VK_FILTER_LINEAR;
-		}
 	}
 
 	bool8 vk_texture_map_init(TextureMap* out_map) 
@@ -724,9 +631,9 @@ namespace Renderer::Vulkan
 		sampler_info.minFilter = convert_filter_type(out_map->filter_minify);
 		sampler_info.magFilter = convert_filter_type(out_map->filter_magnify);
 
-		sampler_info.addressModeU = convert_repeat_type(out_map->repeat_u);
-		sampler_info.addressModeV = convert_repeat_type(out_map->repeat_v);
-		sampler_info.addressModeW = convert_repeat_type(out_map->repeat_w);
+		sampler_info.addressModeU = _convert_repeat_type(out_map->repeat_u);
+		sampler_info.addressModeV = _convert_repeat_type(out_map->repeat_v);
+		sampler_info.addressModeW = _convert_repeat_type(out_map->repeat_w);
 
 		// TODO: Configurable
 		sampler_info.anisotropyEnable = VK_TRUE;
@@ -751,12 +658,89 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	void vk_texture_map_destroy(TextureMap* map) {
-		if (map) {
-			vkDeviceWaitIdle(context->device.logical_device);
-			vkDestroySampler(context->device.logical_device, (VkSampler)map->internal_data, context->allocator_callbacks);
-			map->internal_data = 0;
+	void vk_texture_map_destroy(TextureMap* map) 
+	{
+		vkDeviceWaitIdle(context->device.logical_device);
+		vkDestroySampler(context->device.logical_device, (VkSampler)map->internal_data, context->allocator_callbacks);
+		map->internal_data = 0;
+	}
+
+	static bool8 _create_shader_module(VulkanShader* shader, const char* filename, VkShaderStageFlagBits stage_flags, VulkanShaderStage* shader_stage)
+	{
+		// Read the resource.
+		Buffer data = {};
+		if (!ResourceSystem::generic_loader_load(filename, &data))
+		{
+			SHMERRORV("Unable to read shader module file: %s.", filename);
+			return false;
+		}
+
+		VkShaderModuleCreateInfo module_create_info = {};
+		module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		module_create_info.codeSize = data.size;
+		module_create_info.pCode = (uint32*)data.data;
+
+		VK_CHECK(vkCreateShaderModule(
+			context->device.logical_device,
+			&module_create_info,
+			context->allocator_callbacks,
+			&shader_stage->shader_module_handle));
+
+		// Release the resource.
+		ResourceSystem::generic_loader_unload(&data);
+		shader_stage->stage_flags = stage_flags;
+
+		return true;
+	}
+
+	static constexpr VkShaderStageFlagBits _shader_stage_lookup[] =
+	{
+		VK_SHADER_STAGE_VERTEX_BIT,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		VK_SHADER_STAGE_GEOMETRY_BIT,
+		VK_SHADER_STAGE_COMPUTE_BIT
+	};
+
+	static VkShaderStageFlagBits _convert_shader_stage(ShaderStage::Value stage)
+	{
+		uint32 vk_stage = 0;
+		if (stage & ShaderStage::Vertex) vk_stage |= VK_SHADER_STAGE_VERTEX_BIT;
+		if (stage & ShaderStage::Fragment) vk_stage |= VK_SHADER_STAGE_FRAGMENT_BIT;
+		if (stage & ShaderStage::Geometry) vk_stage |= VK_SHADER_STAGE_GEOMETRY_BIT;
+		if (stage & ShaderStage::Compute) vk_stage |= VK_SHADER_STAGE_COMPUTE_BIT;
+
+		return (VkShaderStageFlagBits)vk_stage;
+	}
+
+	static VkSamplerAddressMode _convert_repeat_type(TextureRepeat::Value repeat) 
+	{
+		switch (repeat) 
+		{
+		case TextureRepeat::REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case TextureRepeat::MIRRORED_REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case TextureRepeat::CLAMP_TO_EDGE:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case TextureRepeat::CLAMP_TO_BORDER:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		default:
+			SHMWARNV("convert_repeat_type Type %u not supported, defaulting to repeat.", (uint32)repeat);
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		}
 	}
 
+	static VkFilter convert_filter_type(TextureFilter::Value filter) 
+	{
+		switch (filter) 
+		{
+		case TextureFilter::NEAREST:
+			return VK_FILTER_NEAREST;
+		case TextureFilter::LINEAR:
+			return VK_FILTER_LINEAR;
+		default:
+			SHMWARNV("convert_filter_type: Unsupported filter type %u, defaulting to linear.", (uint32)filter);
+			return VK_FILTER_LINEAR;
+		}
+	}
 }
