@@ -134,13 +134,6 @@ namespace Renderer::Vulkan
 		VulkanCommandBufferState state;
 	};
 
-	struct VulkanDescriptorSetConfig
-	{
-		Id8 sampler_binding_index;
-		uint8 binding_count;
-		VkDescriptorSetLayoutBinding bindings[RendererConfig::shader_max_binding_count];
-	};
-
 	struct VulkanShaderStage
 	{
 		VkShaderModule shader_module_handle;
@@ -153,20 +146,6 @@ namespace Renderer::Vulkan
 		LINE,
 		TRIANGLE,
 		TOPOLOGY_CLASS_COUNT
-	};
-
-	struct VulkanShaderConfig
-	{
-		uint16 max_descriptor_set_count;
-		uint16 descriptor_set_count;
-
-		VkDescriptorPoolSize pool_sizes[2];
-
-		VulkanDescriptorSetConfig descriptor_sets[2];
-
-		VkVertexInputAttributeDescription attributes[RendererConfig::shader_max_attribute_count];
-
-		RenderCullMode cull_mode;
 	};
 
 	struct VulkanDescriptorState
@@ -209,6 +188,26 @@ namespace Renderer::Vulkan
 		VkPipeline handle;
 		VkPipelineLayout layout;
 		RenderTopologyTypeFlags::Value topologies;
+	};
+
+	struct VulkanDescriptorSetConfig
+	{
+		Id8 sampler_binding_index;
+		uint8 binding_count;
+		VkDescriptorSetLayoutBinding bindings[RendererConfig::shader_max_binding_count];
+	};
+
+	struct VulkanShaderConfig
+	{
+		uint16 descriptor_set_count;
+
+		VkDescriptorPoolSize pool_sizes[2];
+
+		VulkanDescriptorSetConfig descriptor_sets[2];
+
+		VkVertexInputAttributeDescription attributes[RendererConfig::shader_max_attribute_count];
+
+		RenderCullMode cull_mode;
 	};
 
 	struct VulkanShader

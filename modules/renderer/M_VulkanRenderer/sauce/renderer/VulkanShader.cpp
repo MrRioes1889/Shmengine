@@ -61,7 +61,6 @@ namespace Renderer::Vulkan
 		}
 
 		v_shader->renderpass = (VulkanRenderpass*)config->renderpass->internal_data.data;
-		v_shader->config.max_descriptor_set_count = RendererConfig::shader_max_instance_count;
 
 		v_shader->stage_count = config->stages_count;
 
@@ -77,6 +76,8 @@ namespace Renderer::Vulkan
 		if (shader->global_uniform_count > 0 || shader->global_uniform_sampler_count > 0)
 		{
 			VulkanDescriptorSetConfig& set_config = v_shader->config.descriptor_sets[v_shader->config.descriptor_set_count];
+			if (v_shader->config.descriptor_set_count != 0)
+				__debugbreak();
 
 			if (shader->global_uniform_count > 0)
 			{
@@ -178,7 +179,7 @@ namespace Renderer::Vulkan
 		VkDescriptorPoolCreateInfo pool_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 		pool_info.poolSizeCount = 2;
 		pool_info.pPoolSizes = v_shader->config.pool_sizes;
-		pool_info.maxSets = v_shader->config.max_descriptor_set_count;
+		pool_info.maxSets = RendererConfig::shader_max_instance_count;
 		pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 		// Create descriptor pool.
@@ -348,9 +349,10 @@ namespace Renderer::Vulkan
 		VkDevice logical_device = context->device.logical_device;
 		VkAllocationCallbacks* vk_allocator = context->allocator_callbacks;
 
-		for (uint32 i = 0; i < v_shader->config.descriptor_set_count; ++i)
+		for (uint32 i = 0; i < v_shader->config.descriptor_set_count; i++)
 		{
-			if (v_shader->descriptor_set_layouts[i]) {
+			if (v_shader->descriptor_set_layouts[i]) 
+			{
 				vkDestroyDescriptorSetLayout(logical_device, v_shader->descriptor_set_layouts[i], vk_allocator);
 				v_shader->descriptor_set_layouts[i] = 0;
 			}
