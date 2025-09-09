@@ -20,9 +20,6 @@ namespace Renderer::Vulkan
 	static VkSamplerAddressMode _convert_repeat_type(TextureRepeat::Value repeat);
 	static VkFilter convert_filter_type(TextureFilter::Value filter);
 
-	static const uint32 desc_set_index_global = 0;
-	static const uint32 desc_set_index_instance = 1;
-
 	bool8 vk_shader_init(ShaderConfig* config, Shader* shader)
 	{
 		VkDevice& logical_device = context->device.logical_device;
@@ -64,73 +61,6 @@ namespace Renderer::Vulkan
 
 		v_shader->stage_count = config->stages_count;
 
-		// TODO: Replace
-		v_shader->config.pool_sizes[0] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 };
-		v_shader->config.pool_sizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096 };
-
-		v_shader->config.descriptor_sets[0].sampler_binding_index.invalidate();
-		v_shader->config.descriptor_sets[1].sampler_binding_index.invalidate();
-
-		v_shader->config.cull_mode = config->cull_mode;
-
-		if (shader->global_uniform_count > 0 || shader->global_uniform_sampler_count > 0)
-		{
-			VulkanDescriptorSetConfig& set_config = v_shader->config.descriptor_sets[v_shader->config.descriptor_set_count];
-			if (v_shader->config.descriptor_set_count != 0)
-				__debugbreak();
-
-			if (shader->global_uniform_count > 0)
-			{
-				uint8 binding_index = set_config.binding_count;
-				set_config.bindings[binding_index].binding = binding_index;
-				set_config.bindings[binding_index].descriptorCount = 1;
-				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-				set_config.binding_count++;
-			}
-
-			if (shader->global_uniform_sampler_count > 0)
-			{
-				uint8 binding_index = set_config.binding_count;
-				set_config.bindings[binding_index].binding = binding_index;
-				set_config.bindings[binding_index].descriptorCount = shader->global_uniform_sampler_count;
-				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-				set_config.sampler_binding_index = binding_index;
-				set_config.binding_count++;
-			}
-
-			v_shader->config.descriptor_set_count++;
-		}
-
-		if (shader->instance_uniform_count > 0 || shader->instance_uniform_sampler_count > 0)
-		{
-			VulkanDescriptorSetConfig& set_config = v_shader->config.descriptor_sets[v_shader->config.descriptor_set_count];
-
-			if (shader->instance_uniform_count > 0)
-			{
-				uint8 binding_index = set_config.binding_count;
-				set_config.bindings[binding_index].binding = binding_index;
-				set_config.bindings[binding_index].descriptorCount = 1;
-				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-				set_config.binding_count++;
-			}
-
-			if (shader->instance_uniform_sampler_count > 0)
-			{
-				uint8 binding_index = set_config.binding_count;
-				set_config.bindings[binding_index].binding = binding_index;
-				set_config.bindings[binding_index].descriptorCount = shader->instance_uniform_sampler_count;
-				set_config.bindings[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				set_config.bindings[binding_index].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-				set_config.sampler_binding_index = binding_index;
-				set_config.binding_count++;
-			}
-
-			v_shader->config.descriptor_set_count++;
-		}
-
 		// Create a module for each stage.
 		for (uint32 i = 0; i < v_shader->stage_count; ++i)
 		{
@@ -159,6 +89,7 @@ namespace Renderer::Vulkan
 		}
 
 		// Process attributes
+		VkVertexInputAttributeDescription attribute_descriptions[RendererConfig::shader_max_attribute_count];
 		uint32 offset = 0;
 		for (uint32 i = 0; i < shader->attributes.capacity; ++i)
 		{
@@ -170,15 +101,20 @@ namespace Renderer::Vulkan
 			attribute.format = types[(uint32)shader->attributes[i].type];
 
 			// Push into the config's attribute collection and add to the stride.
-			v_shader->config.attributes[i] = attribute;
+			attribute_descriptions[i] = attribute;
 
 			offset += shader->attributes[i].size;
 		}
 
+		// TODO: Replace
+		VkDescriptorPoolSize pool_sizes[2];
+		pool_sizes[0] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 };
+		pool_sizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096 };
+
 		// Descriptor pool.
 		VkDescriptorPoolCreateInfo pool_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 		pool_info.poolSizeCount = 2;
-		pool_info.pPoolSizes = v_shader->config.pool_sizes;
+		pool_info.pPoolSizes = pool_sizes;
 		pool_info.maxSets = RendererConfig::shader_max_instance_count;
 		pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
@@ -190,17 +126,79 @@ namespace Renderer::Vulkan
 			return false;
 		}
 
-		// Create descriptor set layouts.
-		for (uint32 i = 0; i < v_shader->config.descriptor_set_count; ++i)
 		{
-			VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-			layout_info.bindingCount = v_shader->config.descriptor_sets[i].binding_count;
-			layout_info.pBindings = v_shader->config.descriptor_sets[i].bindings;
-			result = vkCreateDescriptorSetLayout(logical_device, &layout_info, vk_allocator, &v_shader->descriptor_set_layouts[i]);
-			if (!vk_result_is_success(result))
+			VulkanDescriptorSetLayout& set_layout = v_shader->global_descriptor_set_layout;
+			VkDescriptorSetLayoutBinding bindings[2] = {};
+
+			if (shader->global_uniform_count > 0)
 			{
-				SHMERRORV("vulkan_shader_initialize failed creating descriptor pool: '%s'", vk_result_string(result, true));
-				return false;
+				VkDescriptorSetLayoutBinding* ubo_binding = &bindings[set_layout.binding_count];
+				ubo_binding->binding = set_layout.binding_count;
+				ubo_binding->descriptorCount = 1;
+				ubo_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				ubo_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+				set_layout.binding_count++;
+			}
+
+			if (shader->global_uniform_sampler_count > 0)
+			{
+				VkDescriptorSetLayoutBinding* samplers_binding = &bindings[set_layout.binding_count];
+				samplers_binding->binding = set_layout.binding_count;
+				samplers_binding->descriptorCount = shader->global_uniform_sampler_count;
+				samplers_binding->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				samplers_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+				set_layout.binding_count++;
+			}
+
+			if (set_layout.binding_count > 0)
+			{
+				VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+				layout_info.bindingCount = set_layout.binding_count;
+				layout_info.pBindings = bindings;
+				result = vkCreateDescriptorSetLayout(logical_device, &layout_info, vk_allocator, &v_shader->global_descriptor_set_layout.handle);
+				if (!vk_result_is_success(result))
+				{
+					SHMERRORV("Failed creating descriptor set layout: '%s'", vk_result_string(result, true));
+					return false;
+				}
+			}
+		}
+
+		{
+			VulkanDescriptorSetLayout& set_layout = v_shader->instance_descriptor_set_layout;
+			VkDescriptorSetLayoutBinding bindings[2] = {};
+
+			if (shader->instance_uniform_count > 0)
+			{
+				VkDescriptorSetLayoutBinding* ubo_binding = &bindings[set_layout.binding_count];
+				ubo_binding->binding = set_layout.binding_count;
+				ubo_binding->descriptorCount = 1;
+				ubo_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				ubo_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+				set_layout.binding_count++;
+			}
+
+			if (shader->instance_uniform_sampler_count > 0)
+			{
+				VkDescriptorSetLayoutBinding* samplers_binding = &bindings[set_layout.binding_count];
+				samplers_binding->binding = set_layout.binding_count;
+				samplers_binding->descriptorCount = shader->instance_uniform_sampler_count;
+				samplers_binding->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				samplers_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+				set_layout.binding_count++;
+			}
+
+			if (set_layout.binding_count > 0)
+			{
+				VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+				layout_info.bindingCount = set_layout.binding_count;
+				layout_info.pBindings = bindings;
+				result = vkCreateDescriptorSetLayout(logical_device, &layout_info, vk_allocator, &v_shader->instance_descriptor_set_layout.handle);
+				if (!vk_result_is_success(result))
+				{
+					SHMERRORV("Failed creating descriptor set layout: '%s'", vk_result_string(result, true));
+					return false;
+				}
 			}
 		}
 
@@ -252,6 +250,11 @@ namespace Renderer::Vulkan
 		if (shader->topologies & RenderTopologyTypeFlags::TriangleList || shader->topologies & RenderTopologyTypeFlags::TriangleStrip || shader->topologies & RenderTopologyTypeFlags::TriangleFan)
 			v_shader->pipelines[(uint32)VulkanTopologyCLass::TRIANGLE] = (VulkanPipeline*)Memory::allocate(sizeof(VulkanPipeline), AllocationTag::Renderer);
 
+		VkDescriptorSetLayout descriptor_set_layouts[8] = {};
+		uint32 descriptor_set_layout_count = 0;
+		if (v_shader->global_descriptor_set_layout.handle) descriptor_set_layouts[descriptor_set_layout_count++] = v_shader->global_descriptor_set_layout.handle;
+		if (v_shader->instance_descriptor_set_layout.handle) descriptor_set_layouts[descriptor_set_layout_count++] = v_shader->instance_descriptor_set_layout.handle;
+		
 		v_shader->bound_pipeline_id = Constants::max_u32;
 		for (uint32 i = 0; i < v_shader->pipelines.capacity; i++)
 		{
@@ -262,14 +265,14 @@ namespace Renderer::Vulkan
 			p_config.renderpass = v_shader->renderpass;
 			p_config.vertex_stride = shader->attribute_stride;
 			p_config.attribute_count = shader->attributes.capacity;
-			p_config.attribute_descriptions = v_shader->config.attributes;
-			p_config.descriptor_set_layout_count = v_shader->config.descriptor_set_count;
-			p_config.descriptor_set_layouts = v_shader->descriptor_set_layouts;
+			p_config.attribute_descriptions = attribute_descriptions;
+			p_config.descriptor_set_layout_count = descriptor_set_layout_count;
+			p_config.descriptor_set_layouts = descriptor_set_layouts;
 			p_config.stage_count = v_shader->stage_count;
 			p_config.stages = stage_create_infos;
 			p_config.viewport = viewport;
 			p_config.scissor = scissor;
-			p_config.cull_mode = v_shader->config.cull_mode;
+			p_config.cull_mode = shader->cull_mode;
 			p_config.is_wireframe = false;
 			p_config.shader_flags = shader->shader_flags;
 			p_config.push_constant_range_count = shader->push_constant_range_count;
@@ -323,14 +326,14 @@ namespace Renderer::Vulkan
 		// Allocate global descriptor sets, one per frame in flight. Global is always the first set.
 		VkDescriptorSetLayout global_layouts[3] =
 		{
-			v_shader->descriptor_set_layouts[desc_set_index_global],
-			v_shader->descriptor_set_layouts[desc_set_index_global],
-			v_shader->descriptor_set_layouts[desc_set_index_global]
+			v_shader->global_descriptor_set_layout.handle,
+			v_shader->global_descriptor_set_layout.handle,
+			v_shader->global_descriptor_set_layout.handle
 		};
 
 		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		alloc_info.descriptorPool = v_shader->descriptor_pool;
-		alloc_info.descriptorSetCount = 3;
+		alloc_info.descriptorSetCount = RendererConfig::framebuffer_count;
 		alloc_info.pSetLayouts = global_layouts;
 		VK_CHECK(vkAllocateDescriptorSets(context->device.logical_device, &alloc_info, v_shader->global_descriptor_sets));
 
@@ -349,13 +352,16 @@ namespace Renderer::Vulkan
 		VkDevice logical_device = context->device.logical_device;
 		VkAllocationCallbacks* vk_allocator = context->allocator_callbacks;
 
-		for (uint32 i = 0; i < v_shader->config.descriptor_set_count; i++)
+		if (v_shader->global_descriptor_set_layout.handle)
 		{
-			if (v_shader->descriptor_set_layouts[i]) 
-			{
-				vkDestroyDescriptorSetLayout(logical_device, v_shader->descriptor_set_layouts[i], vk_allocator);
-				v_shader->descriptor_set_layouts[i] = 0;
-			}
+			vkDestroyDescriptorSetLayout(logical_device, v_shader->global_descriptor_set_layout.handle, vk_allocator);
+			v_shader->global_descriptor_set_layout.handle = 0;
+		}
+
+		if (v_shader->instance_descriptor_set_layout.handle)
+		{
+			vkDestroyDescriptorSetLayout(logical_device, v_shader->instance_descriptor_set_layout.handle, vk_allocator);
+			v_shader->instance_descriptor_set_layout.handle = 0;
 		}
 
 		if (v_shader->descriptor_pool)
@@ -413,7 +419,7 @@ namespace Renderer::Vulkan
 		uint32 framebuffer_index = context->bound_framebuffer_index;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[framebuffer_index].handle;
 
-		VulkanShaderInstanceDescriptor* instance_descriptor = &v_shader->instance_descriptors[s->bound_instance_id];
+		VulkanShaderInstanceDescriptorSet* instance_descriptor = &v_shader->instance_descriptor_sets[s->bound_instance_id];
 		VkDescriptorSet object_descriptor_set = instance_descriptor->descriptor_sets[framebuffer_index];
 
 		// Bind the descriptor set to be updated, or in case the shader changed.
@@ -424,7 +430,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_shader_apply_globals(Shader* s)
 	{
-
 		OPTICK_EVENT();
 
 		uint32 image_index = context->bound_framebuffer_index;
@@ -448,7 +453,7 @@ namespace Renderer::Vulkan
 		VkWriteDescriptorSet descriptor_writes[2];
 		descriptor_writes[0] = ubo_write;
 
-		uint32 global_set_binding_count = v_shader->config.descriptor_sets[desc_set_index_global].binding_count;
+		uint32 global_set_binding_count = v_shader->global_descriptor_set_layout.binding_count;
 		if (global_set_binding_count > 1)
 		{
 			// TODO: There are samplers to be written. Support this.
@@ -462,17 +467,16 @@ namespace Renderer::Vulkan
 		vkUpdateDescriptorSets(context->device.logical_device, global_set_binding_count, descriptor_writes, 0, 0);
 		
 		return true;
-
 	}
 
-	bool8 vk_shader_apply_instance(Shader* s)
+	bool8 vk_shader_apply_instance(Shader* shader)
 	{
-		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
+		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
 		uint32 image_index = context->bound_framebuffer_index;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
 
-		ShaderInstance* instance = &s->instances[s->bound_instance_id];
-		VulkanShaderInstanceDescriptor* instance_descriptor = &v_shader->instance_descriptors[s->bound_instance_id];
+		ShaderInstance* instance = &shader->instances[shader->bound_instance_id];
+		VulkanShaderInstanceDescriptorSet* instance_descriptor = &v_shader->instance_descriptor_sets[shader->bound_instance_id];
 		VkDescriptorSet descriptor_set = instance_descriptor->descriptor_sets[image_index];
 
 		VkWriteDescriptorSet descriptor_writes[2] = {};  // Always a max of 2 descriptor sets.
@@ -482,9 +486,9 @@ namespace Renderer::Vulkan
 		uint8* instance_ubo_generation = &(instance_descriptor->descriptor_states[descriptor_index].generations[image_index]);
 
 		VkDescriptorBufferInfo buffer_info;
-		buffer_info.buffer = ((VulkanBuffer*)s->uniform_buffer.internal_data.data)->handle;
+		buffer_info.buffer = ((VulkanBuffer*)shader->uniform_buffer.internal_data.data)->handle;
 		buffer_info.offset = instance->alloc_ref.byte_offset;
-		buffer_info.range = s->instance_ubo_stride;
+		buffer_info.range = shader->instance_ubo_stride;
 
 		VkWriteDescriptorSet ubo_descriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		ubo_descriptor.dstSet = descriptor_set;
@@ -493,7 +497,7 @@ namespace Renderer::Vulkan
 		ubo_descriptor.descriptorCount = 1;
 		ubo_descriptor.pBufferInfo = &buffer_info;
 
-		if (s->instance_uniform_count)
+		if (shader->instance_uniform_count)
 		{	
 			if (*instance_ubo_generation == Constants::max_u8)
 			{
@@ -507,15 +511,14 @@ namespace Renderer::Vulkan
 		}
 
 		VkDescriptorImageInfo image_infos[RendererConfig::shader_max_instance_texture_count];
-		if (s->instance_uniform_sampler_count)
+		if (shader->instance_uniform_sampler_count)
 		{
-			uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
-			uint32 total_sampler_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[sampler_binding_index].descriptorCount;
+			uint32 total_sampler_count = shader->instance_uniform_sampler_count;
 			uint32 update_sampler_count = 0;
 			for (uint32 i = 0; i < total_sampler_count; ++i)
 			{
 				// TODO: only update in the list if actually needing an update.
-				TextureMap* map = s->instance_texture_maps[(s->bound_instance_id * s->instance_uniform_sampler_count) + i];
+				TextureMap* map = shader->instance_texture_maps[(shader->bound_instance_id * shader->instance_uniform_sampler_count) + i];
 				Texture* t = map->texture;
 
 				if (!(t->flags & TextureFlags::IsLoaded))
@@ -548,18 +551,16 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool8 vk_shader_acquire_instance(Shader* s, ShaderInstanceId instance_id)
+	bool8 vk_shader_acquire_instance(Shader* shader, ShaderInstanceId instance_id)
 	{
-		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
+		VulkanShader* v_shader = (VulkanShader*)shader->internal_data;
 
-		uint8 sampler_binding_index = v_shader->config.descriptor_sets[desc_set_index_instance].sampler_binding_index;
-		uint32 instance_texture_count = v_shader->config.descriptor_sets[desc_set_index_instance].bindings[sampler_binding_index].descriptorCount;
+		uint32 instance_texture_count = shader->instance_uniform_sampler_count;
 		
-		VulkanShaderInstanceDescriptor* instance_descriptor = &v_shader->instance_descriptors[instance_id];
+		VulkanShaderInstanceDescriptorSet* instance_descriptor = &v_shader->instance_descriptor_sets[instance_id];
 
 		// Each descriptor binding in the set
-		uint32 binding_count = v_shader->config.descriptor_sets[desc_set_index_instance].binding_count;
-
+		uint32 binding_count = v_shader->instance_descriptor_set_layout.binding_count;
 		for (uint32 i = 0; i < binding_count; ++i)
 		{
 			for (uint32 j = 0; j < 3; ++j)
@@ -572,14 +573,14 @@ namespace Renderer::Vulkan
 		// Allocate 3 descriptor sets (one per frame).
 		VkDescriptorSetLayout layouts[Renderer::RendererConfig::framebuffer_count] =
 		{
-			v_shader->descriptor_set_layouts[desc_set_index_instance],
-			v_shader->descriptor_set_layouts[desc_set_index_instance],
-			v_shader->descriptor_set_layouts[desc_set_index_instance]
+			v_shader->instance_descriptor_set_layout.handle,
+			v_shader->instance_descriptor_set_layout.handle,
+			v_shader->instance_descriptor_set_layout.handle
 		};
 
 		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		alloc_info.descriptorPool = v_shader->descriptor_pool;
-		alloc_info.descriptorSetCount = 3;
+		alloc_info.descriptorSetCount = RendererConfig::framebuffer_count;
 		alloc_info.pSetLayouts = layouts;
 		VkResult result = vkAllocateDescriptorSets(context->device.logical_device, &alloc_info, instance_descriptor->descriptor_sets);
 		if (result != VK_SUCCESS)
@@ -596,7 +597,7 @@ namespace Renderer::Vulkan
 	{
 
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
-		VulkanShaderInstanceDescriptor* instance_descriptor = &v_shader->instance_descriptors[instance_id];
+		VulkanShaderInstanceDescriptorSet* instance_descriptor = &v_shader->instance_descriptor_sets[instance_id];
 
 		// Wait for any pending operations using the descriptor set to finish.
 		vkDeviceWaitIdle(context->device.logical_device);

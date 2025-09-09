@@ -78,6 +78,7 @@ namespace Renderer
 		out_shader->push_constant_size = 0;
 
 		out_shader->topologies = config->topologies;
+		out_shader->cull_mode = config->cull_mode;
 		out_shader->shader_flags = 0;
 		if (config->depth_test)
 			out_shader->shader_flags |= ShaderFlags::DepthTest;

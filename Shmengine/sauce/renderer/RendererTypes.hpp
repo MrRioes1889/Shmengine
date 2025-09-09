@@ -845,6 +845,7 @@ struct Shader
 	ShaderFlags::Value shader_flags;
 	ResourceState state;
 	Renderer::RenderTopologyTypeFlags::Value topologies;
+	Renderer::RenderCullMode cull_mode;
 	ShaderScope bound_scope;
 
 	uint8 global_uniform_count;

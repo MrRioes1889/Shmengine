@@ -154,7 +154,7 @@ namespace Renderer::Vulkan
 		uint32 ids[RendererConfig::framebuffer_count];
 	};
 
-	struct VulkanShaderInstanceDescriptor
+	struct VulkanShaderInstanceDescriptorSet
 	{
 		VkDescriptorSet descriptor_sets[RendererConfig::framebuffer_count];
 		VulkanDescriptorState descriptor_states[RendererConfig::shader_max_binding_count];
@@ -190,31 +190,15 @@ namespace Renderer::Vulkan
 		RenderTopologyTypeFlags::Value topologies;
 	};
 
-	struct VulkanDescriptorSetConfig
+	struct VulkanDescriptorSetLayout
 	{
-		Id8 sampler_binding_index;
-		uint8 binding_count;
-		VkDescriptorSetLayoutBinding bindings[RendererConfig::shader_max_binding_count];
-	};
-
-	struct VulkanShaderConfig
-	{
-		uint16 descriptor_set_count;
-
-		VkDescriptorPoolSize pool_sizes[2];
-
-		VulkanDescriptorSetConfig descriptor_sets[2];
-
-		VkVertexInputAttributeDescription attributes[RendererConfig::shader_max_attribute_count];
-
-		RenderCullMode cull_mode;
+		VkDescriptorSetLayout handle;
+		uint32 binding_count;
 	};
 
 	struct VulkanShader
 	{
 		VkPrimitiveTopology current_topology;
-
-		VulkanShaderConfig config;
 
 		VulkanRenderpass* renderpass;
 
@@ -223,14 +207,14 @@ namespace Renderer::Vulkan
 
 		VkDescriptorPool descriptor_pool;
 
-		VkDescriptorSetLayout descriptor_set_layouts[2];
-
-		VkDescriptorSet global_descriptor_sets[RendererConfig::framebuffer_count];
+		VulkanDescriptorSetLayout global_descriptor_set_layout;
+		VulkanDescriptorSetLayout instance_descriptor_set_layout;
 
 		Sarray<VulkanPipeline*> pipelines;
 		uint32 bound_pipeline_id;
 
-		VulkanShaderInstanceDescriptor instance_descriptors[RendererConfig::shader_max_instance_count];
+		VkDescriptorSet global_descriptor_sets[RendererConfig::framebuffer_count];
+		VulkanShaderInstanceDescriptorSet instance_descriptor_sets[RendererConfig::shader_max_instance_count];
 	};
 
 	enum class TaskType
