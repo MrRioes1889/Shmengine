@@ -145,8 +145,9 @@ namespace MaterialSystem
 
 			MaterialConfig config = {};
 			config.type = MaterialType::PHONG;
-			config.maps_count = 0;
-			config.maps = 0;
+			config.texture_count = 0;
+			config.map_configs = 0;
+			config.texture_names = 0;
 			config.name = SystemConfig::default_material_name;
 			config.properties_count = 2;
 			config.properties = default_properties;
@@ -162,8 +163,9 @@ namespace MaterialSystem
 
 			MaterialConfig config = {};
 			config.type = MaterialType::UI;
-			config.maps_count = 0;
-			config.maps = 0;
+			config.texture_count = 0;
+			config.map_configs = 0;
+			config.texture_names = 0;
 			config.name = SystemConfig::default_ui_material_name;
 			config.properties_count = 1;
 			config.properties = default_properties;
@@ -184,12 +186,11 @@ namespace MaterialSystem
 		map_config.repeat_v = TextureRepeat::REPEAT;
 		map_config.repeat_w = TextureRepeat::REPEAT;
 
-		if (!Renderer::texture_map_init(&map_config, &system_state->default_texture_map)) {
+		if (!Renderer::texture_map_init(&map_config, TextureSystem::get_default_diffuse_texture(), &system_state->default_texture_map)) {
 			SHMERROR("Failed to acquire resources for default texture map.");
 			return false;
 		}
 
-		system_state->default_texture_map.texture = TextureSystem::get_default_diffuse_texture();
 		return true;
 	}
 }

@@ -36,7 +36,7 @@ struct Darray
 	SHMINLINE void init(uint32 reserve_count, DarrayFlags::Value creation_flags, AllocationTag tag = AllocationTag::DArray, void* memory = 0);
 	SHMINLINE void free_data();
 
-	SHMINLINE uint64 get_external_size_requirement(uint32 count) { return count * sizeof(T); }
+	SHMINLINE uint64 get_external_size_requirement(uint32 reserve_count) { return reserve_count * sizeof(T); }
 
 	SHMINLINE void steal(Darray<T>& other)
 	{

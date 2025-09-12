@@ -514,15 +514,16 @@ namespace Renderer::Vulkan
 			{
 				// TODO: only update in the list if actually needing an update.
 				TextureMap* map = shader->instance_texture_maps[(shader->bound_instance_id * shader->instance_uniform_sampler_count) + i];
-				Texture* t = map->texture;
+				TextureSampler* sampler = Renderer::get_texture_sampler(map->sampler_id);
+				Texture* texture = map->texture;
 
-				if (!(t->flags & TextureFlags::IsLoaded))
-					t = TextureSystem::get_default_texture();
+				if (!(texture->flags & TextureFlags::IsLoaded))
+					texture = TextureSystem::get_default_texture();
 
-				VulkanImage* image = (VulkanImage*)t->internal_data.data;
+				VulkanImage* image = (VulkanImage*)texture->internal_data.data;
 				image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				image_infos[i].imageView = image->view;
-				image_infos[i].sampler = (VkSampler)map->internal_data;
+				image_infos[i].sampler = (VkSampler)sampler->internal_data;
 
 				update_sampler_count++;
 			}
@@ -539,9 +540,7 @@ namespace Renderer::Vulkan
 		}
 			
 		if (descriptor_count > 0)
-		{
 			vkUpdateDescriptorSets(context->device.logical_device, descriptor_count, descriptor_writes, 0, 0);
-		}
 
 		return true;
 	}
@@ -621,17 +620,17 @@ namespace Renderer::Vulkan
 		return true;
 	}
 
-	bool8 vk_texture_map_init(TextureMap* out_map) 
+	bool8 vk_texture_sampler_init(TextureSampler* out_sampler) 
 	{
 		// Create a sampler for the texture
 		VkSamplerCreateInfo sampler_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
 
-		sampler_info.minFilter = convert_filter_type(out_map->filter_minify);
-		sampler_info.magFilter = convert_filter_type(out_map->filter_magnify);
+		sampler_info.minFilter = convert_filter_type(out_sampler->filter_minify);
+		sampler_info.magFilter = convert_filter_type(out_sampler->filter_magnify);
 
-		sampler_info.addressModeU = _convert_repeat_type(out_map->repeat_u);
-		sampler_info.addressModeV = _convert_repeat_type(out_map->repeat_v);
-		sampler_info.addressModeW = _convert_repeat_type(out_map->repeat_w);
+		sampler_info.addressModeU = _convert_repeat_type(out_sampler->repeat_u);
+		sampler_info.addressModeV = _convert_repeat_type(out_sampler->repeat_v);
+		sampler_info.addressModeW = _convert_repeat_type(out_sampler->repeat_w);
 
 		// TODO: Configurable
 		sampler_info.anisotropyEnable = VK_TRUE;
@@ -645,22 +644,20 @@ namespace Renderer::Vulkan
 		sampler_info.minLod = 0.0f;
 		sampler_info.maxLod = 0.0f;
 
-		VkResult result = vkCreateSampler(context->device.logical_device, &sampler_info, context->allocator_callbacks, (VkSampler*)&out_map->internal_data);
+		VkResult result = vkCreateSampler(context->device.logical_device, &sampler_info, context->allocator_callbacks, (VkSampler*)&out_sampler->internal_data);
 		if (!vk_result_is_success(VK_SUCCESS)) {
 			SHMERRORV("Error creating texture sampler: %s", vk_result_string(result, true));
 			return false;
 		}
 
-		VK_DEBUG_SET_OBJECT_NAME(context, VK_OBJECT_TYPE_SAMPLER, (VkSampler)out_map->internal_data, out_map->texture->name);
-
 		return true;
 	}
 
-	void vk_texture_map_destroy(TextureMap* map) 
+	void vk_texture_sampler_destroy(TextureSampler* sampler) 
 	{
 		vkDeviceWaitIdle(context->device.logical_device);
-		vkDestroySampler(context->device.logical_device, (VkSampler)map->internal_data, context->allocator_callbacks);
-		map->internal_data = 0;
+		vkDestroySampler(context->device.logical_device, (VkSampler)sampler->internal_data, context->allocator_callbacks);
+		sampler->internal_data = 0;
 	}
 
 	static bool8 _create_shader_module(VulkanShader* shader, const char* filename, VkShaderStageFlagBits stage_flags, VulkanShaderStage* shader_stage)

@@ -29,16 +29,16 @@ bool8 skybox_init(SkyboxConfig* config, Skybox* out_skybox)
 
 	Renderer::geometry_load(&out_skybox->geometry);
 
+	Texture* cube_texture = TextureSystem::acquire(out_skybox->cubemap_name.c_str(), TextureType::Cube, true);
 	TextureMapConfig map_config = {};
 	map_config.filter_minify = TextureFilter::LINEAR;
 	map_config.filter_magnify = TextureFilter::LINEAR;
-	map_config.repeat_u = out_skybox->cubemap.repeat_v = out_skybox->cubemap.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
-	if (!Renderer::texture_map_init(&map_config, &out_skybox->cubemap))
+	map_config.repeat_u = map_config.repeat_v = map_config.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
+	if (!Renderer::texture_map_init(&map_config, cube_texture, &out_skybox->cubemap))
 	{
 		SHMFATAL("Failed to acquire renderer resources for skybox cube map!");
 		return false;
 	}
-	out_skybox->cubemap.texture = TextureSystem::acquire(out_skybox->cubemap_name.c_str(), TextureType::Cube, true);
 
 	Shader* skybox_shader = ShaderSystem::get_shader(ShaderSystem::get_shader_id(Renderer::RendererConfig::builtin_shader_name_skybox));
 	out_skybox->shader_instance_id = Renderer::shader_acquire_instance(skybox_shader);

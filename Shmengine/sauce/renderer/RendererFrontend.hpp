@@ -67,8 +67,9 @@ namespace Renderer
 	SHMAPI ShaderUniformId shader_get_uniform_index(Shader* shader, const char* uniform_name);
 	SHMAPI bool8 shader_set_uniform(Shader* shader, ShaderUniformId uniform_id, const void* value);
 
-	bool8 texture_map_init(TextureMapConfig* config, TextureMap* out_map);
+	bool8 texture_map_init(TextureMapConfig* config, Texture* texture, TextureMap* out_map);
 	void texture_map_destroy(TextureMap* map);
+	SHMAPI TextureSampler* get_texture_sampler(TextureSamplerId sampler_id);
 
 	SHMAPI bool8 material_init(MaterialConfig* config, Material* out_material);
 	SHMAPI bool8 material_init_from_resource_async(const char* name, Material* out_material);

@@ -130,23 +130,24 @@ namespace FontSystem
             old_codepoint = codepoint;
         }
 
+		Texture* atlas_texture = 0;
 		if (config->texture_name)
 		{
-			out_font->map.texture = TextureSystem::acquire(config->texture_name, TextureType::Plane, true);
+			atlas_texture = TextureSystem::acquire(config->texture_name, TextureType::Plane, true);
 		}
 		else if (config->texture_buffer && config->texture_buffer_size)
 		{
 			char font_texture_name[Constants::max_texture_name_length];
 			CString::print_s(font_texture_name, sizeof(font_texture_name), "_font_%s_sz%u_", out_font->name, out_font->font_size);
-			out_font->map.texture = TextureSystem::acquire_writable(font_texture_name, out_font->atlas_size_x, out_font->atlas_size_y, 4, true);
-			if (out_font->map.texture)
-				TextureSystem::write_to_texture(out_font->map.texture, 0, config->texture_buffer_size, (uint8*)config->texture_buffer);
+			atlas_texture = TextureSystem::acquire_writable(font_texture_name, out_font->atlas_size_x, out_font->atlas_size_y, 4, true);
+			if (atlas_texture)
+				TextureSystem::write_to_texture(atlas_texture, 0, config->texture_buffer_size, (uint8*)config->texture_buffer);
 		}
-		goto_if_log(!out_font->map.texture, fail, "Unable to acquire texture for font atlas.");
+		goto_if_log(!atlas_texture, fail, "Unable to acquire texture for font atlas.");
 
 		map_config.filter_magnify = map_config.filter_minify = TextureFilter::LINEAR;
 		map_config.repeat_u = map_config.repeat_v = map_config.repeat_w = TextureRepeat::CLAMP_TO_EDGE;
-		goto_if_log(!Renderer::texture_map_init(&map_config, &out_font->map), fail, "Unable to acquire resources for font atlas texture map.");
+		goto_if_log(!Renderer::texture_map_init(&map_config, atlas_texture, &out_font->map), fail, "Unable to acquire resources for font atlas texture map.");
 
 		return true;
 

@@ -61,8 +61,8 @@ namespace Renderer::Vulkan
 
 	bool8 vk_shader_set_uniform(Shader* frontend_shader, ShaderUniform* uniform, const void* value);
 
-	bool8 vk_texture_map_init(TextureMap* out_map);
-	void vk_texture_map_destroy(TextureMap* map);
+	bool8 vk_texture_sampler_init(TextureSampler* out_sampler);
+	void vk_texture_sampler_destroy(TextureSampler* sampler);
 
 	bool8 vk_buffer_init(RenderBuffer* buffer);
 	void vk_buffer_destroy(RenderBuffer* buffer);

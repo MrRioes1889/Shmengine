@@ -304,16 +304,14 @@ namespace Renderer
 	bool8 shader_set_uniform(Shader* shader, ShaderUniformId uniform_id, const void* value) 
 	{
 		ShaderUniform* uniform = &shader->uniforms[uniform_id];
-		if (shader->bound_scope != uniform->scope) {
-			if (uniform->scope == ShaderScope::Global) {
+		if (shader->bound_scope != uniform->scope) 
+		{
+			if (uniform->scope == ShaderScope::Global)
 				Renderer::shader_bind_globals(shader);
-			}
-			else if (uniform->scope == ShaderScope::Instance) {
+			else if (uniform->scope == ShaderScope::Instance)
 				Renderer::shader_bind_instance(shader, shader->bound_instance_id);
-			}
-			else {
-				// NOTE: Nothing to do here for locals, just set the uniform.
-			}
+
+			// NOTE: Nothing to do here for locals, just set the uniform.
 			shader->bound_scope = uniform->scope;
 		}
 

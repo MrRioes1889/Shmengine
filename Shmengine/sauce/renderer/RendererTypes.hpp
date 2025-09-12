@@ -18,6 +18,7 @@ struct FrameData;
 struct Mesh;
 struct Material;
 struct Texture;
+struct TextureSampler;
 struct TextureMap;
 struct Shader;
 struct ShaderConfig;
@@ -26,6 +27,7 @@ struct ShaderUniform;
 typedef AllocationReference32 RenderBufferAllocationReference;
 
 typedef Id16 TextureId;
+typedef Id8 TextureSamplerId;
 typedef Id16 MaterialId;
 typedef Id16 GeometryId;
 typedef Id16 ShaderId;
@@ -336,8 +338,8 @@ namespace Renderer
 		bool8(*shader_release_instance)(Shader* shader, ShaderInstanceId instance_id);
 		bool8(*shader_set_uniform)(Shader* shader, ShaderUniform* uniform, const void* value);
 
-		bool8(*texture_map_init)(TextureMap* out_map);
-		void (*texture_map_destroy)(TextureMap* out_map);
+		bool8(*texture_sampler_init)(TextureSampler* out_sampler);
+		void (*texture_sampler_destroy)(TextureSampler* out_sampler);
 
 		bool8(*renderbuffer_init)(RenderBuffer* buffer);
 		void (*renderbuffer_destroy)(RenderBuffer* buffer);
@@ -374,6 +376,7 @@ namespace Renderer
 
 		DeviceProperties device_properties;
 
+		static constexpr uint16 max_texture_sampler_count = 16;
 		uint16 max_shader_uniform_count;
 		uint16 max_shader_global_textures;
 		uint16 max_shader_instance_textures;
@@ -390,6 +393,8 @@ namespace Renderer
 		uint8 frame_number;
 
 		RendererConfigFlags::Value flags;
+
+		Darray<TextureSampler> texture_samplers;
 	};
 }
 
@@ -498,8 +503,6 @@ static const char* texture_repeat_names[TextureRepeat::REPEAT_TYPES_COUNT] =
 
 struct TextureMapConfig
 {
-	const char* name;
-	const char* texture_name;
 	TextureFilter::Value filter_minify;
 	TextureFilter::Value filter_magnify;
 	TextureRepeat::Value repeat_u;
@@ -507,17 +510,22 @@ struct TextureMapConfig
 	TextureRepeat::Value repeat_w;
 };
 
-struct TextureMap
+struct TextureSampler
 {
-	void* internal_data;
-	Texture* texture;
-
 	TextureFilter::Value filter_minify;
 	TextureFilter::Value filter_magnify;
 
 	TextureRepeat::Value repeat_u;
 	TextureRepeat::Value repeat_v;
 	TextureRepeat::Value repeat_w;
+
+	void* internal_data;
+};
+
+struct TextureMap
+{
+	Texture* texture;
+	TextureSamplerId sampler_id;
 };
 
 enum class MaterialType : uint8
@@ -602,8 +610,9 @@ struct MaterialConfig
 	MaterialProperty* properties;
 	uint32 properties_count;
 
-	uint32 maps_count;
-	TextureMapConfig* maps;
+	uint32 texture_count;
+	TextureMapConfig* map_configs;
+	const char** texture_names;
 };
 
 struct MaterialPhongProperties

@@ -26,6 +26,7 @@ struct MaterialResourceData
 	Darray<TextureMapResourceData> maps;
 
 	Sarray<TextureMapConfig> map_configs;
+	Sarray<const char*> texture_names;
 };
 
 namespace ResourceSystem

@@ -32,6 +32,10 @@ namespace Renderer
 		SystemConfig* sys_config = (SystemConfig*)config;
 		system_state = (SystemState*)allocator_callback(allocator, sizeof(SystemState));
 
+		uint64 texture_samplers_data_size = system_state->texture_samplers.get_external_size_requirement(system_state->max_texture_sampler_count);
+		void* texture_samplers_data = allocator_callback(allocator, texture_samplers_data_size);
+		system_state->texture_samplers.init(system_state->max_texture_sampler_count, DarrayFlags::NonResizable, AllocationTag::Renderer, texture_samplers_data);
+
 		char renderer_module_filename[Constants::max_filepath_length];
 		CString::print_s(renderer_module_filename, Constants::max_filepath_length, "%s%s%s", Platform::dynamic_library_prefix, sys_config->renderer_module_name, Platform::dynamic_library_ext);
 		if (!Platform::load_dynamic_library(sys_config->renderer_module_name, renderer_module_filename, &system_state->renderer_lib))
@@ -96,6 +100,12 @@ namespace Renderer
 	{
 		if (!system_state)
 			return;
+
+		while (system_state->texture_samplers.count > 0)
+		{
+			system_state->module.texture_sampler_destroy(&system_state->texture_samplers[system_state->texture_samplers.count - 1]);
+			system_state->texture_samplers.pop();
+		}
 
 		renderbuffer_destroy(&system_state->general_vertex_buffer);
 		renderbuffer_destroy(&system_state->general_index_buffer);
@@ -366,20 +376,58 @@ namespace Renderer
 			renderbuffer_draw(&system_state->general_index_buffer, geometry->index_buffer_alloc_ref.byte_offset, geometry->index_count, false);
 	}
 
-	bool8 texture_map_init(TextureMapConfig* config, TextureMap* out_map)
+	bool8 texture_map_init(TextureMapConfig* config, Texture* texture, TextureMap* out_map)
 	{
-        out_map->filter_minify = config->filter_minify;
-        out_map->filter_magnify = config->filter_magnify;
-        out_map->repeat_u = config->repeat_u;
-        out_map->repeat_v = config->repeat_v;
-        out_map->repeat_w = config->repeat_w;
+		out_map->sampler_id.invalidate();
+		for (TextureSamplerId id = 0; id < system_state->texture_samplers.count; id++)
+		{
+			TextureSampler sampler = system_state->texture_samplers[id];
+			if (sampler.filter_minify == config->filter_minify &&
+				sampler.filter_magnify == config->filter_magnify &&
+				sampler.repeat_u == config->repeat_u &&
+				sampler.repeat_v == config->repeat_v &&
+				sampler.repeat_w == config->repeat_w)
+			{
+				out_map->sampler_id = id;
+				break;
+			}
+		}
 
-		return system_state->module.texture_map_init(out_map);
+		if (!out_map->sampler_id.is_valid())
+		{
+			SHMASSERT_MSG(system_state->texture_samplers.count < system_state->texture_samplers.capacity, "The maximum count of samplers has been surpassed. Change in system state.");
+			TextureSamplerId id = (uint8)system_state->texture_samplers.emplace();
+			TextureSampler* sampler = &system_state->texture_samplers[id];
+			sampler->filter_minify = config->filter_minify;
+			sampler->filter_magnify = config->filter_magnify;
+			sampler->repeat_u = config->repeat_u;
+			sampler->repeat_v = config->repeat_v;
+			sampler->repeat_w = config->repeat_w;
+			if (!system_state->module.texture_sampler_init(sampler))
+			{
+				SHMERROR("Failed to initialize texture sampler.");
+				system_state->texture_samplers.pop();
+				return false;
+			}
+			out_map->sampler_id = id;
+		}
+
+        out_map->texture = texture;
+		return true;
 	}
 
 	void texture_map_destroy(TextureMap* map)
 	{
-		return system_state->module.texture_map_destroy(map);
+		map->sampler_id.invalidate();
+		map->texture = 0;
+	}
+
+	TextureSampler* get_texture_sampler(TextureSamplerId sampler_id)
+	{
+		if (sampler_id > system_state->texture_samplers.count)
+			return 0;
+
+		return &system_state->texture_samplers[sampler_id];
 	}
 
 	bool8 renderbuffer_init(const char* name, RenderBufferType type, uint64 size, bool8 use_freelist, RenderBuffer* out_buffer)

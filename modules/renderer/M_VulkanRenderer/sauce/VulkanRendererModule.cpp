@@ -49,8 +49,8 @@ namespace Renderer::Vulkan
 		out_module->shader_acquire_instance = Vulkan::vk_shader_acquire_instance;
 		out_module->shader_release_instance = Vulkan::vk_shader_release_instance;
 
-		out_module->texture_map_init = Vulkan::vk_texture_map_init;
-		out_module->texture_map_destroy = Vulkan::vk_texture_map_destroy;
+		out_module->texture_sampler_init = Vulkan::vk_texture_sampler_init;
+		out_module->texture_sampler_destroy = Vulkan::vk_texture_sampler_destroy;
 
 		out_module->renderbuffer_init = Vulkan::vk_buffer_init;
 		out_module->renderbuffer_destroy = Vulkan::vk_buffer_destroy;

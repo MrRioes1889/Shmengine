@@ -29,12 +29,12 @@ namespace Renderer
         Shader* shader = ShaderSystem::get_shader(out_material->shader_id);
         out_material->shader_instance_id = Renderer::shader_acquire_instance(shader);
 
-        for (uint32 i = 0; i < out_material->maps.capacity && i < config->maps_count; i++)
+        for (uint32 i = 0; i < out_material->maps.capacity && i < config->texture_count; i++)
         {
-            if (!config->maps[i].texture_name || !config->maps[i].texture_name[0])
+            if (!config->texture_names[i] || !config->texture_names[i][0])
                 continue;
 
-			out_material->maps[i].texture = TextureSystem::acquire(config->maps[i].texture_name, TextureType::Plane, true);
+			out_material->maps[i].texture = TextureSystem::acquire(config->texture_names[i], TextureType::Plane, true);
         }
 
 		out_material->state = ResourceState::Initialized;
@@ -87,7 +87,6 @@ namespace Renderer
 		TextureMapConfig default_map_config = { 0 };
 		default_map_config.filter_magnify = default_map_config.filter_minify = TextureFilter::LINEAR;
 		default_map_config.repeat_u = default_map_config.repeat_v = default_map_config.repeat_w = TextureRepeat::MIRRORED_REPEAT;
-		default_map_config.texture_name = 0;
 
         switch (out_material->type)
         {
@@ -112,12 +111,9 @@ namespace Renderer
             out_material->maps.init(3, 0);
 
 
-            goto_if(!Renderer::texture_map_init(config->maps_count > 0 ? &config->maps[0] : &default_map_config, &out_material->maps[0]), fail);
-            goto_if(!Renderer::texture_map_init(config->maps_count > 1 ? &config->maps[1] : &default_map_config, &out_material->maps[1]), fail);
-            goto_if(!Renderer::texture_map_init(config->maps_count > 2 ? &config->maps[2] : &default_map_config, &out_material->maps[2]), fail);
-            out_material->maps[0].texture = TextureSystem::get_default_diffuse_texture();
-            out_material->maps[1].texture = TextureSystem::get_default_specular_texture();
-            out_material->maps[2].texture = TextureSystem::get_default_normal_texture();
+            goto_if(!Renderer::texture_map_init(config->texture_count > 0 ? &config->map_configs[0] : &default_map_config, TextureSystem::get_default_diffuse_texture(), &out_material->maps[0]), fail);
+            goto_if(!Renderer::texture_map_init(config->texture_count > 1 ? &config->map_configs[1] : &default_map_config, TextureSystem::get_default_specular_texture(), &out_material->maps[1]), fail);
+            goto_if(!Renderer::texture_map_init(config->texture_count > 2 ? &config->map_configs[2] : &default_map_config, TextureSystem::get_default_normal_texture(), &out_material->maps[2]), fail);
 
             out_material->shader_id = ShaderSystem::get_shader_id(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_material_phong);
             break;
@@ -140,8 +136,7 @@ namespace Renderer
 
             out_material->maps.init(1, 0);
 
-            goto_if(!Renderer::texture_map_init(config->maps_count > 0 ? &config->maps[0] : &default_map_config, &out_material->maps[0]), fail);
-            out_material->maps[0].texture = TextureSystem::get_default_diffuse_texture();
+            goto_if(!Renderer::texture_map_init(config->texture_count > 0 ? &config->map_configs[0] : &default_map_config, TextureSystem::get_default_diffuse_texture(), &out_material->maps[0]), fail);
             out_material->shader_id = ShaderSystem::get_shader_id(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
             break;
         }
@@ -204,12 +199,12 @@ namespace Renderer
         Shader* shader = ShaderSystem::get_shader(material->shader_id);
         material->shader_instance_id = Renderer::shader_acquire_instance(shader);
 
-        for (uint32 i = 0; i < material->maps.capacity && i < config.maps_count; i++)
+        for (uint32 i = 0; i < material->maps.capacity && i < config.texture_count; i++)
         {
-            if (!config.maps[i].texture_name || !config.maps[i].texture_name[0])
+            if (!config.texture_names[i] || !config.texture_names[i][0])
                 continue;
 
-			material->maps[i].texture = TextureSystem::acquire(config.maps[i].texture_name, TextureType::Plane, true);
+			material->maps[i].texture = TextureSystem::acquire(config.texture_names[i], TextureType::Plane, true);
         }
         
 		load_params->out_material->state = ResourceState::Initialized;
