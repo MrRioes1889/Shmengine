@@ -203,15 +203,14 @@ namespace Renderer::Vulkan
 		VulkanRenderpass* renderpass;
 
 		uint32 stage_count;
+		uint32 bound_pipeline_id;
 		VulkanShaderStage stages[RendererConfig::shader_max_stage_count];
+		Sarray<VulkanPipeline*> pipelines;
 
 		VkDescriptorPool descriptor_pool;
 
 		VulkanDescriptorSetLayout global_descriptor_set_layout;
 		VulkanDescriptorSetLayout instance_descriptor_set_layout;
-
-		Sarray<VulkanPipeline*> pipelines;
-		uint32 bound_pipeline_id;
 
 		VkDescriptorSet global_descriptor_sets[RendererConfig::framebuffer_count];
 		VulkanShaderInstanceDescriptorSet instance_descriptor_sets[RendererConfig::shader_max_instance_count];

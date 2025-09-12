@@ -291,37 +291,6 @@ namespace Renderer
 		return system_state->module.renderpass_end(pass);
 	}
 
-	bool8 texture_init(Texture* texture)
-	{
-		 return system_state->module.texture_init(texture);
-	}
-
-	void texture_resize(Texture* texture, uint32 width, uint32 height)
-	{
-		system_state->module.texture_resize(texture, width, height);
-	}
-
-	bool8 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels)
-	{
-		return system_state->module.texture_write_data(t, offset, size, pixels);
-	}
-
-	bool8 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory)
-	{
-		return system_state->module.texture_read_data(t, offset, size, out_memory);
-	}
-
-	bool8 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba)
-	{
-		return system_state->module.texture_read_pixel(t, x, y, out_rgba);
-	}
-
-	void texture_destroy(Texture* texture)
-	{
-		system_state->module.texture_destroy(texture);
-		texture->internal_data.free_data();
-	}
-
 	bool8 geometry_load(GeometryData* geometry)
 	{	
 		bool8 is_reload = geometry->loaded;

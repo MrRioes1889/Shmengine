@@ -25,6 +25,7 @@ struct ShaderUniform;
 
 typedef AllocationReference32 RenderBufferAllocationReference;
 
+typedef Id16 TextureId;
 typedef Id16 MaterialId;
 typedef Id16 GeometryId;
 typedef Id16 ShaderId;
@@ -416,6 +417,45 @@ struct LightingInfo
 	DirectionalLight* dir_light;
 	uint32 p_lights_count;
 	PointLight* p_lights;
+};
+
+namespace TextureFlags
+{
+	enum : uint8
+	{
+		HasTransparency = 1 << 0,
+		IsWrapped = 1 << 1,
+		FlipY = 1 << 2,
+		IsDepth = 1 << 3,
+		IsLoaded = 1 << 4
+	};
+	typedef uint8 Value;
+}
+
+enum class TextureType : uint8
+{
+	Plane,
+	Cube
+};
+
+struct TextureConfig
+{
+	uint8 channel_count;
+	bool8 has_transparency;
+	uint32 width;
+	uint32 height;
+	uint8* pixels;
+};
+
+struct Texture
+{
+	char name[Constants::max_texture_name_length];
+	TextureType type;
+	TextureFlags::Value flags;
+	uint8 channel_count;
+	uint32 width;
+	uint32 height;
+	Buffer internal_data = {};
 };
 
 namespace TextureFilter

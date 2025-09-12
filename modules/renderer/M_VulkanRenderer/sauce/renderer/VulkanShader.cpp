@@ -285,36 +285,36 @@ namespace Renderer::Vulkan
 				return false;
 			}
 
-			if (v_shader->bound_pipeline_id == Constants::max_u32)
+			if (v_shader->bound_pipeline_id != Constants::max_u32)
+				continue;
+
+			v_shader->bound_pipeline_id = i;
+
+			for (RenderTopologyTypeFlags::Value type = 1; type < RenderTopologyTypeFlags::AllTypesMask; type = type << 1) 
 			{
-				v_shader->bound_pipeline_id = i;
-
-				for (RenderTopologyTypeFlags::Value type = 1; type < RenderTopologyTypeFlags::AllTypesMask; type = type << 1) 
+				if (v_shader->pipelines[i]->topologies & type) 
 				{
-					if (v_shader->pipelines[i]->topologies & type) 
+					switch (type) 
 					{
-
-						switch (type) {
-						case RenderTopologyTypeFlags::PointList:
-							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; break;
-						case RenderTopologyTypeFlags::LineList:
-							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST; break;
-						case RenderTopologyTypeFlags::LineStrip:
-							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; break;
-						case RenderTopologyTypeFlags::TriangleList:
-							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; break;
-						case RenderTopologyTypeFlags::TriangleStrip:
-							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP; break;
-						case RenderTopologyTypeFlags::TriangleFan:
-							v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN; break;
-						default:
-							SHMWARNV("primitive topology '%u' not supported. Skipping.", type); break;
-						}
-
-						break;
+					case RenderTopologyTypeFlags::PointList:
+						v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; break;
+					case RenderTopologyTypeFlags::LineList:
+						v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST; break;
+					case RenderTopologyTypeFlags::LineStrip:
+						v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; break;
+					case RenderTopologyTypeFlags::TriangleList:
+						v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; break;
+					case RenderTopologyTypeFlags::TriangleStrip:
+						v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP; break;
+					case RenderTopologyTypeFlags::TriangleFan:
+						v_shader->current_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN; break;
+					default:
+						SHMWARNV("primitive topology '%u' not supported. Skipping.", type); break;
 					}
+
+					break;
 				}
-			}	
+			}
 		}
 
 		if (v_shader->bound_pipeline_id == Constants::max_u32)
@@ -399,9 +399,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_shader_bind_globals(Shader* s)
 	{
-		if (!s)
-			return false;
-
 		uint32 image_index = context->bound_framebuffer_index;
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].handle;
@@ -414,7 +411,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_shader_bind_instance(Shader* s, ShaderInstanceId instance_id)
 	{
-
 		VulkanShader* v_shader = (VulkanShader*)s->internal_data;
 		uint32 framebuffer_index = context->bound_framebuffer_index;
 		VkCommandBuffer command_buffer = context->graphics_command_buffers[framebuffer_index].handle;
@@ -425,7 +421,6 @@ namespace Renderer::Vulkan
 		// Bind the descriptor set to be updated, or in case the shader changed.
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, v_shader->pipelines[v_shader->bound_pipeline_id]->layout, 1, 1, &object_descriptor_set, 0, 0);
 		return true;
-
 	}
 
 	bool8 vk_shader_apply_globals(Shader* s)
