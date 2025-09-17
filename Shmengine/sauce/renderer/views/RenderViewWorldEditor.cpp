@@ -71,9 +71,8 @@ bool8 render_view_world_editor_on_create(RenderView* self)
 	internal_data->projection_matrix = Math::mat_perspective(internal_data->fov, 1280.0f / 720.0f, internal_data->near_clip, internal_data->far_clip);
 
 	GeometryConfig grid_geometry_config = {};
-	grid_geometry_config.type = GeometryConfigType::Default;
-	grid_geometry_config.default_config.vertex_size = sizeof(VertexCoordinateGrid);
-	grid_geometry_config.default_config.vertex_count = 6;
+	grid_geometry_config.vertex_size = sizeof(VertexCoordinateGrid);
+	grid_geometry_config.vertex_count = 6;
 	Renderer::geometry_init(&grid_geometry_config, &internal_data->coordinate_grid.geometry);
 	SarrayRef<VertexCoordinateGrid> grid_vertices(&internal_data->coordinate_grid.geometry.vertices);
 	for (uint32 i = 0; i < grid_vertices.capacity; i++)

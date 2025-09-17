@@ -283,7 +283,6 @@ namespace Renderer
 
 	struct Module
 	{
-
 		uint32 frame_number;
 
 		uint64(*get_context_size_requirement)();
@@ -670,31 +669,15 @@ enum class GeometryConfigType
 
 struct GeometryConfig
 {
-	struct DefaultConfig 
-	{
-		uint32 vertex_size;
-		uint32 vertex_count;
-		uint32 index_count;
+	uint32 vertex_size;
+	uint32 vertex_count;
+	uint32 index_count;
 
-		Math::Vec3f center;
-		Math::Extents3D extents;
+	Math::Vec3f center;
+	Math::Extents3D extents;
 
-		byte* vertices;	
-		uint32* indices;
-	};
-
-	struct CubeConfig
-	{
-		Math::Vec3f dim;
-		Math::Vec2f tiling;
-	};
-
-	GeometryConfigType type;
-	union
-	{
-		DefaultConfig default_config;
-		CubeConfig cube_config;
-	};
+	byte* vertices;	
+	uint32* indices;
 };
 
 struct GeometryData

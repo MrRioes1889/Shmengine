@@ -42,13 +42,12 @@ bool8 ui_text_init(UITextConfig* config, UIText* out_ui_text)
         text_length = 1;
 
     GeometryConfig geometry_config = {};
-    geometry_config.type = GeometryConfigType::Default;
-    geometry_config.default_config.extents = {};
-    geometry_config.default_config.center = {};
+    geometry_config.extents = {};
+    geometry_config.center = {};
 
-    geometry_config.default_config.vertex_size = sizeof(Renderer::Vertex2D);
-    geometry_config.default_config.vertex_count = quad_vertex_count * text_length;
-    geometry_config.default_config.index_count = text_length * 6;
+    geometry_config.vertex_size = sizeof(Renderer::Vertex2D);
+    geometry_config.vertex_count = quad_vertex_count * text_length;
+    geometry_config.index_count = text_length * 6;
     Renderer::geometry_init(&geometry_config, &out_ui_text->geometry);
 
     out_ui_text->unique_id = identifier_acquire_new_id(out_ui_text);

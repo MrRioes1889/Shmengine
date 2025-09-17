@@ -251,10 +251,10 @@ struct SarrayRef
 		data = (DstType*)arr->data;
 	}
 
-	SarrayRef(void* data, uint64 buffer_size)
+	SarrayRef(void* buffer, uint64 buffer_size)
 	{
 		capacity = (uint32)(buffer_size / sizeof(DstType));
-		data = (DstType*)data;
+		data = (DstType*)buffer;
 	}
 
 	SHMINLINE DstType& operator[](uint32 index)

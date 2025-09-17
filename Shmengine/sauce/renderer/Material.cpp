@@ -115,7 +115,7 @@ namespace Renderer
             goto_if(!Renderer::texture_map_init(config->texture_count > 1 ? &config->map_configs[1] : &default_map_config, TextureSystem::get_default_specular_texture(), &out_material->maps[1]), fail);
             goto_if(!Renderer::texture_map_init(config->texture_count > 2 ? &config->map_configs[2] : &default_map_config, TextureSystem::get_default_normal_texture(), &out_material->maps[2]), fail);
 
-            out_material->shader_id = ShaderSystem::get_shader_id(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_material_phong);
+            out_material->shader_id = ShaderSystem::get_shader_id(config->shader_name && config->shader_name[0] ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_material_phong);
             break;
         }
         case MaterialType::UI:
@@ -137,7 +137,7 @@ namespace Renderer
             out_material->maps.init(1, 0);
 
             goto_if(!Renderer::texture_map_init(config->texture_count > 0 ? &config->map_configs[0] : &default_map_config, TextureSystem::get_default_diffuse_texture(), &out_material->maps[0]), fail);
-            out_material->shader_id = ShaderSystem::get_shader_id(*config->shader_name ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
+            out_material->shader_id = ShaderSystem::get_shader_id(config->shader_name && config->shader_name[0] ? config->shader_name : Renderer::RendererConfig::builtin_shader_name_ui);
             break;
         }
         /*

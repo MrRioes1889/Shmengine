@@ -64,14 +64,13 @@ namespace Renderer
 	SHMINLINE GeometryConfig geometry_get_config_from_resource(GeometryResourceData* resource)
 	{
 		GeometryConfig geo_config = {};
-		geo_config.type = GeometryConfigType::Default;
-		geo_config.default_config.center = resource->center;
-		geo_config.default_config.extents = resource->extents;
-		geo_config.default_config.index_count = resource->index_count;
-		geo_config.default_config.indices = resource->indices.data;
-		geo_config.default_config.vertex_count = resource->vertex_count;
-		geo_config.default_config.vertex_size = resource->vertex_size;
-		geo_config.default_config.vertices = resource->vertices.data;
+		geo_config.center = resource->center;
+		geo_config.extents = resource->extents;
+		geo_config.index_count = resource->index_count;
+		geo_config.indices = resource->indices.data;
+		geo_config.vertex_count = resource->vertex_count;
+		geo_config.vertex_size = resource->vertex_size;
+		geo_config.vertices = resource->vertices.data;
 		return geo_config;
 	}
 }

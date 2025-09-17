@@ -22,11 +22,10 @@ bool8 line3D_init(Math::Vec3f point0, Math::Vec3f point1, Math::Vec4f color, Lin
 	out_line->unique_id = Constants::max_u32;
 
 	GeometryConfig geometry_config = {};
-	geometry_config.type = GeometryConfigType::Default;
-	geometry_config.default_config.vertex_size = sizeof(Renderer::VertexColor3D);
-	geometry_config.default_config.vertex_count = 2;
+	geometry_config.vertex_size = sizeof(Renderer::VertexColor3D);
+	geometry_config.vertex_count = 2;
 
-	geometry_config.default_config.index_count = 0;
+	geometry_config.index_count = 0;
 
 	Renderer::geometry_init(&geometry_config, &out_line->geometry);
 	

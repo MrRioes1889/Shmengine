@@ -17,10 +17,9 @@
 
 namespace ResourceSystem
 {
-
 	static const char* loader_type_path = "textures/";
 
-	bool8 texture_loader_load(const char* name, bool8 flip_y, TextureResourceData* out_resource)
+	bool8 texture_loader_load(const char* resource_name, bool8 flip_y, TextureResourceData* out_resource)
 	{
 		Buffer file_data = {};
 		FileSystem::FileHandle f;
@@ -36,7 +35,7 @@ namespace ResourceSystem
 		char full_filepath[Constants::max_filepath_length];
 
 		CString::safe_print_s<const char*, const char*, const char*>
-			(full_filepath, Constants::max_filepath_length, format, Engine::get_assets_base_path(), loader_type_path, name);
+			(full_filepath, Constants::max_filepath_length, format, Engine::get_assets_base_path(), loader_type_path, resource_name);
 
 		const uint32 valid_extension_count = 4;
 		bool8 found = false;

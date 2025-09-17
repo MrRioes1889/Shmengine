@@ -12,10 +12,13 @@
 #include <resources/Box3D.hpp>
 #include <renderer/Camera.hpp>
 #include <renderer/RendererFrontend.hpp>
+#include <renderer/Utility.hpp>
 #include <systems/RenderViewSystem.hpp>
 #include <systems/ShaderSystem.hpp>
 
 static uint32 global_scene_id = 0;
+
+static void _cube_geometry_config_init(Math::Vec3f dim, Math::Vec2f tiling, GeometryConfig* out_config);
 
 bool8 scene_init(SceneConfig* config, Scene* out_scene)
 {
@@ -314,9 +317,7 @@ bool8 scene_add_mesh(Scene* scene, SceneMeshConfig* config)
 	case SceneMeshType::Cube:
 	{
 		MeshGeometryConfig mesh_geo_config = {};
-		mesh_geo_config.geo_config.type = GeometryConfigType::Cube;
-		mesh_geo_config.geo_config.cube_config.dim = config->cube_config.dim;
-		mesh_geo_config.geo_config.cube_config.tiling = config->cube_config.tiling;
+		_cube_geometry_config_init(config->cube_config.dim, config->cube_config.tiling, &mesh_geo_config.geo_config);
 		mesh_geo_config.material_name = config->cube_config.material_name;
 
 		MeshConfig mesh_config = {};
@@ -559,4 +560,145 @@ Math::Ray3DHitInfo scene_raycast(Scene* scene, Math::Ray3D ray)
 	}
 
 	return hit_info;
+}
+
+static void _cube_geometry_config_init(Math::Vec3f dim, Math::Vec2f tiling, GeometryConfig* out_config)
+{
+	const uint32 vertex_size = sizeof(Renderer::Vertex3D);
+	const uint32 vertex_count = 4 * 6;
+	const uint32 index_count = 6 * 6;
+
+	static Renderer::Vertex3D config_vertices[vertex_count];
+	static uint32 config_indices[index_count];
+
+	out_config->vertex_size = vertex_size;
+	out_config->vertex_count = vertex_count;  // 4 verts per segment
+	out_config->vertices = (byte*)config_vertices;
+	out_config->index_count = index_count;  // 6 indices per segment
+	out_config->indices = config_indices;
+
+	float32 half_width = dim.width * 0.5f;
+	float32 half_height = dim.height * 0.5f;
+	float32 half_depth = dim.depth * 0.5f;
+
+	float32 min_x = -half_width;
+	float32 min_y = -half_height;
+	float32 min_z = -half_depth;
+	float32 max_x = half_width;
+	float32 max_y = half_height;
+	float32 max_z = half_depth;
+	float32 min_uvx = 0.0f;
+	float32 min_uvy = 0.0f;
+	float32 max_uvx = tiling.x;
+	float32 max_uvy = tiling.y;
+
+	out_config->extents.min.x = min_x;
+	out_config->extents.min.y = min_y;
+	out_config->extents.min.z = min_z;
+	out_config->extents.max.x = max_x;
+	out_config->extents.max.y = max_y;
+	out_config->extents.max.z = max_z;
+
+	out_config->center = VEC3_ZERO;
+
+	SarrayRef<Renderer::Vertex3D> verts_ref(config_vertices, sizeof(config_vertices));
+
+	// Front
+	verts_ref[(0 * 4) + 0].position = { min_x, min_y, max_z };
+	verts_ref[(0 * 4) + 1].position = { max_x, max_y, max_z };
+	verts_ref[(0 * 4) + 2].position = { min_x, max_y, max_z };
+	verts_ref[(0 * 4) + 3].position = { max_x, min_y, max_z };
+	verts_ref[(0 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+	verts_ref[(0 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+	verts_ref[(0 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+	verts_ref[(0 * 4) + 3].tex_coords = { max_uvx, min_uvy };
+	verts_ref[(0 * 4) + 0].normal = { 0.0f, 0.0f, 1.0f };
+	verts_ref[(0 * 4) + 1].normal = { 0.0f, 0.0f, 1.0f };
+	verts_ref[(0 * 4) + 2].normal = { 0.0f, 0.0f, 1.0f };
+	verts_ref[(0 * 4) + 3].normal = { 0.0f, 0.0f, 1.0f };
+
+	//Back
+	verts_ref[(1 * 4) + 0].position = { max_x, min_y, min_z };
+	verts_ref[(1 * 4) + 1].position = { min_x, max_y, min_z };
+	verts_ref[(1 * 4) + 2].position = { max_x, max_y, min_z };
+	verts_ref[(1 * 4) + 3].position = { min_x, min_y, min_z };
+	verts_ref[(1 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+	verts_ref[(1 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+	verts_ref[(1 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+	verts_ref[(1 * 4) + 3].tex_coords = { max_uvx, min_uvy };
+	verts_ref[(1 * 4) + 0].normal = { 0.0f, 0.0f, -1.0f };
+	verts_ref[(1 * 4) + 1].normal = { 0.0f, 0.0f, -1.0f };
+	verts_ref[(1 * 4) + 2].normal = { 0.0f, 0.0f, -1.0f };
+	verts_ref[(1 * 4) + 3].normal = { 0.0f, 0.0f, -1.0f };
+
+	//Left
+	verts_ref[(2 * 4) + 0].position = { min_x, min_y, min_z };
+	verts_ref[(2 * 4) + 1].position = { min_x, max_y, max_z };
+	verts_ref[(2 * 4) + 2].position = { min_x, max_y, min_z };
+	verts_ref[(2 * 4) + 3].position = { min_x, min_y, max_z };
+	verts_ref[(2 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+	verts_ref[(2 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+	verts_ref[(2 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+	verts_ref[(2 * 4) + 3].tex_coords = { max_uvx, min_uvy };
+	verts_ref[(2 * 4) + 0].normal = { -1.0f, 0.0f, 0.0f };
+	verts_ref[(2 * 4) + 1].normal = { -1.0f, 0.0f, 0.0f };
+	verts_ref[(2 * 4) + 2].normal = { -1.0f, 0.0f, 0.0f };
+	verts_ref[(2 * 4) + 3].normal = { -1.0f, 0.0f, 0.0f };
+
+	//Right
+	verts_ref[(3 * 4) + 0].position = { max_x, min_y, max_z };
+	verts_ref[(3 * 4) + 1].position = { max_x, max_y, min_z };
+	verts_ref[(3 * 4) + 2].position = { max_x, max_y, max_z };
+	verts_ref[(3 * 4) + 3].position = { max_x, min_y, min_z };
+	verts_ref[(3 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+	verts_ref[(3 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+	verts_ref[(3 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+	verts_ref[(3 * 4) + 3].tex_coords = { max_uvx, min_uvy };
+	verts_ref[(3 * 4) + 0].normal = { 1.0f, 0.0f, 0.0f };
+	verts_ref[(3 * 4) + 1].normal = { 1.0f, 0.0f, 0.0f };
+	verts_ref[(3 * 4) + 2].normal = { 1.0f, 0.0f, 0.0f };
+	verts_ref[(3 * 4) + 3].normal = { 1.0f, 0.0f, 0.0f };
+
+	//Bottom
+	verts_ref[(4 * 4) + 0].position = { max_x, min_y, max_z };
+	verts_ref[(4 * 4) + 1].position = { min_x, min_y, min_z };
+	verts_ref[(4 * 4) + 2].position = { max_x, min_y, min_z };
+	verts_ref[(4 * 4) + 3].position = { min_x, min_y, max_z };
+	verts_ref[(4 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+	verts_ref[(4 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+	verts_ref[(4 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+	verts_ref[(4 * 4) + 3].tex_coords = { max_uvx, min_uvy };
+	verts_ref[(4 * 4) + 0].normal = { 0.0f, -1.0f, 0.0f };
+	verts_ref[(4 * 4) + 1].normal = { 0.0f, -1.0f, 0.0f };
+	verts_ref[(4 * 4) + 2].normal = { 0.0f, -1.0f, 0.0f };
+	verts_ref[(4 * 4) + 3].normal = { 0.0f, -1.0f, 0.0f };
+
+	//Top
+	verts_ref[(5 * 4) + 0].position = { min_x, max_y, max_z };
+	verts_ref[(5 * 4) + 1].position = { max_x, max_y, min_z };
+	verts_ref[(5 * 4) + 2].position = { min_x, max_y, min_z };
+	verts_ref[(5 * 4) + 3].position = { max_x, max_y, max_z };
+	verts_ref[(5 * 4) + 0].tex_coords = { min_uvx, min_uvy };
+	verts_ref[(5 * 4) + 1].tex_coords = { max_uvx, max_uvy };
+	verts_ref[(5 * 4) + 2].tex_coords = { min_uvx, max_uvy };
+	verts_ref[(5 * 4) + 3].tex_coords = { max_uvx, min_uvy };
+	verts_ref[(5 * 4) + 0].normal = { 0.0f, 1.0f, 0.0f };
+	verts_ref[(5 * 4) + 1].normal = { 0.0f, 1.0f, 0.0f };
+	verts_ref[(5 * 4) + 2].normal = { 0.0f, 1.0f, 0.0f };
+	verts_ref[(5 * 4) + 3].normal = { 0.0f, 1.0f, 0.0f };
+
+	SarrayRef<uint32> indices_ref(config_indices, sizeof(config_indices));
+	for (uint32 i = 0; i < 6; ++i) 
+	{
+		uint32 v_offset = i * 4;
+		uint32 i_offset = i * 6;
+		indices_ref[i_offset + 0] = v_offset + 0;
+		indices_ref[i_offset + 1] = v_offset + 1;
+		indices_ref[i_offset + 2] = v_offset + 2;
+		indices_ref[i_offset + 3] = v_offset + 0;
+		indices_ref[i_offset + 4] = v_offset + 3;
+		indices_ref[i_offset + 5] = v_offset + 1;
+	}
+
+	Renderer::geometry_generate_tangents<Renderer::Vertex3D>(vertex_count, config_vertices, index_count, config_indices);
 }
