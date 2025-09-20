@@ -1,7 +1,4 @@
 #include "RendererFrontend.hpp"
-#include "renderer/Utility.hpp"
-
-#include "optick.h"
 
 namespace Renderer
 {
