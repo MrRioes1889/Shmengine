@@ -444,17 +444,21 @@ enum class TextureType : uint8
 
 struct TextureConfig
 {
+	const char* name;
 	uint8 channel_count;
-	bool8 has_transparency;
+	TextureFlags::Value flags;
+	TextureType type;
 	uint32 width;
 	uint32 height;
-	uint8* pixels;
+	uint32 pre_initialized_data_size;
+	void* pre_initialized_data;
 };
 
 struct Texture
 {
 	char name[Constants::max_texture_name_length];
 	TextureType type;
+	ResourceState state;
 	TextureFlags::Value flags;
 	uint8 channel_count;
 	uint32 width;

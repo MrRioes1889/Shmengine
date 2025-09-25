@@ -18,7 +18,5 @@ namespace ResourceSystem
 {
 	bool8 texture_loader_load(const char* resource_name, bool8 flip_y, TextureResourceData* out_resource);
 	void texture_loader_unload(TextureResourceData* resource);
-
-	TextureConfig texture_loader_get_config_from_resource(TextureResourceData* resource);
 }
 

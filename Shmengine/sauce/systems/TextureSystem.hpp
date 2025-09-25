@@ -23,7 +23,6 @@ namespace TextureSystem
 	SHMAPI Texture* acquire_writable(const char* name, uint32 width, uint32 height, uint8 channel_count, bool8 has_transparency);
 
 	SHMAPI bool8 wrap_internal(const char* name, uint32 width, uint32 height, uint8 channel_count, bool8 has_transparency, bool8 is_writable, bool8 register_texture, void* internal_data, uint64 internal_data_size, Texture* out_texture);
-	SHMAPI bool8 set_internal(Texture* t, void* internal_data, uint64 internal_data_size);
 	SHMAPI bool8 resize(Texture* t, uint32 width, uint32 height, bool8 regenerate_internal_data);
 	SHMAPI void write_to_texture(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
 
@@ -33,8 +32,6 @@ namespace TextureSystem
 	SHMAPI Texture* get_default_diffuse_texture();
 	SHMAPI Texture* get_default_specular_texture();
 	SHMAPI Texture* get_default_normal_texture();
-
-	SHMAPI void sleep_until_all_textures_loaded();
 }
 
 

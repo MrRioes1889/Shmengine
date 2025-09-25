@@ -245,7 +245,6 @@ namespace Renderer::Vulkan
 
 	void shutdown()
 	{		
-
 		vkDeviceWaitIdle(context->device.logical_device);
 
 		SHMDEBUG("Destroying vulkan semaphores and fences...");
@@ -319,7 +318,6 @@ namespace Renderer::Vulkan
 
 	bool8 vk_begin_frame(const FrameData* frame_data)
 	{
-		
 		OPTICK_EVENT();
 
 		VulkanDevice* device = &context->device;
@@ -378,12 +376,10 @@ namespace Renderer::Vulkan
 		vk_set_scissor(context->scissor_rect);
 
 		return true;
-
 	}
 
 	bool8 vk_end_frame(const FrameData* frame_data)
 	{
-				
 		VulkanCommandBuffer* cmd = &context->graphics_command_buffers[context->bound_framebuffer_index];
 		
 		vk_command_buffer_end(cmd);
@@ -431,7 +427,6 @@ namespace Renderer::Vulkan
 			process_task(*context->end_of_frame_task_queue.dequeue());
 
 		return true;
-
 	}
 
 	void vk_set_viewport(Math::Vec4f rect)

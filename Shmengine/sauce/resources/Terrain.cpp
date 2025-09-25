@@ -63,16 +63,15 @@ bool8 terrain_init(TerrainConfig* config, Terrain* out_terrain)
 			SHMERROR("Failed to load heightmap for terrain!");
 			return false;
 		}
-		TextureConfig texture_config = ResourceSystem::texture_loader_get_config_from_resource(&resource);
 
-		out_terrain->tile_count_x = texture_config.width - 1;
-		out_terrain->tile_count_z = texture_config.height - 1;
+		out_terrain->tile_count_x = resource.width - 1;
+		out_terrain->tile_count_z = resource.height - 1;
 		geometry_config.vertex_count = (out_terrain->tile_count_x + 1) * (out_terrain->tile_count_z + 1);
 		out_terrain->vertex_infos.init(geometry_config.vertex_count, 0);
 
 		for (uint32 i = 0; i < geometry_config.vertex_count; i++)
 		{
-			uint8 r = texture_config.pixels[(i * 4) + 0];
+			uint8 r = ((uint8*)resource.pixels.data)[(i * 4) + 0];
 			float32 height = r / 255.0f;
 			out_terrain->vertex_infos[i].height = height;
 			if (height > geometry_config.extents.max.y)

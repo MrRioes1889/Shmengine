@@ -89,8 +89,8 @@ namespace CString
 		return written_count;
 	}
 
-	char* to_string(uint32 val) {
-
+	char* to_string(uint32 val) 
+	{
 		uint32 base = 10;
 		static char buf[64] = {};
 
@@ -104,11 +104,10 @@ namespace CString
 			buf[i--] = '0';
 
 		return &buf[i + 1];
-
 	}
 
-	char* to_string(uint64 val) {
-
+	char* to_string(uint64 val) 
+	{
 		uint32 base = 10;
 		static char buf[64] = {};
 
@@ -122,12 +121,11 @@ namespace CString
 			buf[i--] = '0';
 
 		return &buf[i + 1];
-
 	}
 
 	// NOTE: Could take the base to get different number formats
-	char* to_string(int32 val) {
-
+	char* to_string(int32 val) 
+	{
 		uint32 base = 10;
 		static char buf[64] = {};
 		bool8 is_neg = (val < 0);
@@ -146,11 +144,10 @@ namespace CString
 			buf[i--] = '0';
 
 		return &buf[i + 1];
-
 	}
 
-	char* to_string(int64 val) {
-
+	char* to_string(int64 val) 
+	{
 		uint32 base = 10;
 		static char buf[64] = {};
 		bool8 is_neg = (val < 0);
@@ -169,11 +166,59 @@ namespace CString
 			buf[i--] = '0';
 
 		return &buf[i + 1];
-
 	}
 
-	char* to_string(float32 val, int32 decimals) {
+	char* to_string(float32 val, int32 decimals) 
+	{
+		int32 base = 10;
+		int32 leading_zeroes = 0;
+		for (int32 i = 0; i < decimals; i++)
+		{
+			if (val < 1.0f && val > -1.0f)
+				leading_zeroes++;
+			val *= 10;
+		}
 
+		// NOTE: Accounting for pre-comma zero
+		if (val < 1.0f && val > -1.0f && val != 0.0f)
+			leading_zeroes++;
+
+		static char buf[64] = {};
+		bool8 is_neg = (val < 0);
+		int64 value = Math::round_f_to_i64(is_neg ? -val : val);
+
+		int32 i = 62;
+
+		if (leading_zeroes)
+			decimals = -1;
+
+		for (; value && i; value /= base)
+		{
+			buf[i--] = "0123456789abcdef"[value % base];
+			decimals--;
+			if (decimals == 0)
+				buf[i--] = '.';
+		}
+
+		for (int32 j = 0; j < leading_zeroes - 1; j++)
+		{
+			buf[i--] = '0';
+		}
+		if (leading_zeroes)
+		{
+			buf[i--] = '.';
+			buf[i--] = '0';
+			leading_zeroes--;
+		}
+
+		if (is_neg)
+			buf[i--] = '-';
+
+		return &buf[i + 1];
+	}
+
+	char* to_string(float64 val, int32 decimals) 
+	{
 		int32 base = 10;
 		int32 leading_zeroes = 0;
 		for (int32 i = 0; i < decimals; i++)
@@ -221,59 +266,6 @@ namespace CString
 			buf[i--] = '-';
 
 		return &buf[i + 1];
-
-	}
-
-	char* to_string(float64 val, int32 decimals) {
-
-		int32 base = 10;
-		int32 leading_zeroes = 0;
-		for (int32 i = 0; i < decimals; i++)
-		{
-			if (val < 1.0f && val > -1.0f)
-				leading_zeroes++;
-			val *= 10;
-		}
-
-		// NOTE: Accounting for pre-comma zero
-		if (val < 1.0f && val > -1.0f && val != 0.0f)
-			leading_zeroes++;
-
-		static char buf[64] = {};
-		bool8 is_neg = (val < 0);
-		int64 value = Math::round_f_to_i64(is_neg ? -val : val);
-
-		int32 i = 62;
-
-		if (leading_zeroes)
-		{
-			decimals = -1;
-		}
-
-		for (; value && i; value /= base)
-		{
-			buf[i--] = "0123456789abcdef"[value % base];
-			decimals--;
-			if (decimals == 0)
-				buf[i--] = '.';
-		}
-
-		for (int32 j = 0; j < leading_zeroes - 1; j++)
-		{
-			buf[i--] = '0';
-		}
-		if (leading_zeroes)
-		{
-			buf[i--] = '.';
-			buf[i--] = '0';
-			leading_zeroes--;
-		}
-
-		if (is_neg)
-			buf[i--] = '-';
-
-		return &buf[i + 1];
-
 	}
 
 	bool8 equal(const char* a, const char* b)

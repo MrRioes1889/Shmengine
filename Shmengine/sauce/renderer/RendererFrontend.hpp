@@ -41,12 +41,13 @@ namespace Renderer
 	SHMAPI bool8 renderpass_begin(RenderPass* pass, RenderTarget* target);
 	SHMAPI bool8 renderpass_end(RenderPass* pass);
 
-	SHMAPI bool8 texture_init(Texture* texture);
+	SHMAPI bool8 texture_init(TextureConfig* config, Texture* out_texture);
+	SHMAPI bool8 texture_init_from_resource_async(const char* name, TextureType type, Texture* out_texture);
+	SHMAPI bool8 texture_destroy(Texture* texture);
 	SHMAPI void texture_resize(Texture* texture, uint32 width, uint32 height);
 	SHMAPI bool8 texture_write_data(Texture* t, uint32 offset, uint32 size, const uint8* pixels);
 	SHMAPI bool8 texture_read_data(Texture* t, uint32 offset, uint32 size, void* out_memory);
 	SHMAPI bool8 texture_read_pixel(Texture* t, uint32 x, uint32 y, uint32* out_rgba);
-	SHMAPI void texture_destroy(Texture* texture);
 
 	SHMAPI bool8 geometry_init(GeometryConfig* config, GeometryData* g);
 	SHMAPI void geometry_destroy(GeometryData* g);

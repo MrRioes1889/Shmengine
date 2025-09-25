@@ -356,16 +356,17 @@ bool8 render_view_pick_regenerate_attachment_target(const RenderView* self, uint
 	uint32 height = self->renderpasses[pass_index].dim.height;
 	bool8 has_transparency = false;
 
-	attachment->texture->type = TextureType::Plane;
-	CString::copy(texture_name, attachment->texture->name, Constants::max_texture_name_length);
-	attachment->texture->width = width;
-	attachment->texture->height = height;
-	attachment->texture->channel_count = 4;
-	attachment->texture->flags |= has_transparency ? TextureFlags::HasTransparency : 0;
+	TextureConfig config = {};
+	config.name = texture_name;
+	config.type = TextureType::Plane;
+	config.width = width;
+	config.height = height;
+	config.channel_count = 4;
+	config.flags = has_transparency ? TextureFlags::HasTransparency : 0;
 	if (attachment->type == Renderer::RenderTargetAttachmentType::DEPTH)
-		attachment->texture->flags |= TextureFlags::IsDepth;
+		config.flags |= TextureFlags::IsDepth;
 
-	Renderer::texture_init(attachment->texture);
+	Renderer::texture_init(&config, attachment->texture);
 
 	return true;
 }

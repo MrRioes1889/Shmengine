@@ -75,11 +75,8 @@ namespace Renderer::Vulkan
 		}
 	}
 
-
-
 	void vk_image_view_create(TextureType type, VkFormat format, VulkanImage* image, VkImageAspectFlags aspect_flags)
 	{
-
 		VkImageViewCreateInfo view_create_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 		view_create_info.image = image->handle;
 		switch (type)
@@ -106,12 +103,10 @@ namespace Renderer::Vulkan
 		view_create_info.subresourceRange.layerCount = type == TextureType::Cube ? 6 : 1;
 
 		VK_CHECK(vkCreateImageView(context->device.logical_device, &view_create_info, context->allocator_callbacks, &image->view));
-
 	}
 
 	void vk_image_transition_layout(TextureType type, VulkanCommandBuffer* command_buffer, VulkanImage* image, VkFormat format, VkImageLayout new_layout)
 	{
-
 		VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 		barrier.oldLayout = image->layout;
 		barrier.newLayout = new_layout;
@@ -204,12 +199,10 @@ namespace Renderer::Vulkan
 
 		image->layout = new_layout;
 		vkCmdPipelineBarrier(command_buffer->handle, source_stage, dest_stage, 0, 0, 0, 0, 0, 1, &barrier);
-
 	}
 
 	void vk_image_copy_from_buffer(TextureType type, VulkanImage* image, VkBuffer buffer, VulkanCommandBuffer* command_buffer)
 	{
-
 		VkBufferImageCopy region = {};
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;
@@ -225,12 +218,10 @@ namespace Renderer::Vulkan
 		region.imageExtent.depth = 1;
 
 		vkCmdCopyBufferToImage(command_buffer->handle, buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
 	}
 
 	void vk_image_destroy(VulkanImage* image)
 	{
-
 		if (image->view)
 			vkDestroyImageView(context->device.logical_device, image->view, context->allocator_callbacks);
 
@@ -246,7 +237,6 @@ namespace Renderer::Vulkan
 		image->view = 0;
 		image->memory = 0;
 		image->handle = 0;
-
 	}
 
 	void vk_image_copy_to_buffer(TextureType type, VulkanImage* image, VkBuffer buffer, VulkanCommandBuffer* command_buffer)

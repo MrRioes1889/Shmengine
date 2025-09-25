@@ -92,16 +92,5 @@ namespace ResourceSystem
 		resource->pixels.free_data();
 	}
 
-	TextureConfig texture_loader_get_config_from_resource(TextureResourceData* resource)
-	{
-		TextureConfig config =
-		{
-			.channel_count = resource->channel_count,
-			.width = resource->width,
-			.height = resource->height,
-			.pixels = (uint8*)resource->pixels.data
-		};
-		return config;
-	}
 
 }
