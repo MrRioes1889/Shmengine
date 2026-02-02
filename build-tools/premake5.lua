@@ -2,32 +2,33 @@ workspace "Shmengine"
     architecture "x64"
     configurations {"Debug", "ODebug", "Release"}
     location "../"
-    startproject "Sandbox"
 
-outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}/Sandbox/"
-engine_name = "Shmengine"
-app_name = "Application"
-tests_name = "Tests"
-vulkan_renderer_module_name = "M_VulkanRenderer"
-sandbox_app_module_name = "A_Sandbox" 
-sandbox2D_app_module_name = "A_Sandbox2D"
-compiler = "msc"
-workspace_dir = "%{wks.location}"
+    outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}/Sandbox/"
+    engine_name = "Shmengine"
+    app_name = "Application"
+    tests_name = "Tests"
+    vulkan_renderer_module_name = "M_VulkanRenderer"
+    sandbox_app_module_name = "A_Sandbox" 
+    sandbox2D_app_module_name = "A_Sandbox2D"
+    compiler = "msc"
+    workspace_dir = "%{wks.location}"
 
-common_premake_flags = {"FatalWarnings", "MultiProcessorCompile"}
+    common_premake_flags = {"FatalWarnings", "MultiProcessorCompile"}
 
-common_msvc_compiler_flags = {"/permissive-", "/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011", "/wd4251"}
-common_clang_compiler_flags = {
-    "-Wno-missing-braces", 
-    "-Wno-reorder-ctor", 
-    "-Wno-unused-variable", 
-    "-Wno-unused-but-set-variable", 
-    "-Wno-nonportable-include-path", 
-    "-Wno-unused-function", 
-    "-Wno-unused-parameter", 
-    "-Wno-missing-field-initializers"}
+    common_msvc_compiler_flags = {"/permissive-", "/fp:except", "/wd4005", "/wd4100", "/wd4189", "/wd4201", "/wd4505", "/wd6011", "/wd4251"}
+    common_clang_compiler_flags = {
+        "-Wno-missing-braces", 
+        "-Wno-reorder-ctor", 
+        "-Wno-unused-variable", 
+        "-Wno-unused-but-set-variable", 
+        "-Wno-nonportable-include-path", 
+        "-Wno-unused-function", 
+        "-Wno-unused-parameter", 
+        "-Wno-missing-field-initializers"}
 
-IncludeDir = {}
+    IncludeDir = {}
+
+    startproject (app_name)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
