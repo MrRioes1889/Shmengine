@@ -158,12 +158,12 @@ namespace Renderer
 		case TextureType::Cube:
 		{
 			char texture_names[6][Constants::max_texture_name_length];
-			CString::safe_print_s<const char*>(texture_names[0], Constants::max_texture_name_length, "%s_r", config.name);
-			CString::safe_print_s<const char*>(texture_names[1], Constants::max_texture_name_length, "%s_l", config.name);
-			CString::safe_print_s<const char*>(texture_names[2], Constants::max_texture_name_length, "%s_u", config.name);
-			CString::safe_print_s<const char*>(texture_names[3], Constants::max_texture_name_length, "%s_d", config.name);
-			CString::safe_print_s<const char*>(texture_names[4], Constants::max_texture_name_length, "%s_f", config.name);
-			CString::safe_print_s<const char*>(texture_names[5], Constants::max_texture_name_length, "%s_b", config.name);
+			CString::safe_print_s(texture_names[0], Constants::max_texture_name_length, "%s_r", config.name);
+			CString::safe_print_s(texture_names[1], Constants::max_texture_name_length, "%s_l", config.name);
+			CString::safe_print_s(texture_names[2], Constants::max_texture_name_length, "%s_u", config.name);
+			CString::safe_print_s(texture_names[3], Constants::max_texture_name_length, "%s_d", config.name);
+			CString::safe_print_s(texture_names[4], Constants::max_texture_name_length, "%s_f", config.name);
+			CString::safe_print_s(texture_names[5], Constants::max_texture_name_length, "%s_b", config.name);
 
 			TextureResourceData resources[6] = {};
 			bool8 resource_load_success = true;
