@@ -140,6 +140,9 @@ namespace Renderer
 			config.channel_count = resource.channel_count;
 			config.width = resource.width;
 			config.height = resource.height;
+			load_params->pixels.init((uint32)resource.pixels.size, 0);
+			load_params->pixels.copy_memory(resource.pixels.data, (uint32)resource.pixels.size, 0);
+
 			for (uint64 i = 0; i < load_params->pixels.capacity; i += config.channel_count)
 			{
 				uint8 a = load_params->pixels[i + 3];
@@ -149,9 +152,7 @@ namespace Renderer
 					break;
 				}
 			}
-
-			load_params->pixels.init((uint32)resource.pixels.size, 0);
-			load_params->pixels.copy_memory(resource.pixels.data, (uint32)resource.pixels.size, 0);
+			
 			ResourceSystem::texture_loader_unload(&resource);
 			break;
 		}

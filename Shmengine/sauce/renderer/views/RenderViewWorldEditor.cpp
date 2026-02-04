@@ -220,7 +220,7 @@ bool8 render_view_world_editor_on_render(RenderView* self, FrameData* frame_data
 	Renderer::shader_use(coordinate_grid_shader);
 	Renderer::shader_bind_globals(coordinate_grid_shader);
 
-	//Renderer::geometry_draw(&internal_data->coordinate_grid.geometry);
+	Renderer::geometry_draw(&internal_data->coordinate_grid.geometry);
 
 	if (!Renderer::renderpass_end(renderpass))
 	{

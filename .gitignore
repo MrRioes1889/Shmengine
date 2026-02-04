@@ -8,3 +8,6 @@ bin-int/*
 *.pdb
 Makefile*
 */Intel® VTune™ Profiler Results/*
+sponza-capture.png
+falchon_capture.png
+debug.log

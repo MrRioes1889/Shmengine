@@ -86,6 +86,7 @@ struct Scene
 	ResourceState state;
 
 	bool8 enabled;
+	bool8 draw_skybox;
 
 	String name;
 	String description;

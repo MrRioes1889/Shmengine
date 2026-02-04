@@ -213,7 +213,7 @@ namespace ResourceSystem
             if (scope == ParserScope::Scene)
             {
                 // Process the variable.
-                if (var_name.equal_i("version"))
+                if (var_name.equal_i("parser_version"))
                 {
                     // TODO: version
                 }

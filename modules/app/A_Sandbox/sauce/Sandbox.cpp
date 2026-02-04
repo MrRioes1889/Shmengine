@@ -197,13 +197,14 @@ bool8 application_update(FrameData* frame_data)
 		Mesh* cube1 = scene_get_mesh(&app_state->main_scene, "cube_1");
 		Mesh* cube2 = scene_get_mesh(&app_state->main_scene, "cube_2");
 		Mesh* cube3 = scene_get_mesh(&app_state->main_scene, "cube_3");
-		PointLight* p_light = scene_get_point_light(&app_state->main_scene, 0);
+		//PointLight* p_light = scene_get_point_light(&app_state->main_scene, 0);
 		
 		Math::Quat rotation = Math::quat_from_axis_angle(VEC3F_UP, 1.5f * (float32)frame_data->delta_time, true);
 		/*Math::transform_rotate(cube1->transform, rotation);
 		Math::transform_rotate(cube2->transform, rotation);
 		Math::transform_rotate(cube3->transform, rotation);*/
 
+		/*
 		p_light->color =
 		{
 			clamp(Math::sin((float32)frame_data->total_time * 0.75f), 0.0f, 1.0f),
@@ -213,6 +214,7 @@ bool8 application_update(FrameData* frame_data)
 		};
 		static float32 starting_position = p_light->position.z;
 		p_light->position.z = starting_position + Math::sin((float32)frame_data->total_time);
+		*/
 	}	
 
 	static float64 last_frametime = 0.0;
@@ -269,7 +271,7 @@ bool8 application_render(FrameData* frame_data)
 
 	RenderViewSystem::lines3D_draw(app_state->test_raycast_lines.data, app_state->test_raycast_lines.count, frame_data);
 
-	RenderViewSystem::gizmo3D_draw(&app_state->editor_gizmo, frame_data, app_state->world_camera);
+	//RenderViewSystem::gizmo3D_draw(&app_state->editor_gizmo, frame_data, app_state->world_camera);
 
 	//RenderViewSystem::meshes_draw(app_state->ui_meshes.data, app_state->ui_meshes.count, {}, frame_data, 0, ui_view_id, ui_shader_id);
 

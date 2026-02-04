@@ -106,7 +106,11 @@ void ui_text_set_position(UIText* ui_text, Math::Vec3f position)
 
 void ui_text_set_text(UIText* ui_text, const char* text, uint32 offset, uint32 length)
 {   
-    SHMASSERT(offset < CString::length(text));
+    uint32 c_length = CString::length(text);
+    SHMASSERT(offset < c_length);
+    if (length == Constants::max_u32)
+        length = c_length;
+
     ui_text->text.copy_n(&text[offset], length);
     ui_text->is_dirty = true;
 }

@@ -129,7 +129,7 @@ void String::reserve(uint32 reserve_size)
 
 void String::copy_n(const char* s, uint32 length)
 {
-	uint32 reserve_size = SHMIN(length, CString::length(s));
+	uint32 reserve_size = length;
 	reserve(reserve_size);
 
 	arr.count = CString::copy(s, arr.data, arr.capacity, (int32)length);

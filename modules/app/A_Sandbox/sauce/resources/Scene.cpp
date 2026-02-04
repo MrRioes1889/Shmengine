@@ -30,6 +30,7 @@ bool8 scene_init(SceneConfig* config, Scene* out_scene)
 	out_scene->name = config->name;
 	out_scene->description = config->description;
 	out_scene->enabled = false;
+	out_scene->draw_skybox = false;
 
 	out_scene->transform = config->transform;
 
@@ -46,6 +47,7 @@ bool8 scene_init(SceneConfig* config, Scene* out_scene)
 			SHMERROR("Failed to create skybox.");
 			return false;
 		}
+		out_scene->draw_skybox = true;
 	}
 	
 	if (config->dir_light_count)
@@ -212,7 +214,7 @@ bool8 scene_update(Scene* scene)
 	{
 		bool8 objects_initialized = true;
 
-		if (scene->skybox.state != ResourceState::Initialized)
+		if (scene->draw_skybox && scene->skybox.state != ResourceState::Initialized)
 			objects_initialized = false;
 
 		for (uint32 i = 0; i < scene->meshes.count; i++)
@@ -506,7 +508,7 @@ Terrain* scene_get_terrain(Scene* scene, const char* name)
 
 DirectionalLight* scene_get_dir_light(Scene* scene, uint32 index)
 {
-	if (index > scene->dir_lights.count - 1)
+	if (index >= scene->dir_lights.count)
 		return 0;
 
 	return &scene->dir_lights[index];
@@ -514,7 +516,7 @@ DirectionalLight* scene_get_dir_light(Scene* scene, uint32 index)
 
 PointLight* scene_get_point_light(Scene* scene, uint32 index)
 {
-	if (index > scene->p_lights.count - 1)
+	if (index >= scene->p_lights.count)
 		return 0;
 
 	return &scene->p_lights[index];
