@@ -27,10 +27,10 @@ typedef uint32 UniqueId;
 typedef void* (*FP_allocator_allocate_callback)(uint64 size);
 
 #ifdef _MSC_VER
-#define SHMINLINE __forceinline
+#define SHMINLINE inline
 #define SHMNOINLINE __declspec(noinline)
 #else
-#define SHMINLINE static inline
+#define SHMINLINE inline
 #define SHMNOINLINE
 #endif
 

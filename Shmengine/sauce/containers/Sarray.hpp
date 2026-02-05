@@ -222,7 +222,7 @@ SHMINLINE void Sarray<T>::clear()
 }
 
 template<typename T>
-inline SHMINLINE T* Sarray<T>::transfer_data()
+SHMINLINE T* Sarray<T>::transfer_data()
 {
 	T* ret = data;
 

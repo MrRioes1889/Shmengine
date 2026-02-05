@@ -81,6 +81,7 @@ namespace Platform
 
 	void* zero_memory(void* mem, uint64 size);
 	void* copy_memory(const void* source, void* dest, uint64 size);
+	void* move_memory(const void* source, void* dest, uint64 size);
 	void* set_memory(void* dest, int32 value, uint64 size);
 
 	SHMAPI Platform::ReturnCode register_file_watch(const char* path, uint32* out_watch_id);

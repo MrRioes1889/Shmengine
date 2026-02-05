@@ -162,7 +162,7 @@ void DebugConsole::on_module_unload()
 	Console::unregister_command("quit");
 }
 
-static inline void console_add_line(DebugConsole* console, uint16 message_length)
+static SHMINLINE void console_add_line(DebugConsole* console, uint16 message_length)
 {
 	uint32 line_remove_count = SHMAX(console->lines_limit / 20, 1);
 

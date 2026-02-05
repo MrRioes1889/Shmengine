@@ -38,6 +38,7 @@ struct SHMAPI Buffer
 	{
 		steal(other);
 	};
+
 	SHMINLINE Buffer& operator=(Buffer&& other) noexcept
 	{
 		free_data();

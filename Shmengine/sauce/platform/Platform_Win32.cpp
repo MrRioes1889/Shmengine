@@ -286,6 +286,11 @@ namespace Platform
         return CopyMemory(dest, source, size);
     }
 
+    void* move_memory(const void* source, void* dest, uint64 size)
+    {
+        return MoveMemory(dest, source, size);
+    }
+
     void* set_memory(void* dest, int32 value, uint64 size)
     {
         return memset(dest, value, size);

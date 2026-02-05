@@ -265,13 +265,13 @@ SHMINLINE void Darray<T>::clear()
 }
 
 template<typename T>
-inline SHMINLINE void Darray<T>::resize()
+SHMINLINE void Darray<T>::resize()
 {
 	resize(capacity * DARRAY_RESIZE_FACTOR);
 }
 
 template<typename T>
-inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
+SHMINLINE void Darray<T>::resize(uint32 requested_size)
 {
 	SHMASSERT_MSG(!(flags & DarrayFlags::NonResizable) && !(flags & DarrayFlags::ExternalMemory), "Darray push exceeded size, but array has been flagged as non-resizable!");
 	SHMASSERT_MSG(capacity && data, "Cannot resize uninitialized array!");
@@ -290,7 +290,7 @@ inline SHMINLINE void Darray<T>::resize(uint32 requested_size)
 }
 
 template<typename T>
-inline SHMINLINE uint32 Darray<T>::push(const T& obj)
+SHMINLINE uint32 Darray<T>::push(const T& obj)
 {
 
 	if (!capacity)
@@ -306,7 +306,7 @@ inline SHMINLINE uint32 Darray<T>::push(const T& obj)
 }
 
 template<typename T>
-inline SHMINLINE uint32 Darray<T>::push(T&& obj)
+SHMINLINE uint32 Darray<T>::push(T&& obj)
 {
 
 	if (!capacity)
@@ -322,7 +322,7 @@ inline SHMINLINE uint32 Darray<T>::push(T&& obj)
 }
 
 template<typename T>
-inline SHMINLINE uint32 Darray<T>::push_steal(T& obj)
+SHMINLINE uint32 Darray<T>::push_steal(T& obj)
 {
 
 	if (!capacity)
@@ -339,7 +339,7 @@ inline SHMINLINE uint32 Darray<T>::push_steal(T& obj)
 }
 
 template<typename T>
-inline SHMINLINE void Darray<T>::pop()
+SHMINLINE void Darray<T>::pop()
 {
 
 	if (count <= 0)
@@ -354,7 +354,7 @@ inline SHMINLINE void Darray<T>::pop()
 }
 
 template<typename T>
-inline SHMINLINE T* Darray<T>::insert_at(const T& obj, uint32 index)
+SHMINLINE T* Darray<T>::insert_at(const T& obj, uint32 index)
 {
 
 	SHMASSERT_MSG(index <= count, "ERROR: Index is out of darray's scope!");
@@ -376,7 +376,7 @@ inline SHMINLINE T* Darray<T>::insert_at(const T& obj, uint32 index)
 }
 
 template<typename T>
-inline SHMINLINE void Darray<T>::remove_at(uint32 index)
+SHMINLINE void Darray<T>::remove_at(uint32 index)
 {
 
 	SHMASSERT_MSG(index < count, "ERROR: Index is out of darray's scope!");
@@ -398,7 +398,7 @@ inline SHMINLINE void Darray<T>::remove_at(uint32 index)
 }
 
 template<typename T>
-inline SHMINLINE T* Darray<T>::transfer_data()
+SHMINLINE T* Darray<T>::transfer_data()
 {
 	T* ret = data;
 

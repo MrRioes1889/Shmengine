@@ -204,13 +204,13 @@ SHMINLINE void Stack<T>::clear()
 }
 
 template<typename T>
-inline SHMINLINE void Stack<T>::resize()
+SHMINLINE void Stack<T>::resize()
 {
 	resize(capacity * STACK_RESIZE_FACTOR);
 }
 
 template<typename T>
-inline SHMINLINE void Stack<T>::resize(uint32 requested_size)
+SHMINLINE void Stack<T>::resize(uint32 requested_size)
 {
 	SHMASSERT_MSG(!(flags & StackFlags::NonResizable) && !(flags & StackFlags::ExternalMemory), "Stack push exceeded size, but array has been flagged as non-resizable!");
 	uint32 old_size = capacity;
@@ -224,7 +224,7 @@ inline SHMINLINE void Stack<T>::resize(uint32 requested_size)
 }
 
 template<typename T>
-inline SHMINLINE T* Stack<T>::push(const T& obj)
+SHMINLINE T* Stack<T>::push(const T& obj)
 {
 
 	if (count + 1 > capacity)
@@ -239,7 +239,7 @@ inline SHMINLINE T* Stack<T>::push(const T& obj)
 }
 
 template<typename T>
-inline SHMINLINE void Stack<T>::pop()
+SHMINLINE void Stack<T>::pop()
 {
 
 	if (count <= 0)
@@ -253,7 +253,7 @@ inline SHMINLINE void Stack<T>::pop()
 }
 
 template<typename T>
-inline SHMINLINE T* Stack<T>::transfer_data()
+SHMINLINE T* Stack<T>::transfer_data()
 {
 	T* ret = data;
 
