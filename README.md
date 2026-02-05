@@ -1,6 +1,8 @@
 # Shmengine (on hold)
-<img width="1593" height="928" alt="sponza-capture" src="https://github.com/user-attachments/assets/4ba54eb2-7590-40a3-8ff6-d3abd53d7e07" />
-<img width="1593" height="928" alt="falchon_capture" src="https://github.com/user-attachments/assets/242fbc11-c5d0-4972-8876-0192dfa10743" />
+<p align="center">
+  <img width="45%" alt="sponza-capture" src="https://github.com/user-attachments/assets/4ba54eb2-7590-40a3-8ff6-d3abd53d7e07" />
+  <img width="45%" alt="falchon_capture" src="https://github.com/user-attachments/assets/242fbc11-c5d0-4972-8876-0192dfa10743" />
+</p>
 
 ## About
 
