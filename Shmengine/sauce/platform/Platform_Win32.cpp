@@ -367,11 +367,20 @@ namespace Platform
         AllocConsole();
         return;
     }
+enum LogLevel 
+    {
+        LOG_LEVEL_FATAL = 0,
+        LOG_LEVEL_ERROR = 1,
+        LOG_LEVEL_WARN = 2,
+        LOG_LEVEL_INFO = 3,
+        LOG_LEVEL_DEBUG = 4,
+        LOG_LEVEL_TRACE = 5
+    };
 
     void console_write(const char* message, uint8 color)
     {
         HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-        static uint8 levels[6] = { 64, 4, 6, 2, 1, 8 };
+        static uint8 levels[6] = { BACKGROUND_RED, FOREGROUND_RED, FOREGROUND_GREEN | FOREGROUND_RED, FOREGROUND_GREEN, FOREGROUND_BLUE, FOREGROUND_INTENSITY };
         SetConsoleTextAttribute(console_handle, levels[color]);
         OutputDebugStringA(message);
         uint64 length = strlen(message);
@@ -670,7 +679,8 @@ namespace Platform
         {
             return DefWindowProcA(hwnd, msg, w_param, l_param);
         }
-        case 174: //???
+        // TODO: Mysterious code that gets fired but does not map to any defined window event. Probably should investigate.
+        case 174: 
         {
             return DefWindowProcA(hwnd, msg, w_param, l_param);
         }
