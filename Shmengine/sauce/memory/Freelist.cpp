@@ -94,17 +94,17 @@ bool8 Freelist::allocate_aligned(uint64 size, uint16 alignment, AllocationRefere
 	*alloc = {.byte_offset = Constants::max_u64, .byte_size = 0};
 
 	if (!size)
-		return alloc;
+		return false;
 
 	if ((uint16)page_size % alignment == 0)
 		alignment = 1;
 
 	if (alignment > 1 && (alignment % (uint16)page_size) != 0)
-		return alloc;
+		return false;
 
 	uint32 nodes_added = 1 + (alignment > 1 ? 1 : 0);
 	if ((nodes_count + nodes_added) > max_nodes_count)
-		return alloc;
+		return false;
 
 	uint16 page_alignment = alignment / (uint16)page_size;
 
@@ -122,13 +122,13 @@ bool8 Freelist::allocate_aligned(uint64 size, uint16 alignment, AllocationRefere
 		node_index = find_first_free_node(this, pages_needed, &page_index);
 
 	if (node_index < 0)
-		return alloc;
+		return false;
 
 	insert_reservation_at(this, (uint64)node_index, pages_needed, node_page_offset);
 
 	alloc->byte_size = pages_needed * (uint32)page_size;
 	alloc->byte_offset = (uint64)page_index * (uint32)page_size;
-	return alloc;
+	return true;
 }
 
 bool8 Freelist::free(uint64 offset, uint64* pages_freed)
