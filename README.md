@@ -6,7 +6,7 @@
 
 ## About
 
-<b>Disclaimer: This solo project is created for educational/recreational purposes exclusively and is subject to constant restructuring. Hence, most parts of the engine are not "fully-featured" and older parts of the codebase do contain some less well thought out solutions compared to newer ones. Currently put on hold for a redo, built using the Odin programming language!</b><br><br>
+<b>Disclaimer: This solo project is created for educational/recreational purposes exclusively and is subject to constant restructuring. Hence, most parts of the engine are not "fully featured" and some older codepaths do contain less well thought out solutions compared to newer ones. Currently put on hold for a redo, built using the Odin programming language!</b><br><br>
 This is an attempt at a high-performance 3D graphics engine with reasonably minimal third-party and standard-library dependencies.<br>
 Platform and lib specific code is strictly abstracted into small sections for keeping the codebase as dependency-agnostic as possible.<br>
 The general entry point is located in "Application/", the engine core in the one called "Shmengine/".<br>
